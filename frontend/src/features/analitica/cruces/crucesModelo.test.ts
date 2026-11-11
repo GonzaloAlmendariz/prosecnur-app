@@ -25,13 +25,13 @@ describe("cifras como el archivo", () => {
     expect(porcentajeDeCelda(null)).toBe("");
   });
 
-  it("la línea de base dice la proporción en su unidad: encuestados o registros, nunca casos", () => {
-    expect(textoDeBaseDeCruce(tablaDe(respuestaConPesos(), "D1_information"))).toBe("Marcó alguna opción el 43.6 % de los 1,281 encuestados");
-    expect(textoDeBaseDeCruce(tablaDe(respuestaConPesos(), "E6_impact"))).toBe("Respondió el 2.9 % de los 1,281 encuestados");
+  it("la línea de base dice conteo y porcentaje en su unidad, con la frase de Frecuencias: encuestados o registros, nunca casos", () => {
+    expect(textoDeBaseDeCruce(tablaDe(respuestaConPesos(), "D1_information"))).toBe("Marcaron alguna opción 559 de 1,281 encuestados (43.6 %)");
+    expect(textoDeBaseDeCruce(tablaDe(respuestaConPesos(), "E6_impact"))).toBe("Respondieron 37 de 1,281 encuestados (2.9 %)");
     const hija = tablaDe(respuestaBaseHija(), "srv_satisfaccion");
-    expect(textoDeBaseDeCruce(hija)).toBe("Respondió el 100.0 % de los 660 registros");
+    expect(textoDeBaseDeCruce(hija)).toBe("Respondieron 660 de 660 registros (100.0 %)");
     // Mutación: con la unidad de la respuesta y no la de la tabla, la tabla de grano encuestado diría "registros".
-    expect(textoDeBaseDeCruce(tablaDe(respuestaBaseHija(), "conocimiento"))).toBe("Respondió el 100.0 % de los 422 encuestados");
+    expect(textoDeBaseDeCruce(tablaDe(respuestaBaseHija(), "conocimiento"))).toBe("Respondieron 422 de 422 encuestados (100.0 %)");
     const sinDe: CrucesPreviewTabla = { ...hija, base: { ...hija.base, de: null } };
     expect(textoDeBaseDeCruce(sinDe)).toBe("Respondieron 660 registros");
     expect(textoDeBaseDeCruce({ ...hija, sin_datos: true })).toBeUndefined();
@@ -200,8 +200,9 @@ describe("avisos del servicio con su causa", () => {
       "\"¿En qué distrito vive actualmente?\" es de selección múltiple: cada columna cuenta solo a quienes marcaron esa única opción",
     );
 
-    // El modo no aplicado se dice bajo el control del modo (ModoDelArchivo), no en el pie.
-    expect(textos(conAviso(limpia(), { codigo: "modo_configurado_no_aplicado", mensaje: "x" }))).toEqual([]);
+    // El modo no aplicado va en el pie, con el texto del servicio: el control del modo salió de los ajustes
+    // porque hoy no cambia el archivo (pasada de fidelidad al prototipo).
+    expect(textos(conAviso(limpia(), { codigo: "modo_configurado_no_aplicado", mensaje: "El archivo sale en modo estándar." }))).toEqual(["El archivo sale en modo estándar."]);
 
     const sinCasos = { ...limpia(), exclusiones: [{ variable: "E2_sex", unidad: "encuestado" as const, categorias: [{ codigo: "Otro", filas: 0 }, { codigo: "3", filas: 2 }] }] };
     expect(textos(conAviso(sinCasos, { codigo: "exclusion_sin_casos", mensaje: "x" }))).toEqual([
@@ -304,5 +305,24 @@ describe("vacío, banda y botón", () => {
     // Una sola base, la activa, sin tablas: tampoco.
     const sola = { ...sinTablas, base: { ...sinTablas.base, bases_del_archivo: [sinTablas.base.nombre] } };
     expect(motivoSinGenerarCruces(lectura(sola), 2, listo)).toBe("El archivo no tendría tablas.");
+  });
+});
+
+describe("nombre corto de una variable de cruce", () => {
+  it("sale de la pregunta: sin signos ni interrogativo, cortado entre palabras, nunca a media palabra ni con puntos suspensivos", async () => {
+    const { nombreCortoDeVariable, NOMBRE_CORTO_MAXIMO } = await import("./crucesModelo");
+    expect(nombreCortoDeVariable("¿Cuál es su sexo?")).toBe("Sexo");
+    expect(nombreCortoDeVariable("¿En qué distrito vive actualmente?")).toBe("Distrito vive actualmente");
+    expect(nombreCortoDeVariable("¿Cuál es el nivel educativo más alto que ha completado?")).toBe("Nivel educativo más alto");
+    expect(nombreCortoDeVariable("Categoría docente")).toBe("Categoría docente");
+    // No termina en un conector.
+    expect(nombreCortoDeVariable("Satisfacción con la formación recibida en la universidad")).toBe("Satisfacción");
+    const largo = nombreCortoDeVariable("Las personas refugiadas suelen huir de su país debido a la violencia") ?? "";
+    expect(largo.length).toBeLessThanOrEqual(NOMBRE_CORTO_MAXIMO);
+    expect("Las personas refugiadas suelen huir de su país debido a la violencia".startsWith(largo)).toBe(true);
+    expect(largo).not.toMatch(/…|\.\.\.$/);
+    // Sin pregunta no inventa: el chip no muestra el nombre de la columna.
+    expect(nombreCortoDeVariable(null)).toBeNull();
+    expect(nombreCortoDeVariable("  ")).toBeNull();
   });
 });

@@ -6,6 +6,7 @@
 import { useCallback } from "react";
 
 import { apiAnaliticaColumnValues } from "../../../api/analitica";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { ChipSeleccion } from "../../../components/ChipSeleccion";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { useSession } from "../../../lib/SessionContext";
@@ -37,7 +38,10 @@ export function CategoriasDeCruce({ variable, etiqueta, excluidas, etiquetas, on
       </div>
     );
   }
-  if (valores.datos === null) return <p className="tablas-nota">Leyendo las categorías</p>;
+  // Mientras se leen las de esta variable no se muestran las de otra: `useLecturaPorBase` conserva lo último
+  // leído, y un clic sobre una categoría de la variable anterior la guardaría como exclusión de esta.
+  // La carga publica su marca en falso (CargaDeBloque): la vista no se da por lista con las categorías leyendo.
+  if (valores.fase === "leyendo" || valores.datos === null) return <CargaDeBloque label="Leyendo las categorías" />;
   if (valores.datos.length === 0) return <p className="tablas-nota">Sin categorías en la base.</p>;
   return (
     <>

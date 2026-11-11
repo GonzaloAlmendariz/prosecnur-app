@@ -54,30 +54,30 @@ describe("cifras de la vista previa: se formatean como el archivo, no se calcula
   it("con pesos la base dice el conteo sin ponderar, nunca casos ponderados", () => {
     const empleo = tablaReal("M4_employment");
     const medios = tablaReal("D1_information");
-    expect(textoDeBase(empleo.base, true)).toBe("Respondieron 1,283 de 1,283 casos (100.0 %)");
-    expect(textoDeBase(medios.base, true)).toBe("Marcaron alguna opción 560 de 1,283 casos (43.6 %)");
-    expect(textoDeBase({ n: 1250, de: 1283, denominador: "respondieron" }, true)).toBe("Respondieron 1,250 de 1,283 casos (97.4 %)");
-    expect(textoDeBase({ n: 552, de: 1283, denominador: "marcaron_alguna_opcion" }, true)).toBe("Marcaron alguna opción 552 de 1,283 casos (43.0 %)");
-    expect(`${textoDeBase(empleo.base, true)}${textoDeBase(medios.base, true)}`).not.toContain("ponderados");
+    expect(textoDeBase(empleo.base)).toBe("Respondieron 1,283 de 1,283 casos (100.0 %)");
+    expect(textoDeBase(medios.base)).toBe("Marcaron alguna opción 560 de 1,283 casos (43.6 %)");
+    expect(textoDeBase({ n: 1250, de: 1283, denominador: "respondieron" })).toBe("Respondieron 1,250 de 1,283 casos (97.4 %)");
+    expect(textoDeBase({ n: 552, de: 1283, denominador: "marcaron_alguna_opcion" })).toBe("Marcaron alguna opción 552 de 1,283 casos (43.0 %)");
+    expect(`${textoDeBase(empleo.base)}${textoDeBase(medios.base)}`).not.toContain("ponderados");
   });
 
   it("sin pesos la base dice la proporción para no repetir el Total", () => {
-    expect(textoDeBase({ n: 1250, de: 1283, denominador: "respondieron" }, false)).toBe("Respondió el 97.4 % de los 1,283 casos");
-    expect(textoDeBase({ n: 552, de: 1283, denominador: "marcaron_alguna_opcion" }, false)).toBe("Marcó alguna opción el 43.0 % de los 1,283 casos");
-    expect(textoDeBase(tablaReal("D1_information", false).base, false)).toBe("Marcó alguna opción el 43.6 % de los 1,283 casos");
+    expect(textoDeBase({ n: 1250, de: 1283, denominador: "respondieron" })).toBe("Respondieron 1,250 de 1,283 casos (97.4 %)");
+    expect(textoDeBase({ n: 552, de: 1283, denominador: "marcaron_alguna_opcion" })).toBe("Marcaron alguna opción 552 de 1,283 casos (43.0 %)");
+    expect(textoDeBase(tablaReal("D1_information", false).base)).toBe("Marcaron alguna opción 560 de 1,283 casos (43.6 %)");
   });
 
   it("concordancia con un caso y bases sin universo", () => {
-    expect(textoDeBase({ n: 1, de: 1, denominador: "respondieron" }, false)).toBe("Respondió el 100.0 % de 1 caso");
-    expect(textoDeBase({ n: 1, de: 1, denominador: "respondieron" }, true)).toBe("Respondieron 1 de 1 caso (100.0 %)");
-    expect(textoDeBase({ n: 1, de: 0, denominador: "respondieron" }, false)).toBe("Respondieron 1 caso");
-    expect(textoDeBase({ n: null, de: 10, denominador: "respondieron" }, true)).toBeUndefined();
-    expect(textoDeBase({ n: 5, de: 10, denominador: null }, true)).toBeUndefined();
+    expect(textoDeBase({ n: 1, de: 1, denominador: "respondieron" })).toBe("Respondieron 1 de 1 caso (100.0 %)");
+    expect(textoDeBase({ n: 1, de: 1, denominador: "respondieron" })).toBe("Respondieron 1 de 1 caso (100.0 %)");
+    expect(textoDeBase({ n: 1, de: 0, denominador: "respondieron" })).toBe("Respondieron 1 caso");
+    expect(textoDeBase({ n: null, de: 10, denominador: "respondieron" })).toBeUndefined();
+    expect(textoDeBase({ n: 5, de: 10, denominador: null })).toBeUndefined();
   });
 
   it("la numérica no lleva línea de base: su base va en la celda Casos válidos", () => {
     const base = numerica().base;
-    expect(textoDeBase(base, true)).toBeUndefined();
+    expect(textoDeBase(base)).toBeUndefined();
     expect(partesDeBase(base)).toEqual({ n: 1283, de: "de 1,283 casos (100.0 %)" });
     expect(partesDeBase({ n: 1, de: 1, denominador: "casos_validos" })?.de).toBe("de 1 caso (100.0 %)");
   });
@@ -153,7 +153,8 @@ describe("recorte de la hoja", () => {
 
   it("el pie solo aparece cuando tiene algo que decir", () => {
     expect(tienePie(respuestaReal(), [])).toBe(false);
-    expect(tienePie(respuestaRecortada(), [])).toBe(true);
+    // Que la hoja venga recortada ya no se dice: la tabla es de una pregunta y la lista ofrece las demás.
+    expect(tienePie(respuestaRecortada(), [])).toBe(false);
     expect(tienePie(respuestaReal(), [{ variable: "p9", motivo: "excluida" }])).toBe(true);
     const dosBases = respuestaReal();
     dosBases.base.n_bases = 2;

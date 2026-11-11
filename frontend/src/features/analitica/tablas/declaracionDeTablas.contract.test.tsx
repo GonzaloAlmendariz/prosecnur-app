@@ -6,7 +6,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import { TODAS_LAS_VARIABLES } from "../cruces/crucesModelo";
 import { respuestaSinPesos as crucesSinPesos } from "../cruces/ejemploDeCruces.test-util";
 import { HojaDeCruces } from "../cruces/HojaDeCruces";
 import { respuestaReal } from "./ejemploDeVistaPrevia.test-util";
@@ -40,8 +39,12 @@ const tablaDeclarada = (etiqueta: string) =>
   && /data-qa-geometry-exento="[^"]+"/.test(etiqueta);
 
 describe("C1 de las tablas de Analítica", () => {
-  const frecuencias = renderToStaticMarkup(createElement(HojaDeFrecuencias, { tablas: respuestaReal().tablas, elegida: null, ponderado: true }));
-  const cruces = renderToStaticMarkup(createElement(HojaDeCruces, { tablas: crucesSinPesos().tablas, ponderado: false, cruce: TODAS_LAS_VARIABLES, elegida: null }));
+  const frecuencias = respuestaReal().tablas
+    .map((tabla) => renderToStaticMarkup(createElement(HojaDeFrecuencias, { tabla, ponderado: true })))
+    .join("");
+  const cruces = crucesSinPesos().tablas
+    .map((tabla) => renderToStaticMarkup(createElement(HojaDeCruces, { tabla, ponderado: false })))
+    .join("");
 
   it("cada rejilla con roles de tabla declara grupo y exención en su contenedor", () => {
     const tablas = [...conRol(frecuencias, "table"), ...conRol(cruces, "table")];
@@ -57,7 +60,7 @@ describe("C1 de las tablas de Analítica", () => {
     }
   });
 
-  it("la hoja de Cruces declara sus secciones y tablas como grupo", () => {
+  it("la hoja de Cruces declara su tabla y su leyenda como grupo", () => {
     const hoja = etiquetas(cruces, "data-qa-geometry-group").find((t) => t.includes('class="cruces-hoja"'));
     expect(hoja).toMatch(/data-qa-geometry-group="analitica\/cruces-hoja" data-qa-geometry-contract="intrinsic"/);
   });
@@ -65,6 +68,10 @@ describe("C1 de las tablas de Analítica", () => {
   it("la lista de avisos del pie declara su grupo", () => {
     const pie = renderToStaticMarkup(createElement(PieDeLaHoja, { recorte: null, lineas: [{ clave: "a", alerta: true, texto: "Uno" }, { clave: "b", alerta: false, texto: "Dos" }] }));
     expect(pie).toMatch(/<ul class="tablas-avisos"[^>]*data-qa-geometry-group="analitica\/tablas-avisos" data-qa-geometry-contract="intrinsic"/);
+  });
+
+  it("el resumen de la numérica declara sus celdas como pares", () => {
+    expect(frecuencias).toMatch(/<dl class="tablas-resumen-rejilla" data-qa-geometry-group="analitica\/frecuencias-resumen" data-qa-geometry-contract="equal">/);
   });
 
   it("las categorías de una variable de cruce declaran su grupo", () => {

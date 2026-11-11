@@ -13,7 +13,7 @@ import {
 import { apiAnaliticaBaseSheet, apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
-import { LoadingBlock } from "../../components/States";
+import { CargaDeBloque } from "../../components/CargaDeBloque";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
@@ -123,9 +123,17 @@ export default function AnaliticaPage() {
   const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? "datos";
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
   const ActiveIcon = activeMeta.icon;
-  // Frecuencias y Cruces: cabecera compacta, para que el alto sea de la vista previa.
-  const compacta = cabeceraCompacta(activeMeta.key);
+  // Frecuencias y Cruces dibujan su propia cabecera, con sus cifras y su acción
+  // (prototipo del rediseño): la página no pinta la suya y les pasa la pestaña y
+  // la barra de fuente, que va a sus ajustes.
+  const propia = cabeceraCompacta(activeMeta.key);
   const fuente = <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />;
+  const encabezado = {
+    titulo: activeMeta.label,
+    icono: activeMeta.icon,
+    pestanaN: reportes.findIndex((r) => r.key === activeMeta.key) + 1 || undefined,
+    pestanaDe: reportes.length,
+  };
 
   // Una dirección que pide una pestaña que este estudio no ofrece (p. ej.
   // Multibase con una sola base) no aterriza muda en Datos: se corrige la URL
@@ -227,9 +235,12 @@ export default function AnaliticaPage() {
           role="tabpanel"
           aria-labelledby={`analitica-tab-${active}`}
           data-audit-ready={auditReady}
+          data-cabecera-propia={propia && prereqOk ? "" : undefined}
         >
+          {/* Las cargas publican su marca en falso (CargaDeBloque): mientras se leen el
+              proyecto, la preparación o la config, ninguna otra marca da la vista por lista. */}
           {!sesionLeida ? (
-            <LoadingBlock label="Leyendo el proyecto…" />
+            <CargaDeBloque label="Leyendo el proyecto" />
           ) : !prereqOk ? (
             <ProcessingPrereqGate
               eyebrow="Antes de analizar"
@@ -263,40 +274,31 @@ export default function AnaliticaPage() {
                   interno— y cada pane
                   deja su docbar como banda de stats (su -icon/-copy se ocultan
                   vía CSS). El rail sigue siendo el 3er nivel de navegación. */}
-              <div className="pulso-analitica-panel-head" data-compacta={compacta ? "" : undefined}>
-                <TabHeading
-                  eyebrow="Analítica"
-                  titulo={activeMeta.label}
-                  icono={ActiveIcon}
-                  detalle={activeMeta.desc}
-                  pestanaN={reportes.findIndex((r) => r.key === activeMeta.key) + 1 || undefined}
-                  pestanaDe={reportes.length}
-                  variante={compacta ? "compacta" : "estandar"}
-                  control={compacta ? (
-                    <>
-                      <div className="pulso-analitica-universo-banda">
-                        <UniversoAnalisis />
-                      </div>
-                      {fuente}
-                    </>
-                  ) : fuente}
-                />
-                {/* Cuántos casos cuentan si Validación declara "Qué caso cuenta". En las
-                    pestañas con vista previa va en la fila de la cabecera (arriba). */}
-                {compacta ? null : (
+              {propia ? null : (
+                <div className="pulso-analitica-panel-head">
+                  <TabHeading
+                    eyebrow="Analítica"
+                    titulo={activeMeta.label}
+                    icono={ActiveIcon}
+                    detalle={activeMeta.desc}
+                    pestanaN={encabezado.pestanaN}
+                    pestanaDe={encabezado.pestanaDe}
+                    control={fuente}
+                  />
+                  {/* Cuántos casos cuentan si Validación declara "Qué caso cuenta". */}
                   <div className="pulso-analitica-universo-banda">
                     <UniversoAnalisis />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {independentSiblings ? <ProcessingReleasePanel activeBase={state?.active_base} /> : null}
 
               <div className="pulso-analitica-panel-body">
                 {prepBusy ? (
-                  <LoadingBlock label="Preparando datos…" />
+                  <CargaDeBloque label="Preparando datos" />
                 ) : prepOk && !configHidratada ? (
-                  <LoadingBlock label="Cargando la configuración de Analítica…" />
+                  <CargaDeBloque label="Cargando la configuración de Analítica" />
                 ) : prepOk ? (
                   <>
                     {active === "datos"        && <DataReviewPane />}
@@ -311,12 +313,12 @@ export default function AnaliticaPage() {
                     {active === "codebook"     && <CodebookPane />}
                     {active === "bases"        && <BasesPane />}
                     {active === "ponderacion"  && <PonderacionPane />}
-                    {active === "frecuencias"  && <FrecuenciasPane />}
+                    {active === "frecuencias"  && <FrecuenciasPane encabezado={encabezado} datos={fuente} />}
                     {active === "multibase"    && <MultibaseTablasPane />}
                     {active === "comparativos" && <ComparativosPane />}
                     {active === "panel"        && <PanelBasePane />}
                     {active === "ficha"        && <FichaTecnicaPane />}
-                    {active === "cruces"       && <CrucesPane />}
+                    {active === "cruces"       && <CrucesPane encabezado={encabezado} datos={fuente} />}
                     {active === "orden"        && <OrdenCategoriasPane />}
                     {active === "dimensiones"  && <DimensionesPane />}
                   </>

@@ -5,12 +5,14 @@
 
 import type { FrecuenciasPreview } from "../../../api/analitica";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { serializarDireccion } from "../../../lib/navegacion/direccion";
 import type { TonoCifra } from "../CifrasPestana";
 import type { ResumenSecciones } from "../estructuraDeSecciones";
 import type { OpcionDeSegmentado } from "../ponderacion/Segmentado";
 import type { FrecuenciasConfig } from "../store";
+import type { CifraDeCabecera } from "./CifrasDeCabecera";
 import type { Lectura } from "./useLecturaPorBase";
-import { causaDelArchivoVacio, ponderacionSinAplicar } from "./vistaPreviaModelo";
+import { causaDelArchivoVacio, ponderacionSinAplicar, rotuloDeFuente } from "./vistaPreviaModelo";
 
 export type TextoDeCifra = { valor: string; titulo?: string; tono?: TonoCifra };
 
@@ -82,6 +84,54 @@ export function motivoSinGenerar(
   if (lectura.datos === null) return "Leyendo las tablas del archivo";
   if (lectura.datos.total_variables === 0) return causaSinTablas(resumen, lectura.datos);
   return undefined;
+}
+
+/** El rótulo de la cifra de preguntas, con su número y su base: "1 pregunta en el archivo", "26 preguntas de esta base". */
+export function rotuloDePreguntas(n: number | null, variasBases: boolean): string {
+  const nombre = n === 1 ? "pregunta" : "preguntas";
+  return `${nombre} ${variasBases ? "de esta base" : "en el archivo"}`;
+}
+
+/** Ponderación: dónde se decide. */
+export const DIRECCION_PONDERACION = serializarDireccion({ modulo: "procesamiento", seccion: "analitica", pestana: "ponderacion" });
+
+type ConPesos = Pick<FrecuenciasPreview, "ponderado" | "ponderacion" | "fuente">;
+
+/**
+ * La cifra de los pesos en la cabecera: "Ponderada", "Sin ponderar" o "Sin
+ * aplicar", con la base de la que salen las tablas debajo ("base codificada").
+ * El matiz (qué se pondera, n efectivo) va al `title`. Común a Frecuencias y Cruces.
+ */
+export function cifraDePesosEnCabecera(lectura: Lectura<ConPesos>, reglaDePesos: (p: ConPesos) => string): CifraDeCabecera {
+  const rotuloDeDatos = (p: ConPesos | null) => (p ? rotuloDeFuente(p.fuente)?.toLocaleLowerCase("es") : null) ?? "pesos";
+  const base = { clave: "pesos", enlace: DIRECCION_PONDERACION };
+  if (lectura.fase === "error") return { ...base, valor: "Sin leer", rotulo: "pesos", tono: "alerta" };
+  const p = lectura.datos;
+  if (p === null) return { ...base, valor: "Leyendo", rotulo: "pesos" };
+  if (p.ponderado) {
+    const n = p.ponderacion.n_efectivo;
+    const regla = reglaDePesos(p);
+    return { ...base, valor: "Ponderada", rotulo: rotuloDeDatos(p), tono: "ok", titulo: n === null ? regla : `${regla} n efectivo: ${formatoConteo(n)}.` };
+  }
+  if (p.ponderacion.configurada) {
+    return { ...base, valor: "Sin aplicar", rotulo: rotuloDeDatos(p), tono: "alerta", titulo: "La ponderación está activada y no se aplicó." };
+  }
+  return { ...base, valor: "Sin ponderar", rotulo: rotuloDeDatos(p) };
+}
+
+/**
+ * Las cifras de la cabecera de Frecuencias: las preguntas que entran al
+ * archivo (las del servicio), las que salen con resumen numérico (las que se
+ * declaran aquí) y con qué pesos y de qué base salen las tablas.
+ */
+export function cifrasDeCabeceraDeFrecuencias(lectura: Lectura<FrecuenciasPreview>, numericas: number): CifraDeCabecera[] {
+  const tablas = cifraDeTablas(lectura);
+  const variasBases = (lectura.datos?.base.n_bases ?? 1) > 1;
+  return [
+    { clave: "preguntas", valor: tablas.valor, tono: tablas.tono === "alerta" ? "alerta" : undefined, titulo: tablas.titulo, rotulo: rotuloDePreguntas(lectura.fase === "error" ? null : lectura.datos?.total_variables ?? null, variasBases) },
+    { clave: "numericas", valor: formatoConteo(numericas), rotulo: "con resumen numérico" },
+    cifraDePesosEnCabecera(lectura, () => "Porcentajes, N y estadísticos ponderados; los casos que respondieron, sin ponderar."),
+  ];
 }
 
 export const OPCIONES_DE_ORDEN: readonly OpcionDeSegmentado<FrecuenciasConfig["orden"]>[] = [

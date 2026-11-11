@@ -2,9 +2,10 @@
 /**
  * Frecuencias de punta a punta sobre el marcado real y un servicio de vista
  * previa simulado con la forma exacta del contrato (la respuesta real de
- * acnur_acg y sus variantes): los estados de la vista previa, cuándo se vuelve
- * a pedir (base, universo y config GUARDADA), lo que cada control escribe en
- * la config y lo que se envía al generar.
+ * acnur_acg y sus variantes): la lista de preguntas y la tabla de la elegida,
+ * el conmutador de cifras, los estados de la vista previa, cuándo se vuelve a
+ * pedir (base, universo y config GUARDADA), lo que cada control escribe en la
+ * config y lo que se envía al generar.
  */
 import { act, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -73,8 +74,17 @@ function Navegador() {
 const esperar = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 const ir = async (search: string) => { await act(async () => { navegar({ pathname: "/analitica", search }, { replace: true }); }); };
 const texto = () => host.textContent ?? "";
-const hoja = () => host.querySelector<HTMLElement>(".tablas-hoja");
+const hoja = () => host.querySelector<HTMLElement>(".tablas-grupo");
 const grupo = (variable: string) => host.querySelector<HTMLElement>(`.tablas-grupo[data-variable="${variable}"]`);
+const cabecera = () => host.querySelector<HTMLElement>(".tablas-cabecera")?.textContent ?? "";
+const lista = () => Array.from(host.querySelectorAll<HTMLButtonElement>(".tablas-pregunta"));
+const enLista = (variable: string) => lista().find((b) => b.querySelector(".tablas-pregunta-codigo")?.textContent === variable);
+const elegirEnLista = async (variable: string) => {
+  const b = enLista(variable);
+  if (!b) throw new Error(`La lista no tiene ${variable}`);
+  await act(async () => { b.click(); });
+  await esperar();
+};
 const porcentajes = (variable: string) => Array.from(grupo(variable)?.querySelectorAll<HTMLElement>(".is-porcentaje") ?? []).map((c) => c.textContent);
 const boton = (rotulo: string) => Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent?.trim() === rotulo || b.getAttribute("aria-label") === rotulo);
 const pulsar = async (rotulo: string) => {
@@ -112,6 +122,8 @@ beforeEach(async () => {
   api.frecuencias.mockReset().mockResolvedValue({ ok: true });
   api.preparar.mockReset().mockResolvedValue({ ok: true, fuente: "adaptados", n_filas: 1283, n_columnas: 40 });
   corrida.runSync.mockClear();
+  const { useVistaDeTablas, CIFRAS_INICIALES } = await import("./vistaDeTablasStore");
+  useVistaDeTablas.setState({ cifras: { ...CIFRAS_INICIALES } });
   const { useAnaliticaStore, DEFAULT_CONFIG } = await import("../store");
   useAnaliticaStore.setState({
     config: { ...DEFAULT_CONFIG, frecuencias: { ...DEFAULT_CONFIG.frecuencias, numericas_override: ["E1_age"] } },
@@ -130,94 +142,153 @@ afterEach(() => {
   host.remove();
 });
 
-describe("Frecuencias: la hoja es la del servicio", () => {
-  it("pide las primeras 50 tablas y pinta cada una como llega: única, múltiple y numérica", async () => {
+describe("Frecuencias: la lista y la tabla de la pregunta elegida", () => {
+  it("pide las primeras 50 tablas una vez; la lista las agrupa por sección y se ve una tabla, la primera", async () => {
     await montar();
     expect(api.preview).toHaveBeenCalledTimes(1);
     expect(api.preview).toHaveBeenLastCalledWith({ limite: 50 });
     // La vista previa ya no lee la revisión de variables.
     expect(api.revision).not.toHaveBeenCalled();
-
-    expect(host.querySelectorAll(".tablas-grupo")).toHaveLength(3);
-    expect(porcentajes("M4_employment")).toEqual(["43.50", "27.30", "5.52", "18.80", "0.34", "4.55", "100.00"]);
-    expect(grupo("M4_employment")?.textContent).toContain("Respondieron 1,283 de 1,283 casos (100.0 %)");
-    expect(porcentajes("D1_information")).toEqual(["65.32", "30.28", "4.13", "11.89", "7.18", "6.97", "18.16", "9.57", "5.59", "100.00"]);
-    expect(grupo("D1_information")?.textContent).toContain("Marcaron alguna opción 560 de 1,283 casos (43.6 %)");
+    expect(lista().map((b) => b.querySelector(".tablas-pregunta-codigo")?.textContent)).toEqual(["E1_age", "M4_employment", "D1_information"]);
+    expect(host.querySelector(".tablas-panel--preguntas .tablas-conteo")?.textContent).toBe("3");
+    // Una sola tabla a la vista: la de la primera pregunta, marcada en la lista.
+    expect(host.querySelectorAll(".tablas-grupo")).toHaveLength(1);
     expect(grupo("E1_age")?.querySelectorAll("dt")).toHaveLength(8);
     expect(grupo("E1_age")?.textContent).toContain("Mediana (Percentil 50)46");
-    expect(grupo("M4_employment")?.textContent).toContain("Fuente: Pulso PUCP.");
-    expect(boton("Generar frecuencias")?.disabled).toBe(false);
+    expect(enLista("E1_age")?.getAttribute("aria-current")).toBe("true");
+    expect(texto()).not.toContain("Se ven");
+    expect(boton("Generar Excel")?.disabled).toBe(false);
   });
 
-  it("ponderada: la cabecera dice N ponderado, la base va en casos y nada llama casos a una suma de pesos", async () => {
+  it("elegir en la lista escribe el foco, cambia la tabla y no vuelve a pedir: única y múltiple tal como llegan", async () => {
     await montar();
-    expect(host.querySelector('.tablas-hoja-cabecera')?.textContent).toContain("N ponderado");
+    await elegirEnLista("M4_employment");
+    expect(new URLSearchParams(busqueda).get("foco")).toBe("M4_employment");
+    expect(enLista("M4_employment")?.getAttribute("aria-current")).toBe("true");
+    expect(enLista("E1_age")?.hasAttribute("aria-current")).toBe(false);
+    expect(host.querySelectorAll(".tablas-grupo")).toHaveLength(1);
+    expect(porcentajes("M4_employment")).toEqual(["43.50", "27.30", "5.52", "18.80", "0.34", "4.55", "100.00"]);
+    expect(grupo("M4_employment")?.textContent).toContain("Respondieron 1,283 de 1,283 casos (100.0 %)");
+    expect(grupo("M4_employment")?.textContent).toContain("Fuente: Pulso PUCP.");
+    await elegirEnLista("D1_information");
+    expect(porcentajes("D1_information")).toEqual(["65.32", "30.28", "4.13", "11.89", "7.18", "6.97", "18.16", "9.57", "5.59", "100.00"]);
+    expect(grupo("D1_information")?.textContent).toContain("Marcaron alguna opción 560 de 1,283 casos (43.6 %)");
+    expect(api.preview).toHaveBeenCalledTimes(1);
+  });
+
+  it("el buscador filtra por pregunta o código y las flechas recorren la lista", async () => {
+    await montar();
+    const buscador = host.querySelector<HTMLInputElement>('input[aria-label="Buscar pregunta o código"]');
+    expect(buscador).not.toBeNull();
+    await act(async () => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      set?.call(buscador, "situación laboral");
+      buscador?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(lista().map((b) => b.querySelector(".tablas-pregunta-codigo")?.textContent)).toEqual(["M4_employment"]);
+    await act(async () => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      set?.call(buscador, "");
+      buscador?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const [primera, segunda] = lista();
+    primera.focus();
+    await act(async () => { primera.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })); });
+    expect(document.activeElement).toBe(segunda);
+    await act(async () => { segunda.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true })); });
+    expect(document.activeElement).toBe(primera);
+  });
+
+  it("el conmutador muestra casos, porcentaje o los dos sin volver a pedir", async () => {
+    await montar("?pestana=frecuencias&foco=M4_employment");
+    const { useVistaDeTablas } = await import("./vistaDeTablasStore");
+    await act(async () => { useVistaDeTablas.setState({ cifras: { frecuencias: "ambos", cruces: "porcentaje" } }); });
+    const cifras = () => Array.from(grupo("M4_employment")?.querySelectorAll<HTMLElement>(".tablas-cifra") ?? []).map((c) => c.textContent);
+    expect(cifras()).toContain("558");
+    expect(cifras()).toContain("43.50");
+    await pulsar("N ponderado");
+    expect(cifras()).toContain("558");
+    expect(cifras()).not.toContain("43.50");
+    await pulsar("Porcentaje");
+    expect(cifras()).not.toContain("558");
+    expect(porcentajes("M4_employment")).toEqual(["43.50", "27.30", "5.52", "18.80", "0.34", "4.55", "100.00"]);
+    await pulsar("Ambos");
+    expect(cifras()).toContain("558");
+    expect(api.preview).toHaveBeenCalledTimes(1);
+  });
+
+  it("ponderada: la columna dice N ponderado, la base va en casos y la cabecera dice Ponderada y la base", async () => {
+    await montar("?pestana=frecuencias&foco=M4_employment");
+    expect(host.querySelector(".tablas-hoja-cabecera")?.textContent).toContain("N ponderado");
     expect(texto()).not.toContain("casos ponderados");
-    expect(grupo("E1_age")?.textContent).toContain("de 1,283 casos (100.0 %)");
-    expect(grupo("E1_age")?.textContent).not.toContain("ponderados");
-    expect(texto()).toContain("Con ponderación");
-    expect(texto()).not.toContain("no aplica los pesos");
+    expect(cabecera()).toContain("Ponderada");
+    expect(cabecera()).toContain("base codificada");
     expect(texto()).not.toMatch(/[«»]/);
     expect(texto()).not.toContain("adaptados");
-    expect(texto()).toContain("Base codificada");
+    await elegirEnLista("E1_age");
+    expect(grupo("E1_age")?.textContent).toContain("de 1,283 casos (100.0 %)");
+    // Lo ponderado son los estadísticos; la base no se llama ponderada.
+    expect(grupo("E1_age")?.textContent).not.toMatch(/casos ponderados|base ponderada/);
   });
 
   it("sin ponderar: casos sin más, y la fila sin código muestra solo su etiqueta", async () => {
     api.preview.mockImplementation(async () => respuestaSinPesos());
-    await montar();
-    expect(grupo("M4_employment")?.textContent).toContain("Respondió el 100.0 % de los 1,283 casos");
-    expect(grupo("D1_information")?.textContent).toContain("Marcó alguna opción el 43.6 % de los 1,283 casos");
-    expect(host.querySelector('.tablas-hoja-cabecera')?.textContent).not.toContain("ponderado");
-    expect(texto()).toContain("Sin ponderación");
+    await montar("?pestana=frecuencias&foco=M4_employment");
+    expect(grupo("M4_employment")?.textContent).toContain("Respondieron 1,283 de 1,283 casos (100.0 %)");
+    expect(host.querySelector(".tablas-hoja-cabecera")?.textContent).not.toContain("ponderado");
+    expect(cabecera()).toContain("Sin ponderar");
     const filas = Array.from(grupo("M4_employment")?.querySelectorAll<HTMLElement>(".tablas-fila") ?? []);
     const sinCodigo = filas.find((f) => f.textContent?.includes("No trabaja actualmente, pero está buscando trabajo"));
-    expect(sinCodigo?.querySelector(".tablas-codigo")).toBeNull();
+    expect(sinCodigo?.querySelector(".tablas-categoria")?.hasAttribute("title")).toBe(false);
     expect(sinCodigo?.hasAttribute("data-categoria")).toBe(false);
+    await elegirEnLista("D1_information");
+    expect(grupo("D1_information")?.textContent).toContain("Marcaron alguna opción 560 de 1,283 casos (43.6 %)");
   });
 
-  it("con dos bases la banda dice que las tablas son de esta base", async () => {
+  it("la cabecera cuenta las tablas del servicio, no las variables del formulario; con dos bases dice que son de esta base", async () => {
+    await montar();
+    expect(cabecera()).toContain("preguntas en el archivo26");
+    expect(cabecera()).toContain("con resumen numérico1");
+    expect(cabecera()).not.toContain("analizables");
+    act(() => root.unmount());
+    root = createRoot(host);
     api.preview.mockImplementation(async () => respuestaDosBases());
     await montar();
-    expect(host.querySelector(".tablas-banda")?.textContent).toContain("Tablas de esta base26");
+    expect(cabecera()).toContain("preguntas de esta base26");
   });
 
-  it("la banda cuenta las tablas del servicio, no las variables del formulario", async () => {
+  it("recortada: la lista suma las preguntas del formulario que la hoja no trae, y elegir una la pide aparte", async () => {
+    api.preview.mockImplementation(async (entrada) => (entrada?.variables ? respuestaDeUna("q99", "Ingresos del hogar") : respuestaRecortada(3, 120)));
     await montar();
-    const banda = host.querySelector(".tablas-banda")?.textContent ?? "";
-    expect(banda).toContain("Tablas en el archivo26");
-    expect(banda).not.toContain("analizables");
+    expect(texto()).not.toContain("Se ven 3 de 120 tablas.");
+    expect(texto()).toContain("Más preguntas del formulario");
+    expect(enLista("q99")?.textContent).toContain("Ingresos del hogar");
+    await elegirEnLista("q99");
+    expect(api.preview).toHaveBeenCalledWith({ variables: ["q99"], limite: 1 });
+    expect(grupo("q99")).not.toBeNull();
+    expect(enLista("q99")?.getAttribute("aria-current")).toBe("true");
   });
 
-  it("recortada: dice cuántas se ven y pide más al pulsar", async () => {
-    api.preview.mockImplementation(async () => respuestaRecortada(3, 120));
-    await montar();
-    expect(texto()).toContain("Se ven 3 de 120 tablas.");
-    await pulsar("Mostrar 50 más");
-    await esperar();
-    expect(api.preview).toHaveBeenLastCalledWith({ limite: 100 });
-  });
-
-  it("la pregunta elegida que la hoja no trae se pide aparte y se pinta al final", async () => {
+  it("la pregunta de la dirección que la hoja no trae se pide aparte y es la que se ve", async () => {
     api.preview.mockImplementation(async (entrada) => (entrada?.variables ? respuestaDeUna("q99", "Ingresos del hogar") : respuestaRecortada(3, 120)));
     await montar("?pestana=frecuencias&foco=q99");
     await esperar();
     expect(api.preview).toHaveBeenCalledWith({ variables: ["q99"], limite: 1 });
-    expect(texto()).toContain("Pregunta elegida");
-    expect(grupo("q99")?.getAttribute("aria-current")).toBe("true");
-    // El selector la ofrece aunque no esté entre las primeras.
-    expect(host.querySelector('[aria-label="Ir a una pregunta"]')?.textContent).toContain("Ingresos del hogar");
+    expect(host.querySelectorAll(".tablas-grupo")).toHaveLength(1);
+    expect(grupo("q99")?.textContent).toContain("Ingresos del hogar");
+    expect(texto()).not.toContain("Pregunta elegida");
   });
 
-  it("la pregunta elegida que está en la hoja no se pide otra vez", async () => {
+  it("la pregunta de la dirección que está en la hoja no se pide otra vez", async () => {
     await montar("?pestana=frecuencias&foco=D1_information");
     expect(api.preview).toHaveBeenCalledTimes(1);
-    expect(grupo("D1_information")?.getAttribute("aria-current")).toBe("true");
-    expect(grupo("M4_employment")?.hasAttribute("aria-current")).toBe(false);
+    expect(grupo("D1_information")).not.toBeNull();
+    expect(enLista("D1_information")?.getAttribute("aria-current")).toBe("true");
   });
 
   it("el foco que pierde su tabla por un ajuste se suelta sin aviso ni pedido aparte", async () => {
     await montar("?pestana=frecuencias&foco=E1_age");
-    expect(grupo("E1_age")?.getAttribute("aria-current")).toBe("true");
+    expect(grupo("E1_age")).not.toBeNull();
     // Se quita E1_age de las numéricas: la hoja guardada ya no la trae.
     const sinEdad = respuestaReal();
     sinEdad.tablas = sinEdad.tablas.filter((t) => t.variable !== "E1_age");
@@ -227,8 +298,10 @@ describe("Frecuencias: la hoja es la del servicio", () => {
     await guardado();
     await esperar();
     expect(new URLSearchParams(busqueda).has("foco")).toBe(false);
-    expect(texto()).not.toContain("E1_age está en la base");
+    expect(texto()).not.toContain("está en la base y no entra al archivo");
     expect(api.preview.mock.calls.some(([e]) => Boolean(e?.variables))).toBe(false);
+    // Se ve la primera que queda.
+    expect(grupo("M4_employment")).not.toBeNull();
   });
 
   it("con la hoja recortada, el foco que pierde su tabla se suelta tras pedirla aparte, sin aviso", async () => {
@@ -241,26 +314,34 @@ describe("Frecuencias: la hoja es la del servicio", () => {
     await guardado();
     await esperar();
     expect(new URLSearchParams(busqueda).has("foco")).toBe(false);
-    expect(texto()).not.toContain("E1_age está en la base");
+    expect(texto()).not.toContain("está en la base y no entra al archivo");
   });
 
-  it("una pregunta pedida sin tabla dice por qué", async () => {
+  it("una pregunta pedida sin tabla dice por qué, con su pregunta, en el lugar de la tabla", async () => {
     api.preview.mockImplementation(async (entrada) => (entrada?.variables ? respuestaSinTabla("hijos", "excluida") : respuestaReal()));
     await montar("?pestana=frecuencias&foco=hijos");
     await esperar();
-    expect(texto()).toContain("hijos está excluida del análisis.");
+    expect(host.querySelector(".tablas-panel--tabla")?.textContent).toContain("Sin tabla en el archivo");
+    expect(texto()).toContain('"Número de hijos" está excluida del análisis.');
     expect(texto()).not.toContain("1 variable pedida no tiene tabla");
   });
 });
 
 describe("Frecuencias: estados de la vista previa", () => {
-  it("mientras se lee no afirma cifras ni deja generar", async () => {
+  it("mientras se lee no afirma cifras ni deja generar, y su marca de readiness queda en falso", async () => {
     api.preview.mockImplementation(() => new Promise(() => undefined));
     await montar();
-    expect(host.querySelector('[role="status"]')?.textContent).toContain("Leyendo las tablas del archivo");
-    expect(host.querySelector(".tablas-banda")?.textContent).not.toMatch(/archivo\d/);
+    const tabla = host.querySelector(".tablas-panel--tabla");
+    expect(tabla?.querySelector('[data-audit-ready="false"] [role="status"]')?.textContent).toContain("Leyendo las tablas del archivo");
+    expect(host.querySelector('.tablas-panel--preguntas [data-audit-ready="false"]')).not.toBeNull();
+    expect(cabecera()).not.toMatch(/preguntas en el archivo\d/);
+    expect(cabecera()).toContain("preguntas en el archivoLeyendo");
     expect(hoja()).toBeNull();
-    expect(boton("Generar frecuencias")?.disabled).toBe(true);
+    expect(boton("Generar Excel")?.disabled).toBe(true);
+    // El motivo se lee en el panel Archivo y el botón lo nombra.
+    const motivo = host.querySelector(".tablas-panel--archivo .tablas-archivo-motivo");
+    expect(motivo?.textContent).toBe("Leyendo las tablas del archivo");
+    expect(boton("Generar Excel")?.getAttribute("aria-describedby")).toBe(motivo?.id);
   });
 
   it("si falla dice la causa sin el código, Reintentar vuelve a pedir y el archivo se puede generar", async () => {
@@ -269,14 +350,18 @@ describe("Frecuencias: estados de la vista previa", () => {
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("No se pudo leer la vista previa");
     expect(texto()).toContain("Tiempo de espera agotado.");
     expect(texto()).not.toContain("E_INTERNAL");
-    expect(texto()).toContain("Sin leer");
-    expect(boton("Generar frecuencias")?.disabled).toBe(false);
+    expect(cabecera()).toContain("Sin leer");
+    expect(boton("Generar Excel")?.disabled).toBe(false);
+    // Sin lista que mostrar, la lista no queda leyendo para siempre ni dice que el archivo no tiene preguntas.
+    expect(host.querySelector('.tablas-panel--preguntas [data-audit-ready="false"]')).toBeNull();
+    expect(host.querySelector(".tablas-panel--preguntas")?.textContent).toContain("No se pudo leer la vista previa.");
+    expect(texto()).not.toContain("Sin preguntas en el archivo");
 
     await pulsar("Reintentar");
     await esperar();
     expect(api.preview).toHaveBeenCalledTimes(2);
     expect(host.querySelector('[role="alert"]')).toBeNull();
-    expect(host.querySelectorAll(".tablas-grupo")).toHaveLength(3);
+    expect(lista()).toHaveLength(3);
   });
 
   it("sin base preparada (409) lo dice con su texto y no deja generar", async () => {
@@ -290,7 +375,7 @@ describe("Frecuencias: estados de la vista previa", () => {
     expect(texto()).not.toContain("Reingresa a Analítica");
     expect(texto()).not.toContain("E_NO_RP_DATA");
     expect(texto()).toContain("Falta preparar la base.");
-    expect(boton("Generar frecuencias")?.disabled).toBe(true);
+    expect(boton("Generar Excel")?.disabled).toBe(true);
     expect(boton("Preparar la base")?.className).toContain("primary");
   });
 
@@ -302,7 +387,7 @@ describe("Frecuencias: estados de la vista previa", () => {
     expect(api.preparar).toHaveBeenCalledTimes(1);
     expect(api.preview).toHaveBeenCalledTimes(2);
     expect(host.querySelector('[role="alert"]')).toBeNull();
-    expect(host.querySelectorAll(".tablas-grupo")).toHaveLength(3);
+    expect(host.querySelectorAll(".tablas-grupo")).toHaveLength(1);
   });
 
   it("si preparar la base falla, dice por qué en lugar de la causa genérica", async () => {
@@ -316,13 +401,15 @@ describe("Frecuencias: estados de la vista previa", () => {
     expect(texto()).not.toContain("E_CARGA_SIN_DATOS");
   });
 
-  it("sin tablas en el archivo lo dice con la causa del servicio, en la vista y junto al botón", async () => {
+  it("sin tablas en el archivo lo dice con la causa del servicio, en la tabla y en el panel Archivo", async () => {
     api.preview.mockImplementation(async () => respuestaVacia());
     await montar();
     expect(texto()).toContain("Sin tablas en el archivo");
     expect(texto().match(/ninguna variable de las secciones configuradas está en esta base/g)).toHaveLength(2);
-    expect(boton("Generar frecuencias")?.disabled).toBe(true);
+    expect(host.querySelector(".tablas-panel--archivo")?.textContent).toContain("ninguna variable de las secciones configuradas");
+    expect(boton("Generar Excel")?.disabled).toBe(true);
     expect(hoja()).toBeNull();
+    expect(texto()).toContain("Sin preguntas en el archivo");
   });
 
   it("con todas las secciones ocultas la causa es esa", async () => {
@@ -336,7 +423,7 @@ describe("Frecuencias: estados de la vista previa", () => {
 
 describe("Frecuencias: se vuelve a pedir cuando cambia lo que cambia el archivo", () => {
   it("un ajuste espera al autosave: atenuada mientras tanto y pedida después de guardar", async () => {
-    await montar();
+    await montar("?pestana=frecuencias&foco=M4_employment");
     expect(api.preview).toHaveBeenCalledTimes(1);
 
     await pulsar("Mayor a menor");
@@ -357,12 +444,12 @@ describe("Frecuencias: se vuelve a pedir cuando cambia lo que cambia el archivo"
 
   it("con ajustes sin guardar, Generar espera al guardado", async () => {
     await montar();
-    expect(boton("Generar frecuencias")?.disabled).toBe(false);
+    expect(boton("Generar Excel")?.disabled).toBe(false);
     await pulsar("Mayor a menor");
-    expect(boton("Generar frecuencias")?.disabled).toBe(true);
+    expect(boton("Generar Excel")?.disabled).toBe(true);
     expect(texto()).toContain("Guardando los ajustes");
     await guardado();
-    expect(boton("Generar frecuencias")?.disabled).toBe(false);
+    expect(boton("Generar Excel")?.disabled).toBe(false);
     expect(texto()).not.toContain("Guardando los ajustes");
   });
 
@@ -374,7 +461,7 @@ describe("Frecuencias: se vuelve a pedir cuando cambia lo que cambia el archivo"
     await act(async () => { s.getState().setErrorGuardado("Sin conexión con el backend."); });
     expect(texto().match(/No se pudieron guardar los ajustes\. La vista previa muestra los anteriores\./g)).toHaveLength(1);
     expect(hoja()?.hasAttribute("data-releyendo")).toBe(false);
-    expect(boton("Generar frecuencias")?.disabled).toBe(true);
+    expect(boton("Generar Excel")?.disabled).toBe(true);
     expect(texto()).toContain("Ajustes sin guardar");
     const reintentos = s.getState().reintentosGuardado;
     const reintentar = Array.from(host.querySelectorAll<HTMLButtonElement>(".pulso-alert button")).find((b) => b.textContent?.includes("Reintentar"));
@@ -400,21 +487,21 @@ describe("Frecuencias: se vuelve a pedir cuando cambia lo que cambia el archivo"
   });
 
   it("al cerrar el universo de análisis se relee y lo anterior se atenúa", async () => {
-    await montar();
-    await ir("?pestana=frecuencias&panel=universo");
+    await montar("?pestana=frecuencias&foco=M4_employment");
+    await ir("?pestana=frecuencias&foco=M4_employment&panel=universo");
     await esperar();
     expect(api.preview).toHaveBeenCalledTimes(1);
 
     const llega = pendiente<FrecuenciasPreview>();
     api.preview.mockImplementationOnce(() => llega.promesa);
-    await ir("?pestana=frecuencias");
+    await ir("?pestana=frecuencias&foco=M4_employment");
     expect(api.preview).toHaveBeenCalledTimes(2);
     expect(hoja()?.hasAttribute("data-releyendo")).toBe(true);
-    expect(grupo("M4_employment")?.textContent).toContain("Respondieron 1,283 de 1,283 casos");
+    expect(host.querySelector(".tablas-hoja-cabecera")?.textContent).toContain("N ponderado");
 
     await act(async () => { llega.soltar(respuestaSinPesos()); });
     expect(hoja()?.hasAttribute("data-releyendo")).toBe(false);
-    expect(grupo("M4_employment")?.textContent).toContain("Respondió el 100.0 % de los 1,283 casos");
+    expect(host.querySelector(".tablas-hoja-cabecera")?.textContent).not.toContain("N ponderado");
   });
 
   it("al cambiar la base activa o la fuente se relee", async () => {
@@ -466,7 +553,7 @@ describe("Frecuencias: se vuelve a pedir cuando cambia lo que cambia el archivo"
   });
 
   it("la respuesta de una lectura anterior que llega tarde se descarta", async () => {
-    await montar();
+    await montar("?pestana=frecuencias&foco=M4_employment");
     const vieja = pendiente<FrecuenciasPreview>();
     api.preview.mockImplementationOnce(() => vieja.promesa);
     sesion.active_base = "Otra base";
@@ -477,13 +564,13 @@ describe("Frecuencias: se vuelve a pedir cuando cambia lo que cambia el archivo"
     sesion.active_base = "Tercera base";
     await act(async () => { repintar(); });
     await esperar();
-    expect(grupo("M4_employment")?.textContent).toContain("Respondió el 100.0 % de los 1,283 casos");
+    expect(host.querySelector(".tablas-hoja-cabecera")?.textContent).not.toContain("N ponderado");
 
     const tarde = respuestaReal();
     tarde.tablas[1].base = { n: 999, de: 999, denominador: "respondieron" };
     await act(async () => { vieja.soltar(tarde); });
     await esperar();
-    expect(grupo("M4_employment")?.textContent).toContain("Respondió el 100.0 % de los 1,283 casos");
+    expect(host.querySelector(".tablas-hoja-cabecera")?.textContent).not.toContain("N ponderado");
     expect(grupo("M4_employment")?.textContent).not.toContain("999");
   });
 
@@ -500,19 +587,29 @@ describe("Frecuencias: se vuelve a pedir cuando cambia lo que cambia el archivo"
 });
 
 describe("Frecuencias: lo que cada control escribe y lo que se envía", () => {
-  it("generar envía el pedido sin cuerpo: la config viaja por el autosave", async () => {
+  it("Generar Excel, en la cabecera, envía el pedido sin cuerpo: la config viaja por el autosave", async () => {
     await montar();
-    await pulsar("Generar frecuencias");
+    expect(host.querySelector(".tablas-cabecera")?.contains(boton("Generar Excel") ?? null)).toBe(true);
+    await pulsar("Generar Excel");
     expect(corrida.runSync).toHaveBeenCalledTimes(1);
     expect(api.frecuencias).toHaveBeenCalledTimes(1);
     expect(api.frecuencias.mock.calls[0]).toEqual([]);
   });
 
+  it("el panel Archivo nombra el Excel y su estado antes de generar", async () => {
+    await montar();
+    const archivo = host.querySelector(".tablas-panel--archivo")?.textContent ?? "";
+    expect(archivo).toContain("Archivo");
+    expect(archivo).toContain("Frecuencias");
+    expect(archivo).toContain("Por generar");
+  });
+
   it("el orden es un grupo de opciones del kit", async () => {
     await montar();
-    const grupoDeOrden = host.querySelector('[role="radiogroup"]');
+    const ajustes = host.querySelector<HTMLElement>(".tablas-panel--ajustes");
+    const grupoDeOrden = ajustes?.querySelector('[role="radiogroup"]');
     expect(document.getElementById(grupoDeOrden?.getAttribute("aria-labelledby") ?? "")?.textContent).toBe("Orden de las respuestas");
-    expect(Array.from(host.querySelectorAll('[role="radio"]')).map((r) => r.textContent)).toEqual(["Formulario", "Mayor a menor", "Menor a mayor"]);
+    expect(Array.from(ajustes?.querySelectorAll('[role="radio"]') ?? []).map((r) => r.textContent)).toEqual(["Formulario", "Mayor a menor", "Menor a mayor"]);
     await pulsar("Menor a mayor");
     expect((await config()).frecuencias.orden).toBe("asc");
     expect(boton("Menor a mayor")?.getAttribute("aria-checked")).toBe("true");
@@ -529,33 +626,40 @@ describe("Frecuencias: lo que cada control escribe y lo que se envía", () => {
     expect((await config()).frecuencias.incluir_secciones).toBe(false);
   });
 
-  it("agregar y quitar una numérica escribe la lista de esta pestaña", async () => {
+  it("agregar y quitar una numérica escribe la lista de esta pestaña; los ajustes se ordenan como el prototipo", async () => {
     await montar();
+    const titulos = Array.from(host.querySelectorAll(".tablas-panel--ajustes .tablas-seccion-titulo")).map((t) => t.textContent);
+    expect(titulos).toEqual(["Orden de las respuestas", "Con resumen numérico", "Notas al pie"]);
     await pulsar("Número de hijos");
     expect((await config()).frecuencias.numericas_override).toEqual(["E1_age", "hijos"]);
     await pulsar("Quitar ¿Cuál es su edad?");
     expect((await config()).frecuencias.numericas_override).toEqual(["hijos"]);
     expect((await config()).numericas).toEqual([]);
+    expect(boton("Añadir variable numérica")).toBeDefined();
   });
 
   it("las notas al pie van abiertas, sin plegable y con rótulos en castellano normal", async () => {
     await montar();
     const ajustes = host.querySelector<HTMLElement>(".tablas-panel--ajustes");
-    const titulos = Array.from(ajustes?.querySelectorAll(".tablas-seccion-titulo") ?? []).map((t) => t.textContent);
-    expect(titulos).toContain("Notas al pie");
     expect(ajustes?.querySelector("[aria-expanded]")).toBeNull();
     expect(ajustes?.querySelector(".analitica-notas-pie .pulso-section-eyebrow, .analitica-notas-pie--abierta .pulso-section-eyebrow")).toBeNull();
     expect(Array.from(ajustes?.querySelectorAll(".analitica-notas-pie-rotulo") ?? []).map((r) => r.textContent))
       .toEqual(["Fuente", "Base por defecto", "Base por pregunta"]);
   });
 
-  it("elegir una pregunta escribe el foco en la dirección y la marca", async () => {
+  it("el pie de la lista solo aparece con algo oculto o excluido, y lleva a donde se decide", async () => {
     await montar();
-    await ir("?pestana=frecuencias&foco=D1_information");
-    expect(new URLSearchParams(busqueda).get("foco")).toBe("D1_information");
-    expect(grupo("D1_information")?.getAttribute("aria-current")).toBe("true");
-    const selector = host.querySelector('[aria-label="Ir a una pregunta"]');
-    expect(selector?.classList.contains("pulso-select-trigger")).toBe(true);
-    expect(selector?.textContent).toContain("D1_information");
+    expect(host.querySelector(".tablas-preguntas-pie")).toBeNull();
+    act(() => root.unmount());
+    root = createRoot(host);
+    const s = await store();
+    s.setState({ config: { ...s.getState().config, variables_excluidas: ["E2_sex", "M3_edu"] } });
+    await montar();
+    const pie = host.querySelector(".tablas-preguntas-pie");
+    const enlaces = Array.from(pie?.querySelectorAll("a") ?? []).map((a) => [a.textContent, a.getAttribute("href")]);
+    expect(enlaces[0][0]).toBe("Secciones del formulario");
+    expect(enlaces[0][1]).toContain("pestana=datos");
+    expect(enlaces[1][0]).toBe("2 variables excluidas");
+    expect(enlaces[1][1]).toContain("panel=excluidas");
   });
 });

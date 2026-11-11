@@ -1,9 +1,11 @@
-// Zona derecha de Frecuencias: lo que se decide sobre el archivo. De arriba
-// abajo, el orden de las respuestas, las variables que se resumen en vez de
-// tabularse, las filas opcionales y las notas al pie. Todo a la vista, en
-// secciones separadas por una línea; el cuerpo del panel es el dueño del scroll.
+// Columna derecha de Frecuencias, "Ajustes del archivo": lo que se decide
+// sobre el archivo, en el orden del prototipo. El orden de las respuestas, las
+// variables que se resumen en vez de tabularse, las filas opcionales, las notas
+// al pie y, al final, de qué datos sale y la plantilla de Analítica. Todo a la
+// vista, en secciones separadas por una línea; el cuerpo del panel es el dueño
+// del scroll.
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 
 import type { VariableInstrumento } from "../../../api/analitica";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -17,13 +19,15 @@ import { NumericasDelArchivo } from "./NumericasDelArchivo";
 import { PanelDeZona } from "./PanelDeZona";
 import { SeccionDeAjustes } from "./SeccionDeAjustes";
 
-export function AjustesDeFrecuencias({ frecuencias, numericas, variables, conTabla, onCambio }: {
+export function AjustesDeFrecuencias({ frecuencias, numericas, variables, conTabla, datos, onCambio }: {
   frecuencias: FrecuenciasConfig;
   /** Las variables con resumen numérico vigentes: las de esta pestaña o, sin ellas, las globales. */
   numericas: readonly string[];
   variables: readonly VariableInstrumento[];
   /** Las variables que llevan tabla: las candidatas a una base propia en las notas. */
   conTabla: VariableInstrumento[];
+  /** De qué datos sale el archivo y la plantilla de Analítica (la barra de fuente del módulo). */
+  datos?: ReactNode;
   onCambio: (cambio: Partial<FrecuenciasConfig>) => void;
 }) {
   const idOrden = useId();
@@ -41,11 +45,11 @@ export function AjustesDeFrecuencias({ frecuencias, numericas, variables, conTab
           opciones={OPCIONES_DE_ORDEN}
           onCambio={(orden) => onCambio({ orden })}
         />
-        <p className="tablas-nota">Las listas ordinales conservan el orden del formulario.</p>
+        <p className="tablas-nota">Las listas ordinales conservan su orden.</p>
       </SeccionDeAjustes>
 
       <SeccionDeAjustes
-        titulo="Variables con resumen numérico"
+        titulo="Con resumen numérico"
         accion={numericas.length > 1 ? (
           <PulsoButton variant="link" size="sm" onClick={() => onCambio({ numericas_override: [] })}>
             Quitar todas
@@ -60,21 +64,21 @@ export function AjustesDeFrecuencias({ frecuencias, numericas, variables, conTab
         />
       </SeccionDeAjustes>
 
-      <SeccionDeAjustes titulo="Filas">
+      <SeccionDeAjustes titulo="Filas" tituloVisible={false}>
         <div className="tablas-interruptores">
           <InterruptorOpcion
             variante="linea"
             checked={frecuencias.mostrar_todo}
             onToggle={() => onCambio({ mostrar_todo: !frecuencias.mostrar_todo })}
             titulo="Todas las opciones"
-            descripcion="Incluye las que nadie eligió."
+            descripcion="Incluye las que nadie eligió"
           />
           <InterruptorOpcion
             variante="linea"
             checked={frecuencias.incluir_secciones}
             onToggle={() => onCambio({ incluir_secciones: !frecuencias.incluir_secciones })}
             titulo="Nombres de sección"
-            descripcion="Una fila separadora por sección."
+            descripcion="Una fila separadora por sección"
           />
         </div>
       </SeccionDeAjustes>
@@ -83,6 +87,12 @@ export function AjustesDeFrecuencias({ frecuencias, numericas, variables, conTab
       <SeccionDeAjustes titulo="Notas al pie">
         <NotasPieEditor variante="frecuencias" variables={conTabla} abierta />
       </SeccionDeAjustes>
+
+      {datos ? (
+        <SeccionDeAjustes titulo="Datos y plantilla">
+          <div className="tablas-datos">{datos}</div>
+        </SeccionDeAjustes>
+      ) : null}
     </PanelDeZona>
   );
 }

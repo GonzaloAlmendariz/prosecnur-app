@@ -8,7 +8,6 @@ import { describe, expect, it } from "vitest";
 
 import type { CrucesPreviewTabla } from "../../../api/analitica";
 import { cajasDeLaHoja } from "../../../test/cajasPropias";
-import { TODAS_LAS_VARIABLES } from "./crucesModelo";
 import { respuestaBaseHija, respuestaConPesos, respuestaSinPesos, tablaDe } from "./ejemploDeCruces.test-util";
 import { HojaDeCruces } from "./HojaDeCruces";
 import { TablaCruzada } from "./TablaCruzada";
@@ -80,7 +79,7 @@ describe("Cruces: reglas de la casa", () => {
 });
 
 const tabla = (t: CrucesPreviewTabla, extra: Partial<Parameters<typeof TablaCruzada>[0]> = {}) =>
-  renderToStaticMarkup(createElement(TablaCruzada, { tabla: t, cruces: t.cruces, ponderado: false, elegida: false, notaComun: null, ...extra }));
+  renderToStaticMarkup(createElement(TablaCruzada, { tabla: t, cruces: t.cruces, ponderado: false, notaComun: null, ...extra }));
 const dom = (html: string) => {
   const d = document.createElement("div");
   d.innerHTML = html;
@@ -161,10 +160,11 @@ describe("la tabla cruzada pinta lo que el servicio entrega", () => {
 
   it("la base de una tabla de una base hija dice registros", () => {
     const html = tabla(tablaDe(respuestaBaseHija(), "srv_satisfaccion"), { ponderado: true });
-    expect(html).toContain("Respondió el 100.0 % de los 660 registros");
+    expect(html).toContain("Respondieron 660 de 660 registros (100.0 %)");
     expect(html).toContain("Base (registros)");
-    // Ni el título ni la tabla llaman casos a los registros (las notas del motor van literales).
+    // Ni el título (con el porcentaje en su unidad) ni la tabla llaman casos a los registros (las notas del motor van literales).
     const d = dom(html);
+    expect(d.querySelector(".cruces-tabla-titulo")?.textContent).toContain("el porcentaje de los registros de su columna");
     expect(`${d.querySelector(".cruces-tabla-titulo")?.textContent} ${d.querySelector(".cruces-rejilla")?.textContent}`).not.toMatch(/\bcasos?\b/i);
   });
 
@@ -222,7 +222,9 @@ describe("la tabla cruzada pinta lo que el servicio entrega", () => {
   it("es una tabla para quien la lee: cabecera de dos niveles, fila con su encabezado y celdas", () => {
     const t = tablaDe(respuestaSinPesos(), "D1_information");
     const html = tabla(t);
-    expect(html).toContain(`role="table" aria-label="${t.etiqueta}"`);
+    const id = html.match(/<h3 id="([^"]+)"/)?.[1];
+    expect(html).toContain(`role="table" aria-labelledby="${id}"`);
+    expect(dom(html).querySelector("h3")?.textContent).toBe(`D1_information ${t.etiqueta}`);
     expect(html).toContain('role="columnheader" aria-colspan="6" style="grid-column:span 6" title="¿En qué distrito vive actualmente?"');
     const datos = dom(html).querySelector('[data-categoria="1"]');
     expect(datos?.querySelectorAll('[role="rowheader"]')).toHaveLength(1);
@@ -232,27 +234,88 @@ describe("la tabla cruzada pinta lo que el servicio entrega", () => {
   });
 });
 
-describe("la hoja", () => {
-  const hoja = (cruce: string, ponderado = false) => renderToStaticMarkup(createElement(HojaDeCruces, {
-    tablas: respuestaSinPesos().tablas, ponderado, cruce, elegida: null,
-  }));
+describe("la tabla de la pregunta elegida, con todas las variables de cruce", () => {
+  const hoja = (t: CrucesPreviewTabla, extra: Partial<Parameters<typeof HojaDeCruces>[0]> = {}) =>
+    renderToStaticMarkup(createElement(HojaDeCruces, { tabla: t, ponderado: false, ...extra }));
 
-  it("mide la tabla más ancha con lo que se ve; la hoja declara sus secciones y tablas (C1), la vista que la contiene, la región", () => {
-    expect(hoja("M5_district")).toMatch(/^<div class="cruces-hoja" style="[^"]*" data-qa-geometry-group="analitica\/cruces-hoja" data-qa-geometry-contract="intrinsic">/);
-    expect(hoja("M5_district")).toContain("--cruces-max:7");
-    expect(hoja("E2_sex")).toContain("--cruces-max:4");
-    expect(hoja(TODAS_LAS_VARIABLES)).toContain("--cruces-max:10");
+  it("las variables de cruce van lado a lado en una sola tabla con cabecera de dos niveles, como el archivo", () => {
+    const t = tablaDe(respuestaSinPesos(), "D1_information");
+    const d = dom(hoja(t));
+    expect(d.querySelectorAll(".cruces-tabla")).toHaveLength(1);
+    expect(Array.from(d.querySelectorAll(".cruces-fila--variables .cruces-variable")).map((v) => v.getAttribute("title")))
+      .toEqual(t.cruces.map((c) => c.etiqueta));
+    expect(Array.from(d.querySelectorAll(".cruces-fila--variables .cruces-variable")).map((v) => v.getAttribute("aria-colspan")))
+      .toEqual(t.cruces.map((c) => String(c.columnas.length)));
+    // Total y las diez columnas de las dos variables de cruce, en cada fila.
+    expect(d.querySelectorAll('[data-categoria="1"] [role="cell"]')).toHaveLength(1 + t.cruces.reduce((a, c) => a + c.columnas.length, 0));
   });
 
-  it("la leyenda de letras se dice una vez, al final, y no en cada tabla", () => {
-    const d = dom(hoja("M5_district"));
-    const nota = respuestaSinPesos().tablas[0].significancia?.nota ?? "";
+  it("mide la tabla con todas sus columnas; declara su geometría (C1)", () => {
+    const t = tablaDe(respuestaSinPesos(), "D1_information");
+    expect(hoja(t)).toMatch(/^<div class="cruces-hoja" style="[^"]*" data-qa-geometry-group="analitica\/cruces-hoja" data-qa-geometry-contract="intrinsic">/);
+    expect(hoja(t)).toContain("--cruces-max:10");
+    // La primera columna y el Total tienen su ancho; las de las variables de cruce se reparten el resto.
+    expect(hoja(t)).toContain("--cruces-columnas-de-cruce:9");
+  });
+
+  it("la leyenda de letras se dice una vez, al final, y no en el pie de la tabla", () => {
+    const t = tablaDe(respuestaSinPesos(), "D1_information");
+    const d = dom(hoja(t));
+    const nota = t.significancia?.nota ?? "";
     expect(nota.length).toBeGreaterThan(20);
     expect((d.textContent ?? "").split(nota)).toHaveLength(2);
     expect(d.querySelector(".cruces-leyenda")?.textContent).toContain(nota);
-    expect(d.querySelector(".cruces-leyenda")?.textContent).toContain("Porcentajes por columna");
-    expect(Array.from(d.querySelectorAll(".cruces-tabla")).some((t) => t.textContent?.includes(nota))).toBe(false);
-    // Al final: arriba le quitaba la primera fila a una ventana de 768 de alto.
+    expect(d.querySelector(".cruces-tabla")?.textContent).not.toContain(nota);
+    // Qué es el porcentaje lo dice el subtítulo de la tabla, una vez.
+    expect((d.textContent ?? "").split("Porcentaje por columna")).toHaveLength(2);
+    expect(d.querySelector(".cruces-tabla-titulo")?.textContent).toContain("Porcentaje por columna: cada celda es el porcentaje de los encuestados de su columna.");
     expect(d.querySelector(".cruces-hoja")?.lastElementChild?.classList.contains("cruces-leyenda")).toBe(true);
+  });
+
+  it("con pesos, el subtítulo dice ponderado y la leyenda el redondeo del N ponderado", () => {
+    const t = tablaDe(respuestaConPesos(), "D1_information");
+    const d = dom(hoja(t, { ponderado: true }));
+    expect(d.querySelector(".cruces-tabla-titulo p")?.textContent).toMatch(/^Porcentaje por columna, ponderado:/);
+    expect(d.querySelector(".cruces-leyenda")?.textContent).toContain("N ponderado redondeado a entero");
+  });
+});
+
+describe("cifras de cada celda y el Total", () => {
+  const t = () => tablaDe(respuestaConPesos(), "D1_information");
+
+  it("Porcentaje: el porcentaje con sus letras; Casos: el N del servicio, entero, sin letras; Ambos: los dos", () => {
+    const pct = dom(tabla(t(), { ponderado: true, cifras: "porcentaje" }));
+    const casos = dom(tabla(t(), { ponderado: true, cifras: "casos" }));
+    const ambos = dom(tabla(t(), { ponderado: true, cifras: "ambos" }));
+    const celda = (d: HTMLElement, col: string) => (d.querySelector(`[data-categoria="1"] [data-columna="${col}"]`)?.textContent ?? "").replace(/\s+/g, " ").trim();
+    const columna = t().cruces[0].columnas[0];
+    const n = columna.celdas.find((c) => c.fila === "1")?.n ?? 0;
+    expect(celda(pct, columna.codigo)).not.toContain(String(Math.round(n)));
+    expect(casos.querySelectorAll(".cruces-pct")).toHaveLength(0);
+    expect(casos.querySelectorAll(".cruces-letras")).toHaveLength(0);
+    expect(celda(casos, columna.codigo)).toBe(String(Math.round(n)));
+    expect(celda(ambos, columna.codigo).startsWith(celda(pct, columna.codigo))).toBe(true);
+    expect(celda(ambos, columna.codigo).endsWith(String(Math.round(n)))).toBe(true);
+    expect(casos.querySelector(".cruces-tabla")?.getAttribute("data-cifras")).toBe("casos");
+  });
+
+  it("la columna Total lleva la barra de su porcentaje, tal como llega, y queda fija junto a la primera", () => {
+    const tabla1 = t();
+    const d = dom(tabla(tabla1, { ponderado: true }));
+    const delTotal = tabla1.total?.celdas.find((c) => c.fila === "1");
+    const barra = d.querySelector<HTMLElement>('[data-categoria="1"] [data-columna="total"] .cruces-barra');
+    expect(barra?.getAttribute("style")).toBe(`--cruces-barra:${(delTotal?.pct ?? 0) * 100}%`);
+    // Las demás columnas no llevan barra.
+    expect(d.querySelectorAll('[data-categoria="1"] .cruces-barra')).toHaveLength(1);
+    expect(d.querySelector('.cruces-fila--categorias .cruces-total')?.textContent).toBe("Total");
+    const css = leer(path.join(aqui, "cruces.css"));
+    expect(css).toMatch(/\.cruces-fila > \.cruces-total,\s*\.cruces-fila > \[data-columna="total"\] \{[^}]*position: sticky;[^}]*left: var\(--cruces-cat\)/);
+  });
+
+  it("la categoría se lee por su etiqueta, sin el código delante; el código va en el title", () => {
+    const d = dom(tabla(tablaDe(respuestaSinPesos(), "D1_information")));
+    const fila1 = d.querySelector('[data-categoria="1"] [role="rowheader"]');
+    expect(fila1?.querySelector("code")).toBeNull();
+    expect(fila1?.getAttribute("title")).toBe("Código 1");
   });
 });

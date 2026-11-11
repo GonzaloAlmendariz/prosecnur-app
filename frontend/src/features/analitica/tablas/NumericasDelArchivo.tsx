@@ -1,14 +1,14 @@
 // Variables con resumen numérico: el archivo las resume con media, desviación
 // y percentiles en vez de tabularlas. Solo entran las que se declaran aquí o en
-// la definición global; no hay detección automática.
+// la definición global; no hay detección automática. Cada una es un chip con
+// su botón de quitar; "Añadir" abre el selector en el mismo renglón.
 
 import { useMemo, useState } from "react";
 
 import type { VariableInstrumento } from "../../../api/analitica";
 import { ChipControl, CLASE_CHIP_CON_CONTROLES } from "../../../components/ChipConControles";
-import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { Hash, Plus, X } from "../../../vendor/lucide-react";
+import { Plus, X } from "../../../vendor/lucide-react";
 import { VariableSelect } from "../VariableSelect";
 
 /** Cuántas variables numéricas del formulario se ofrecen sin abrir el selector. */
@@ -30,28 +30,27 @@ export function NumericasDelArchivo({ numericas, variables, onAgregar, onQuitar 
 
   return (
     <div className="tablas-numericas">
-      {numericas.length === 0 ? (
-        <EstadoVacio
-          icono={<Hash size={15} />}
-          titulo="Sin resumen numérico"
-          descripcion="Marca edades, ingresos o puntajes para resumirlos aparte."
-        />
-      ) : (
-        <ul className="tablas-numericas-lista" aria-label="Variables con resumen numérico">
-          {numericas.map((nombre) => {
-            const etiqueta = porNombre.get(nombre)?.label?.trim() || nombre;
-            return (
-              <li key={nombre} className={`${CLASE_CHIP_CON_CONTROLES} tablas-numerica`}>
-                <span className="tablas-numerica-etiqueta" title={etiqueta}>{etiqueta}</span>
-                {etiqueta !== nombre ? <code className="tablas-codigo">{nombre}</code> : null}
-                <ChipControl aria-label={`Quitar ${etiqueta}`} onClick={() => onQuitar(nombre)}>
-                  <X size={12} aria-hidden="true" />
-                </ChipControl>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <ul className="tablas-numericas-lista" aria-label="Variables con resumen numérico">
+        {numericas.map((nombre) => {
+          const etiqueta = porNombre.get(nombre)?.label?.trim() || nombre;
+          return (
+            <li key={nombre} className={`${CLASE_CHIP_CON_CONTROLES} tablas-numerica`} title={etiqueta !== nombre ? `${etiqueta} (${nombre})` : etiqueta}>
+              <span className="tablas-numerica-etiqueta">{etiqueta}</span>
+              <ChipControl aria-label={`Quitar ${etiqueta}`} onClick={() => onQuitar(nombre)}>
+                <X size={12} aria-hidden="true" />
+              </ChipControl>
+            </li>
+          );
+        })}
+        {eligiendo ? null : (
+          <li className="tablas-numericas-anadir">
+            <PulsoButton variant="secondary" size="sm" onClick={() => setEligiendo(true)} aria-label="Añadir variable numérica">
+              <Plus size={13} aria-hidden="true" /> Añadir
+            </PulsoButton>
+          </li>
+        )}
+      </ul>
+      {numericas.length === 0 ? <p className="tablas-nota">Ninguna variable con resumen numérico.</p> : null}
 
       {eligiendo ? (
         <div className="tablas-agregar-selector">
@@ -63,15 +62,11 @@ export function NumericasDelArchivo({ numericas, variables, onAgregar, onQuitar 
           />
           <PulsoButton variant="secondary" onClick={() => setEligiendo(false)}>Cancelar</PulsoButton>
         </div>
-      ) : (
-        <PulsoButton variant="secondary" className="tablas-agregar" onClick={() => setEligiendo(true)}>
-          <Plus size={14} aria-hidden="true" /> Añadir variable numérica
-        </PulsoButton>
-      )}
+      ) : null}
 
       {!eligiendo && sugeridas.length > 0 ? (
         <div className="tablas-sugeridas" role="group" aria-label="Variables numéricas del formulario">
-          <span className="tablas-sugeridas-rotulo">Numéricas del formulario</span>
+          <span className="tablas-sugeridas-rotulo">Del formulario</span>
           {sugeridas.map((v) => (
             <PulsoButton
               key={v.name}
@@ -85,7 +80,6 @@ export function NumericasDelArchivo({ numericas, variables, onAgregar, onQuitar 
           ))}
         </div>
       ) : null}
-
     </div>
   );
 }

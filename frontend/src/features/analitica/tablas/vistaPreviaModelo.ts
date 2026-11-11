@@ -93,25 +93,30 @@ export function partesDeBase(base: FrecuenciasPreviewTabla["base"]): { n: number
 }
 
 /**
- * La línea de base de una tabla de opción única o múltiple.
- * - Con pesos el Total es una suma de pesos, así que la base dice el conteo:
- *   "Respondieron 1,250 de 1,283 casos (97.4 %)".
- * - Sin pesos el conteo ya está en el Total; la línea dice la proporción:
- *   "Respondió el 97.4 % de los 1,283 casos".
- * La numérica dice su base en la celda "Casos válidos" (`partesDeBase`).
+ * La línea de base de una tabla de opción única o múltiple, con la regla de la
+ * casa para una cifra en el texto: conteo y porcentaje juntos, el porcentaje
+ * con un decimal. "Respondieron 1,250 de 1,283 casos (97.4 %)". Es la misma
+ * frase que Cruces (`textoDeBaseDeCruce`), con o sin pesos: la base es siempre
+ * un conteo sin ponderar. La numérica dice su base en "Casos válidos".
  */
-export function textoDeBase(base: FrecuenciasPreviewTabla["base"], ponderado: boolean): string | undefined {
+export function textoDeBase(base: FrecuenciasPreviewTabla["base"]): string | undefined {
   if (!base.denominador || base.denominador === "casos_validos" || base.n === null) return undefined;
-  const multiple = base.denominador === "marcaron_alguna_opcion";
-  const sinUniverso = base.de === null || base.de <= 0;
-  if (ponderado || sinUniverso) {
-    const quienes = multiple ? "Marcaron alguna opción" : "Respondieron";
-    if (sinUniverso) return `${quienes} ${casos(base.n)}`;
-    return `${quienes} ${formatoConteo(base.n)} ${partesDeBase(base)?.de ?? ""}`;
-  }
-  const de = base.de as number;
-  const deCuantos = de === 1 ? "de 1 caso" : `de los ${casos(de)}`;
-  return `${multiple ? "Marcó alguna opción" : "Respondió"} el ${porcentajeDeBase(base.n / de)} % ${deCuantos}`;
+  const quienes = base.denominador === "marcaron_alguna_opcion" ? "Marcaron alguna opción" : "Respondieron";
+  if (base.de === null || base.de <= 0) return `${quienes} ${casos(base.n)}`;
+  return `${quienes} ${formatoConteo(base.n)} ${partesDeBase(base)?.de ?? ""}`;
+}
+
+/**
+ * Lo que dice el porcentaje de la tabla, bajo su título: sobre quiénes se
+ * calcula (el denominador del servicio) y si va ponderado. La numérica dice
+ * que es un resumen y qué va ponderado.
+ */
+export function textoDelPorcentaje(tabla: FrecuenciasPreviewTabla, ponderado: boolean): string {
+  if (tabla.tipo === "numerica") return ponderado ? "Resumen numérico; los estadísticos van ponderados." : "Resumen numérico.";
+  const sobre = tabla.base.denominador === "marcaron_alguna_opcion"
+    ? "sobre quienes marcaron alguna opción; las opciones suman más de 100"
+    : "sobre quienes respondieron";
+  return `Porcentaje${ponderado ? " ponderado" : ""} ${sobre}.`;
 }
 
 /** El rótulo de la fila de total: en la múltiple dice quiénes forman el 100 %. */
@@ -169,9 +174,13 @@ export function ponderacionSinAplicar(preview: FrecuenciasPreview): boolean {
   return preview.ponderacion.configurada && !preview.ponderado;
 }
 
-/** La vista previa tiene algo que decir bajo la hoja: recorte, preguntas sin tabla, avisos o varias bases. */
+/**
+ * La vista previa tiene algo que decir bajo la tabla: preguntas sin tabla,
+ * avisos o varias bases. Que la hoja venga recortada ya no se dice: la tabla
+ * es de una pregunta y la lista ofrece las demás.
+ */
 export function tienePie(preview: FrecuenciasPreview, sinTabla: readonly FrecuenciasPreviewSinTabla[], releyendo = false): boolean {
-  return preview.recortado || sinTabla.length > 0 || ponderacionSinAplicar(preview)
+  return sinTabla.length > 0 || ponderacionSinAplicar(preview)
     || avisosDelMotor(preview).length > 0 || dicePorBase(preview, releyendo);
 }
 

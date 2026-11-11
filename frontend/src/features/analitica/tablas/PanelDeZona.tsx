@@ -5,11 +5,14 @@
 import type { ReactNode } from "react";
 
 import { Panel } from "../../../components/Panel";
+import { formatoConteo } from "../../../lib/formatoNumero";
 
-export function PanelDeZona({ zona, titulo, icono, acciones, pie, ocupado = false, grupo, children }: {
-  zona: "tabla" | "ajustes";
+export function PanelDeZona({ zona, titulo, icono, conteo, acciones, pie, ocupado = false, grupo, children }: {
+  zona: "preguntas" | "tabla" | "ajustes";
   titulo: string;
   icono: ReactNode;
+  /** Cuántos elementos lista el panel, junto al título. */
+  conteo?: number;
   /** Controles de la cabecera. */
   acciones?: ReactNode;
   /** Línea fija bajo el cuerpo. */
@@ -25,7 +28,13 @@ export function PanelDeZona({ zona, titulo, icono, acciones, pie, ocupado = fals
       noPadding
       data-entra="sube"
       className={`tablas-panel tablas-panel--${zona}`}
-      title={<>{icono}<span>{titulo}</span></>}
+      title={(
+        <>
+          <span className="tablas-panel-tesela" aria-hidden="true">{icono}</span>
+          <span>{titulo}</span>
+          {conteo !== undefined ? <span className="tablas-conteo">{formatoConteo(conteo)}</span> : null}
+        </>
+      )}
       actions={acciones}
     >
       {/* El cuerpo se desplaza con el teclado: es una región con nombre y parada de tabulador. */}

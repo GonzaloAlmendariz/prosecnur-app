@@ -1,21 +1,20 @@
-// Lo que la vista previa de Frecuencias dice bajo la hoja: cuántas tablas se
-// ven de cuántas tiene el archivo (con el botón para ver más), las preguntas
+// Lo que la vista previa de Frecuencias dice bajo la tabla: las preguntas
 // pedidas que no tienen tabla y por qué, la ponderación que no se aplicó, los
 // avisos del motor y, con varias bases, de cuál es la vista previa.
 
 import type { FrecuenciasPreview } from "../../../api/analitica";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { PieDeLaHoja, type LineaDelPie } from "./PieDeLaHoja";
-import { avisosDelMotor, causaSinTabla, dicePorBase, ponderacionSinAplicar, siguienteLimite } from "./vistaPreviaModelo";
+import { avisosDelMotor, causaSinTabla, dicePorBase, ponderacionSinAplicar } from "./vistaPreviaModelo";
 
-export function PieDeVistaPrevia({ preview, sinTabla, limite, onMostrarMas, releyendo = false }: {
+export function PieDeVistaPrevia({ preview, sinTabla, releyendo = false, etiquetaDeBase = (b) => b }: {
   preview: FrecuenciasPreview;
-  /** Las preguntas pedidas que no tienen tabla, de la hoja y de la pregunta elegida. */
+  /** Las preguntas pedidas que no tienen tabla. */
   sinTabla: FrecuenciasPreview["sin_tabla"];
-  limite: number;
-  onMostrarMas?: () => void;
   /** Lo que se ve es de una lectura anterior. */
   releyendo?: boolean;
+  /** El nombre que ve el usuario de una base, por su identificador. */
+  etiquetaDeBase?: (base: string) => string;
 }) {
   const avisos = avisosDelMotor(preview);
   const lineas: LineaDelPie[] = [
@@ -28,12 +27,9 @@ export function PieDeVistaPrevia({ preview, sinTabla, limite, onMostrarMas, rele
       ? [{
         clave: "bases",
         alerta: false,
-        texto: <>Vista previa de la base &quot;{preview.base.nombre}&quot;. Al generar sale un archivo por cada una de las {formatoConteo(preview.base.n_bases)} bases.</>,
+        texto: <>Vista previa de la base &quot;{etiquetaDeBase(preview.base.nombre)}&quot;. Al generar sale un archivo por cada una de las {formatoConteo(preview.base.n_bases)} bases.</>,
       }]
       : []),
   ];
-  const recorte = preview.recortado
-    ? { devueltas: preview.devueltas, total: preview.total_variables, limite, siguiente: siguienteLimite(limite, preview.total_variables), onMostrarMas }
-    : null;
-  return <PieDeLaHoja recorte={recorte} lineas={lineas} />;
+  return <PieDeLaHoja recorte={null} lineas={lineas} />;
 }

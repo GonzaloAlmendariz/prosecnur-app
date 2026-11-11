@@ -17,33 +17,6 @@
   container-type: inline-size;
 }
 
-/* La cabecera lleva dos selectores: el de columnas y el de pregunta. */
-.cruces-selector {
-  display: flex;
-  flex: 0 1 300px;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  min-width: 0;
-  margin-inline-start: auto;
-}
-
-.cruces-selector-rotulo {
-  flex: none;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  white-space: nowrap;
-}
-
-.cruces-selector > :last-child {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.cruces-selector + .tablas-ir-a {
-  flex-basis: 260px;
-  margin-inline-start: 0;
-}
-
 /* El vacío lleva aire propio cuando la pestaña es angosta y el contenedor mide lo que su contenido. */
 .cruces-vista:has(> .pulso-estado-vacio) {
   padding-block: var(--pulso-space-5);
@@ -56,13 +29,14 @@
 /* ---------- Hoja ---------- */
 
 .cruces-hoja {
-  --cruces-cat: 240px;
+  --cruces-cat: 200px;
   --cruces-col: 92px;
+  --cruces-total: 104px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   width: 100%;
-  min-width: calc(var(--cruces-cat) + var(--cruces-max, 1) * var(--cruces-col) + var(--pulso-space-5));
+  min-width: calc(var(--cruces-cat) + var(--cruces-total) + (var(--cruces-max, 1) - 1) * var(--cruces-col) + var(--pulso-space-5));
   padding-block-end: var(--pulso-space-4);
   color: var(--pulso-text);
   font-size: var(--pulso-type-body-size);
@@ -94,35 +68,28 @@
   overflow-wrap: anywhere;
 }
 
-.cruces-seccion {
-  margin: 0;
-  padding-block: var(--pulso-space-5) var(--pulso-space-1);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-  overflow-wrap: anywhere;
-}
-
-/* Cuando el archivo escribe la fila de sección, lleva su línea, como en la hoja. */
-.cruces-seccion[data-en-archivo] {
-  padding-block-end: var(--pulso-space-2);
-  border-bottom: 1px solid var(--pulso-border-strong);
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-bold);
-}
-
 .cruces-tabla {
-  padding-block-end: var(--pulso-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding-block: var(--pulso-space-5) var(--pulso-space-2);
   transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.cruces-tabla-titulo {
-  padding-block: var(--pulso-space-4) var(--pulso-space-2);
+.cruces-tabla-titulo h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
-.cruces-tabla[aria-current="true"] .pulso-bloque-pregunta {
-  outline: 2px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
-  outline-offset: 1px;
+.cruces-tabla-titulo p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
 }
 
 /* Mientras se relee o un cambio espera a guardarse, lo que hay es de antes: sigue a la vista, atenuado. */
@@ -146,7 +113,8 @@
   display: grid;
   grid-template-columns:
     minmax(var(--cruces-cat), 2.4fr)
-    repeat(var(--cruces-columnas, 1), minmax(var(--cruces-col), 1fr));
+    var(--cruces-total)
+    repeat(var(--cruces-columnas-de-cruce, 1), minmax(var(--cruces-col), 1fr));
   align-items: stretch;
   padding-inline-end: var(--pulso-space-5);
   border-bottom: 1px solid var(--pulso-border);
@@ -158,8 +126,8 @@
   padding: var(--pulso-space-2);
 }
 
-/* La primera columna queda a la vista al desplazar a lo ancho. El código va a
-   la izquierda y el rótulo parte línea a su lado; la marca, debajo del rótulo. */
+/* La primera columna queda a la vista al desplazar a lo ancho. El rótulo parte
+   línea; la marca va debajo. */
 .cruces-primera {
   position: sticky;
   left: 0;
@@ -200,7 +168,64 @@
 
 .cruces-pct {
   color: var(--pulso-text);
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* El Total queda fijo junto a la primera columna, en negrita y con la barra de su porcentaje. */
+.cruces-fila > .cruces-total,
+.cruces-fila > [data-columna="total"] {
+  position: sticky;
+  left: var(--cruces-cat);
+  z-index: 1;
+  background: var(--pulso-surface);
+  box-shadow: inset -1px 0 0 var(--pulso-border);
+}
+
+.cruces-fila > [data-columna="total"] .cruces-pct {
   font-weight: var(--pulso-weight-bold);
+}
+
+.cruces-cabecera .cruces-fila > .cruces-total {
+  z-index: 3;
+  background: var(--pulso-surface-2);
+}
+
+.cruces-pie-cifras .cruces-fila > .cruces-total {
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+}
+
+.cruces-linea {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.cruces-barra {
+  display: inline-block;
+  flex: none;
+  inline-size: calc(var(--cruces-barra, 0%) * 0.4);
+  min-inline-size: 2px;
+  max-inline-size: 40px;
+  block-size: 6px;
+  margin-inline-end: var(--pulso-space-1);
+  border-radius: 3px;
+  background: var(--pulso-data-seq-4);
+}
+
+/* El N, como dato secundario; con "Casos" solo, como la cifra de la celda. */
+.cruces-n {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.cruces-tabla[data-cifras="casos"] .cruces-n {
+  color: var(--pulso-text);
+  font-size: inherit;
+}
+
+.cruces-tabla[data-cifras="ambos"] .cruces-cifra {
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .cruces-letras {
@@ -252,6 +277,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
+  border-bottom: 1px solid var(--pulso-border);
   background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
   font-size: var(--pulso-type-eyebrow-size);
@@ -273,19 +299,24 @@
   padding-block-end: 0;
 }
 
+/* El rótulo del grupo va al comienzo de sus columnas (centrado en un grupo más
+   ancho que la vista quedaba cortado contra el borde del scroll). */
 .cruces-variable {
   margin-inline: var(--pulso-space-1);
   border-bottom: 1px solid var(--pulso-border-strong);
   color: var(--pulso-text);
-  text-align: center;
+  text-align: start;
   overflow-wrap: anywhere;
 }
 
+/* El rótulo del grupo se queda a la vista al desplazar a lo ancho y parte línea dentro del ancho que se ve
+   (el cuerpo del panel mide `100cqi`): una pregunta larga no queda cortada contra el borde. */
 .cruces-variable-texto {
   position: sticky;
-  left: calc(var(--cruces-cat) + var(--pulso-space-2));
+  left: calc(var(--cruces-cat) + var(--cruces-total) + var(--pulso-space-2));
   display: inline-block;
-  max-width: 100%;
+  max-width: min(100%, calc(100cqi - var(--cruces-cat) - var(--cruces-total) - var(--pulso-space-7)));
+  white-space: normal;
 }
 
 .cruces-columna {
@@ -351,53 +382,92 @@
   min-width: 0;
 }
 
-.cruces-variables-lista {
+/* Las variables de cruce: chips con su asa, su nombre, sus columnas y quitar; "Añadir" al final. */
+.cruces-chips {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.cruces-variable-de-cruce {
+.cruces-chip {
+  max-width: 100%;
+  gap: 2px;
+  cursor: grab;
+}
+
+.cruces-chip[data-abierta] {
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 80%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.cruces-chip[data-arrastrada] {
+  opacity: 0.5;
+}
+
+.cruces-chip-asa {
+  flex: none;
+  color: var(--pulso-text-muted);
+}
+
+.cruces-chip-nombre {
+  display: inline-flex;
+  align-self: center;
+  align-items: baseline;
+  line-height: 1.2;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.cruces-chip-nombre:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* El nombre corto ya cabe (hasta 24 caracteres): sin elipsis a media palabra. */
+.cruces-chip-etiqueta {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.cruces-chip-etiqueta[data-leyendo] {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.cruces-chip-columnas {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.cruces-chip-anadir {
+  display: flex;
+}
+
+.cruces-categorias-de {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-2);
   min-width: 0;
-  padding-block: var(--pulso-space-3);
 }
 
-.cruces-variable-de-cruce:first-child {
-  padding-block-start: 0;
-}
-
-.cruces-variable-de-cruce + .cruces-variable-de-cruce {
-  border-top: 1px solid var(--pulso-border);
-}
-
-.cruces-variable-cabecera {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-  min-width: 0;
-}
-
-.cruces-variable-nombre {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px var(--pulso-space-2);
-  min-width: 0;
-  padding-block-start: var(--pulso-space-1);
-}
-
-.cruces-variable-etiqueta {
-  min-width: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.35;
+.cruces-categorias-titulo {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
   overflow-wrap: anywhere;
 }
 
@@ -448,18 +518,11 @@
 
 /* ---------- Tamaños ---------- */
 
-@container tablas-superficie (max-width: 1149px) {
+@container tablas-superficie (max-width: 1299px) {
   .cruces-hoja {
-    --cruces-cat: 200px;
+    --cruces-cat: 168px;
     --cruces-col: 84px;
-  }
-
-  .cruces-selector {
-    flex-basis: 260px;
-  }
-
-  .cruces-selector + .tablas-ir-a {
-    flex-basis: 200px;
+    --cruces-total: 96px;
   }
 }
 
@@ -469,18 +532,10 @@
    ancho. */
 
 /* Ventana baja (1366x768 y menores): el alto es de las filas. Se recorta el
-   aire de la sección, del título y de la cabecera; nada se quita. */
+   aire del título y de la cabecera; nada se quita. */
 @media (max-height: 820px) {
-  .cruces-seccion {
-    padding-block: var(--pulso-space-2) 0;
-  }
-
-  .cruces-seccion[data-en-archivo] {
-    padding-block-end: var(--pulso-space-1);
-  }
-
-  .cruces-tabla-titulo {
-    padding-block: var(--pulso-space-2) var(--pulso-space-1);
+  .cruces-tabla {
+    padding-block-start: var(--pulso-space-4);
   }
 
   .cruces-fila > * {
@@ -518,13 +573,26 @@
   font-size: var(--pulso-type-body-size);
 }
 
-/* El selector de variable a cruzar: el del kit, a todo el ancho de su lugar. */
+/* El selector de variable a cruzar: el del kit, a todo el ancho de su lugar;
+   junto a los chips, en su forma corta ("Añadir"). */
 .cruces-elegir {
   min-width: 0;
 }
 
 .cruces-elegir > .pulso-select-trigger {
   width: 100%;
+}
+
+.cruces-elegir[data-corto] > .pulso-select-trigger {
+  width: auto;
+}
+
+.cruces-elegir-corto {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--module-accent, var(--pulso-primary));
+  font-weight: var(--pulso-weight-semibold);
 }
 
 /* Cada opción va en el portal del select (fuera de la superficie): la pregunta

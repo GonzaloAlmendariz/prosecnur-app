@@ -159,7 +159,11 @@ export function GenerateFooter({
 }
 
 // Con varias bases el entregable es el ZIP; cada base se puede bajar suelta.
-function ArchivosPorBase({ bases }: { bases: BasePerOutput[] }) {
+export function ArchivosPorBase({ bases, etiquetaDe = (nombre) => nombre }: {
+  bases: BasePerOutput[];
+  /** El nombre que ve el usuario de cada base; sin él, su identificador. */
+  etiquetaDe?: (nombre: string) => string;
+}) {
   return (
     <div className="analitica-per-base-list" role="group" aria-label="Archivo de cada base">
       {bases.map((b) => {
@@ -167,7 +171,7 @@ function ArchivosPorBase({ bases }: { bases: BasePerOutput[] }) {
         if (!fileId) {
           return (
             <span key={b.nombre} title={b.reason ?? undefined} className="analitica-per-base-chip is-skipped">
-              {b.nombre}{b.skipped ? " (omitida)" : ""}
+              {etiquetaDe(b.nombre)}{b.skipped ? " (omitida)" : ""}
             </span>
           );
         }
@@ -177,10 +181,10 @@ function ArchivosPorBase({ bases }: { bases: BasePerOutput[] }) {
             variant="secondary"
             size="sm"
             className="pulso-entregable-texto"
-            title={b.filename}
+            title={`${etiquetaDe(b.nombre)}: ${b.filename}`}
             onClick={() => descargarDelServidor(fileId, b.filename)}
           >
-            <Download size={12} aria-hidden="true" /> {b.nombre}
+            <Download size={12} aria-hidden="true" /> {etiquetaDe(b.nombre)}
           </PulsoButton>
         );
       })}

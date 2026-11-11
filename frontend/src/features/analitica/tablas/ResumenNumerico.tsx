@@ -15,7 +15,8 @@ export function ResumenNumerico({ resumen, base }: {
   const conBase = (estadistico: string, valor: number | null) =>
     esConteoDeCasos(estadistico) && Boolean(partes?.de) && valor !== null && valor === base.n;
   return (
-    <dl className="tablas-resumen-rejilla">
+    // C1: los estadísticos son celdas pares de una rejilla.
+    <dl className="tablas-resumen-rejilla" data-qa-geometry-group="analitica/frecuencias-resumen" data-qa-geometry-contract="equal">
       {resumen.map((e) => (
         <div key={e.estadistico} className="tablas-resumen-celda">
           <dt>{e.estadistico}</dt>

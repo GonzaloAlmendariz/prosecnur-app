@@ -1,7 +1,7 @@
-// La cabecera de pestaña de Analítica en las pestañas con vista previa de
-// tablas (Frecuencias y Cruces): la variante compacta del TabHeading, con la
-// línea de casos que cuentan en la misma fila. El alto que se ahorra pasa a la
-// vista previa, que a 1366x768 era la que se quedaba sin filas a la vista.
+// Las pestañas de Analítica que dibujan su propia cabecera de pestaña: las de
+// vista previa de tablas (Frecuencias y Cruces). Como en el prototipo del
+// rediseño, su cabecera lleva las cifras del archivo y la acción principal; la
+// página no pinta la suya y les pasa la pestaña y la barra de fuente.
 
 import type { AnaliticaTabId } from "../../../lib/navegacion/catalogos/procesamiento";
 

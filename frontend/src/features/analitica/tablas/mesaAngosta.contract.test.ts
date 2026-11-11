@@ -4,16 +4,16 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * La mesa de tablas a lo angosto (C4 del Contrato de Superficie). Bajo 960 px
- * de superficie la mesa pasa a una columna. Antes, la vista previa soltaba su
- * scroll y medía lo que todas sus tablas: a 1024x600 "Ajustes del archivo"
- * quedaba a 8,400 px en Frecuencias y a 8,800 en Cruces, detrás de la hoja
- * entera. Ahora la vista previa conserva su alto acotado y su scroll (en los
- * dos ejes, con la cabecera de columnas pegada arriba, igual que a lo ancho) y
- * los ajustes quedan justo debajo, en el desplazamiento de la pestaña.
+ * La mesa de tablas a lo angosto (C4 del Contrato de Superficie, regla No
+ * Scroll Jail). Bajo 960 px de superficie (1024 de ventana) la lista
+ * "Preguntas" medía 207 px con su propio scroll dentro de la pestaña, y para
+ * bajar a los ajustes con la rueda sobre ella había que agotar 2,526 px de
+ * lista (QA de fidelidad, 11 nov 2026). Ahora la lista se recoge en un selector
+ * en la cabecera de la tabla y la tabla mide su contenido: la pestaña es el
+ * único dueño del scroll vertical. Cruces conserva el scroll a lo ancho.
  *
- * Es una prueba sobre la hoja porque happy-dom no maqueta; la posición de los
- * ajustes se midió en pantalla a 1024x600.
+ * Es una prueba sobre la hoja porque happy-dom no maqueta; las medidas se
+ * tomaron en pantalla a 1024x600.
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -52,20 +52,27 @@ describe("mesa de tablas a lo angosto", () => {
     expect(reglas(cruces, ".cruces-cabecera")).toMatch(/position\s*:\s*sticky/);
   });
 
-  it("la vista previa tiene un alto acotado y su cuerpo conserva el scroll", () => {
-    // `block-size` propio, no `min-block-size` ni `max-block-size`.
-    expect(reglas(tablas, ".tablas-panel--tabla")).toMatch(/(^|[\s;])block-size\s*:\s*clamp\(/);
-    // Ninguna regla angosta suelta el scroll del cuerpo de la vista previa.
-    expect(reglas(tablas, ".tablas-panel-cuerpo")).not.toMatch(/overflow\s*:\s*visible/);
-    expect(reglas(tablas, ".tablas-panel--tabla .tablas-panel-cuerpo")).not.toMatch(/overflow\s*:\s*visible/);
+  it("la lista se recoge en el selector: el panel de preguntas no se ve y el selector sí", () => {
+    // Con la especificidad de `.tablas-superficie .pulso-panel.tablas-panel` (display: flex): con menos, no se oculta.
+    expect(reglas(tablas, ".tablas-superficie .pulso-panel.tablas-panel--preguntas")).toMatch(/display\s*:\s*none/);
+    expect(reglas(tablas, ".tablas-ir-a")).toMatch(/display\s*:\s*block/);
+    // A lo ancho el selector no se ve: manda la lista.
+    const ancha = leer("tablas.css").replace(`${ANGOSTA} {${tablas}}`, "");
+    expect(ancha).not.toContain(ANGOSTA);
+    expect(reglas(ancha, ".tablas-ir-a")).toMatch(/display\s*:\s*none/);
+    expect(reglas(ancha, ".tablas-ir-a")).not.toMatch(/display\s*:\s*block/);
   });
 
-  it("la cabecera de columnas sigue pegada arriba dentro de la vista previa", () => {
-    expect(reglas(tablas, ".tablas-hoja-cabecera")).not.toMatch(/position\s*:\s*static/);
-    expect(reglas(cruces, ".cruces-cabecera")).not.toMatch(/position\s*:\s*static/);
+  it("la tabla mide su contenido y no abre un scroll vertical propio: la pestaña es el único dueño", () => {
+    expect(reglas(tablas, ".tablas-panel--tabla")).toMatch(/(^|[\s;])block-size\s*:\s*auto/);
+    expect(reglas(tablas, ".tablas-panel--tabla .tablas-panel-cuerpo")).toMatch(/overflow-y\s*:\s*visible/);
+    expect(reglas(tablas, ".tablas-panel--tabla .tablas-panel-cuerpo")).not.toMatch(/overscroll-behavior\s*:\s*contain/);
+    // Ningún panel de la mesa queda con un alto acotado que encadene scrolls.
+    expect(tablas).not.toMatch(/block-size\s*:\s*clamp\(/);
   });
 
-  it("un solo dueño del scroll de Cruces: la vista no abre un segundo a lo ancho", () => {
+  it("Cruces conserva el scroll a lo ancho en su cuerpo; la vista no abre un segundo", () => {
+    expect(reglas(tablas, '.tablas-superficie[data-tablas="cruces"] .tablas-panel--tabla .tablas-panel-cuerpo')).toMatch(/overflow-x\s*:\s*auto/);
     expect(reglas(cruces, '.tablas-superficie[data-tablas="cruces"] .cruces-vista')).not.toMatch(/overflow/);
     expect(reglas(cruces, ".cruces-vista")).not.toMatch(/overflow/);
   });

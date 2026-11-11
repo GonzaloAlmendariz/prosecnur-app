@@ -1,42 +1,47 @@
-// Zona izquierda de Cruces: las tablas cruzadas del archivo tal como las
-// devuelve la vista previa del motor. Cada estado ocupa el mismo contenedor:
-// leyendo, lectura fallida (con el caso de una base sin preparar), archivo sin
-// tablas (sin variables a cruzar, con su acción), hoja y hoja de una lectura
-// anterior, atenuada, mientras llega la nueva o mientras un cambio espera a
-// guardarse. En la cabecera: qué variable de cruce se ve e "Ir a una pregunta".
+// Columna central de Cruces, "Así sale en el archivo": la tabla cruzada de la
+// pregunta elegida tal como la devuelve la vista previa del motor, con todas
+// las variables de cruce lado a lado como en el archivo. Cada estado ocupa el
+// mismo contenedor: leyendo (con su marca de readiness en falso), lectura
+// fallida (con el caso de una base sin preparar), archivo sin tablas (sin
+// variables a cruzar, con su acción), pregunta sin tabla, y la tabla de una
+// lectura anterior, atenuada, mientras llega la nueva o mientras un cambio
+// espera a guardarse. En la cabecera, el conmutador de cifras.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 
-import type { CrucesPreview, VariableInstrumento } from "../../../api/analitica";
+import type { CrucesPreview, CrucesPreviewTabla, VariableInstrumento } from "../../../api/analitica";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { EstadoVacio } from "../../../components/EstadoVacio";
-import { PulsoSelect } from "../../../components/PulsoSelect";
-import { LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { GitBranch, Table2 } from "../../../vendor/lucide-react";
 import type { ResumenSecciones } from "../estructuraDeSecciones";
 import { AvisoDeGuardado } from "../tablas/AvisoDeGuardado";
+import { ConmutadorDeCifras } from "../tablas/ConmutadorDeCifras";
 import { FalloDeVistaPrevia } from "../tablas/FalloDeVistaPrevia";
-import { IrAPregunta, type PreguntaParaIr } from "../tablas/IrAPregunta";
 import { PanelDeZona } from "../tablas/PanelDeZona";
 import { PieDeLaHoja, type LineaDelPie } from "../tablas/PieDeLaHoja";
-import { siguienteLimite } from "../tablas/vistaPreviaModelo";
-import {
-  avisosDeCruces, causaDelVacio, cruceVigente, CRUCES_POR_PEDIDO, esLaTablaDe, preguntasDeLaHoja, sinTablaDeLaElegida, TODAS_LAS_VARIABLES,
-  TOPE_DE_CRUCES, variablesDeCruce,
-} from "./crucesModelo";
+import { useVistaDeTablas } from "../tablas/vistaDeTablasStore";
+import { avisosDeCruces, causaDelVacio, esLaTablaDe, sinTablaDeLaElegida } from "./crucesModelo";
 import { ElegirVariableACruzar } from "./ElegirVariableACruzar";
 import { HojaDeCruces } from "./HojaDeCruces";
 import type { VistaPreviaDeCruces as Vista } from "./useVistaPreviaDeCruces";
 
 import "./cruces.css";
 
-/** El valor de "Todas" en el select: la cadena vacía es "sin selección" para el kit. */
-const TODAS = "*todas*";
+/** La tabla de la pregunta que se ve: la de la hoja o la pedida aparte; `null` si no llegó o no tiene. */
+export function tablaCruzadaQueSeVe(
+  hoja: readonly CrucesPreviewTabla[] | undefined,
+  aparte: readonly CrucesPreviewTabla[] | undefined,
+  elegida: string | null,
+): CrucesPreviewTabla | null {
+  if (!elegida) return null;
+  return hoja?.find((t) => esLaTablaDe(t, elegida)) ?? aparte?.find((t) => esLaTablaDe(t, elegida)) ?? null;
+}
 
-export function VistaPreviaDeCruces({ vista, candidatas, cruzables, resumen, etiquetaDe, etiquetaDeBase, elegida, onElegir, onAgregarCruce }: {
+export function VistaPreviaDeCruces({ vista, elegida, cruzables, resumen, etiquetaDe, etiquetaDeBase, onSoltarFoco, onAgregarCruce, selector }: {
   vista: Vista;
-  /** Preguntas que se pueden pedir aparte cuando la hoja no las trae todas. */
-  candidatas: readonly VariableInstrumento[];
+  /** La pregunta que se ve: la de la dirección o, sin ella, la primera de la hoja. */
+  elegida: string | null;
   /** Variables que se pueden agregar como variable de cruce desde el vacío. */
   cruzables: VariableInstrumento[];
   resumen: ResumenSecciones;
@@ -44,60 +49,34 @@ export function VistaPreviaDeCruces({ vista, candidatas, cruzables, resumen, eti
   etiquetaDe: (variable: string) => string;
   /** El nombre que ve el usuario de una base, por su identificador. */
   etiquetaDeBase: (base: string) => string;
-  elegida: string | null;
-  onElegir: (variable: string | null) => void;
+  /** La pregunta de la dirección perdió su tabla por un ajuste: se suelta el foco. */
+  onSoltarFoco: () => void;
   onAgregarCruce: (variable: string) => void;
+  /** A lo angosto, la lista "Preguntas" se recoge en este selector, en la cabecera de la tabla. */
+  selector?: ReactNode;
 }) {
-  const cuerpo = useRef<HTMLDivElement>(null);
+  const cifras = useVistaDeTablas((s) => s.cifras.cruces);
   const { hoja } = vista;
-  const preview = hoja.datos;
-  const tablas = preview?.tablas;
-
-  // La tabla de la pregunta elegida, si se pidió aparte y es la vigente.
+  const preview: CrucesPreview | null = hoja.datos;
   const aparteDatos = vista.elegida?.datos ?? null;
-  const aparte = elegida && aparteDatos ? aparteDatos.tablas.find((t) => esLaTablaDe(t, elegida)) ?? null : null;
+  const tabla = tablaCruzadaQueSeVe(preview?.tablas, aparteDatos?.tablas, elegida);
 
-  // Se suelta el foco de la dirección (useFoco quita `foco`; no escribe alias).
   useEffect(() => {
-    if (vista.focoPerdido) onElegir(null);
-  }, [vista.focoPerdido, onElegir]);
-
-  // Qué variable de cruce se ve. Es estado de la vista: no cambia el archivo ni pide nada.
-  const variables = useMemo(() => (preview ? variablesDeCruce(preview) : []), [preview]);
-  const [cruceElegido, elegirCruce] = useState<string | null>(null);
-  const cruce = cruceVigente(variables, cruceElegido);
-
-  const preguntas = useMemo<PreguntaParaIr[]>(() => {
-    if (!tablas) return [];
-    const enLaHoja = preguntasDeLaHoja(tablas);
-    if (!preview?.recortado) return enLaHoja;
-    const vistas = new Set(tablas.map((t) => t.variable));
-    const resto = candidatas
-      .filter((v) => !vistas.has(v.name))
-      .map((v) => ({ variable: v.name, codigo: v.name, etiqueta: v.label?.trim() || v.name }));
-    return [...enLaHoja, ...resto];
-  }, [tablas, preview?.recortado, candidatas]);
+    if (vista.focoPerdido) onSoltarFoco();
+  }, [vista.focoPerdido, onSoltarFoco]);
 
   const fallo = hoja.fase === "error" ? hoja : null;
   const leyendo = !fallo && preview === null;
-  const hayHoja = !fallo && preview !== null && preview.tablas.length > 0;
   const vacia = !fallo && preview !== null && preview.tablas.length === 0;
   const vacio = vacia && preview ? causaDelVacio(preview, resumen) : null;
+  // La pregunta pedida aparte que no tiene tabla: por qué. Un foco que la perdió por un ajuste se suelta sin aviso.
+  const sinTabla = elegida && !tabla && aparteDatos && !vista.focoPerdido ? sinTablaDeLaElegida(aparteDatos, elegida, etiquetaDe) : null;
+  const leyendoLaElegida = !fallo && !leyendo && !vacia && !tabla && !sinTabla && vista.elegida?.fase === "leyendo";
 
-  // Saltar a la pregunta elegida: su tabla sube al tope de la hoja.
-  useEffect(() => {
-    if (!hayHoja || !elegida) return;
-    const grupo = Array.from(cuerpo.current?.querySelectorAll<HTMLElement>("[data-variable]") ?? [])
-      .find((el) => el.dataset.variable === elegida);
-    if (grupo && typeof grupo.scrollIntoView === "function") grupo.scrollIntoView({ block: "start" });
-  }, [elegida, hayHoja, aparte]);
-
-  // El pie: el recorte, los avisos con su causa y, con varias bases, de cuál es la vista previa.
+  // El pie: los avisos con su causa y, con varias bases, de cuál es la vista previa.
   const lineas = useMemo<LineaDelPie[]>(() => {
     if (!preview || fallo) return [];
     const avisos = avisosDeCruces(preview, etiquetaDe).map((a) => ({ clave: a.clave, alerta: true, texto: a.texto }));
-    const sinTabla = elegida && aparteDatos && !vista.focoPerdido ? sinTablaDeLaElegida(aparteDatos, elegida, etiquetaDe) : null;
-    const deLaElegida = sinTabla ? [{ clave: "elegida", alerta: true, texto: sinTabla }] : [];
     const bases = !vista.releyendo && preview.base.n_bases > 1
       ? [{
         clave: "bases",
@@ -105,55 +84,34 @@ export function VistaPreviaDeCruces({ vista, candidatas, cruzables, resumen, eti
         texto: `Vista previa de la base "${etiquetaDeBase(preview.base.nombre)}". Al generar sale un archivo por cada una de las ${formatoConteo(preview.base.n_bases)} bases.`,
       }]
       : [];
-    return [...deLaElegida, ...avisos, ...bases];
-  }, [preview, fallo, etiquetaDe, etiquetaDeBase, elegida, aparteDatos, vista.focoPerdido, vista.releyendo]);
-  const recorte = preview && !fallo && preview.recortado
-    ? {
-      devueltas: preview.devueltas,
-      total: preview.total_variables,
-      limite: vista.limite,
-      siguiente: siguienteLimite(vista.limite, preview.total_variables, CRUCES_POR_PEDIDO, TOPE_DE_CRUCES),
-      onMostrarMas: vista.mostrarMas,
-    }
-    : null;
-  const conPie = Boolean(vista.errorGuardado || recorte || lineas.length > 0);
+    return [...avisos, ...bases];
+  }, [preview, fallo, etiquetaDe, etiquetaDeBase, vista.releyendo]);
+  const conPie = Boolean(vista.errorGuardado || lineas.length > 0);
 
   return (
     <PanelDeZona
       zona="tabla"
-      titulo="Vista previa"
+      titulo="Así sale en el archivo"
       icono={<Table2 size={16} aria-hidden="true" />}
       ocupado={vista.releyendo}
-      acciones={hayHoja ? (
+      acciones={(
         <>
-          {variables.length > 1 ? (
-            <div className="cruces-selector">
-              <span className="cruces-selector-rotulo" aria-hidden="true">Columnas de</span>
-              <PulsoSelect
-                size="sm"
-                ariaLabel="Columnas de"
-                value={cruce || TODAS}
-                options={[
-                  ...variables.map((v) => ({ value: v.variable, label: v.etiqueta, textValue: v.etiqueta })),
-                  { value: TODAS, label: "Todas las variables de cruce", textValue: "Todas las variables de cruce" },
-                ]}
-                onValueChange={(v) => elegirCruce(v === TODAS ? TODAS_LAS_VARIABLES : v)}
-              />
-            </div>
-          ) : null}
-          <IrAPregunta preguntas={preguntas} elegida={elegida} onElegir={(v) => onElegir(v || null)} />
+          {selector}
+          {tabla ? <ConmutadorDeCifras pestana="cruces" ponderado={preview?.ponderado ?? false} /> : null}
         </>
-      ) : undefined}
+      )}
       pie={conPie ? (
         <>
           {vista.errorGuardado ? <AvisoDeGuardado /> : null}
-          {recorte || lineas.length > 0 ? <PieDeLaHoja recorte={recorte} lineas={lineas} /> : null}
+          {lineas.length > 0 ? <PieDeLaHoja recorte={null} lineas={lineas} /> : null}
         </>
       ) : undefined}
     >
-      <div ref={cuerpo} className="tablas-vista cruces-vista" data-qa-geometry-group="analitica/cruces-tablas" data-qa-geometry-contract="intrinsic">
+      <div className="tablas-vista cruces-vista" data-qa-geometry-group="analitica/cruces-tablas" data-qa-geometry-contract="intrinsic">
         {fallo ? <FalloDeVistaPrevia fallo={fallo} /> : null}
-        {leyendo ? <LoadingBlock label="Leyendo las tablas cruzadas del archivo" /> : null}
+        {leyendo || leyendoLaElegida ? (
+          <CargaDeBloque label={leyendo ? "Leyendo las tablas cruzadas del archivo" : "Leyendo la tabla de la pregunta"} />
+        ) : null}
         {vacio ? (
           <EstadoVacio
             tamano="normal"
@@ -167,13 +125,12 @@ export function VistaPreviaDeCruces({ vista, candidatas, cruzables, resumen, eti
             ) : undefined}
           />
         ) : null}
-        {hayHoja && preview ? (
+        {sinTabla ? <EstadoVacio tamano="normal" icono={<Table2 size={20} />} titulo="Sin tabla cruzada" descripcion={sinTabla} /> : null}
+        {tabla && preview ? (
           <HojaDeCruces
-            tablas={preview.tablas}
+            tabla={tabla}
             ponderado={preview.ponderado}
-            cruce={cruce}
-            elegida={elegida}
-            aparte={aparte}
+            cifras={cifras}
             releyendo={vista.releyendo}
             maxLetras={preview.significancia_regla?.max_letras ?? undefined}
           />

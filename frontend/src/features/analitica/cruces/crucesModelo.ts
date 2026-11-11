@@ -22,6 +22,8 @@ import { enumerar } from "../../../lib/enumerar";
 import { formatoConteo, formatoConteoDe, formatoDecimal } from "../../../lib/formatoNumero";
 import type { TonoCifra } from "../CifrasPestana";
 import type { ResumenSecciones } from "../estructuraDeSecciones";
+import type { CifraDeCabecera } from "../tablas/CifrasDeCabecera";
+import { cifraDePesosEnCabecera, rotuloDePreguntas } from "../tablas/cifrasDeFrecuencias";
 import type { Lectura } from "../tablas/useLecturaPorBase";
 import { porcentajeDeBase, seccionesDeLaHoja } from "../tablas/vistaPreviaModelo";
 
@@ -70,18 +72,17 @@ export function unidadEnPlural(unidad: CrucesUnidad): string {
 }
 
 /**
- * La línea de base de una tabla cruzada. Los conteos van en la fila de pie
- * (Casos, N ponderado y Base), así que aquí va la proporción sobre la base de
- * la tabla, en su unidad: "Respondió el 43.6 % de los 1,281 encuestados". Sin
+ * La línea de base de una tabla cruzada, en su unidad y con la misma frase que
+ * Frecuencias (`textoDeBase`): conteo y porcentaje juntos, el porcentaje con un
+ * decimal. "Marcaron alguna opción 559 de 1,281 encuestados (43.6 %)". Sin
  * base conocida, el conteo: "Respondieron 559 encuestados".
  */
 export function textoDeBaseDeCruce(tabla: CrucesPreviewTabla): string | undefined {
   if (tabla.sin_datos) return undefined;
   const { n, de, unidad } = tabla.base;
-  const multiple = tabla.tipo === "multiple";
-  if (de === null || de <= 0) return `${multiple ? "Marcaron alguna opción" : "Respondieron"} ${conteoEn(n, unidad)}`;
-  const deCuantos = de === 1 ? `de 1 ${unidad}` : `de los ${conteoEn(de, unidad)}`;
-  return `${multiple ? "Marcó alguna opción" : "Respondió"} el ${porcentajeDeBase(n / de)} % ${deCuantos}`;
+  const quienes = tabla.tipo === "multiple" ? "Marcaron alguna opción" : "Respondieron";
+  if (de === null || de <= 0) return `${quienes} ${conteoEn(n, unidad)}`;
+  return `${quienes} ${formatoConteo(n)} de ${conteoEn(de, unidad)} (${porcentajeDeBase(n / de)} %)`;
 }
 
 /** Fija los decimales de una cifra ya formateada: "17.3" con 2 es "17.30". */
@@ -120,6 +121,38 @@ export function celdasPorFila(celdas: readonly CrucesPreviewCelda[]): Map<string
 export function crucesALaVista(tabla: CrucesPreviewTabla, elegida: string): CrucesPreviewCruce[] {
   if (elegida === TODAS_LAS_VARIABLES) return tabla.cruces;
   return tabla.cruces.filter((c) => c.variable === elegida);
+}
+
+/** El largo máximo del nombre corto de una variable de cruce, en caracteres. */
+export const NOMBRE_CORTO_MAXIMO = 26;
+
+const CONECTORES = new Set(["a", "al", "con", "de", "del", "el", "en", "la", "las", "lo", "los", "o", "para", "por", "que", "su", "sus", "u", "un", "una", "y"]);
+const INTERROGATIVO = /^(?:en\s+)?(?:cuál(?:es)?|qué|cómo|dónde|cuándo|cuánt[oa]s?)\s+(?:(?:es|son|fue|era)\s+)?(?:(?:su|sus|el|la|los|las|tu|tus)\s+)?/i;
+
+/**
+ * El nombre corto de una variable de cruce para su chip, como "Sexo" o
+ * "Nivel educativo más alto", sacado de la pregunta: sin signos de pregunta,
+ * sin el interrogativo del comienzo ("¿Cuál es su ...?") y, si sigue largo,
+ * cortado entre palabras (nunca a media palabra ni con puntos suspensivos).
+ * La pregunta entera va en el `title`. Sin pregunta conocida, `null`: el chip
+ * no muestra el nombre crudo de la columna.
+ */
+export function nombreCortoDeVariable(pregunta: string | null | undefined): string | null {
+  const limpia = (pregunta ?? "").replace(/[¿?¡!]/g, "").replace(/\s+/g, " ").trim();
+  if (!limpia) return null;
+  const sinInterrogativo = limpia.replace(INTERROGATIVO, "").trim() || limpia;
+  const base = sinInterrogativo.charAt(0).toLocaleUpperCase("es") + sinInterrogativo.slice(1);
+  if (base.length <= NOMBRE_CORTO_MAXIMO) return base;
+  const palabras = base.split(" ");
+  let corto = palabras[0];
+  const tomadas = [palabras[0]];
+  for (const p of palabras.slice(1)) {
+    if ([...tomadas, p].join(" ").length > NOMBRE_CORTO_MAXIMO) break;
+    tomadas.push(p);
+  }
+  // No termina en un conector ("Satisfacción con la"): se quitan hasta la última palabra con contenido.
+  while (tomadas.length > 1 && CONECTORES.has(tomadas[tomadas.length - 1].toLocaleLowerCase("es"))) tomadas.pop();
+  return tomadas.join(" ");
 }
 
 /** Cuántas columnas de cifras lleva una tabla con lo que se ve: la del Total y las de cada variable de cruce. */
@@ -257,14 +290,26 @@ export function lineasDeLeyenda(
   ponderado: boolean,
   comun: string | null,
   maxLetras: number,
+  { conPorcentaje = true }: { conPorcentaje?: boolean } = {},
 ): string[] {
-  const lineas = ["Porcentajes por columna: cada celda es el porcentaje de los casos de su columna. En las preguntas de selección múltiple suman más de 100."];
+  // Con una sola tabla a la vista, qué es el porcentaje lo dice su subtítulo (`textoDelPorcentajeDeCruce`).
+  const lineas = conPorcentaje ? ["Porcentajes por columna: cada celda es el porcentaje de los casos de su columna. En las preguntas de selección múltiple suman más de 100."] : [];
   if (ponderado) lineas.push("N ponderado redondeado a entero: las columnas pueden no sumar el Total.");
   if (cruces.some((c) => c.significancia?.modo === "frente_al_resto")) {
     lineas.push(`Con más de ${formatoConteo(maxLetras)} columnas, cada columna se compara con el resto de los casos: ▲ mayor y ▼ menor que el resto; △ y ▽, la misma diferencia, frágil.`);
   }
   if (comun) lineas.push(comun);
   return lineas;
+}
+
+/**
+ * Lo que dice el porcentaje de la tabla, bajo su título: es por columna, si va
+ * ponderado y, en una múltiple, que las opciones suman más de 100.
+ */
+export function textoDelPorcentajeDeCruce(tabla: CrucesPreviewTabla, ponderado: boolean): string {
+  // En su unidad: en una base hija, los registros no son casos (revisión metodológica, O8).
+  const base = `Porcentaje por columna${ponderado ? ", ponderado" : ""}: cada celda es el porcentaje de los ${unidadEnPlural(tabla.base.unidad)} de su columna.`;
+  return tabla.tipo === "multiple" ? `${base} En esta pregunta de selección múltiple suman más de 100.` : base;
 }
 
 /** Una variable de cruce sin comparación (`descriptivo`) no lleva letra de columna: la letra sugería una prueba. */
@@ -330,9 +375,10 @@ export type AvisoDeCruces = { clave: string; texto: string };
 
 /**
  * Los avisos que se dicen en otro lugar no se repiten: los de una hoja sin
- * tablas, en su vacío; el del modo no aplicado, bajo el control del modo.
+ * tablas, en su vacío. El del modo no aplicado va en el pie: el control del
+ * modo salió de los ajustes porque hoy no cambia el archivo.
  */
-const DICHOS_EN_SU_LUGAR = new Set(["sin_variables_de_cruce", "base_sin_variables_de_cruce", "modo_dimensiones", "modo_configurado_no_aplicado"]);
+const DICHOS_EN_SU_LUGAR = new Set(["sin_variables_de_cruce", "base_sin_variables_de_cruce", "modo_dimensiones"]);
 
 function lista(nombres: readonly string[]): string {
   return enumerar(nombres.map((n) => `"${n}"`));
@@ -508,6 +554,49 @@ export function cifraDePesosDeCruces(lectura: Lectura<CrucesPreview>): TextoDeCi
   }
   if (p.ponderacion.configurada) return { valor: "Sin aplicar", tono: "alerta", titulo: "La ponderación está activada y no se aplicó." };
   return { valor: "Sin ponderación" };
+}
+
+/**
+ * Las cifras de la cabecera de Cruces: las preguntas que entran al archivo,
+ * las variables de cruce con columnas y con qué pesos y de qué base salen las
+ * tablas. Sin variables de cruce no hay preguntas que contar: lo dice el vacío
+ * de la tabla, y la cabecera no publica un cero.
+ */
+export function cifrasDeCabeceraDeCruces(lectura: Lectura<CrucesPreview>): CifraDeCabecera[] {
+  const tablas = cifraDeTablasDeCruces(lectura);
+  const variables = cifraDeVariablesDeCruce(lectura);
+  const sinCruces = lectura.datos !== null && lectura.fase !== "error" && lectura.datos.cruces.length === 0;
+  const variasBases = (lectura.datos?.base.n_bases ?? 1) > 1;
+  const unidad = unidadEnPlural(lectura.datos?.casos?.unidad ?? "encuestado");
+  const pesos = cifraDePesosEnCabecera(lectura, () => `Porcentajes y N ponderados; las bases, en ${unidad} sin ponderar.`);
+  return [
+    ...(sinCruces ? [] : [{
+      clave: "preguntas",
+      valor: tablas.valor,
+      tono: tablas.tono === "alerta" ? "alerta" as const : undefined,
+      titulo: tablas.titulo,
+      rotulo: rotuloDePreguntas(lectura.datos?.total_en_archivo ?? null, variasBases),
+    }]),
+    {
+      clave: "variables",
+      valor: variables.valor,
+      tono: variables.tono === "alerta" ? "alerta" : undefined,
+      rotulo: lectura.datos?.cruces.length === 1 && lectura.fase !== "error" ? "variable de cruce" : "variables de cruce",
+    },
+    pesos,
+  ];
+}
+
+/**
+ * Las columnas que cada variable de cruce tiene en el archivo, según la
+ * primera tabla que la trae. Las variables sin tabla todavía no tienen número.
+ */
+export function columnasPorVariable(preview: CrucesPreview | null): Map<string, number> {
+  const columnas = new Map<string, number>();
+  for (const t of preview?.tablas ?? []) {
+    for (const c of t.cruces) if (!columnas.has(c.variable)) columnas.set(c.variable, c.columnas.length);
+  }
+  return columnas;
 }
 
 /**

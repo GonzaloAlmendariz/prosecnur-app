@@ -1,6 +1,8 @@
-// El selector de la cabecera de la vista previa: salta a la tabla de una
-// pregunta. Es el select del kit, con teclado y búsqueda por tecleo. Cada
-// opción se lee por su pregunta con el código delante.
+// La lista "Preguntas" recogida en un selector, para la superficie angosta
+// (1024 de ventana): en la cabecera de la tabla, sin un segundo scroll que
+// agotar antes de bajar a los ajustes. Es el select del kit, con teclado y
+// búsqueda por tecleo. Cada opción se lee por su pregunta con el código delante.
+// A lo ancho no se ve: manda la lista.
 
 import { PulsoSelect, type PulsoSelectOption } from "../../../components/PulsoSelect";
 

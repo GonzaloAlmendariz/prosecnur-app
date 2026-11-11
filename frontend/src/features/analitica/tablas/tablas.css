@@ -1,13 +1,16 @@
-/* Analítica, pestañas de tablas (etapa P5b del ADR 0142): Frecuencias y, después, Cruces.
+/* Analítica, pestañas de tablas (Frecuencias y Cruces), como el prototipo del
+ * rediseño de Procesamiento (tmp/revamp-procesamiento, plan 8.2).
  *
- * Composición: una banda de cifras y, debajo, una mesa de dos contenedores que
- * llegan al pie. A la izquierda la tabla tal como sale en el archivo; a la
- * derecha los ajustes. Bajo la mesa, el archivo, que no se desplaza con ella.
- * Cada contenedor desplaza su cuerpo (C4) y el alto libre queda dentro de él
- * (C3). Misma geometría que Ponderación (`ponderacion/ponderacion.css`).
+ * Composición: la cabecera de la pestaña (un contenedor con la receta de los
+ * paneles) y, debajo, una mesa de tres columnas que llegan al pie: "Preguntas",
+ * "Así sale en el archivo" y, apilados, "Ajustes del archivo" y "Archivo".
+ * Las dos columnas laterales miden lo mismo. Cada contenedor desplaza su
+ * cuerpo (C4) y el alto libre queda dentro de él (C3).
  *
- * Los marcos son el `Panel` del kit. Aquí solo hay filas y secciones separadas
- * por una línea: ninguna regla dibuja una caja propia, y `cajasPropias` lo vigila.
+ * Los marcos son el `Panel` del kit. Aquí solo hay filas, listas y secciones
+ * separadas por una línea: ninguna regla dibuja una caja propia, y
+ * `cajasPropias` lo vigila (la selección se marca con un anillo interior, no
+ * con un borde).
  */
 
 .tablas-superficie {
@@ -18,40 +21,18 @@
   min-height: 0;
 }
 
-/* El marco reparte el alto: la banda y el archivo miden lo suyo y la mesa se queda con el resto. */
+/* El marco reparte el alto: la cabecera mide lo suyo y la mesa se queda con el resto. */
 .tablas-marco {
+  --tablas-lado: 320px;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--pulso-space-4);
-  min-width: 0;
-  min-height: 0;
-}
-
-/* ---------- Banda ---------- */
-
-.tablas-banda {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-2) var(--pulso-space-5);
-  min-width: 0;
-}
-
-/* ---------- Mesa de dos contenedores ---------- */
-
-.tablas-mesa {
-  display: grid;
-  flex: 1 1 auto;
-  grid-template-columns: minmax(0, 1fr) 400px;
-  grid-template-rows: minmax(0, 1fr);
   gap: var(--pulso-space-5);
-  align-items: stretch;
   min-width: 0;
   min-height: 0;
 }
+
+/* ---------- Paneles ---------- */
 
 /* El Panel suelto trae margen inferior y sombra: aquí separa la rejilla. */
 .tablas-superficie .pulso-panel.tablas-panel {
@@ -59,40 +40,76 @@
   flex-direction: column;
   min-height: 0;
   margin-bottom: 0;
-  box-shadow: none;
+  box-shadow: var(--pulso-shadow-low);
 }
 
-/* Entrada escalonada (`data-entra` de app/movimiento.css): la tabla y luego los ajustes. */
-.tablas-panel--ajustes { --i: 1; }
+/* Entrada escalonada (`data-entra` de app/movimiento.css), de izquierda a derecha. */
+.tablas-panel--preguntas { --i: 1; }
+.tablas-panel--tabla { --i: 2; }
+.tablas-panel--ajustes { --i: 3; }
+.tablas-panel--archivo { --i: 4; }
 
 .tablas-panel > .pulso-panel-header {
   box-sizing: border-box;
   flex: none;
   flex-wrap: nowrap;
   align-items: center;
-  /* El alto lo fija el mínimo, no la acción: con o sin selector la cabecera mide lo mismo (C2). */
-  min-height: var(--pulso-panel-head-h);
+  /* 56 px como en el prototipo; con o sin conmutador la cabecera mide lo mismo (C2). */
+  min-height: 56px;
   margin-bottom: 0;
-  padding: var(--pulso-space-1) var(--pulso-space-5);
+  padding: var(--pulso-space-2) var(--pulso-space-5);
   border-bottom: 1px solid var(--pulso-border);
 }
 
 .tablas-panel > .pulso-panel-header > .pulso-panel-heading {
   flex: 0 1 auto;
+  min-width: 0;
 }
 
 .tablas-panel > .pulso-panel-header > .pulso-panel-actions {
   flex: 1 1 0;
   flex-wrap: nowrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .tablas-panel .pulso-panel-title {
+  display: flex;
   flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
 }
 
-.tablas-panel .pulso-panel-title > svg {
+/* El ícono del panel en su tesela, con el acento del módulo. */
+.tablas-panel-tesela {
+  display: inline-grid;
   flex: none;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
   color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Cuántos elementos lista el panel. */
+.tablas-conteo {
+  display: inline-flex;
+  align-items: center;
+  min-inline-size: 26px;
+  block-size: 22px;
+  justify-content: center;
+  padding-inline: var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Cuerpo de un contenedor: posee el alto libre y el scroll. */
@@ -118,6 +135,7 @@
   gap: var(--pulso-space-2);
   padding: var(--pulso-space-3) var(--pulso-space-5);
   border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
 }
 
 .tablas-aviso,
@@ -128,12 +146,311 @@
   line-height: 1.4;
 }
 
-/* El selector de la cabecera: salta a la tabla de una pregunta. Es el select
-   del kit; aquí solo se le da el ancho y el renglón de cada opción. */
-.tablas-ir-a {
-  flex: 0 1 340px;
+/* ---------- Cabecera de la pestaña ---------- */
+
+.tablas-superficie .pulso-panel.tablas-cabecera {
+  flex: none;
+  overflow: visible;
+}
+
+.tablas-cabecera .pulso-tab-heading {
+  min-block-size: 66px;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+/* El título no cede ancho: lo que aprieta es la tira de cifras. */
+.tablas-cabecera .pulso-tab-heading-copy {
+  flex: 0 0 auto;
+}
+
+.tablas-cabecera .pulso-tab-heading-control {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-inline-size: 0;
+}
+
+.tablas-cabecera-control {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2) var(--pulso-space-5);
   min-width: 0;
-  margin-inline-start: auto;
+}
+
+/* Los casos que cuentan, junto al título como el estado del prototipo. */
+.tablas-cabecera-universo {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-inline-end: auto;
+}
+
+.tablas-cabecera-universo:empty {
+  display: none;
+}
+
+.tablas-cabecera-accion {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-inline-start: var(--pulso-space-5);
+  border-inline-start: 1px solid var(--pulso-border);
+}
+
+/* Las cifras: número arriba y lo que cuenta debajo, separadas por divisores. */
+.tablas-cifras {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin: 0;
+}
+
+.tablas-cifra-cabecera {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding-inline: var(--pulso-space-4);
+  white-space: nowrap;
+}
+
+.tablas-cifra-cabecera + .tablas-cifra-cabecera {
+  border-inline-start: 1px solid var(--pulso-border);
+}
+
+.tablas-cifra-cabecera dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.2;
+}
+
+.tablas-cifra-cabecera dd {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.tablas-cifra-cabecera dd a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tablas-cifra-cabecera dd a:hover {
+  color: var(--module-accent, var(--pulso-primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tablas-cifra-cabecera dd a:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.tablas-cifra-base {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* El punto del estado: aplicado o pendiente. */
+.tablas-cifra-punto {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--pulso-success-fg);
+}
+
+.tablas-cifra-cabecera[data-tono="alerta"] .tablas-cifra-punto {
+  background: var(--pulso-warn-accent);
+}
+
+/* ---------- Mesa de tres columnas ---------- */
+
+.tablas-mesa {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: var(--tablas-lado) minmax(0, 1fr) var(--tablas-lado);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-5);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* La columna derecha: los ajustes miden lo suyo (y se desplazan si no caben) y el archivo llega al pie. */
+.tablas-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+  min-height: 0;
+}
+
+.tablas-lateral > .tablas-panel--ajustes {
+  flex: 0 1 auto;
+}
+
+.tablas-lateral > .tablas-panel--archivo {
+  flex: 1 0 auto;
+}
+
+/* ---------- Preguntas ---------- */
+
+.tablas-buscador {
+  position: relative;
+  flex: none;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-1);
+}
+
+.tablas-buscador > svg {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: calc(var(--pulso-space-4) + 10px);
+  margin-block-start: 4px;
+  color: var(--pulso-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.tablas-buscador > .pulso-input {
+  inline-size: 100%;
+  padding-inline-start: 30px;
+}
+
+/* La columna del código la fija la lista (`--tablas-codigo-ancho`), en la letra del código. */
+.tablas-preguntas {
+  --tablas-codigo-ancho: 6ch;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.tablas-preguntas-grupo {
+  display: flex;
+  flex-direction: column;
+}
+
+.tablas-preguntas-seccion {
+  margin: var(--pulso-space-4) var(--pulso-space-3) var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.tablas-preguntas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Una pregunta: su código y su pregunta. La elegida lleva el relleno y el anillo del acento. */
+.tablas-pregunta {
+  display: grid;
+  grid-template-columns: calc(var(--tablas-codigo-ancho) * 0.9) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  inline-size: 100%;
+  padding: 10px var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.35;
+  text-align: start;
+  white-space: normal;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.tablas-pregunta:not(:has(.tablas-pregunta-codigo)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Con códigos largos (los de un estudio real, no "p12"), el código va sobre la
+   pregunta en todos los anchos: en columna propia partía cada pregunta en tres
+   o cuatro líneas. */
+.tablas-preguntas[data-codigos-largos] .tablas-pregunta {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+
+.tablas-pregunta:hover {
+  background: var(--pulso-surface-2);
+}
+
+.tablas-pregunta:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+.tablas-pregunta[aria-current="true"] {
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 80%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.tablas-pregunta-codigo {
+  min-width: 0;
+  color: var(--pulso-text-muted);
+  font-family: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  overflow-wrap: anywhere;
+}
+
+.tablas-pregunta-etiqueta {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tablas-panel--preguntas .tablas-panel-cuerpo > .pulso-loading-block,
+.tablas-panel--preguntas .tablas-panel-cuerpo > [data-audit-ready],
+.tablas-panel--preguntas .tablas-panel-cuerpo > .pulso-estado-vacio {
+  margin: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.tablas-preguntas-pie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.tablas-preguntas-pie a {
+  color: var(--pulso-text-soft);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.tablas-preguntas-pie a:hover {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* El selector de pregunta solo existe a lo angosto, donde reemplaza a la lista. */
+.tablas-ir-a {
+  display: none;
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 340px;
 }
 
 .tablas-ir-a-opcion {
@@ -146,12 +463,309 @@
 
 .tablas-ir-a-opcion > span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
-/* El pie de la vista previa: el recorte con su botón y los avisos, uno por renglón. */
+/* ---------- Conmutador de cifras y segmentados ---------- */
+
+/* El segmentado del prototipo: un riel claro y la opción elegida en blanco. */
+.pulso-analitica-frame .tablas-superficie .analitica-segmented,
+.tablas-superficie .analitica-segmented {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  overflow: visible;
+}
+
+.pulso-analitica-frame .tablas-superficie .analitica-segmented button,
+.tablas-superficie .analitica-segmented button {
+  min-height: 28px;
+  padding-inline: var(--pulso-space-3);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  box-shadow: none;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-analitica-frame .tablas-superficie .analitica-segmented button:hover:not(:disabled):not(.is-on),
+.pulso-analitica-frame .tablas-superficie .analitica-segmented button:focus-visible:not(.is-on) {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: none;
+}
+
+.pulso-analitica-frame .tablas-superficie .analitica-segmented button.is-on,
+.tablas-superficie .analitica-segmented button.is-on {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low), inset 0 0 0 1px var(--pulso-border);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.tablas-superficie .analitica-segmented > .pulso-gliding-tab-indicator {
+  display: none;
+}
+
+.tablas-conmutador {
+  flex: none;
+}
+
+/* ---------- Así sale en el archivo ---------- */
+
+.tablas-vista {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Leyendo, sin tablas y sin tabla ocupan el centro del contenedor: el vacío es suyo. */
+.tablas-vista > [data-audit-ready],
+.tablas-vista > .pulso-estado-vacio {
+  margin: auto var(--pulso-space-5);
+}
+
+.tablas-vista > .pulso-estado-vacio {
+  align-self: center;
+  max-width: 440px;
+}
+
+/* La pregunta: su título, sobre quiénes va el porcentaje, la tabla y el pie. */
+.tablas-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-5);
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.tablas-grupo[data-releyendo] {
+  opacity: 0.55;
+}
+
+.tablas-grupo-titulo h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.tablas-grupo-codigo {
+  color: var(--pulso-text-soft);
+  font-family: inherit;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.tablas-grupo-codigo::after {
+  content: ".";
+}
+
+.tablas-grupo-titulo p {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.tablas-grupo-vacio {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* La tabla: una rejilla con roles de tabla dentro de un pozo con borde fino. */
+.tablas-hoja {
+  --tablas-columnas: minmax(140px, 1.6fr) minmax(88px, 1.4fr) 88px 72px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.tablas-hoja[data-cifras="casos"] {
+  --tablas-columnas: minmax(140px, 1.6fr) minmax(88px, 1.4fr) 88px;
+}
+
+.tablas-hoja[data-cifras="porcentaje"] {
+  --tablas-columnas: minmax(140px, 1.6fr) minmax(88px, 1.4fr) 72px;
+}
+
+.tablas-hoja [role="row"] {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--tablas-columnas);
+  column-gap: var(--pulso-space-4);
+  align-items: center;
+  padding-inline: var(--pulso-space-4);
+}
+
+/* La cabecera de columnas se queda arriba mientras la tabla se desplaza. */
+.tablas-hoja-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+.tablas-hoja-cabecera > [role="row"] {
+  min-height: 38px;
+}
+
+.tablas-hoja .tablas-cifra {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tablas-fila {
+  min-height: 48px;
+  padding-block: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.tablas-grupo-filas > .tablas-fila:last-child {
+  border-bottom: 0;
+}
+
+.tablas-categoria {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* El código va como dato secundario en los avisos del pie. */
+.tablas-codigo {
+  color: var(--pulso-text-muted);
+  font-family: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.tablas-fila .tablas-cifra {
+  color: var(--pulso-text-soft);
+}
+
+.tablas-fila .tablas-cifra.is-porcentaje {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* Los códigos especiales (no sabe, no responde) atenúan solo su rótulo: sus
+   casos, su porcentaje y su barra cuentan en el 100 % como los demás. */
+.tablas-fila.is-especial > .tablas-categoria {
+  color: var(--pulso-text-soft);
+}
+
+/* La barra es el porcentaje de la fila, tal como llega, en la secuencia de datos. */
+.tablas-barra-celda {
+  min-width: 0;
+}
+
+.tablas-barra {
+  display: block;
+  width: var(--tablas-barra, 0%);
+  /* Una categoría con casos siempre deja ver su barra. */
+  min-width: 2px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-data-seq-4);
+}
+
+.tablas-total {
+  min-height: 44px;
+  border-top: 1px solid var(--pulso-border-strong);
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+}
+
+.tablas-total > .tablas-categoria,
+.tablas-total > .tablas-cifra {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* Bajo la tabla: la base y las notas al pie del archivo. */
+.tablas-grupo-pie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.tablas-grupo-pie > span {
+  overflow-wrap: anywhere;
+}
+
+/* Resumen numérico: los estadísticos en una rejilla de cuatro columnas,
+   separadas por una línea; el valor arriba y su nombre debajo. */
+.tablas-resumen-rejilla {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  overflow: hidden;
+}
+
+/* El valor arriba, su nombre debajo y, en "Casos válidos", la base al final. */
+.tablas-resumen-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+}
+
+.tablas-resumen-celda:not(:nth-child(4n + 1)) {
+  border-inline-start: 1px solid var(--pulso-border);
+}
+
+.tablas-resumen-celda:nth-child(n + 5) {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.tablas-resumen-celda dt {
+  order: 1;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.3;
+}
+
+.tablas-resumen-celda dd.tablas-resumen-base {
+  order: 2;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular, 400);
+}
+
+.tablas-resumen-celda dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Avisos del pie ---------- */
+
 .tablas-pie-vista {
   display: flex;
   flex-direction: column;
@@ -193,252 +807,6 @@
   color: var(--pulso-text);
 }
 
-/* ---------- Vista previa: estados ---------- */
-
-.tablas-vista {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-}
-
-/* Leyendo y sin tablas ocupan el centro del contenedor: el vacío es suyo. */
-.tablas-vista > .pulso-loading-block,
-.tablas-vista > .pulso-estado-vacio {
-  margin: auto var(--pulso-space-5);
-}
-
-.tablas-vista > .pulso-estado-vacio {
-  align-self: center;
-  max-width: 440px;
-}
-
-/* ---------- Hoja: una tabla por variable ---------- */
-
-/* Una rejilla con roles de tabla. Todas las filas comparten las columnas: la
-   categoría, su barra, los casos y el porcentaje. El texto de la primera y de
-   la última columna cae sobre el riel de 20 px del panel. */
-.tablas-hoja {
-  --tablas-columnas: minmax(120px, 1.7fr) minmax(88px, 1fr) 120px 64px;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-}
-
-.tablas-hoja [role="row"] {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: var(--tablas-columnas);
-  column-gap: var(--pulso-space-4);
-  align-items: center;
-  padding-inline: var(--pulso-space-5);
-}
-
-/* Lo que ocupa la fila entera: título, sección, notas. */
-.tablas-hoja [aria-colspan] {
-  grid-column: 1 / -1;
-  min-width: 0;
-}
-
-/* La cabecera de columnas se queda arriba mientras la hoja se desplaza. */
-.tablas-hoja-cabecera {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  border-bottom: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-muted);
-  font-size: var(--pulso-type-eyebrow-size);
-  font-weight: var(--pulso-type-eyebrow-weight);
-  letter-spacing: 0.02em;
-}
-
-.tablas-hoja-cabecera > [role="row"] {
-  min-height: 36px;
-}
-
-.tablas-hoja .tablas-cifra {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-/* La sección de las tablas que siguen. Cuando el archivo escribe la fila de
-   sección ("Nombres de sección"), la fila lleva su línea, como en la hoja. */
-.tablas-seccion-de-hoja > [role="row"] {
-  padding-block: var(--pulso-space-5) var(--pulso-space-1);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
-  overflow-wrap: anywhere;
-}
-
-.tablas-seccion-de-hoja[data-en-archivo] > [role="row"] {
-  padding-block-end: var(--pulso-space-2);
-  border-bottom: 1px solid var(--pulso-border-strong);
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-bold);
-}
-
-/* El salto a una pregunta deja su tabla bajo la cabecera pegada. */
-.tablas-grupo {
-  scroll-margin-top: 36px;
-  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
-}
-
-.tablas-grupo-titulo {
-  padding-block: var(--pulso-space-4) var(--pulso-space-2);
-}
-
-.tablas-grupo[aria-current="true"] .pulso-bloque-pregunta {
-  outline: 2px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, transparent);
-  outline-offset: 1px;
-}
-
-.tablas-fila {
-  padding-block: var(--pulso-space-2);
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-.tablas-categoria {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-/* El código va como dato secundario de la etiqueta que se lee. */
-.tablas-codigo {
-  color: var(--pulso-text-muted);
-  font-family: inherit;
-  font-size: var(--pulso-type-caption-size);
-  font-variant-numeric: tabular-nums;
-}
-
-.tablas-categoria > .tablas-codigo {
-  margin-inline-end: var(--pulso-space-2);
-}
-
-.tablas-fila .tablas-cifra {
-  color: var(--pulso-text-soft);
-}
-
-.tablas-fila .tablas-cifra.is-porcentaje {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-bold);
-}
-
-/* Los códigos especiales (no sabe, no responde) atenúan solo su rótulo: sus
-   casos, su porcentaje y su barra cuentan en el 100 % como los demás. */
-.tablas-fila.is-especial > .tablas-categoria {
-  color: var(--pulso-text-soft);
-}
-
-/* Resumen numérico: los estadísticos en una rejilla de cuatro columnas,
-   separadas por una línea; el valor arriba y su nombre debajo. */
-.tablas-resumen {
-  padding-block: var(--pulso-space-2) var(--pulso-space-1);
-}
-
-.tablas-resumen-rejilla {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  border-block: 1px solid var(--pulso-border);
-}
-
-/* El valor arriba, su nombre debajo y, en "Casos válidos", la base al final. */
-.tablas-resumen-celda {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-}
-
-.tablas-resumen-celda:nth-child(4n + 1) {
-  padding-inline-start: 0;
-}
-
-.tablas-resumen-celda:not(:nth-child(4n + 1)) {
-  border-inline-start: 1px solid var(--pulso-border);
-}
-
-.tablas-resumen-celda:nth-child(n + 5) {
-  border-top: 1px solid var(--pulso-border);
-}
-
-.tablas-resumen-celda dt {
-  order: 1;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.3;
-}
-
-.tablas-resumen-celda dd.tablas-resumen-base {
-  order: 2;
-  color: var(--pulso-text-muted);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: var(--pulso-weight-regular, 400);
-}
-
-.tablas-resumen-celda dd {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-bold);
-  font-variant-numeric: tabular-nums;
-}
-
-/* La barra es el porcentaje de la fila, en la secuencia de datos. */
-.tablas-barra-celda {
-  min-width: 0;
-}
-
-.tablas-barra {
-  display: block;
-  width: var(--tablas-barra, 0%);
-  /* Una categoría con casos siempre deja ver su barra. */
-  min-width: 2px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--pulso-data-seq-4);
-}
-
-.tablas-total {
-  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
-}
-
-.tablas-total > .tablas-categoria,
-.tablas-total > .tablas-cifra {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-bold);
-}
-
-.tablas-grupo-nota,
-.tablas-grupo-pie {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.4;
-}
-
-.tablas-grupo-nota {
-  padding-block: var(--pulso-space-2) 0;
-}
-
-.tablas-grupo-pie {
-  padding-block: var(--pulso-space-2) var(--pulso-space-3);
-}
-
-.tablas-grupo-pie span > span {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
-/* Mientras se relee o un cambio espera a guardarse, lo que hay es de antes: sigue a la vista, atenuado. */
-.tablas-hoja[data-releyendo] .tablas-grupo {
-  opacity: 0.55;
-}
-
 /* ---------- Ajustes: secciones separadas por una línea ---------- */
 
 .tablas-seccion {
@@ -466,31 +834,25 @@
   min-height: var(--pulso-control-height-sm);
 }
 
+/* El rótulo de la sección, en castellano normal y en el tono de los rótulos. */
 .tablas-seccion-titulo {
   margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.02em;
   line-height: 1.3;
 }
 
-/* El grupo es el del kit (GlidingRadioGroup) con la piel del segmentado de
-   Analítica: la opción elegida pinta su propio relleno, así que el indicador
-   deslizante sobra. Ocupa el ancho de la sección, en partes iguales. */
+/* El orden ocupa el ancho de la sección, en partes iguales. */
 .tablas-seccion .analitica-segmented {
-  display: flex;
   align-self: stretch;
   flex-wrap: wrap;
-  overflow: visible;
 }
 
 .tablas-seccion .analitica-segmented > button {
   flex: 1 1 0;
   min-width: max-content;
-}
-
-.tablas-seccion .analitica-segmented > .pulso-gliding-tab-indicator {
-  display: none;
 }
 
 /* Interruptores en lista: el rótulo a la izquierda y el interruptor al final de la fila. */
@@ -525,7 +887,7 @@
   font-size: var(--pulso-type-caption-size);
 }
 
-/* Variables con resumen numérico. */
+/* Variables con resumen numérico: chips y "Añadir" en el mismo renglón. */
 .tablas-numericas {
   display: flex;
   flex-direction: column;
@@ -536,6 +898,7 @@
 .tablas-numericas-lista {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--pulso-space-2);
   margin: 0;
   padding: 0;
@@ -557,11 +920,8 @@
   white-space: nowrap;
 }
 
-/* Agregar: el punteado es solo de lo que se agrega. */
-.tablas-superficie .pulso-button.tablas-agregar {
-  align-self: stretch;
-  justify-content: center;
-  border-style: dashed;
+.tablas-numericas-anadir {
+  display: flex;
 }
 
 .tablas-agregar-selector {
@@ -579,76 +939,107 @@
   min-width: 0;
 }
 
-/* El rótulo va en su renglón y las variables debajo. */
 .tablas-sugeridas-rotulo {
-  flex: 1 0 100%;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
 }
 
-/* ---------- Archivo ---------- */
-
-/* Una franja bajo la mesa: el título a un lado y, al otro, el botón con su avance o su archivo. */
-.tablas-superficie .pulso-panel.tablas-archivo {
-  display: grid;
+/* De qué datos sale y la plantilla: la barra de fuente del módulo, sin su caja, apilada. */
+.tablas-datos .pulso-analitica-sourcebar > * {
   flex: none;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: stretch;
+  min-width: 0;
+  max-width: none;
 }
 
-.tablas-archivo > .pulso-panel-header {
-  min-height: 0;
-  padding: var(--pulso-space-3) var(--pulso-space-5);
-  border-right: 1px solid var(--pulso-border);
-  border-bottom: 0;
+.tablas-datos .pulso-analitica-source-actions {
+  justify-content: flex-start;
+  margin: 0;
 }
+
+.tablas-datos .pulso-analitica-sourcebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ---------- Archivo ---------- */
 
 .tablas-archivo-cuerpo {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  justify-content: center;
   gap: var(--pulso-space-2);
   min-width: 0;
-  padding: var(--pulso-space-3) var(--pulso-space-5);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
 }
 
-/* El botón y, a su lado, el contenedor del archivo: la franja no crece al generar. */
-.tablas-archivo .pulso-entregable-grupo {
+.tablas-archivo-fila {
+  display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--pulso-space-2) var(--pulso-space-4);
+  gap: var(--pulso-space-3);
 }
 
-.tablas-archivo .analitica-generate-footer {
-  margin-top: 0;
+.tablas-archivo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tablas-archivo-texto > strong {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.tablas-archivo-motivo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
 }
 
 /* ---------- Tamaños ---------- */
 
-/* Columna de ajustes más angosta cuando la superficie aprieta. */
-@container tablas-superficie (max-width: 1149px) {
-  .tablas-mesa {
-    grid-template-columns: minmax(0, 1fr) 340px;
+/* Superficie ancha (desde 1600 de ventana): columnas laterales más anchas. */
+@container tablas-superficie (min-width: 1480px) {
+  .tablas-marco {
+    --tablas-lado: 360px;
+  }
+}
+
+/* Hasta 1400 de ventana: columnas laterales más angostas, las dos iguales. */
+@container tablas-superficie (max-width: 1299px) {
+  .tablas-marco {
+    --tablas-lado: 264px;
   }
 
   .tablas-hoja {
-    --tablas-columnas: minmax(120px, 2fr) minmax(72px, 1fr) 112px 56px;
+    --tablas-columnas: minmax(120px, 1.6fr) minmax(64px, 1fr) 80px 64px;
+  }
+
+  .tablas-hoja[data-cifras="casos"] {
+    --tablas-columnas: minmax(120px, 1.6fr) minmax(64px, 1fr) 80px;
+  }
+
+  .tablas-hoja[data-cifras="porcentaje"] {
+    --tablas-columnas: minmax(120px, 1.6fr) minmax(64px, 1fr) 64px;
   }
 
   .tablas-resumen-rejilla {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .tablas-resumen-celda:nth-child(4n + 1) {
-    padding-inline-start: var(--pulso-space-3);
-  }
-
   .tablas-resumen-celda:not(:nth-child(4n + 1)) {
     border-inline-start: 0;
-  }
-
-  .tablas-resumen-celda:nth-child(odd) {
-    padding-inline-start: 0;
   }
 
   .tablas-resumen-celda:nth-child(even) {
@@ -658,82 +1049,133 @@
   .tablas-resumen-celda:nth-child(n + 3) {
     border-top: 1px solid var(--pulso-border);
   }
+
+  .tablas-cifra-cabecera {
+    padding-inline: var(--pulso-space-3);
+  }
+
 }
 
-/* Superficie angosta: una columna. La vista previa conserva su scroll con un
-   alto que cabe en la ventana, y los ajustes van justo debajo con el alto de
-   su contenido: la pestaña se desplaza (su dueño es el área de contenido de
-   Analítica) para llegar a ellos sin recorrer todas las tablas. Mismo alto
-   acotado que las listas largas de Cálculo de muestra. El archivo se queda
-   pegado al pie. */
+/* Superficie angosta (1024 de ventana): la lista "Preguntas" se recoge en un
+   selector con búsqueda por tecleo en la cabecera de la tabla, y la tabla mide
+   su contenido. La pestaña es el único dueño del scroll vertical (su área de
+   contenido): sin una lista de 200 px que agotar antes de bajar a los ajustes
+   (C4, regla No Scroll Jail). La tabla de Cruces conserva el scroll a lo ancho
+   en su cuerpo. Los ajustes y el archivo van debajo, a todo el ancho. */
 @container tablas-superficie (max-width: 959px) {
   .tablas-marco {
     flex: none;
   }
 
   .tablas-mesa {
-    display: flex;
     flex: none;
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
   }
 
-  .tablas-mesa > .tablas-panel {
-    flex: none;
+  /* Con la especificidad del Panel de la mesa, que fija `display: flex`. */
+  .tablas-superficie .pulso-panel.tablas-panel--preguntas {
+    display: none;
+  }
+
+  .tablas-ir-a {
+    display: block;
   }
 
   .tablas-panel--tabla {
-    block-size: clamp(300px, calc(100vh - 290px), 640px);
+    block-size: auto;
   }
 
-  /* A lo angosto la pestaña también desplaza: al llegar al final de la vista
-     previa, la rueda sigue en la pestaña en vez de quedar atrapada. */
   .tablas-panel--tabla .tablas-panel-cuerpo {
+    overflow-y: visible;
     overscroll-behavior: auto;
+  }
+
+  .tablas-superficie[data-tablas="cruces"] .tablas-panel--tabla .tablas-panel-cuerpo {
+    overflow-x: auto;
+  }
+
+  .tablas-lateral {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+    align-items: start;
+  }
+
+  .tablas-lateral > .tablas-panel--archivo {
+    align-self: start;
   }
 
   .tablas-panel--ajustes .tablas-panel-cuerpo {
     overflow: visible;
   }
 
-  .tablas-superficie .pulso-panel.tablas-archivo {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    background: var(--pulso-surface);
-    box-shadow: var(--pulso-shadow-low);
+  /* La cabecera sigue en una fila: los casos que cuentan pasan bajo las cifras. */
+  .tablas-cabecera-control {
+    gap: var(--pulso-space-1) var(--pulso-space-3);
+  }
+
+  .tablas-cabecera-universo {
+    display: flex;
+    flex-basis: 100%;
+    justify-content: flex-end;
+    order: 2;
+    margin-inline-end: 0;
+  }
+
+  .tablas-cabecera-accion {
+    padding-inline-start: var(--pulso-space-3);
+  }
+
+  /* Columna angosta: el código va sobre la pregunta. */
+  .tablas-pregunta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
   }
 }
 
-/* Ventana baja (1366x768 y menores): el alto es de la hoja. Se recorta el aire
-   entre la banda, la mesa y el archivo; la cabecera de cada contenedor baja al
-   alto de sus controles chicos y la franja del archivo queda en una barra con
-   su botón. Nada se quita ni cambia de lugar. */
+/* Ventana baja (1366x768 y menores): el alto es de la tabla. Se recorta el aire
+   entre la cabecera y la mesa y la cabecera de cada contenedor baja al alto de
+   sus controles; nada se quita ni cambia de lugar. */
 @media (max-height: 820px) {
   .tablas-marco {
-    gap: var(--pulso-space-2);
+    gap: var(--pulso-space-3);
+  }
+
+  .tablas-mesa,
+  .tablas-lateral {
+    gap: var(--pulso-space-3);
   }
 
   .tablas-panel > .pulso-panel-header {
-    min-height: calc(var(--pulso-control-height-sm) + 2 * var(--pulso-space-1));
+    min-height: 48px;
     padding-block: var(--pulso-space-1);
   }
 
-  .tablas-hoja-cabecera > [role="row"] {
-    min-height: 30px;
+  .tablas-cabecera .pulso-tab-heading {
+    min-block-size: 56px;
+    padding-block: var(--pulso-space-2);
   }
 
   .tablas-grupo {
-    scroll-margin-top: 30px;
+    padding: var(--pulso-space-4) var(--pulso-space-5);
   }
 
-  .tablas-archivo > .pulso-panel-header,
-  .tablas-archivo-cuerpo {
-    padding-block: var(--pulso-space-1);
+  .tablas-fila {
+    min-height: 40px;
+  }
+
+  .tablas-hoja-cabecera > [role="row"] {
+    min-height: 32px;
+  }
+
+  .tablas-seccion {
+    padding-block: var(--pulso-space-4);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tablas-grupo {
+  .tablas-grupo,
+  .tablas-pregunta {
     transition: none;
   }
 }

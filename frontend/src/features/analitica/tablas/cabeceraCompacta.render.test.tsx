@@ -1,18 +1,34 @@
 // @vitest-environment happy-dom
 /**
- * La cabecera de pestaña de Analítica sobre la página real: en las pestañas con
- * vista previa (Frecuencias y Cruces) es la compacta y la línea de casos que
- * cuentan va en su misma fila, de modo que el alto que antes se llevaban la
- * cabecera estándar y la banda de abajo pasa a las tablas. Las demás pestañas
- * conservan la cabecera estándar con la banda debajo.
+ * La cabecera de pestaña de Analítica sobre la página real. Frecuencias y
+ * Cruces dibujan la suya, como el prototipo: el título, los casos que cuentan,
+ * las cifras del archivo y "Generar Excel" en un contenedor; la página no pinta
+ * la propia, y su barra de fuente (versión de la base y plantilla) baja a los
+ * ajustes. Las demás pestañas conservan la cabecera estándar con la banda de
+ * casos debajo.
+ *
+ * Y la readiness (hallazgo del QA: la marca se publicaba con "Leyendo las
+ * tablas del archivo" en pantalla): mientras la vista previa, la config o la
+ * preparación se leen, alguna marca queda en "false" y la vista no se da por
+ * lista; al llegar la vista previa, sí.
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { CrucesPreview, FrecuenciasPreview } from "../../../api/analitica";
+import { evaluarMarcas } from "../../../lib/navegacion/runtime";
+import { respuestaSinPesos as crucesSinPesos } from "../cruces/ejemploDeCruces.test-util";
 import { cabeceraCompacta, PESTANAS_CON_VISTA_PREVIA } from "./cabeceraCompacta";
+import { respuestaReal } from "./ejemploDeVistaPrevia.test-util";
 
-const nunca = () => new Promise<never>(() => undefined);
+const { nunca, vistaPrevia } = vi.hoisted(() => ({
+  nunca: () => new Promise<never>(() => undefined),
+  vistaPrevia: {
+    frecuencias: vi.fn<() => Promise<FrecuenciasPreview>>(),
+    cruces: vi.fn<() => Promise<CrucesPreview>>(),
+  },
+}));
 const sesion = {
   session_id: "s", xlsform: true, data: true, instrumento_parsed: true, data_previewed: true,
   analitica_prep_ok: true, analitica_fuente: "originales", active_base: "Monitoreo territorial", n_bases: 1,
@@ -22,8 +38,8 @@ vi.mock("../../../api/analitica", async (original) => ({
   ...(await original<typeof import("../../../api/analitica")>()),
   apiAnaliticaUniverso: async () => [],
   apiAnaliticaVariables: nunca,
-  apiAnaliticaFrecuenciasPreview: nunca,
-  apiAnaliticaCrucesPreview: nunca,
+  apiAnaliticaFrecuenciasPreview: () => vistaPrevia.frecuencias(),
+  apiAnaliticaCrucesPreview: () => vistaPrevia.cruces(),
   apiAnaliticaDataReview: nunca,
   apiAnaliticaPreparar: nunca,
   apiAnaliticaConfigGet: nunca,
@@ -40,6 +56,8 @@ vi.mock("../useReporteRun", () => ({
 let host: HTMLDivElement;
 let root: Root;
 
+const esperar = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+
 async function montar(pestana: string) {
   const { default: AnaliticaPage } = await import("../AnaliticaPage");
   await act(async () => {
@@ -49,16 +67,27 @@ async function montar(pestana: string) {
       </MemoryRouter>,
     );
   });
-  await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+  await esperar();
 }
 
-const cabecera = () => host.querySelector<HTMLElement>(".pulso-analitica-panel-head");
-const tabHeading = () => cabecera()?.querySelector<HTMLElement>(".pulso-tab-heading");
+const cabeceraDeLaPagina = () => host.querySelector<HTMLElement>(".pulso-analitica-panel-head");
+const cabeceraPropia = () => host.querySelector<HTMLElement>(".tablas-cabecera");
+/** Lo que el QA lee: todas las marcas del documento, con el contrato de `estadoListo()`. */
+const listo = () => evaluarMarcas(Array.from(host.querySelectorAll("[data-audit-ready]")).map((e) => ({
+  valor: e.getAttribute("data-audit-ready") ?? "",
+  inactiva: false,
+  descripcion: e.className,
+}))).listo;
 
 beforeEach(async () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  vistaPrevia.frecuencias.mockReset().mockImplementation(nunca);
+  vistaPrevia.cruces.mockReset().mockImplementation(nunca);
   const { useAnaliticaStore, DEFAULT_CONFIG } = await import("../store");
-  useAnaliticaStore.setState({ config: DEFAULT_CONFIG, hydrated: true, dirty: false, errorGuardado: null });
+  useAnaliticaStore.setState({
+    config: { ...DEFAULT_CONFIG, cruces: { ...DEFAULT_CONFIG.cruces, cruces_vars: [{ name: "M5_district" }] } },
+    hydrated: true, dirty: false, errorGuardado: null,
+  });
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
@@ -75,22 +104,57 @@ describe("cabecera de las pestañas con vista previa", () => {
     expect(cabeceraCompacta("datos")).toBe(false);
   });
 
-  it.each(["frecuencias", "cruces"])("en %s es la compacta y lleva los casos que cuentan en su fila", async (pestana) => {
+  it.each(["frecuencias", "cruces"])("en %s la cabecera es la de la pestaña, con los casos que cuentan, las cifras y Generar Excel", async (pestana) => {
     await montar(pestana);
-    expect(tabHeading()?.getAttribute("data-variante")).toBe("compacta");
-    // La línea de casos vive dentro de la cabecera, antes del control de la fuente, y no hay banda debajo.
-    const universo = tabHeading()?.querySelector(".pulso-universo");
-    expect(universo?.textContent).toContain("Cuentan todos los casos");
-    expect(cabecera()?.querySelector(":scope > .pulso-analitica-universo-banda")).toBeNull();
-    // El nombre de la pestaña sigue siendo el encabezado, y el número de pestaña se sigue leyendo.
-    expect(tabHeading()?.querySelector("h2")?.textContent).toBe(pestana === "cruces" ? "Cruces" : "Frecuencias");
-    expect(tabHeading()?.textContent).toMatch(/pestaña \d+ de \d+/);
+    // La página no pinta la suya: una sola cabecera.
+    expect(cabeceraDeLaPagina()).toBeNull();
+    expect(host.querySelectorAll(".pulso-tab-heading")).toHaveLength(1);
+    const cabecera = cabeceraPropia();
+    expect(cabecera?.querySelector("h2")?.textContent).toBe(pestana === "cruces" ? "Cruces" : "Frecuencias");
+    // El antetítulo a la vista es "Analítica", como el prototipo; el número de pestaña solo para el lector de pantalla.
+    expect(cabecera?.querySelector(".pulso-tab-heading-eyebrow")?.textContent).toBe("Analítica");
+    expect(cabecera?.querySelector(".pulso-sr-only:not(.pulso-tab-heading-eyebrow)")?.textContent).toMatch(/^Pestaña \d+ de \d+$/);
+    expect(cabecera?.querySelector(".pulso-universo")?.textContent).toContain("Cuentan todos los casos");
+    expect(cabecera?.querySelector('dl[aria-label^="Cifras del archivo"]')).not.toBeNull();
+    expect(Array.from(cabecera?.querySelectorAll("button") ?? []).some((b) => b.textContent?.trim() === "Generar Excel")).toBe(true);
+    // La barra de fuente baja a los ajustes, fuera de la cabecera.
+    expect(cabecera?.querySelector(".pulso-analitica-sourcebar")).toBeNull();
+    expect(host.querySelector(".tablas-panel--ajustes .tablas-datos .pulso-analitica-sourcebar")).not.toBeNull();
+    expect(host.querySelector("#analitica-panel")?.hasAttribute("data-cabecera-propia")).toBe(true);
   });
 
-  it("las demás pestañas conservan la cabecera estándar con la banda de casos debajo", async () => {
+  it("las demás pestañas conservan la cabecera estándar con la banda de casos debajo y la fuente arriba", async () => {
     await montar("datos");
-    expect(tabHeading()?.getAttribute("data-variante")).toBe("estandar");
-    expect(cabecera()?.querySelector(":scope > .pulso-analitica-universo-banda .pulso-universo")).not.toBeNull();
-    expect(tabHeading()?.querySelector(".pulso-universo")).toBeNull();
+    const tabHeading = cabeceraDeLaPagina()?.querySelector<HTMLElement>(".pulso-tab-heading");
+    expect(tabHeading?.getAttribute("data-variante")).toBe("estandar");
+    expect(cabeceraDeLaPagina()?.querySelector(":scope > .pulso-analitica-universo-banda .pulso-universo")).not.toBeNull();
+    expect(tabHeading?.querySelector(".pulso-analitica-sourcebar")).not.toBeNull();
+    expect(cabeceraPropia()).toBeNull();
+    expect(host.querySelector("#analitica-panel")?.hasAttribute("data-cabecera-propia")).toBe(false);
+  });
+});
+
+describe("readiness de Frecuencias y Cruces", () => {
+  it.each(["frecuencias", "cruces"] as const)("en %s no se da por lista mientras la vista previa se lee; al llegar, sí", async (pestana) => {
+    let soltar: () => void = () => undefined;
+    if (pestana === "frecuencias") vistaPrevia.frecuencias.mockImplementation(() => new Promise((r) => { soltar = () => r(respuestaReal()); }));
+    else vistaPrevia.cruces.mockImplementation(() => new Promise((r) => { soltar = () => r(crucesSinPesos()); }));
+    await montar(pestana);
+    // La sección ya publicó su marca, pero la carga de la tabla la retiene.
+    expect(host.querySelector("#analitica-panel")?.getAttribute("data-audit-ready")).toBe(`analitica-${pestana}`);
+    expect(host.textContent).toContain(pestana === "cruces" ? "Leyendo las tablas cruzadas del archivo" : "Leyendo las tablas del archivo");
+    expect(listo()).toBe(false);
+    await act(async () => { soltar(); });
+    await esperar();
+    expect(host.textContent).not.toContain("Leyendo las tablas");
+    expect(listo()).toBe(true);
+  });
+
+  it("con la config de Analítica sin hidratar la vista no está lista", async () => {
+    const { useAnaliticaStore } = await import("../store");
+    useAnaliticaStore.setState({ hydrated: false });
+    await montar("frecuencias");
+    expect(host.textContent).toContain("Cargando la configuración de Analítica");
+    expect(listo()).toBe(false);
   });
 });
