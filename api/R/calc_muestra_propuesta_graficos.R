@@ -92,7 +92,7 @@
   laminas <- lapply(seq_along(grupos), function(g) {
     gr <- grupos[[g]]
     titulo <- toupper(.y(vapply(gr, `[[`, "", "tema")))
-    base <- paste0("Población: ", paste(vapply(gr, function(x) sprintf("%s %s", .cmp_fmt_n(x$N), x$fuente), ""), collapse = "; "))
+    base <- paste0("Población: ", .y(vapply(gr, function(x) sprintf("%s %s", .cmp_fmt_n(x$N), x$fuente), "")))
     # Con dos o tres gráficos, cada uno lleva su título; con uno, va de subtítulo de la lámina.
     els <- lapply(gr, function(x) {
       e <- .cmg_grafico(x$fuente, x$n_cat, en_pareja = length(gr) > 1L)
@@ -103,7 +103,31 @@
       "1" = p_slide_1_grafico(els[[1]], titulo = toupper(gr[[1]]$titulo), base = base),
       "2" = p_slide_2_graficos(els[[1]], els[[2]], titulo = titulo, base = base),
       "3" = p_slide_3_graficos_fila(els[[1]], els[[2]], els[[3]], titulo = titulo, base = base))
-    list(clave = paste0("graf_", g), slide = slide)
+    # Un gráfico de barras horizontales solo en su lámina se estira al alto disponible (como lo estiró Gonzalo en
+    # la revisión del 2026-11-11): el motor lo deja centrado con filas fijas.
+    list(clave = paste0("graf_", g), slide = slide, estirar = length(gr) == 1L && gr[[1]]$n_cat > .CMG_MAX_VERTICALES)
   })
   list(data = data, instrumento = inst, laminas = laminas)
+}
+
+#' Estira en vertical el grupo del gráfico de una lámina hasta `top`..`top + alto` (pulgadas), como al arrastrarlo en
+#' PowerPoint: cambia el marco del grupo y conserva el de sus hijos, así que las formas se escalan.
+#' @keywords internal
+.cmg_estirar_grafico <- function(doc, indice, top = 1.40, alto = 5.06) {
+  doc <- officer::on_slide(doc, indice)
+  sl <- doc$slide$get_slide(indice)
+  xml <- sl$get()
+  ns <- xml2::xml_ns(xml)
+  grupos <- xml2::xml_find_all(xml, "//p:grpSp[p:nvGrpSpPr/p:cNvPr[starts-with(@name, 'prosecnur:grafico')]]", ns)
+  emu <- function(x) format(round(x * 914400), scientific = FALSE)
+  for (g in grupos) {
+    off <- xml2::xml_find_first(g, "p:grpSpPr/a:xfrm/a:off", ns)
+    ext <- xml2::xml_find_first(g, "p:grpSpPr/a:xfrm/a:ext", ns)
+    if (inherits(off, "xml_missing") || inherits(ext, "xml_missing")) next
+    if (as.numeric(xml2::xml_attr(ext, "cy")) / 914400 >= alto) next
+    xml2::xml_set_attr(off, "y", emu(top))
+    xml2::xml_set_attr(ext, "cy", emu(alto))
+  }
+  sl$save()
+  doc
 }

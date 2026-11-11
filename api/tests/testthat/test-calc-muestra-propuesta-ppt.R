@@ -25,7 +25,7 @@ test_that("las tablas comparan los escenarios con las metas del motor", {
   t <- calc_muestra_propuesta_tablas(.prop_dci())
   expect_identical(t$escenarios, c("Propuesta A", "Propuesta B"))
   # Dos bloques con fila de sección: encuestas (con total) y margen de referencia.
-  expect_identical(t$comparacion$Indicador[c(1, 6)], c("Encuestas", "Margen de referencia"))
+  expect_identical(t$comparacion$Indicador[c(1, 6)], c("Encuestas", "Margen de error"))
   expect_identical(attr(t$comparacion, "secciones"), c(1L, 6L))
   # El mínimo se suma encima: administrativos A 900 + 15 (autoridades de 15 a 30); B: docentes +4, administrativos +20.
   expect_identical(t$comparacion[["Propuesta A"]][2:5], c("900", "915", "600", "2,415"))
@@ -61,6 +61,16 @@ test_that("la viabilidad dice qué escenario exige más respuesta y qué segment
   # Autoridades: 30 de 37 en ambos escenarios; los segmentos proporcionales de docentes no se repiten.
   expect_length(t$avisos, 1L)
   expect_match(t$avisos, "Autoridades (direcciones): 30 encuestas de 37 personas, 81 % de respuesta, en todos los escenarios", fixed = TRUE)
+})
+
+test_that("portada y diseño muestral se pueden quitar cuando las láminas van dentro de otra propuesta", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  p <- .prop_dci(); p$incluir_viabilidad <- NULL; p$incluir_portada <- FALSE; p$incluir_diseno <- FALSE
+  r <- calc_muestra_propuesta_ppt(p, tempfile(fileext = ".pptx"))
+  expect_identical(as.integer(r$laminas), 7L)
+  doc <- officer::read_pptx(r$path)
+  primera <- officer::slide_summary(officer::on_slide(doc, 1))$text
+  expect_true(any(grepl("POBLACIÓN Y SEGMENTOS DE CRUCE", primera, fixed = TRUE)))
 })
 
 test_that("sin pedirla, la propuesta para el cliente no lleva la lámina de viabilidad", {

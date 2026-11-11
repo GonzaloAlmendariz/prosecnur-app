@@ -89,7 +89,8 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
                           `Población` = .cmp_fmt_n(c(N, sum(N))), check.names = FALSE)
 
   # Dos bloques con su fila de sección: encuestas (con total) y margen de referencia.
-  filas <- c("Encuestas", publicos, "Total", "Margen de referencia", publicos)
+  # "Margen de error" (revisión 2026-11-11); la nota al pie dice que es referencial.
+  filas <- c("Encuestas", publicos, "Total", "Margen de error", publicos)
   comparacion <- data.frame(Indicador = filas, check.names = FALSE)
   for (k in seq_along(calc)) {
     m <- metas[[k]]
@@ -312,21 +313,28 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   # Portada, gráficos (motor de Procesamiento) y contraportada salen del motor de plan; las tablas se
   # agregan después con officer y al final se ordena todo con `orden` (una clave por lámina).
   graf <- if (isFALSE(propuesta$incluir_graficos)) list(data = list(), instrumento = list(), laminas = list()) else .cmg_laminas(tablas)
-  plan <- c(list(p_slide_portada(as.character(propuesta$titulo %||% "Diseño muestral")[1],
+  # Portada y diseño muestral son opcionales: cuando las láminas se insertan en una propuesta completa, sobran
+  # (Gonzalo las quitó en su revisión del 2026-11-11).
+  con_portada <- !isFALSE(propuesta$incluir_portada)
+  plan <- c(if (con_portada) list(p_slide_portada(as.character(propuesta$titulo %||% "Diseño muestral")[1],
                                  subtitulo = as.character(propuesta$subtitulo %||% "Propuesta técnica: diseño muestral")[1],
                                  fecha = propuesta$fecha %||% NULL, subtexto = propuesta$solicitante %||% NULL)),
             lapply(graf$laminas, `[[`, "slide"), list(p_slide_cierre()))
-  orden <- c("portada", vapply(graf$laminas, `[[`, "", "clave"), "cierre")
+  orden <- c(if (con_portada) "portada", vapply(graf$laminas, `[[`, "", "clave"), "cierre")
   datos_plan <- if (length(graf$data)) graf$data else data.frame(x = 1)
   inst_plan <- if (length(graf$instrumento)) graf$instrumento else list(survey = data.frame(type = "text", name = "x", label = "x"))
   base_tmp <- tempfile(fileext = ".pptx")
   reporte_ppt_plan(data = datos_plan, instrumento = inst_plan,
                    plan = plan, path_ppt = base_tmp, template_pptx = plantilla, mensajes_progreso = FALSE)
   doc <- officer::read_pptx(base_tmp)
+  # Antes de agregar y mover láminas: el índice del plan es el del archivo (get_slide no sigue a move_slide).
+  for (l in Filter(function(l) isTRUE(l$estirar), graf$laminas)) doc <- .cmg_estirar_grafico(doc, match(l$clave, orden))
 
   piso <- as.integer(propuesta$minimo_segmento %||% 30L)
   proc <- propuesta$procedimiento %||% .cmp_procedimiento_barrido(piso)
-  doc <- .cmp_lamina_tabla(doc, "Diseño muestral", proc, primera = 0.20, texto_largo = TRUE); orden <- c(orden, "diseno")
+  if (!isFALSE(propuesta$incluir_diseno)) {
+    doc <- .cmp_lamina_tabla(doc, "Diseño muestral", proc, primera = 0.20, texto_largo = TRUE); orden <- c(orden, "diseno")
+  }
   doc <- .cmp_lamina_tabla(doc, "Población y segmentos de cruce", tablas$poblacion, primera = 0.22, total = TRUE,
                            nota = propuesta$nota_marco %||% NULL, llenar = TRUE, anchos = c(0.22, 0.60, 0.18), izquierda = 2L)
   orden <- c(orden, "poblacion")
