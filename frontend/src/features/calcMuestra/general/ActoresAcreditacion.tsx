@@ -150,7 +150,7 @@ function MetaDelActor({
           ariaLabel={`${campo.rotulo} de ${actor}`}
           onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota", origen: "usuario" } })}
         />
-        <PieDeMeta {...pieDeCuota(sugerido)} />
+        <PieDeMeta {...pieDeCuota(sugerido, campo.rotulo)} />
       </div>
     );
   }

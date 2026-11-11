@@ -114,6 +114,9 @@ describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
     expect(conv.tipo === "cobertura" && conv.piezas).toEqual(["Piso 30", "tope 400"]);
     expect(pieDeCuota(null)).toEqual({ detalle: "Cuota", piezas: ["Cuota"] });
     expect(pieDeCuota(120)).toEqual({ detalle: "Cuota vacía: el motor aplica 120", piezas: ["Cuota vacía", "motor: 120"] });
+    // ADR 0143: en un barrido el campo se llama "Encuestas".
+    expect(pieDeCuota(null, "Encuestas")).toEqual({ detalle: "Encuestas", piezas: ["Encuestas"] });
+    expect(pieDeCuota(1560, "Encuestas").piezas).toEqual(["Campo vacío", "motor: 1,560"]);
   });
 
   it("la tabla pinta piezas sin partir y deja la frase entera en título y texto accesible", () => {

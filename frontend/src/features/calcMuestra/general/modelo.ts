@@ -567,10 +567,12 @@ export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | 
 }
 
 /** Pie de la cuota: frase entera y sus piezas cortas (V15). */
-export function pieDeCuota(sugerido: number | null): { detalle: string; piezas: readonly string[] } {
-  if (sugerido == null) return { detalle: "Cuota", piezas: ["Cuota"] };
+export function pieDeCuota(sugerido: number | null, rotulo = "Cuota"): { detalle: string; piezas: readonly string[] } {
+  if (sugerido == null) return { detalle: rotulo, piezas: [rotulo] };
+  // "Cuota vacía" / "Campo vacío": el rótulo del campo (en un barrido, "Encuestas") no concuerda con "vacía".
+  const vacio = rotulo === "Cuota" ? "Cuota vacía" : "Campo vacío";
   return {
-    detalle: `Cuota vacía: el motor aplica ${fmtInt(sugerido)}`,
-    piezas: ["Cuota vacía", `motor: ${fmtInt(sugerido)}`],
+    detalle: `${vacio}: el motor aplica ${fmtInt(sugerido)}`,
+    piezas: [vacio, `motor: ${fmtInt(sugerido)}`],
   };
 }
