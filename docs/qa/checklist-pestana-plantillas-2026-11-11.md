@@ -54,3 +54,23 @@ Estados: **pendiente**, **en curso**, **resuelto** (test y vista revisada), **bl
   graficador dibuja la base encima de esa reserva (render del RMS, REF03 y SAF01, 2026-11-11).
 - "Prefiere no responder" no lo reconocía el detector de no respuesta del motor; la pestaña y la paleta usan ahora una
   sola regla (`.graficos_rotulo_residual`).
+
+## Revisión en vivo con el RMS ACNUR (2026-11-11, pedido de Gonzalo)
+
+Pila propia (backend con el código fuente, sin reinstalar el paquete) y un `.pulso` del RMS 2026 con su base principal y
+dos grupos repetibles. Recorrido a 1440x1000 y 1024x600.
+
+| # | Qué se probó | Resultado |
+|---|---|---|
+| V1 | Plantilla de partida en un proyecto ACNUR cuyo archivo no dice ACNUR | corregido: partía de "Informe Pulso". Ahora lee también la Ficha del estudio (nombre, código y cliente); con cliente "ACNUR Perú" parte de "ACNUR general". El backend usa la misma ficha para elegir el perfil ACNUR (`.graficos_ficha_del_estudio`, con test) |
+| V2 | Secciones y preguntas del RMS con ACNUR | 161 láminas, 9 secciones, 146 preguntas; los grupos repetibles en su sección. "Información de la encuesta" lleva los intentos de visita y "Visitas del encuestador" la oficina, el país y el grupo de población: así los rotula el propio formulario |
+| V3 | Selector de gráfico en una Sí / No (HH05) | ofrece Barras, Torta, Barra al 100 % y Columnas; la elección queda en `grafico_por_pregunta` |
+| V4 | Apagar secciones y crear láminas | apagar "Consentimiento" y "Visitas del encuestador" bajó 161 a 155; "Crear láminas" armó 155 con perfil y plantilla ACNUR, HH05 como barra al 100 % y pasó a Láminas |
+| V5 | Avisos del plan recién creado | corregido: salía con 141 avisos "se leen de la base principal sin que el plan lo diga". "Crear láminas" fija ya la base de cada pregunta en un estudio con varias bases: 0 avisos |
+| V6 | Maqueta de la lámina en Láminas | corregido: el título de la pregunta salía de unas 9 pulgadas sobre la lámina. La clase del texto de la ficha (`pulso-ficha-pregunta`) era también la del bloque de pregunta del kit, cuyo `font-size` pisaba el del SVG. Clase propia y contrato que impide que una clase de la ficha se defina fuera de la maqueta (visto rojo con la clase vieja) |
+| V7 | Guardar como plantilla | "RMS versión cliente" quedó con base ACNUR, 4 preguntas fuera y la barra al 100 % de HH05 |
+| V8 | Estado de carga | corregido: el aviso de carga ("Leyendo las secciones y preguntas del cuestionario") iba en rojo de error; ahora en el gris del texto |
+| V9 | 1024x600 | sin desborde horizontal; el contenido del informe se desplaza dentro de su marco |
+
+Sin probar en vivo: la exportación del PPT desde la app (el job corre con el paquete instalado, que no tiene estos cambios
+hasta reinstalarlo). El render del motor se comprobó aparte con el RMS.

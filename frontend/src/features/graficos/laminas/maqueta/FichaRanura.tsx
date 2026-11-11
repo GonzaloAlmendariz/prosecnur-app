@@ -44,7 +44,7 @@ function PiezaFicha({ p, icono, graficador, glifo }: { p: Pieza; icono: string |
       );
     }
     case "texto":
-      return <text className={p.estilo === "pregunta" ? "pulso-ficha-pregunta" : "pulso-ficha-suave"} x={p.x} y={p.y} fontSize={p.fs}>{p.texto}</text>;
+      return <text className={p.estilo === "pregunta" ? "pulso-ficha-texto-pregunta" : "pulso-ficha-texto-suave"} x={p.x} y={p.y} fontSize={p.fs}>{p.texto}</text>;
     case "chip":
       return (
         <g className={`pulso-ficha-chip is-${p.tono}`}>

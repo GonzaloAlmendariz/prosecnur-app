@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ChevronDown, ChevronRight, FolderOpen, Loader2, Plus, Trash2 } from "../../../vendor/lucide-react";
 import { apiGraficosPlanSugerido, apiGraficosTemplates } from "../../../api/client";
+import { apiPlannerEstado } from "../../../api/planner";
 import { apiGraficosEstructuraInforme, type EstructuraDelInforme, type GraficoPorPregunta, type SeccionDelInforme } from "../../../api/graficosEstructura";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
@@ -23,6 +24,8 @@ import { usePlanStore } from "../store";
 import { buildGraficosConfigFromStore } from "../configSnapshot";
 import { usePptStyleProfiles } from "../usePptStyleProfiles";
 import { useGraficosRegistry } from "../useGraficosRegistry";
+import { useVariables } from "../useVariables";
+import { conBaseFijada } from "../fijarBase";
 import { identidadDelPlan, perfilResuelto } from "../armarDesde/aplicarPlanSugerido";
 import { clonePlanWithFreshIds } from "../armarDesde/clonarPlanSugerido";
 import { PLANTILLAS_INFORME, ROTULO_GRUPO, plantillaInicial, plantillaPorId, type PlantillaInforme } from "./catalogoPlantillas";
@@ -69,9 +72,22 @@ export default function PestanaPlantillas() {
   const aplicarPlanSugerido = usePlanStore((s) => s.aplicarPlanSugerido);
   const { profiles: perfiles } = usePptStyleProfiles();
   const { registry } = useGraficosRegistry();
+  const { variables, multi, relacionBases } = useVariables();
   const { irA } = useSeccion("procesamiento");
   const shell = useOptionalProjectShell();
-  const identidadProyecto = [shell?.project.status.name, shell?.project.status.path].filter(Boolean).join(" ");
+  // Sin plantilla elegida, la de partida sale de lo que el estudio dice de sí mismo: nombre y ruta del proyecto, la Ficha
+  // del estudio (nombre, código y cliente). Un RMS guardado como "rms.pulso" con cliente
+  // ACNUR parte de la plantilla ACNUR. Mientras se lee la ficha no se pide la estructura de una plantilla que puede cambiar.
+  const [ficha, setFicha] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    apiPlannerEstado()
+      .then((e) => { if (vivo) setFicha([e.planner.estudio.nombre, e.planner.estudio.codigo, e.planner.estudio.cliente].join(" ")); })
+      .catch(() => { if (vivo) setFicha(""); });
+    return () => { vivo = false; };
+  }, []);
+  const identidadProyecto = [shell?.project.status.name, shell?.project.status.path, ficha].filter(Boolean).join(" ");
+  const esperandoFicha = ficha === null && !plantillaPorId(typeof reglas.plantilla_elegida === "string" ? reglas.plantilla_elegida : null);
 
   const territorio = registry?.graficadores.find((g) => g.feature_kind === "territorial_coverage" || g.requisito === "territorial_coverage");
   const hayTerritorio = territorio?.available === true;
@@ -95,13 +111,14 @@ export default function PestanaPlantillas() {
   // La estructura depende sólo de la plantilla: encender o apagar preguntas no la vuelve a pedir (cada pedido arma el
   // plan completo en el backend, decenas de segundos en un estudio grande).
   useEffect(() => {
+    if (esperandoFicha) return;
     if (plantilla.enBlanco) { setCarga({ fase: "lista", estructura: { perfil: "", laminasFijas: 0, secciones: [], avisos: [] } }); return; }
     const n = ++pedido.current;
     setCarga({ fase: "cargando" });
     apiGraficosEstructuraInforme({ ...buildGraficosConfigFromStore(), ...plantilla.config })
       .then((estructura) => { if (n === pedido.current) setCarga({ fase: "lista", estructura }); })
       .catch((e) => { if (n === pedido.current) setCarga({ fase: "error", mensaje: mensajeDeError(e) }); });
-  }, [plantilla.id, plantilla.enBlanco, plantilla.config]);
+  }, [plantilla.id, plantilla.enBlanco, plantilla.config, esperandoFicha]);
 
   const secciones = useMemo(
     () => (carga.fase === "lista" ? conSeleccion(carga.estructura, exclusiones, graficos) : []),
@@ -151,6 +168,9 @@ export default function PestanaPlantillas() {
         perfil = perfiles.find((p) => p.name === perfilResuelto(result, perfilId)) ?? null;
         identidad = identidadDelPlan(result, perfilId);
       }
+      // Con varias bases, cada pregunta sale con su base escrita (`default$p7`): el plan nuevo no arranca con el aviso
+      // "se leen de la base principal sin que el plan lo diga" en cada lámina (fijarBase.ts).
+      if (multi) plan = { ...plan, slides: conBaseFijada(plan.slides, variables, relacionBases).slides };
       aplicarPlanSugerido({
         plan: modo === "agregar" ? { slides: [...planActual.slides, ...plan.slides] } : plan,
         perfil,

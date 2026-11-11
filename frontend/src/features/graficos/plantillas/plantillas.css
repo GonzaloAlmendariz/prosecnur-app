@@ -216,9 +216,9 @@
   gap: var(--pulso-space-2);
 }
 
-.pulso-plantillas-estado,
-.pulso-plantillas-error {
-  color: var(--pulso-danger-fg);
+/* La carga y los vacíos son estados neutros: van en el gris del texto, no en el rojo del error. */
+.pulso-plantillas-estado {
+  color: var(--pulso-text-muted);
 }
 
 .pulso-plantillas-error {

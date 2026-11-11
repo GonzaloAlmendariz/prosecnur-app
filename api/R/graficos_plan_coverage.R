@@ -1620,8 +1620,17 @@
     estudio$profile_family,
     (estudio$independent_siblings %||% list())$project_kind,
     (estudio$independent_siblings %||% list())$profile_family,
-    base_values
+    base_values,
+    .graficos_ficha_del_estudio(s)   # la Ficha del estudio: un RMS con cliente ACNUR es de ACNUR aunque el archivo no lo diga
   ))
+}
+
+#' Nombre, código y cliente que declara la Ficha del estudio (ADR 0124), o vacío
+#' @keywords internal
+.graficos_ficha_del_estudio <- function(s) {
+  valor <- tryCatch(.planner_leer(s)$secciones$estudio$valor, error = function(e) NULL)
+  if (!is.list(valor)) return(character(0))
+  unlist(valor[intersect(c("nombre", "codigo", "cliente"), names(valor))], use.names = FALSE)
 }
 
 .graficos_is_acnur_study <- function(sid, raw_cfg = list(), cfg = list()) {

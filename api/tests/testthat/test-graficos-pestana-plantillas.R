@@ -144,3 +144,12 @@ test_that("con plantilla de cliente la lista sin paleta toma los azules de la pl
   expect_null(getOption("prosecnur.paleta_defecto"))
   expect_identical(.reporte_plan_pulso_palette_for_levels(niveles), pulso)
 })
+
+# Un RMS guardado como "rms.pulso" no dice ACNUR en el nombre; su Ficha del estudio sí (cliente).
+test_that("el cliente de la Ficha del estudio marca el estudio como ACNUR", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  expect_false(.graficos_is_acnur_study(sid))
+  local_mocked_bindings(.planner_leer = function(s) list(secciones = list(estudio = list(valor = list(nombre = "RMS 2026", codigo = "", cliente = "ACNUR Perú")))))
+  expect_true(.graficos_is_acnur_study(sid))
+})

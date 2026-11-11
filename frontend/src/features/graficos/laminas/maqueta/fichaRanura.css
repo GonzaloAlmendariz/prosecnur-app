@@ -12,8 +12,10 @@
 .pulso-ficha-icono-fondo { fill: var(--pulso-primary-soft); }
 .pulso-ficha-icono { color: var(--pulso-primary); --icono-acento: var(--pulso-module-processing); }
 .pulso-ficha-tipo { fill: var(--pulso-primary); font-weight: 700; }
-.pulso-ficha-pregunta { fill: var(--pulso-text); font-weight: 700; }
-.pulso-ficha-suave { fill: var(--pulso-text-muted); }
+/* Clase propia: `.pulso-ficha-pregunta` es el bloque de pregunta del kit (piezas-procesamiento.css) y su font-size en em
+   pisaba el fontSize en pulgadas del SVG; el título salía de 9 pulgadas sobre la maqueta. */
+.pulso-ficha-texto-pregunta { fill: var(--pulso-text); font-weight: 700; }
+.pulso-ficha-texto-suave { fill: var(--pulso-text-muted); }
 
 .pulso-ficha-chip text { font-weight: 600; }
 .pulso-ficha-chip.is-publico rect { fill: var(--pulso-module-processing-soft); }
