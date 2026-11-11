@@ -339,6 +339,16 @@ describe("manifiesto primario de navegación", () => {
         id: "correo",
         sections: [
           { id: "correo", to: "/material-campo?modo=correo&seccion=correo", tabs: ["/material-campo?modo=correo&seccion=correo&pestana=editor", "/material-campo?modo=correo&seccion=correo&pestana=contactos"] },
+          // Seguimiento de todas las campañas de Mailchimp del estudio (checklist correos A/B, 11 nov 2026).
+          {
+            id: "seguimiento",
+            to: "/material-campo?modo=correo&seccion=seguimiento",
+            tabs: [
+              "/material-campo?modo=correo&seccion=seguimiento&pestana=respondieron",
+              "/material-campo?modo=correo&seccion=seguimiento&pestana=horarios",
+              "/material-campo?modo=correo&seccion=seguimiento&pestana=correo-personal",
+            ],
+          },
         ],
       },
     ]);

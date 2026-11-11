@@ -1,0 +1,375 @@
+/* Material de campo > Correo > Seguimiento. Sólo tokens. La geometría de las
+   tarjetas es la de la campaña telefónica (`.rec-terr-tarjeta`) y los pasos los
+   de la tarjeta Mailchimp de Envíos (`.rec-mc-paso`). */
+
+.rec-seg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+/* En una columna flex, una tabla con su propio scroll se encogería hasta
+   cortarse: cada bloque mide lo suyo y el panel es quien desplaza (C4). */
+.rec-seg > *,
+.rec-seg-tarjeta > *,
+.rec-seg-paso-cuerpo > *,
+.rec-seg-ronda-plan > * {
+  flex-shrink: 0;
+}
+
+.rec-seg-tarjeta {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4);
+}
+
+.rec-seg-cabeza {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  justify-content: space-between;
+}
+
+.rec-seg-titulo {
+  align-items: center;
+  color: var(--pulso-text);
+  display: flex;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.rec-seg-titulo svg {
+  color: var(--pulso-module-fieldkit);
+  flex: none;
+}
+
+/* Dos tarjetas pares (C2): mismo alto en la fila, una debajo de otra en angosto. */
+.rec-seg-par {
+  align-items: stretch;
+  display: grid;
+  gap: var(--pulso-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.rec-seg-fila {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-3);
+}
+
+.rec-seg-fila > .pulso-field {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.rec-seg-acciones {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}
+
+.rec-seg-nota {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.rec-seg-dato {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.rec-seg-dato dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-seg-dato dd {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  margin: 0;
+}
+
+.rec-seg-datos {
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 0;
+}
+
+/* Estado de un paso o de la pestaña: palabras en una píldora, sin franja de acento. */
+.rec-seg-chip {
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.rec-seg-chip.is-hecho {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.rec-seg-chip.is-sigue {
+  background: var(--pulso-info-bg);
+  border-color: var(--pulso-info-border);
+  color: var(--pulso-info-fg);
+}
+
+.rec-seg-chip.is-aviso {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+/* Pasos de la prueba de horarios, en el orden en que se hacen. */
+.rec-seg-pasos {
+  display: grid;
+  gap: var(--pulso-space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-seg-paso {
+  align-items: flex-start;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-template-columns: 24px minmax(0, 1fr);
+  padding: var(--pulso-space-4);
+}
+
+.rec-seg-paso.is-sigue {
+  border-color: var(--pulso-module-fieldkit-border);
+}
+
+.rec-seg-num {
+  align-items: center;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  color: var(--pulso-text-muted);
+  display: inline-flex;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.rec-seg-paso.is-hecho .rec-seg-num {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+.rec-seg-paso.is-sigue .rec-seg-num {
+  background: var(--pulso-module-fieldkit-soft);
+  border-color: var(--pulso-module-fieldkit-border);
+  color: var(--pulso-module-fieldkit);
+}
+
+.rec-seg-paso-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+/* Resultado de una operación: una frase y una línea por campaña. */
+.rec-seg-resultado {
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text);
+  display: grid;
+  font-size: var(--pulso-type-body-size);
+  gap: 4px;
+  line-height: 1.45;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-seg-resultado ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-seg-resultado li.is-error {
+  color: var(--pulso-warn-fg);
+}
+
+.rec-seg-avisos {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-warn-fg);
+  display: grid;
+  font-size: var(--pulso-type-body-size);
+  gap: 4px;
+  line-height: 1.45;
+  list-style: none;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-seg-confirmar {
+  align-items: center;
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-warn-fg);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--pulso-type-body-size);
+  gap: var(--pulso-space-2);
+  justify-content: space-between;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-seg-confirmar p {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.rec-seg-error {
+  color: var(--pulso-danger-fg);
+  font-size: var(--pulso-type-body-size);
+  margin: 0;
+}
+
+/* Celda del plan: la hora del grupo y su borrador, en una línea que envuelve. */
+.rec-seg-celda {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.rec-seg-celda .pulso-input {
+  width: 190px;
+}
+
+.rec-seg-abrir {
+  align-items: center;
+  color: var(--pulso-primary);
+  display: inline-flex;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.rec-seg-abrir:focus-visible {
+  border-radius: 4px;
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 2px;
+}
+
+.rec-seg-ronda-plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.rec-seg-subtitulo {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  margin: 0;
+}
+
+/* Resultados por recordatorio: grupo A, grupo B y la diferencia, como cifras. */
+.rec-seg-ab {
+  display: grid;
+  gap: var(--pulso-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 0;
+}
+
+.rec-seg-ab > div {
+  background: var(--pulso-surface-2);
+  border-radius: var(--pulso-radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-seg-ab dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.rec-seg-ab dd {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-kpi-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-type-kpi-weight);
+  margin: 0;
+}
+
+.rec-seg-ab small {
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-seg-lectura {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.rec-seg-cruce {
+  background: var(--pulso-info-bg);
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-info-fg);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.rec-seg-vacio {
+  background: var(--pulso-surface-2);
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-body-size);
+  margin: 0;
+  padding: var(--pulso-space-3);
+  text-align: center;
+}
+
+/* La semilla es una fecha de 8 cifras: el campo la muestra entera. */
+.rec-seg-semilla {
+  min-width: 14ch;
+}

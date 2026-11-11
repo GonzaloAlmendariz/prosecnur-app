@@ -31,6 +31,8 @@ import { usePlannerModos } from "../../estudio/usePlannerModos";
 import { CampanaSupervisionShell } from "../supervision/CampanaSupervisionShell";
 import { CampanaTelefonicaShell } from "../telefonica/CampanaTelefonicaShell";
 import { CampanaTerritorialShell } from "../territorial/CampanaTerritorialShell";
+import { SeguimientoShell } from "../seguimiento/SeguimientoShell";
+import { SECCION_SEGUIMIENTO } from "../seguimiento/navegacionSeguimiento";
 import type { FaseTerritorial } from "../../../api/materialTerritorial";
 import { accionesDeCampana, type IdDeAccion } from "./accionesDeCampana";
 import { CabeceraDeCampana } from "./CabeceraDeCampana";
@@ -333,6 +335,10 @@ export function MaterialCampoShell() {
     </>
   ) : null;
 
+  if (vista?.vista === "seguimiento") {
+    return <SeguimientoShell pestana={vista.pestana} />;
+  }
+
   if (vista?.vista === "campana" && vista.modo === "aulas") {
     return (
       <>
@@ -401,6 +407,9 @@ export function MaterialCampoShell() {
         onReintentar={() => { void recargar(false); }}
         miniaturas={miniaturasDeCorreo}
         asuntos={asuntos}
+        hrefSeguimiento={(registro?.campaigns ?? []).some((c) => c.tipo === "correo" && !c.archived)
+          ? `${RUTA_MATERIAL_CAMPO}${searchDeCampanas("", { modo: "correo", seccion: SECCION_SEGUIMIENTO })}`
+          : null}
       />
       {vista ? (
         <>

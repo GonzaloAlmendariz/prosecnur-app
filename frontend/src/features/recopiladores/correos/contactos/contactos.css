@@ -682,6 +682,12 @@ button.rec-contactos-dist-fila.is-on {
   color: var(--pulso-warn-fg);
 }
 
+/* "A medias" en la columna Respondió: sigue recibiendo recordatorios. */
+.rec-contactos-a-medias {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-medium);
+}
+
 /* El cruce: primera columna pegada a la izquierda al desplazar en horizontal;
    cada celda con un tinte del musgo según su peso en la tabla. */
 .rec-contactos-cruce th[scope="row"],

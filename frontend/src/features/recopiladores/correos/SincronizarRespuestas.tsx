@@ -23,6 +23,7 @@ import {
   type RevisionDeVariable,
 } from "../../../api/mailchimpSync";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "../../../vendor/lucide-react";
 import { MailchimpAvance } from "./MailchimpAvance";
 import { mensajeDeError } from "./mailchimpPorApiModel";
@@ -46,6 +47,7 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
   const [encuesta, setEncuesta] = useState(recordada?.survey_id ?? "");
   const [audienciaPropia, setAudiencia] = useState(recordada?.list_id ?? "");
   const [etiqueta, setEtiqueta] = useState(recordada?.tag || "Respondió");
+  const [archivar, setArchivar] = useState(recordada?.archivar ?? false);
   const [avance, setAvance] = useState<AvanceDeTrabajo | null | undefined>(undefined);
   const [error, setError] = useState("");
   const [resultado, setResultado] = useState<ResultadoDeSincronizacion | null>(null);
@@ -86,10 +88,12 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
   const sincronizar = async () => {
     setAvance(null); setError(""); setResultado(null);
     try {
-      const { job_id } = await apiSincronizarRespuestas({ campaign_id: campana, survey_id: encuesta, list_id: audiencia, tag: etiqueta.trim() || "Respondió" });
+      const { job_id } = await apiSincronizarRespuestas({
+        campaign_id: campana, survey_id: encuesta, list_id: audiencia, tag: etiqueta.trim() || "Respondió", archivar,
+      });
       const r = normalizeResultado(await esperarTrabajo(job_id, setAvance));
       setResultado(r);
-      guardarEleccion(campana, { survey_id: encuesta, list_id: audiencia, tag: r.tag });
+      guardarEleccion(campana, { survey_id: encuesta, list_id: audiencia, tag: r.tag, archivar });
     } catch (e) {
       setError(mensajeDeError(e, "No se pudo actualizar."));
     } finally {
@@ -181,6 +185,14 @@ export function SincronizarRespuestas({ campana, incrustado, onEtiqueta }: Props
             <span className="rec-mail-campo-rotulo"><span>Etiqueta</span></span>
             <input className="rec-mail-input" value={etiqueta} maxLength={60} disabled={trabajando} onChange={(e) => setEtiqueta(e.target.value)} />
           </label>
+          <PulsoSwitch
+            size="sm"
+            label="Archivar a quienes respondieron"
+            description="Con sus dos correos. Se puede deshacer y lo archivado no se cobra."
+            checked={archivar}
+            disabled={trabajando}
+            onCheckedChange={setArchivar}
+          />
           <span className="rec-sync-accion">
             <PulsoButton variant="primary" size="sm" className="rec-sync-boton" disabled={!listo || trabajando} onClick={() => void sincronizar()}>
               {trabajando ? <Loader2 size={14} className="pulso-spin" aria-hidden /> : <RefreshCw size={14} aria-hidden />}

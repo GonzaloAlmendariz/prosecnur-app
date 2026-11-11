@@ -1,11 +1,15 @@
 import type { CSSProperties } from "react";
 import {
+  Activity,
   Archive,
   BarChart3,
   CalendarDays,
+  CheckCheck,
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
+  Clock,
+  Contact,
   DatabaseZap,
   FileSpreadsheet,
   FileText,
@@ -714,8 +718,9 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         ],
       },
       {
-        // Una sola sección: el correo, con identidad, destinatarios, plataforma,
-        // envíos, revisión e importar como paneles (ADR 0111 §3).
+        // El correo de una campaña, con identidad, destinatarios, plataforma,
+        // envíos, revisión e importar como paneles (ADR 0111 §3), y el
+        // seguimiento de todas las campañas de Mailchimp del estudio.
         id: "correo",
         label: "Correo",
         sections: [
@@ -730,6 +735,21 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
               // Quién está en la lista, cómo se reparte por perfil y quién
               // respondió; el enlace personal a la encuesta (ADR 0112 §2 y §4).
               { id: "contactos", label: "Contactos", icon: Users, to: "/material-campo?modo=correo&seccion=correo&pestana=contactos", layoutPolicy: "viewport" },
+            ],
+          },
+          {
+            // Operaciones del estudio entero sobre todas sus campañas de Mailchimp a la vez
+            // (una por público): quién respondió, la prueba de horarios A/B y el correo personal.
+            // No es de una campaña: su dirección no lleva `campana`.
+            id: "seguimiento",
+            label: "Seguimiento",
+            icon: Activity,
+            to: "/material-campo?modo=correo&seccion=seguimiento",
+            layoutPolicy: "viewport",
+            tabs: [
+              { id: "respondieron", label: "Quién respondió", icon: CheckCheck, to: "/material-campo?modo=correo&seccion=seguimiento&pestana=respondieron", layoutPolicy: "viewport" },
+              { id: "horarios", label: "Prueba de horarios", icon: Clock, to: "/material-campo?modo=correo&seccion=seguimiento&pestana=horarios", layoutPolicy: "viewport" },
+              { id: "correo-personal", label: "Correo personal", icon: Contact, to: "/material-campo?modo=correo&seccion=seguimiento&pestana=correo-personal", layoutPolicy: "viewport" },
             ],
           },
         ],

@@ -14,7 +14,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { Switch } from "../../../../components/Switch";
 import { ArrowRight, ChevronLeft, ChevronRight, Search, Users } from "../../../../vendor/lucide-react";
 import { TableScroll } from "../../TableScroll";
-import { ETIQUETA_DE_ESTADO, cifraDeLaLista, columnasDeLaLista, paginas, rangoDePagina } from "./modeloContactos";
+import { ETIQUETA_DE_ESTADO, cifraDeLaLista, columnasDeLaLista, paginas, rangoDePagina, textoDeRespuesta } from "./modeloContactos";
 import { useContactosStore } from "./store";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 
@@ -41,12 +41,8 @@ const RESPUESTAS: { id: FiltroDeRespuesta; label: string }[] = [
   { id: "todos", label: "Respondieron o no" },
   { id: "si", label: "Respondieron" },
   { id: "no", label: "No respondieron" },
+  { id: "parcial", label: "A medias" },
 ];
-
-function textoDeRespuesta(respondio: boolean | null): string {
-  if (respondio === null) return "—";
-  return respondio ? "Sí" : "No";
-}
 
 export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, error, conFiltros, efectivos }: Props) {
   const busqueda = useContactosStore((s) => s.busqueda);
@@ -160,7 +156,7 @@ export function ListaDeContactos({ lista, control, respuestasLeidas, cargando, e
                       </span>
                     </td>
                     <td>{fila.tiene_enlace ? "Sí" : <span className="rec-contactos-sin">—</span>}</td>
-                    <td>{textoDeRespuesta(fila.respondio)}</td>
+                    <td className={fila.a_medias && !fila.respondio ? "rec-contactos-a-medias" : undefined}>{textoDeRespuesta(fila)}</td>
                     {columnas.map((c) => (
                       <td key={c.key}>{fila.valores[c.key] ?? <span className="rec-contactos-sin">—</span>}</td>
                     ))}

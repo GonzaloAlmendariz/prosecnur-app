@@ -87,6 +87,7 @@ describe("normalizadores de contactos", () => {
       estado: "efectivo",
       tiene_enlace: true,
       respondio: null,
+      a_medias: false,
       valores: { carrera: "Derecho", sexo: "F", sede: null },
     });
     // Un estado que este cliente no conoce no se inventa.
@@ -96,7 +97,19 @@ describe("normalizadores de contactos", () => {
     expect(pagina.rows[2].valores).toEqual({});
     // «Sin leer» no es cero.
     expect(pagina.resumen.respondieron).toBeNull();
+    expect(pagina.resumen.a_medias).toBeNull();
     expect(pagina.resumen.leido_en).toBeNull();
+  });
+
+  it("lee quién dejó la encuesta a medias, en la fila y en el resumen", () => {
+    const pagina = normalizarPaginaDeContactos({
+      total: 1,
+      rows: [{ fila: 1, email: "a@example.org", estado: "efectivo", respondio: false, a_medias: true, valores: {} }],
+      resumen: { importados: 1, efectivos: 1, respondieron: 0, a_medias: 1 },
+    });
+    expect(pagina.rows[0].a_medias).toBe(true);
+    expect(pagina.resumen.a_medias).toBe(1);
+    expect(queryDeContactos({ campaignId: "c", respondio: "parcial" })).toContain("respondio=parcial");
   });
 
   it("un cuerpo vacío o roto no revienta: devuelve una página vacía", () => {

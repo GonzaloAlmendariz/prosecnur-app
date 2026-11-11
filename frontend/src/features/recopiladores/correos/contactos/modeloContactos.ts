@@ -13,13 +13,14 @@ import type {
   CruceDelPerfil,
   EnlacesGenerados,
   EstadoDeContacto,
+  FilaDeContacto,
   FiltrosDeContactos,
   PerfilDeContactos,
   ResumenDeContactos,
   VariableDelPerfil,
 } from "../../../../api/mailContactos";
 import { filtrosComoJson } from "../../../../api/mailContactos";
-import { formatoConteo, formatoConteoDe } from "../../../../lib/formatoNumero";
+import { SIN_CIFRA, formatoConteo, formatoConteoDe } from "../../../../lib/formatoNumero";
 
 // ---- Cifras -------------------------------------------------------------------
 
@@ -236,7 +237,7 @@ export function intensidadesDelCruce(cruce: CruceDelPerfil, vista: "casos" | "fi
 // ---- Resumen ------------------------------------------------------------------
 
 export type TarjetaDeResumen = {
-  id: "importados" | "efectivos" | "fuera" | "enlace";
+  id: "importados" | "efectivos" | "fuera" | "enlace" | "a-medias";
   titulo: string;
   valor: string;
   detalle: string;
@@ -244,8 +245,10 @@ export type TarjetaDeResumen = {
 };
 
 /**
- * Las cifras de la lista a la que se escribe. «Respondieron» salió de aquí (R8 del mapa de
+ * Las cifras de la lista a la que se escribe. "Respondieron" salió de aquí (R8 del mapa de
  * responsabilidades, 2 nov 2026): cómo rinde el envío es avance y se sigue en Monitoreo.
+ * "A medias" sí va, una vez leídas las respuestas: son contactos de esta lista que siguen
+ * recibiendo recordatorios (checklist de correos A/B, 11 nov 2026, ítem 1a).
  */
 export function tarjetasDeResumen(r: ResumenDeContactos): TarjetaDeResumen[] {
   const fuera = r.sin_correo + r.correo_invalido + r.repetidos;
@@ -285,6 +288,15 @@ export function tarjetasDeResumen(r: ResumenDeContactos): TarjetaDeResumen[] {
         : "Todavía sin enlaces",
       tono: r.efectivos > 0 && r.con_enlace >= r.efectivos ? "exito" : "neutro",
     },
+    ...(r.a_medias === null ? [] : [{
+      id: "a-medias" as const,
+      titulo: "A medias",
+      valor: formatoConteo(r.a_medias),
+      detalle: r.efectivos
+        ? `${formatoPorcentaje(proporcion(r.a_medias, r.efectivos))} de ${formatoConteo(r.efectivos)} efectivos`
+        : "Sin efectivos",
+      tono: "neutro" as const,
+    }]),
   ];
 }
 
@@ -298,6 +310,16 @@ export function fechaLegible(iso: string): string {
 }
 
 // ---- Lista ------------------------------------------------------------------------
+
+/**
+ * La celda "Respondió" de una fila: "Sí", "No", "A medias" (respuesta parcial sin
+ * ninguna completa) o una raya si todavía no se leyó quién respondió.
+ */
+export function textoDeRespuesta(fila: Pick<FilaDeContacto, "respondio" | "a_medias">): string {
+  if (fila.respondio === null) return SIN_CIFRA;
+  if (fila.respondio) return "Sí";
+  return fila.a_medias ? "A medias" : "No";
+}
 
 export const ETIQUETA_DE_ESTADO: Record<EstadoDeContacto, string> = {
   efectivo: "Efectivo",

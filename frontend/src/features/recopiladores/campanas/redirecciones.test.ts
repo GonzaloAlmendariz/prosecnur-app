@@ -35,6 +35,20 @@ describe("la dirección de Material de campo (ADR 0111 §Redirecciones)", () => 
     });
   });
 
+  it("Correo > Seguimiento es del estudio entero: sin campaña y con su pestaña canónica", () => {
+    expect(ir({ modo: "correo", seccion: "seguimiento", pestana: "horarios" })).toEqual({ vista: "seguimiento", campana: null, reescribir: null });
+    expect(ir({ modo: "correo", seccion: "seguimiento", pestana: "correo-personal" }, VACIO).vista).toBe("seguimiento");
+    // Sin pestaña o con una que no existe: aterriza en Quién respondió.
+    expect(ir({ modo: "correo", seccion: "seguimiento" }).reescribir).toEqual({ modo: "correo", seccion: "seguimiento", pestana: "respondieron" });
+    expect(ir({ modo: "correo", seccion: "seguimiento", pestana: "otra" }).reescribir).toEqual({ modo: "correo", seccion: "seguimiento", pestana: "respondieron" });
+    // Desde un correo abierto la campaña no se arrastra; el panel sí.
+    expect(ir({ modo: "correo", campana: "correo.egresados", seccion: "seguimiento", pestana: "horarios", panel: "x", foco: "saludo" }).reescribir)
+      .toEqual({ modo: "correo", seccion: "seguimiento", pestana: "horarios", panel: "x" });
+    // Sin modo también vale; con otro modo no es esta sección.
+    expect(ir({ seccion: "seguimiento", pestana: "horarios" }).reescribir).toEqual({ modo: "correo", seccion: "seguimiento", pestana: "horarios" });
+    expect(ir({ modo: "aulas", seccion: "seguimiento" }).vista).not.toBe("seguimiento");
+  });
+
   it("la pestaña Contactos del correo es canónica y conserva panel y foco (ADR 0112 §4)", () => {
     expect(ir({ modo: "correo", campana: "correo.egresados", seccion: "correo", pestana: "contactos" }).reescribir).toBeNull();
     expect(ir({

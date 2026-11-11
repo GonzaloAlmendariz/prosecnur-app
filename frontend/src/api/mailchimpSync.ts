@@ -26,6 +26,16 @@ export type ResultadoDeSincronizacion = {
   tag: string;
   dry_run: boolean;
   synced_at: string;
+  /** Personas que dejaron la encuesta a medias sin completarla (no cuentan como respondió). */
+  partial_people: number;
+  /** Se pidió archivar a quienes respondieron. */
+  archive: boolean;
+  /** Correos de la lista archivados en Mailchimp. */
+  archived: number;
+  /** Segundos correos (personales) archivados con su persona. */
+  archived_second: number;
+  /** Quienes respondieron pero ya no están activos en la audiencia: ni se etiquetan ni se archivan. */
+  inactive: number;
 };
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -72,6 +82,11 @@ export function normalizeResultado(raw: unknown): ResultadoDeSincronizacion {
     tag: str(r.tag) || "Respondió",
     dry_run: r.dry_run === true,
     synced_at: str(r.synced_at),
+    partial_people: num(r.partial_people),
+    archive: r.archive === true,
+    archived: num(r.archived),
+    archived_second: num(r.archived_second),
+    inactive: num(r.inactive),
   };
 }
 
@@ -133,6 +148,8 @@ export async function apiSincronizarRespuestas(input: {
   list_id: string;
   tag: string;
   dry_run?: boolean;
+  /** Archiva en Mailchimp a quienes respondieron, con sus dos correos. */
+  archivar?: boolean;
 }): Promise<InicioDeJob> {
   return normalizeInicioDeJob(await handle<unknown>(await postJson(BASE, input)));
 }

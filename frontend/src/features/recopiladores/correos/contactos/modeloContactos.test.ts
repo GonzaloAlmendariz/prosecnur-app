@@ -20,6 +20,7 @@ import {
   rangoDePagina,
   tarjetasDeResumen,
   tasaDe,
+  textoDeRespuesta,
   textoDelResultado,
   totalesDelCruce,
   vacioDelPerfil,
@@ -30,7 +31,7 @@ import { prellenarEnlace } from "./store";
 
 const RESUMEN: ResumenDeContactos = {
   importados: 320, efectivos: 312, sin_correo: 3, correo_invalido: 2, repetidos: 3,
-  con_enlace: 0, respondieron: null, leido_en: null, enlace_url: null, enlace_variable: null,
+  con_enlace: 0, respondieron: null, a_medias: null, leido_en: null, enlace_url: null, enlace_variable: null,
 };
 
 const CARRERA: VariableDelPerfil = {
@@ -141,8 +142,24 @@ describe("resumen", () => {
     expect(tarjetasDeResumen({ ...RESUMEN, con_enlace: 312 })[3].tono).toBe("exito");
   });
 
+  it('"A medias" se suma como quinta tarjeta solo cuando ya se leyó quién respondió', () => {
+    expect(tarjetasDeResumen(RESUMEN).map((t) => t.id)).not.toContain("a-medias");
+    const quinta = tarjetasDeResumen({ ...RESUMEN, respondieron: 40, a_medias: 12 })[4];
+    expect(quinta).toMatchObject({ id: "a-medias", titulo: "A medias", valor: "12", detalle: "3.8% de 312 efectivos" });
+    expect(tarjetasDeResumen({ ...RESUMEN, respondieron: 0, a_medias: 0 })[4].valor).toBe("0");
+  });
+
   it("los millares llevan coma", () => {
     expect(tarjetasDeResumen({ ...RESUMEN, importados: 5000, efectivos: 4890 })[0].valor).toBe("5,000");
+  });
+});
+
+describe("respuesta de una fila", () => {
+  it("distingue sí, no, a medias y sin leer", () => {
+    expect(textoDeRespuesta({ respondio: true, a_medias: false })).toBe("Sí");
+    expect(textoDeRespuesta({ respondio: false, a_medias: true })).toBe("A medias");
+    expect(textoDeRespuesta({ respondio: false, a_medias: false })).toBe("No");
+    expect(textoDeRespuesta({ respondio: null, a_medias: false })).toBe("—");
   });
 });
 

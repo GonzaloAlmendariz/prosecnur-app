@@ -25,6 +25,15 @@
   justify-content: space-between;
 }
 
+/* Las acciones de la cabecera, juntas a la derecha: Seguimiento de correos y Nueva campaña. */
+.rec-campanas-cabeza-acciones {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  justify-content: flex-end;
+}
+
 .rec-campanas-titulo {
   color: var(--pulso-text);
   font-size: var(--pulso-type-kpi-size);

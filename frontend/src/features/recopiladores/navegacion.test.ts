@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import { PESTANAS_DEL_CORREO } from "./campanas/redirecciones";
+import { PESTANAS_DE_SEGUIMIENTO } from "./seguimiento/navegacionSeguimiento";
 import {
   DIRECCION_INICIAL,
   PESTANAS_DEL_CORREO_LEGADAS,
@@ -115,11 +116,15 @@ describe("contrato con el manifiesto de módulos", () => {
     }
   });
 
-  test("el modo correo es una sección con su editor y sus contactos (ADR 0112 §4)", () => {
+  test("el modo correo: el correo de una campaña (ADR 0112 §4) y el seguimiento de todas", () => {
     const correo = modulo?.modos?.find((m) => m.id === "correo");
-    expect(correo?.sections.map((s) => [s.id, (s.tabs ?? []).map((t) => t.id)])).toEqual([["correo", ["editor", "contactos"]]]);
-    // El resolvedor de campañas acepta exactamente las mismas pestañas.
+    expect(correo?.sections.map((s) => [s.id, (s.tabs ?? []).map((t) => t.id)])).toEqual([
+      ["correo", ["editor", "contactos"]],
+      ["seguimiento", ["respondieron", "horarios", "correo-personal"]],
+    ]);
+    // Los resolvedores aceptan exactamente las mismas pestañas.
     expect(correo?.sections[0]?.tabs?.map((t) => t.id)).toEqual([...PESTANAS_DEL_CORREO]);
+    expect(correo?.sections[1]?.tabs?.map((t) => t.id)).toEqual([...PESTANAS_DE_SEGUIMIENTO]);
   });
 
   test("el módulo se llama Material de campo", () => {

@@ -12,14 +12,14 @@
 // - C5: vacío legítimo —el proyecto todavía no prepara material—.
 
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import type { CampanaMaterial, RegistroDeCampanas, TipoDeCampana } from "../../../api/materialCampanas";
 import { TiposDeCampana } from "./DialogoNuevaCampana";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PageFrame } from "../../../components/PageFrame";
-import { PulsoButton } from "../../../components/PulsoButton";
-import { AlertTriangle, Layers, Plus, RefreshCw } from "../../../vendor/lucide-react";
+import { PulsoButton, PulsoButtonEnlace } from "../../../components/PulsoButton";
+import { Activity, AlertTriangle, Layers, Plus, RefreshCw } from "../../../vendor/lucide-react";
 import type { AccionDeCampana, IdDeAccion } from "./accionesDeCampana";
 import type { MiniaturaDeCorreo } from "./miniaturaDeCorreo";
 import { campanaPorId, campanasArchivadas, campanasVisibles, cuentaDeCampanas } from "./modeloRegistro";
@@ -49,6 +49,8 @@ type Props = {
   miniaturas?: Record<string, MiniaturaDeCorreo | null>;
   /** El asunto de cada correo, por id de campaña: subtítulo cuando no hay actor (F1). */
   asuntos?: Record<string, string>;
+  /** Correo > Seguimiento (todas las campañas de Mailchimp); `null` sin campañas de correo. */
+  hrefSeguimiento?: string | null;
 };
 
 /** La readiness de la lista: falsa mientras lee; el vacío se publica como tal. */
@@ -80,7 +82,9 @@ function TarjetaNueva({ onNueva }: { onNueva: () => void }) {
 
 export function ListaDeCampanas({
   registro, carga, error, fuente, aviso, onCerrarAviso, hrefDe, accionesDe, onAccion, onNueva, onReintentar, miniaturas = {}, asuntos = {},
+  hrefSeguimiento = null,
 }: Props) {
+  const navegar = useNavigate();
   const visibles = registro ? campanasVisibles(registro) : [];
   const archivadas = registro ? campanasArchivadas(registro) : [];
   const nombreDe = (id: string) => (registro ? campanaPorId(registro, id)?.name ?? null : null);
@@ -109,9 +113,21 @@ export function ListaDeCampanas({
             {/* El h1 lo pone PageFrame (sr-only) con el mismo título: este no se repite al lector. */}
             <p className="rec-campanas-titulo" aria-hidden>Campañas</p>
             {/* D8 (checklist visual 2/11): sin campañas el primario es el del vacío; aquí queda secundario, en su sitio. */}
-            <PulsoButton variant={registro && !visibles.length ? "secondary" : "primary"} size="sm" onClick={() => onNueva()} disabled={!registro} data-retorno="nueva-campana">
-              <Plus size={14} aria-hidden /> Nueva campaña
-            </PulsoButton>
+            <span className="rec-campanas-cabeza-acciones">
+              {hrefSeguimiento ? (
+                <PulsoButtonEnlace
+                  variant="secondary"
+                  size="sm"
+                  href={hrefSeguimiento}
+                  onClick={(e) => { e.preventDefault(); navegar(hrefSeguimiento); }}
+                >
+                  <Activity size={14} aria-hidden /> Seguimiento de correos
+                </PulsoButtonEnlace>
+              ) : null}
+              <PulsoButton variant={registro && !visibles.length ? "secondary" : "primary"} size="sm" onClick={() => onNueva()} disabled={!registro} data-retorno="nueva-campana">
+                <Plus size={14} aria-hidden /> Nueva campaña
+              </PulsoButton>
+            </span>
           </div>
           <p className="rec-campanas-lead">Cada campaña es un operativo con sus propios materiales.</p>
           {registro && fuente === "derivada" ? (

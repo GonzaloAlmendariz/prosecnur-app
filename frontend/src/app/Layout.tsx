@@ -15,6 +15,7 @@ import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime"
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
 import { ConfiguracionHost } from "../features/home/ConfiguracionHost";
 import { FichaDelEstudioHost } from "../features/estudio/FichaDelEstudioHost";
+import { AntesDeCadaEnvioHost } from "../features/recopiladores/seguimiento/AntesDeCadaEnvioHost";
 import { PaletaDeComandosHost } from "../features/home/PaletaDeComandos";
 import { Toaster } from "../components/Toaster";
 import { TonoDePortales } from "../components/TonoDePortales";
@@ -633,6 +634,8 @@ export default function Layout() {
       <ModulePickerHost />
       <ConfiguracionHost />
       <FichaDelEstudioHost />
+      {/* Correo > Seguimiento: "Quién respondió" antes de cada envío programado, desde cualquier módulo. */}
+      <AntesDeCadaEnvioHost />
       <PaletaDeComandosHost />
       {/* Los portales (diálogos, sideovers, popovers) viven fuera del frame del
           módulo: heredan su acento desde lo que esto publica en <body>. */}

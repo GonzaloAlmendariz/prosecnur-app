@@ -3,7 +3,7 @@
 // Contrato, todo bajo /api/recopiladores/:
 //   GET mail-contacts                 lista paginada en el backend, con resumen
 //       ?campaign_id=&q=&estado=efectivo|sin_correo|correo_invalido|repetido|todos
-//       &filtros=<JSON {col:[valores]}>&respondio=si|no|todos&page=&per_page=
+//       &filtros=<JSON {col:[valores]}>&respondio=si|no|parcial|todos&page=&per_page=
 //   GET mail-contacts/perfil          tablero por variables de control
 //       ?campaign_id=&filtros=<JSON>&cruce=a,b
 //   PUT mail-contacts/control         {campaign_id, variables:[keys]} → {control}
@@ -24,7 +24,8 @@ import { apiFetch, handle, headers } from "./core";
 export const ESTADOS_DE_CONTACTO = ["efectivo", "sin_correo", "correo_invalido", "repetido"] as const;
 export type EstadoDeContacto = (typeof ESTADOS_DE_CONTACTO)[number];
 export type FiltroDeEstado = EstadoDeContacto | "todos";
-export type FiltroDeRespuesta = "si" | "no" | "todos";
+/** `parcial`: dejaron la encuesta a medias sin completarla. */
+export type FiltroDeRespuesta = "si" | "no" | "parcial" | "todos";
 
 /** `{columna: [valores]}`: las categorías elegidas en el tablero. */
 export type FiltrosDeContactos = Readonly<Record<string, readonly string[]>>;
@@ -45,6 +46,8 @@ export type FilaDeContacto = {
   tiene_enlace: boolean;
   /** `null`: todavía no se leyó quién respondió. */
   respondio: boolean | null;
+  /** Tiene una respuesta parcial y ninguna completa: no cuenta como respondió. */
+  a_medias: boolean;
   valores: Readonly<Record<string, string | null>>;
 };
 
@@ -57,6 +60,8 @@ export type ResumenDeContactos = {
   con_enlace: number;
   /** `null`: todavía no se leyó quién respondió. */
   respondieron: number | null;
+  /** Personas con la encuesta a medias; `null` si todavía no se leyó. */
+  a_medias: number | null;
   leido_en: string | null;
   /** El enlace del recopilador guardado en la campaña; `null` si aún no se generaron enlaces. */
   enlace_url: string | null;
@@ -249,6 +254,7 @@ function normalizarFila(valor: unknown, posicion: number): FilaDeContacto | null
     estado: estadoDe(valor.estado),
     tiene_enlace: booleanoONulo(valor.tiene_enlace) === true,
     respondio: booleanoONulo(valor.respondio),
+    a_medias: booleanoONulo(valor.a_medias) === true,
     valores: normalizarValores(valor.valores),
   };
 }
@@ -263,6 +269,7 @@ export function normalizarResumenDeContactos(valor: unknown): ResumenDeContactos
     repetidos: entero(r.repetidos),
     con_enlace: entero(r.con_enlace),
     respondieron: enteroONulo(r.respondieron),
+    a_medias: enteroONulo(r.a_medias),
     leido_en: textoONulo(r.leido_en),
     enlace_url: textoONulo(r.enlace_url)?.trim() || null,
     enlace_variable: textoONulo(r.enlace_variable)?.trim() || null,

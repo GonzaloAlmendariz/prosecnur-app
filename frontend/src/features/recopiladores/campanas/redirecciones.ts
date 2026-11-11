@@ -13,6 +13,7 @@
 import type { CampanaMaterial, RegistroDeCampanas, TipoDeCampana } from "../../../api/materialCampanas";
 import { SEPARADOR_FOCO } from "../editor/modeloEditor";
 import { PESTANAS_DEL_CORREO_LEGADAS } from "../navegacion";
+import { SECCION_SEGUIMIENTO, resolverPestanaDeSeguimiento, type PestanaDeSeguimiento } from "../seguimiento/navegacionSeguimiento";
 import { resolverSeccionSupervision } from "../supervision/navegacionSupervision";
 import { resolverSeccionTelefonica } from "../telefonica/navegacionTelefonica";
 import { resolverSeccionTerritorial } from "../territorial/navegacionTerritorial";
@@ -48,7 +49,9 @@ export type DireccionDeCampanas = {
 
 export type VistaDeCampanas =
   | { vista: "lista" }
-  | { vista: "campana"; campana: CampanaMaterial; modo: TipoDeCampana };
+  | { vista: "campana"; campana: CampanaMaterial; modo: TipoDeCampana }
+  /** Correo > Seguimiento: todas las campañas de Mailchimp del estudio, sin `campana`. */
+  | { vista: "seguimiento"; pestana: PestanaDeSeguimiento };
 
 export type ResolucionDeCampanas = {
   vista: VistaDeCampanas;
@@ -174,6 +177,23 @@ function aCorreo(campana: CampanaMaterial, entrada: EntradaDeCampanas, bloque: s
   return resolucion({ vista: "campana", campana, modo: "correo" }, deseada, entrada);
 }
 
+/**
+ * Correo > Seguimiento: es del estudio entero, así que la dirección no lleva
+ * `campana` (si llega, por ejemplo al saltar desde un correo abierto, se quita)
+ * ni `foco`; el panel se conserva.
+ */
+function aSeguimiento(entrada: EntradaDeCampanas): ResolucionDeCampanas {
+  const pestana = resolverPestanaDeSeguimiento(entrada.pestana);
+  const panel = limpio(entrada.panel);
+  const deseada: DireccionDeCampanas = {
+    modo: "correo",
+    seccion: SECCION_SEGUIMIENTO,
+    pestana,
+    ...(panel ? { panel } : {}),
+  };
+  return resolucion({ vista: "seguimiento", pestana }, deseada, entrada);
+}
+
 function laUnicaDe(registro: RegistroDeCampanas, tipo: TipoDeCampana): CampanaMaterial | null {
   const deEseTipo = campanasVisibles(registro).filter((c) => c.tipo === tipo);
   return deEseTipo.length === 1 ? deEseTipo[0] : null;
@@ -209,6 +229,11 @@ export function resolverVistaDeCampanas(entrada: EntradaDeCampanas, registro: Re
 
   // «Gestionar campañas» del correo: hoy es la lista con «Nueva campaña».
   if (panel === PANEL_CAMPANAS_LEGADO) return aLaLista(entrada, PANEL_NUEVA_CAMPANA_ID);
+
+  const modo = limpio(entrada.modo).toLowerCase();
+  if (limpio(entrada.seccion).toLowerCase() === SECCION_SEGUIMIENTO && (!modo || modo === "correo")) {
+    return aSeguimiento(entrada);
+  }
 
   if (campanaPedida) {
     const campana = campanaPorId(registro, campanaPedida);

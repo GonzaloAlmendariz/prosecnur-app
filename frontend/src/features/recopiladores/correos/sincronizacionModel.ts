@@ -15,8 +15,16 @@ export function resumenDeSincronizacion(r: ResultadoDeSincronizacion): { titulo:
       ? `En Mailchimp quedaron con la etiqueta "${r.tag}".`
       : `${personas(r.tagged)} ${uno(r.tagged, "quedó", "quedaron")} con la etiqueta "${r.tag}" en Mailchimp.`);
   }
+  if (!r.dry_run && r.archive && r.archived + r.archived_second > 0) {
+    const segundos = r.archived_second
+      ? ` y ${n(r.archived_second)} ${uno(r.archived_second, "correo personal", "correos personales")}`
+      : "";
+    lineas.push(`Archivados en Mailchimp: ${n(r.archived)} ${uno(r.archived, "correo", "correos")} de la lista${segundos}.`);
+  }
   if (r.not_in_audience) lineas.push(`${personas(r.not_in_audience)} ${uno(r.not_in_audience, "no está", "no están")} en esa audiencia de Mailchimp: ${uno(r.not_in_audience, "no se pudo", "no se pudieron")} etiquetar.`);
-  if (r.partial) lineas.push(`${personas(r.partial)} ${uno(r.partial, "dejó la encuesta a medias: sigue", "dejaron la encuesta a medias: siguen")} recibiendo recordatorios.`);
+  if (r.inactive) lineas.push(`${personas(r.inactive)} que ${uno(r.inactive, "respondió ya no está activa", "respondieron ya no están activas")} en la audiencia: no se ${uno(r.inactive, "etiqueta ni se archiva", "etiquetan ni se archivan")}.`);
+  // Personas, no respuestas: quien la dejó a medias y después la completó ya respondió.
+  if (r.partial_people) lineas.push(`${personas(r.partial_people)} ${uno(r.partial_people, "dejó la encuesta a medias: sigue", "dejaron la encuesta a medias: siguen")} recibiendo recordatorios.`);
   if (r.from_other_campaign) lineas.push(`${n(r.from_other_campaign)} ${uno(r.from_other_campaign, "respuesta llegó", "respuestas llegaron")} por un enlace que no es de esta campaña.`);
   if (r.without_token) lineas.push(`${n(r.without_token)} ${uno(r.without_token, "respuesta entró", "respuestas entraron")} sin enlace personal y no se ${uno(r.without_token, "puede", "pueden")} atribuir.`);
   return { titulo, lineas };
@@ -45,7 +53,7 @@ export function segmentoEnMailchimp(tag: string): string {
 
 // Lo último elegido por campaña, en este equipo: comodidad, no estado del proyecto.
 const CLAVE = (campana: string) => `pulso.correos.sincronizacion.${campana}`;
-export type EleccionRecordada = { survey_id: string; list_id: string; tag: string };
+export type EleccionRecordada = { survey_id: string; list_id: string; tag: string; archivar?: boolean };
 
 export function leerEleccion(campana: string | null): EleccionRecordada | null {
   if (!campana) return null;
@@ -54,7 +62,7 @@ export function leerEleccion(campana: string | null): EleccionRecordada | null {
     const v: unknown = raw ? JSON.parse(raw) : null;
     if (typeof v !== "object" || v === null) return null;
     const o = v as Record<string, unknown>;
-    return { survey_id: String(o.survey_id ?? ""), list_id: String(o.list_id ?? ""), tag: String(o.tag ?? "") };
+    return { survey_id: String(o.survey_id ?? ""), list_id: String(o.list_id ?? ""), tag: String(o.tag ?? ""), archivar: o.archivar === true };
   } catch {
     return null;
   }
