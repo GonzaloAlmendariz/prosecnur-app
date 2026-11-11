@@ -93,3 +93,21 @@ test_that("si los mínimos no caben en la meta, no se aplican y se avisa", {
   expect_identical(sum(vapply(r$distribucion_estratos, function(x) as.integer(x$n), 1L)), 60L)
   expect_match(r$advertencia, "mínimo", fixed = TRUE)
 })
+
+test_that("si el público entero no alcanza, el aviso no repite cada segmento proporcional", {
+  est <- .barrido_estratos(`Contratado a tiempo completo` = 114L, `Contratado a tiempo parcial` = 1751L,
+                           `Ordinario auxiliar` = 269L, `Ordinario asociado` = 255L, `Ordinario principal` = 276L)
+  r <- calc_muestra_calcular_componente(.barrido_comp(
+    "docentes", "online_email", 2665, meta = list(valor = 900, origen = "usuario"), estratos = est,
+    parametros = list(n_minimo_estrato = 30, tasa_respuesta = 0.316)))
+  # Todos los segmentos piden 34 %: el aviso general basta.
+  expect_match(r$advertencia, "se esperan", fixed = TRUE)
+  expect_false(grepl("no alcanzan su meta", r$advertencia, fixed = TRUE))
+  # Un segmento que pide más que el público (el mínimo lo sube) sí se nombra.
+  est2 <- .barrido_estratos(Grande = 2600L, Chico = 40L)
+  r2 <- calc_muestra_calcular_componente(.barrido_comp(
+    "docentes", "online_email", 2640, meta = list(valor = 900, origen = "usuario"), estratos = est2,
+    parametros = list(n_minimo_estrato = 30, tasa_respuesta = 0.316)))
+  expect_match(r2$advertencia, "Chico (30 de 40", fixed = TRUE)
+  expect_false(grepl("Grande (", r2$advertencia, fixed = TRUE))
+})

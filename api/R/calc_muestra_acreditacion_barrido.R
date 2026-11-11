@@ -62,13 +62,21 @@
 }
 
 #' Aviso de los segmentos: los que no alcanzan y el mínimo que no cupo.
-.cm_barrido_aviso_segmentos <- function(seg, piso, tasa) {
+#'
+#' Si el público entero ya no alcanza (`publico_no_alcanza`), sólo se nombran
+#' los segmentos que piden más que el público: con reparto proporcional todos
+#' piden lo mismo y listarlos repetía el aviso general (DCI docentes A: los
+#' cinco segmentos al 34 % frente a una respuesta de 31.6 %).
+.cm_barrido_aviso_segmentos <- function(seg, piso, tasa, cobertura = NA_real_, publico_no_alcanza = FALSE) {
   avisos <- character()
-  if (length(seg$no_alcanzan)) {
-    detalle <- vapply(Filter(function(d) !d$alcanza, seg$distribucion), function(d)
-      sprintf("%s (%d de %d, %.0f%% de respuesta)", d$estrato, d$n, d$N, 100 * d$respuesta_necesaria), "")
+  fallan <- Filter(function(d) !d$alcanza, seg$distribucion)
+  if (publico_no_alcanza && is.finite(cobertura))
+    fallan <- Filter(function(d) d$respuesta_necesaria > cobertura + 0.005, fallan)
+  if (length(fallan)) {
+    detalle <- vapply(fallan, function(d)
+      sprintf("%s (%d de %d, %.0f %% de respuesta)", d$estrato, d$n, d$N, 100 * d$respuesta_necesaria), "")
     avisos <- c(avisos, sprintf(
-      "Con una respuesta esperada del %.0f%% no alcanzan su meta: %s.", 100 * tasa, paste(detalle, collapse = "; ")))
+      "Con una respuesta esperada del %.0f %% no alcanzan su meta: %s.", 100 * tasa, paste(detalle, collapse = "; ")))
   }
   if (seg$piso_incumplible) avisos <- c(avisos, sprintf(
     "El mínimo de %d por segmento no cabe en la meta: se reparte en proporción, sin mínimo.", piso))

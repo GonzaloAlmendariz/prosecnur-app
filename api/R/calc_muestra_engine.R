@@ -1666,7 +1666,7 @@ calc_muestra_calcular_componente <- function(comp) {
       if (no_alcanza) sprintf(
         "Abordando a todo el marco se esperan %s de las %d que pide la cobertura del %.0f %%: sube la respuesta esperada o baja la cobertura.",
         .cm_general_fmt_completas(esperadas), as.integer(n_objetivo), 100 * cobertura_obj),
-      if (!is.null(seg)) .cm_barrido_aviso_segmentos(seg, piso, tasa_respuesta_esperada),
+      if (!is.null(seg)) .cm_barrido_aviso_segmentos(seg, piso, tasa_respuesta_esperada, cobertura_obj, no_alcanza),
       sprintf("Con una cobertura esperada del %.0f %%, el riesgo es el sesgo de no respuesta: conviene comparar quién respondió con el marco (sexo, programa, etc.).",
               100 * min(tasa_respuesta_esperada, cobertura_obj))), collapse = " ")
   )
