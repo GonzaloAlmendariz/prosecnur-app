@@ -6,7 +6,7 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
-import { BaseSelectorTrigger, BasesInspectorMenu } from "../../components/BasesInspectorMenu";
+import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../components/ContextTabRail";
 import { TabHeading } from "../../components/TabHeading";
@@ -36,6 +36,8 @@ export default function CodificacionPage() {
   const codifActive = `${codifSource.active ?? "default"}:${importRevision}`;
 
   const prereqOk = !!state?.xlsform && !!state?.data;
+  // El selector común de la banda no se monta con bases independientes.
+  const selectorEnBanda = prereqOk && state?.estudio_processing_mode !== "independent_siblings";
 
   // Pestaña de la sección Codificación, persistida en la URL
   // (?pestana=codificar | matrices | adaptar). `?step=` es el alias legacy:
@@ -89,11 +91,14 @@ export default function CodificacionPage() {
       {/* El contexto sube a la banda del shell; antes esta página dibujaba una
           segunda banda debajo del rail de secciones. */}
       {/* Sin chips de estado en la banda, igual que en Carga y Validación: el rail
-          ya comunica el avance. Queda el selector de base. */}
+          ya comunica el avance. Queda el selector de base, el mismo de Analítica y
+          Gráficos. Cambia la base por la API del estudio y emite
+          `pulso:active-base-changed`; `useCodifSource` escucha ese evento, vuelve a
+          leer la base activa y con ella cambia `codifActive`, que remonta los hijos.
+          Con una sola base el selector no se dibuja. Con bases independientes sigue
+          fuera, como antes: ahí la base se cambia desde el control de la banda. */}
       <ChromeSlotPortal zona="contexto">
-        {prereqOk && codifSource.options.length > 1 && state?.estudio_processing_mode !== "independent_siblings" && (
-          <BaseSelector source={codifSource} />
-        )}
+        {selectorEnBanda && <ChromeBaseSelector />}
       </ChromeSlotPortal>
       <AdaptiveSplitView
         ariaLabel="Mesa de trabajo de codificación"
@@ -146,7 +151,9 @@ export default function CodificacionPage() {
           ) : (
             <>
               {/* La cabecera única de pestaña (L14), la misma de Carga, Validación
-                  y Analítica: la base activa va en el control porque es un nombre. */}
+                  y Analítica: la base activa va en el control porque es un nombre.
+                  Cuando la banda ya la nombra en su selector (dos o más bases que
+                  no son independientes) aquí no se repite. */}
               <TabHeading
                 eyebrow="Codificación"
                 titulo={pasoActivo.label}
@@ -154,7 +161,7 @@ export default function CodificacionPage() {
                 detalle={pasoActivo.detail}
                 pestanaN={CODIFICACION_STEPS.findIndex((paso) => paso.key === step) + 1}
                 pestanaDe={CODIFICACION_STEPS.length}
-                control={codifSource.active ? (
+                control={codifSource.active && !(selectorEnBanda && codifSource.options.length > 1) ? (
                   <span className="pulso-codificacion-base-actual">
                     <Database size={12} aria-hidden="true" />
                     {codifSource.labelFor(codifSource.active)}
@@ -202,39 +209,6 @@ export default function CodificacionPage() {
     </PageFrame>
   );
 }
-
-// Selector de base activa cuando el estudio es multi-base. Si hay solo
-// 1 base, el selector se esconde (sería ruido). Al cambiar, el backend
-// sirve el estado scoped de la nueva base; el hook useCodifSource
-// dispara `pulso:codif-source-changed` para que los componentes hijos
-// (PreguntasLanding, CodificarWizard, AdaptarPane) recarguen sus datos.
-function BaseSelector({ source }: { source: ReturnType<typeof useCodifSource> }) {
-  const { active, options, loading, setActive } = source;
-  if (options.length <= 1) return null;
-
-  // Antes esto era una lista de chips con el nombre completo de cada base dentro
-  // de la banda: con un nombre largo —«Post-Distribution Monitoring - Espacios de
-  // Protección 2026 Q2»— se comía el lado izquierdo entero. Ahora es el mismo
-  // desglose compartido que usan Carga y Validación, con el ancho acotado.
-  //
-  // Codificación no carga el payload del estudio, así que sus resúmenes van sin
-  // instrumento ni archivo: el desglose lista los nombres y ya. Es la degradación
-  // honesta, y evita que este módulo vuelva a escribirse su propio selector.
-  const bases = options.map((src) => ({ nombre: src, etiqueta: source.labelFor(src) }));
-  const etiquetaActiva = active ? source.labelFor(active) : "Elegir base";
-
-  return (
-    <BasesInspectorMenu
-      bases={bases}
-      activa={active}
-      onSeleccionar={(nombre) => void setActive(nombre)}
-      deshabilitado={loading}
-      disparador={<BaseSelectorTrigger etiqueta={etiquetaActiva} total={options.length} />}
-    />
-  );
-}
-
-
 
 function CodificacionModeSidebar({
   active,

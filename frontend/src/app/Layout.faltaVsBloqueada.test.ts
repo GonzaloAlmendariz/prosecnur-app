@@ -13,6 +13,12 @@ import { describe, expect, test } from "vitest";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const layout = fs.readFileSync(path.join(aqui, "Layout.tsx"), "utf8");
+// Las reglas de cada sección salieron de Layout a un módulo puro que también lee
+// "Estado del estudio" (etapa P2 del ADR 0142). Layout conserva el cableado al riel.
+const secciones = fs.readFileSync(
+  path.join(aqui, "../features/procesamiento/estado/seccionesDeProcesamiento.ts"),
+  "utf8",
+);
 
 describe("el riel de Procesamiento separa faltar de estar bloqueada", () => {
   test("`is-blocked` depende sólo de `blockedReason`", () => {
@@ -25,15 +31,19 @@ describe("el riel de Procesamiento separa faltar de estar bloqueada", () => {
     expect(pillbar).toMatch(/item\.lockedReason \? "is-blocked" : ""/);
   });
 
+  test("el riel toma sus secciones del módulo compartido", () => {
+    expect(layout).toMatch(/return seccionesDeProcesamiento\(state\);/);
+  });
+
   test("lo que falta viaja por su propio campo", () => {
-    expect(layout).toMatch(/faltaReason\?: string;/);
-    expect(layout).toMatch(/faltaReason: hasAnalitica \? coberturaGraficos\(state\)\.motivo/);
+    expect(secciones).toMatch(/faltaReason\?: string;/);
+    expect(secciones).toMatch(/faltaReason: hasAnalitica \? coberturaGraficos\(state\)\.motivo/);
   });
 
   test("ningún `blockedReason` se alimenta de la cobertura por base", () => {
     // El control: si `coberturaGraficos` volviera a un `blockedReason`, el
     // pill se pintaría bloqueado y dejaría de poder abrirse.
-    const lineas = layout.split("\n").filter((l) => l.includes("blockedReason:"));
+    const lineas = secciones.split("\n").filter((l) => l.includes("blockedReason:"));
     expect(lineas.length).toBeGreaterThanOrEqual(4);
     expect(lineas.some((l) => l.includes("coberturaGraficos"))).toBe(false);
   });

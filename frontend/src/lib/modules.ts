@@ -110,7 +110,15 @@ export type ResolvedProsecnurNavigationItem = ProsecnurNavigationLeafMeta & {
   lockedReason?: string;
 };
 
-export type ProsecnurNavigationLandingKind = "section" | "entrypoint";
+/**
+ * Qué muestra la ruta del módulo (`to`):
+ * - `section`: una de sus secciones, la que comparte esa ruta.
+ * - `entrypoint`: la ruta no es de ninguna sección y la página resuelve cuál abrir
+ *   (Hojas de ruta abre la sección por `?seccion=`).
+ * - `overview`: una vista propia del módulo, que no es sección ni redirige. Es
+ *   "Estado del estudio" en `/procesamiento` (ADR 0142, decisión D7).
+ */
+export type ProsecnurNavigationLandingKind = "section" | "entrypoint" | "overview";
 
 /**
  * Cómo se comporta el chrome de un módulo.
@@ -845,7 +853,8 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     icon: IconProcessing,
     tone: MODULE_TONES.procesamiento,
     to: "/procesamiento",
-    landingKind: "entrypoint",
+    // "Estado del estudio": vista de conjunto, no una de las cinco secciones.
+    landingKind: "overview",
     sections: [
       {
         id: "carga",

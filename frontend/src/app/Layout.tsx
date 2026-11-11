@@ -25,8 +25,11 @@ import { ModuleCommandBar } from "../components/ModuleCommandBar";
 import { BandejaEntregables } from "../components/entregables/BandejaEntregables";
 import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
-import { coberturaGraficos } from "../features/graficos/coberturaBases";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
+import {
+  seccionesDeProcesamiento,
+  type SeccionDeProcesamiento,
+} from "../features/procesamiento/estado/seccionesDeProcesamiento";
 import { BrandMark } from "./BrandMark";
 import { ModuleDockOverflow } from "./ModuleDockOverflow";
 import { repartirDock } from "./moduleDockModel";
@@ -108,51 +111,12 @@ function routePolicy(pathname: string): "viewport" | "legacy-scroll" {
   return "legacy-scroll";
 }
 
-type NavItem = {
-  to: string; n: number; label: string; done?: boolean; blockedReason?: string;
-  /** Lo que le falta a una sección alcanzable. NO pinta `is-blocked`: una
-      etapa incompleta se puede abrir; una bloqueada, no. */
-  faltaReason?: string;
-};
+type NavItem = SeccionDeProcesamiento;
 
+// Las reglas viven en `seccionesDeProcesamiento`: las comparte "Estado del estudio".
 function useNavItems(): NavItem[] {
   const { state } = useSession();
-  const hasXlsform = !!state?.xlsform;
-  const hasData = !!state?.data;
-  const hasAnalitica = !!state?.analitica_prep_ok;
-
-  return [
-    { to: "/carga", n: 1, label: "Carga", done: hasXlsform && hasData },
-    {
-      to: "/validacion",
-      n: 2,
-      label: "Validación",
-      done: !!state?.auditoria_run,
-      blockedReason: hasXlsform ? undefined : "Bloqueada: carga un XLSForm en Carga.",
-    },
-    {
-      to: "/codificacion",
-      n: 3,
-      label: "Codificación",
-      done: !!state?.codif_aplicado,
-      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación.",
-    },
-    {
-      to: "/analitica",
-      n: 4,
-      label: "Analítica",
-      done: hasAnalitica,
-      blockedReason: hasXlsform && hasData ? undefined : "Bloqueada: completa carga y consolidación.",
-    },
-    {
-      to: "/graficos",
-      n: 5,
-      label: "Gráficos",
-      done: coberturaGraficos(state).hecho,
-      blockedReason: hasAnalitica ? undefined : "Bloqueada: prepara Analítica.",
-      faltaReason: hasAnalitica ? coberturaGraficos(state).motivo ?? undefined : undefined,
-    },
-  ];
+  return seccionesDeProcesamiento(state);
 }
 
 function Brand() {

@@ -401,6 +401,19 @@ describe("audit-ready route root contract", () => {
     ).toBe(true);
   });
 
+  test("Estado del estudio publica su readiness en el PageFrame y espera a la sesión, al estudio y al cambio de base", () => {
+    // `/procesamiento` dejó de redirigir (ADR 0142, D7): es una vista medible y no tiene
+    // pestañas, así que la marca va en la raíz. Mientras carga vale `false`, nunca se borra.
+    const ruta = "features/procesamiento/estado/EstadoDelEstudioPage.tsx";
+    const { tag } = pageFunctionRoot(ruta, "PageFrame");
+    const valor = readinessValue(tag, "auditReady", "Estado del estudio");
+    expectSemanticReadiness(valor, "Estado del estudio", "procesamiento-estado");
+    expect(compactExpression(valor)).toBe('cargando?false:"procesamiento-estado"');
+    expect(compactConstInitializer(ruta, "cargando")).toBe(
+      '!sesionLeida||lectura.fase==="cargando"||activandoA!==null',
+    );
+  });
+
   test("Analítica publishes section readiness in every settled state, empty included", () => {
     // Regresión: la marca solo existía en el pane de Orden de categorías, así que
     // un proyecto que aterrizaba en Analítica sin esa pestaña dejaba la ruta sin

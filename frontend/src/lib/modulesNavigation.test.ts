@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   MODULE_TONES,
@@ -24,7 +27,7 @@ import { DASHBOARD_PESTANAS } from "./navegacion/catalogos/dashboard";
 const EXPECTED_PRIMARY_NAVIGATION: Record<
   Exclude<ProsecnurModuleSlug, "plan-trabajo" | "diseno-estudio">,
   {
-    landingKind: "section" | "entrypoint";
+    landingKind: "section" | "entrypoint" | "overview";
     to: string;
     sections: Array<{
       id: string;
@@ -75,7 +78,8 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
     ],
   },
   procesamiento: {
-    landingKind: "entrypoint",
+    // ADR 0142, D7: `/procesamiento` muestra "Estado del estudio" y ya no redirige.
+    landingKind: "overview",
     to: "/procesamiento",
     sections: [
       { id: "carga", label: "Carga", to: "/carga", layoutPolicy: "viewport" },
@@ -134,9 +138,14 @@ describe("manifiesto primario de navegación", () => {
 
       if (module.landingKind === "section") {
         expect(module.sections.some((section) => section.to === module.to)).toBe(true);
+      } else if (module.landingKind === "overview") {
+        // Vista propia del módulo: su ruta no es la de ninguna sección.
+        expect(module.slug).toBe("procesamiento");
+        expect(module.to).toBe("/procesamiento");
+        expect(module.sections.some((section) => section.to === module.to)).toBe(false);
       } else {
-        expect(["procesamiento", "hojas-ruta"]).toContain(module.slug);
-        expect(["/procesamiento", "/hojas-ruta"]).toContain(module.to);
+        expect(module.slug).toBe("hojas-ruta");
+        expect(module.to).toBe("/hojas-ruta");
       }
 
       for (const section of module.sections) {
@@ -168,6 +177,17 @@ describe("manifiesto primario de navegación", () => {
 
     expect(new Set(navigationKeys).size).toBe(navigationKeys.length);
     expect(new Set(publishedRoutes).size).toBe(publishedRoutes.length);
+  });
+
+  it("la entrada de Procesamiento monta Estado del estudio y no redirige (ADR 0142, D7)", () => {
+    const aqui = path.dirname(fileURLToPath(import.meta.url));
+    const entrada = fs.readFileSync(path.join(aqui, "../features/home/ProcesamientoEntry.tsx"), "utf8");
+    const app = fs.readFileSync(path.join(aqui, "../app/App.tsx"), "utf8");
+
+    expect(app).toMatch(/<Route path="\/procesamiento" element=\{<ProcesamientoEntry \/>\} \/>/);
+    expect(entrada).toMatch(/export \{ default \} from "\.\.\/procesamiento\/estado\/EstadoDelEstudioPage";/);
+    // El caso que lo pone rojo: volver a un `<Navigate>` en la entrada.
+    expect(entrada.replace(/\/\/.*$/gm, "")).not.toMatch(/Navigate/);
   });
 
   it("define las cinco etapas y los cuatro destinos subordinados de Selección", () => {

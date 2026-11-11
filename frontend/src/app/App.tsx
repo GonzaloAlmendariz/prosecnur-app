@@ -138,8 +138,8 @@ export default function App() {
               <Routes>
                 <Route element={<Layout />}>
                   <Route path="/" element={<HomePage />} />
-                  {/* Entry point del módulo "Procesamiento" — redirige a la
-                      fase actionable según el estado del estudio. */}
+                  {/* Entrada del módulo Procesamiento: "Estado del estudio" (ADR 0142,
+                      D7). Ya no redirige a la primera sección sin hacer. */}
                   <Route path="/procesamiento" element={<ProcesamientoEntry />} />
                   <Route path="/carga" element={<CargaPage />} />
                   <Route path="/validacion" element={<ValidacionPage />} />

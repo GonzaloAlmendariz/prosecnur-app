@@ -1,0 +1,344 @@
+/* Estado del estudio (`/procesamiento`, etapa P2 del ADR 0142).
+ *
+ * Composición: cabecera de pestaña, y debajo dos paneles lado a lado que llegan
+ * al borde inferior. El vacío queda dentro de cada panel (C3). El cuerpo del
+ * PageFrame es el único dueño del scroll (C4): con muchas bases, o en una
+ * ventana baja, se desplaza la página entera y no un panel dentro de otro.
+ *
+ * Los marcos son el `Panel` del kit. Aquí sólo hay filas separadas por una
+ * línea: ninguna regla dibuja una caja propia.
+ */
+
+.pulso-estado-estudio {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+/* El Panel suelto trae margen inferior; aquí separa la rejilla. */
+.pulso-estado-estudio .pulso-panel {
+  margin-bottom: 0;
+}
+
+.pulso-estado-estudio-cabecera {
+  flex: none;
+}
+
+/* La cabecera de pestaña vive dentro de su propio Panel: el filete inferior y
+   el fondo del TabHeading sobran porque el marco ya es del Panel. */
+.pulso-estado-estudio-cabecera .pulso-tab-heading {
+  padding-inline: var(--pulso-space-5);
+  border-bottom: 0;
+  background: transparent;
+}
+
+.pulso-estado-estudio-mesa {
+  display: grid;
+  flex: 1 0 auto;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--pulso-space-5);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.pulso-estado-estudio-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-estado-estudio-panel .pulso-panel-title > svg {
+  flex: none;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-estado-estudio-panel > .pulso-panel-header {
+  box-sizing: border-box;
+  flex: none;
+  align-items: center;
+  min-height: var(--pulso-panel-head-h);
+  margin-bottom: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* Cuerpo de un panel sin tabla: espera, error y vacío. Posee el alto libre. */
+.pulso-estado-estudio-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+  padding: var(--pulso-space-5);
+}
+
+.pulso-estado-estudio-espera {
+  gap: var(--pulso-space-3);
+}
+
+.pulso-estado-estudio-aviso {
+  flex: none;
+  padding: var(--pulso-space-3) var(--pulso-space-5) 0;
+}
+
+/* ---------- Bases del estudio: una fila por base, cinco fases ---------- */
+
+/* Las fases nunca bajan del ancho de su chip (108 px) y el nombre se lleva algo
+   más del doble del ancho libre: en un panel justo, un nombre largo no se parte
+   por dejarle aire a un chip; en uno ancho, las columnas se reparten. */
+.pulso-estado-bases {
+  --estado-columnas: minmax(160px, 2.2fr) repeat(5, minmax(108px, 1fr));
+  container-name: estado-bases;
+  container-type: inline-size;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-estado-bases[data-con-accion] {
+  --estado-columnas: minmax(160px, 2.2fr) repeat(5, minmax(108px, 1fr)) 80px;
+}
+
+.pulso-estado-bases-cabecera,
+.pulso-estado-base {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--estado-columnas);
+  column-gap: var(--pulso-space-3);
+  align-items: center;
+  padding-inline: var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-estado-bases-cabecera {
+  min-height: 36px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+/* Alto intrínseco: lo fija el bloque del nombre, sin un mínimo que deje aire sin dueño. */
+.pulso-estado-base {
+  padding-block: var(--pulso-space-3);
+}
+
+/* La base activa se distingue con un relleno suave del acento, sin franja lateral. */
+.pulso-estado-base[data-activa] {
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 42%, transparent);
+}
+
+.pulso-estado-base-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+/* Un grupo repetido va bajo su base madre, un paso adentro. */
+.pulso-estado-base[data-grupo-repetido] .pulso-estado-base-nombre {
+  padding-inline-start: var(--pulso-space-5);
+}
+
+.pulso-estado-base-etiqueta {
+  overflow-wrap: anywhere;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+}
+
+.pulso-estado-base-datos {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--pulso-space-3);
+  row-gap: 2px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+.pulso-estado-base-origen {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-estado-base-origen > svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-estado-base-fase {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+/* Con la cabecera de columnas a la vista, el nombre de la fase no se repite en la celda. */
+.pulso-estado-base-fase-nombre {
+  display: none;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+.pulso-estado-base-sin-fases {
+  grid-column: span 5;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-estado-base-accion {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.pulso-estado-base-activa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+/* Panel angosto: la fila se apila. El nombre arriba y las fases debajo, cada
+   una con su rótulo, porque la cabecera de columnas ya no tiene dónde alinearse. */
+@container estado-bases (max-width: 899px) {
+  .pulso-estado-bases-encabezado {
+    display: none;
+  }
+
+  .pulso-estado-base {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    row-gap: var(--pulso-space-3);
+    align-items: start;
+  }
+
+  .pulso-estado-base-nombre {
+    grid-column: 1 / -1;
+  }
+
+  .pulso-estado-bases[data-con-accion] .pulso-estado-base-nombre {
+    grid-column: 1 / -2;
+    grid-row: 1;
+  }
+
+  .pulso-estado-base-accion {
+    grid-column: -2 / -1;
+    grid-row: 1;
+  }
+
+  .pulso-estado-base-fase-nombre {
+    display: block;
+  }
+
+  .pulso-estado-base-sin-fases {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Qué sigue ---------- */
+
+.pulso-estado-sigue {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-estado-sigue-paso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5);
+}
+
+.pulso-estado-sigue-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.25;
+}
+
+.pulso-estado-sigue-causa {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+}
+
+/* La acción principal ocupa el ancho del panel, centrada. */
+.pulso-estado-sigue-accion {
+  justify-content: center;
+  width: 100%;
+  margin-top: var(--pulso-space-2);
+}
+
+.pulso-estado-sigue-pendientes {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--pulso-border);
+  list-style: none;
+}
+
+.pulso-estado-sigue-pendiente {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: center;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+  box-sizing: border-box;
+}
+
+.pulso-estado-sigue-pendiente-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-estado-sigue-pendiente-nombre {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-estado-sigue-pendiente-motivo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+/* ---------- Tamaños ---------- */
+
+@media (max-width: 1400px) {
+  .pulso-estado-estudio-mesa {
+    grid-template-columns: minmax(0, 1fr) 330px;
+  }
+}
+
+/* Ventana angosta: una columna. El último panel se queda con el alto libre para
+   que el vacío siga dentro de un contenedor. */
+@media (max-width: 1100px) {
+  .pulso-estado-estudio-mesa {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+}
