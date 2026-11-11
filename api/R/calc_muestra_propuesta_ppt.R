@@ -73,7 +73,13 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   # Revisión de Gonzalo (2026-11-11, PPT _REV): la columna nombra los segmentos de cruce ("Por qué no
   # simplemente se mencionan?"); un actor sin segmentos de cruce no lleva nada ("si no hay segmento de cruce
   # simplemente no se reporta nada"). `segmentacion_detalle` reemplaza la lista cuando hace falta aclarar algo.
-  .y_lista <- function(x) if (length(x) <= 1L) x else paste(paste(x[-length(x)], collapse = ", "), "y", x[length(x)])
+  # Si algún nombre lleva coma ("Gastronomía, Hotelería y Turismo"), los elementos se separan con punto y coma
+  # para que se sepa dónde termina cada uno (verificador, 2026-11-11).
+  .y_lista <- function(x) {
+    if (length(x) <= 1L) return(x)
+    sep <- if (any(grepl(",", x, fixed = TRUE))) "; " else ", "
+    paste0(paste(x[-length(x)], collapse = sep), if (identical(sep, "; ")) "; y " else " y ", x[length(x)])
+  }
   segs <- vapply(seq_along(base), function(i) {
     if (usos[i] != "reporte") return("")
     det <- as.character((esc[[1]]$componentes[[i]] %||% list())$segmentacion_detalle %||% "")[1]

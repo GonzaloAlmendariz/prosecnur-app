@@ -51,6 +51,11 @@ test_that("las tablas comparan los escenarios con las metas del motor", {
   expect_identical(t$poblacion[["Segmento de cruce"]][2:3],
                    c("Tipo de contrato: Nombrado, Contratado y Autoridades (direcciones)", ""))
   expect_identical(names(t$poblacion), c("Público", "Segmento de cruce", "Población"))
+  # Un nombre con coma: la lista pasa a punto y coma.
+  p <- .prop_dci(); est <- list(Derecho = 300L, `Gastronomía, Hotelería y Turismo` = 195L, Psicología = 600L)
+  p$escenarios <- lapply(p$escenarios, function(e) { e$componentes <- list(.prop_comp("Estudiantes", "estudiantes", 1095L, 300L, 0.2, est, "Facultad")); e })
+  expect_identical(calc_muestra_propuesta_tablas(p)$poblacion[["Segmento de cruce"]][1],
+                   "Facultad: Derecho; Gastronomía, Hotelería y Turismo; y Psicología")
 })
 
 test_that("la viabilidad dice qué escenario exige más respuesta y qué segmento no alcanza", {
