@@ -158,7 +158,7 @@ mount_calc_muestra_general <- function(pr) {
       out_path <- tempfile("calc_muestra_propuesta_", fileext = paste0(".", formato))
       if (identical(formato, "pptx")) calc_muestra_propuesta_ppt(propuesta, out_path) else calc_muestra_propuesta_xlsx(propuesta, out_path)
       out_name <- .export_filename(sid, if (identical(formato, "pptx")) "propuesta_diseno_muestral" else "escenarios_de_muestra", formato)
-      meta <- .register_output_file(sid, "calc_muestra_propuesta", out_path, original_name = out_name)
+      meta <- .register_output_file(sid, paste0("calc_muestra_propuesta_", formato), out_path, original_name = out_name)
       list(ok = TRUE, export = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name,
                                                          size = meta$size), meta))
     }))

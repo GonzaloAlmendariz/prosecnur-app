@@ -33,6 +33,8 @@
   "calc_muestra_general_sorteo|Sorteo de muestra|cm|0|1",
   "calc_muestra_aulas_seleccion|Selección de aulas|cm|0|1",
   "calc_muestra_solicitud_dti|Solicitud DTI|cm|0|1",
+  "calc_muestra_propuesta_pptx|Propuesta de diseño muestral|cm|0|1",
+  "calc_muestra_propuesta_xlsx|Escenarios de muestra|cm|0|1",
   "reporte_calc_muestra|Reporte de muestra|cm|0|1",
   # Formularios
   "formulario_pdf|Cuestionario|fo|0|1",
@@ -197,6 +199,8 @@
 .ENTREGABLES_ALIAS <- c(
   calc_muestra_sorteo = "calc_muestra_general_sorteo",
   solicitud_dti = "calc_muestra_solicitud_dti",
+  propuesta_diseno_muestral = "calc_muestra_propuesta_pptx",
+  escenarios_de_muestra = "calc_muestra_propuesta_xlsx",
   libro_aulas = "aulas_libro",
   disponibilidad_aplicadores_PLANTILLA = "aulas_disponibilidad_plantilla",
   asignacion_aplicadores_PLANTILLA = "aulas_asignacion_plantilla",

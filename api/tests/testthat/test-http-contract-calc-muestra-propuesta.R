@@ -34,6 +34,9 @@ test_that("flujo HTTP: la propuesta sale en PPT y en Excel con las metas de cada
 
   ppt <- http_post_json(srv, "/api/calc-muestra/propuesta/exportar", body = cuerpo("pptx"), sid = sid)
   expect_identical(ppt$status, 200L)
+  # Se entrega como un archivo de Cálculo de muestra, con su rótulo del catálogo.
+  expect_identical(ppt$json$export$modulo, "Cálculo de muestra")
+  expect_identical(ppt$json$export$rotulo, "Propuesta de diseño muestral")
   doc <- officer::read_pptx(bajar(ppt, ".pptx"))
   # Sin portada ni diseño: población, gráficos, escenarios, metas de docentes, contraportada.
   textos <- vapply(seq_len(length(doc)), function(i) {
