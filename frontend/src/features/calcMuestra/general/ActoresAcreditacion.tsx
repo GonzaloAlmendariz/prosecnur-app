@@ -147,7 +147,7 @@ function MetaDelActor({
         <NumberCell
           value={metaCuotaFijada(comp)}
           placeholder={sugerido == null ? undefined : String(sugerido)}
-          ariaLabel={`Cuota de ${actor}`}
+          ariaLabel={`${campo.rotulo} de ${actor}`}
           onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota", origen: "usuario" } })}
         />
         <PieDeMeta {...pieDeCuota(sugerido)} />

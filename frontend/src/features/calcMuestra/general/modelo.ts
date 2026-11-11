@@ -524,9 +524,15 @@ const TECNICAS_DE_RESPUESTA: ReadonlySet<CalcMuestraTecnica> = new Set([
   "sistematico",
 ]);
 
-export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | "parametros">): CampoMetaDelActor {
+// ADR 0143: por correo, teléfono o mixto se invita a toda la base; la meta natural es el número de encuestas.
+const CANALES_DE_BARRIDO = new Set(["online_email", "telefonico", "mixto"]);
+
+export function campoMetaDelActor(comp: Pick<CalcMuestraComponente, "tecnica" | "parametros"> & { canal_recojo?: string }): CampoMetaDelActor {
   const p = comp.parametros;
   if (comp.tecnica === "no_prob_cuotas") return { tipo: "cuota", rotulo: "Cuota" };
+  // Barrido por correo o teléfono: se escribe el número de encuestas; vacío, el motor aplica la cobertura del
+  // documento y la sugiere.
+  if (comp.tecnica === "intencion_censal" && CANALES_DE_BARRIDO.has(comp.canal_recojo ?? "")) return { tipo: "cuota", rotulo: "Encuestas" };
   if (comp.tecnica === "no_prob_conveniencia") {
     const piso = `Piso ${fmtInt(p.n_minimo_estrato)}`;
     const tope = `tope ${fmtInt(p.tope_operativo)}`;

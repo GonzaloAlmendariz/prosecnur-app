@@ -158,7 +158,11 @@ describe("campoMetaDelActor", () => {
     expect(campoMetaDelActor({ ...docentesMas(), tecnica: "prob_conglomerado_multietapico" })).toMatchObject({ tipo: "sobremuestra", clave: "oversample_pct" });
     expect(campoMetaDelActor({ ...docentesMas(), tecnica: "no_prob_cuotas" }).tipo).toBe("cuota");
     expect(campoMetaDelActor({ ...docentesMas(), tecnica: "no_prob_conveniencia" })).toMatchObject({ tipo: "cobertura", detalle: expect.stringContaining("Piso") });
-    expect(campoMetaDelActor({ ...docentesMas(), tecnica: "intencion_censal" })).toMatchObject({ tipo: "cobertura", clave: "cobertura_objetivo" });
+    expect(campoMetaDelActor({ ...docentesMas(), tecnica: "intencion_censal", canal_recojo: "presencial" })).toMatchObject({ tipo: "cobertura", clave: "cobertura_objetivo" });
+    // ADR 0143: un barrido por correo, teléfono o mixto se escribe en encuestas.
+    for (const canal of ["online_email", "telefonico", "mixto"] as const) {
+      expect(campoMetaDelActor({ ...docentesMas(), tecnica: "intencion_censal", canal_recojo: canal })).toEqual({ tipo: "cuota", rotulo: "Encuestas" });
+    }
   });
 
   it("una sobremuestra real se sigue diciendo; una en cero, no", () => {
