@@ -914,10 +914,16 @@
 .graficos_acnur_technical_slides <- function(rows, table_style, threshold = 11L) {
   rows <- rows %||% list()
   make_slide <- function(title, slide_rows) {
+    # Cada fila mide lo que piden sus líneas. Sin alturas propias la tabla se estiraba hasta su alto fijo (5.35 in) y,
+    # con cuatro filas, la última bajaba hasta el pie de la lámina (checklist-informe-acnur-2026-11-11, P4).
+    estilo <- table_style
+    estilo$row_heights <- vapply(slide_rows, function(r) {
+      0.30 + 0.22 * .tabla_peso_fila(.graficos_scalar_chr(r$criterio, ""), .graficos_scalar_chr(r$detalle, ""))
+    }, numeric(1))
     list(
       id = .graficos_plan_slide_id("acnur"),
       tipo = "p_slide_tabla_tecnica",
-      payload = list(titulo = title, filas = slide_rows, pie = "", estilo = table_style)
+      payload = list(titulo = title, filas = slide_rows, pie = "", estilo = estilo)
     )
   }
   n <- length(rows)

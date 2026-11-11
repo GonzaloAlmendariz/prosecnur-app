@@ -320,7 +320,7 @@ reporte_ppt_plan <- function(
     nzchar(label) && grepl(":(base|footer|right|right_text)$", label)
   }
 
-  .styled_slide_title <- function(text, spec) {
+  .styled_slide_title <- function(text, spec, ancho_in = NULL) {
     base_args <- presets$base$args %||% list()
     is_cover_title <- identical(as.character(spec$type)[1], "ctrTitle")
     spec_label <- as.character(spec$ph_label %||% "")[1]
@@ -348,7 +348,7 @@ reporte_ppt_plan <- function(
     } else {
       base_args$size_titulo_slide
     }
-    font_size <- suppressWarnings(as.numeric(font_size_value %||% 24)[1])
+    font_size <- .ppt_titulo_pt_que_cabe(text, font_size_value %||% 24, ancho_in, !is_cover_title && !is_section_title, isTRUE(base_args$bold_titulo_slide %||% TRUE))   # P7 ACNUR: dos líneas (ppt_titulo_cabe.R)
     if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 24
 
     color <- if (is_cover_title) {
@@ -599,7 +599,7 @@ reporte_ppt_plan <- function(
 
     if (is.character(value) && length(value) == 1L && nzchar(trimws(value))) {
       if (.is_slide_title_spec(spec)) {
-        value <- .styled_slide_title(value, spec)
+        value <- .styled_slide_title(value, spec, tryCatch(.placeholder_props_current(doc, spec)$cx[[1]], error = function(e) NULL))
       } else if (.is_body_text_spec(spec)) {
         value <- .styled_body_text(value)
       } else if (.is_note_text_spec(spec)) {

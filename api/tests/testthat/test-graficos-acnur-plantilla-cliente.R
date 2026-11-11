@@ -157,3 +157,47 @@ test_that("select_one con opciones de otro bloque no se grafica", {
                opciones_de_otro_bloque = TRUE)
   expect_false(.graficos_graphable_reason(item)$graphable)
 })
+
+# P1, P3, P6: el perfil ACNUR escribe siempre sus decimales, dibuja el eje y da a la base su propia franja.
+test_that("el perfil ACNUR declara decimales fijos, marcas del eje y rótulos de 45 caracteres", {
+  a <- .PPT_STYLE_PROFILES$acnur_kobo_cruncher_plus$presets$barras_agrupadas
+  expect_true(isTRUE(a$decimales_fijos))
+  expect_true(isTRUE(a$marcas_eje))
+  expect_equal(a$ancho_max_eje_y, 45)
+  expect_gte(a$canvas_h_caption_in, 0.4)
+  expect_true("decimales_fijos" %in% names(formals(graficar_barras_agrupadas)))
+})
+
+test_that("con decimales fijos una cifra entera lleva su decimal", {
+  d <- data.frame(categoria = c("A", "B", "C"), N = 100, pct = c(0.97, 0.02, 0.01), n = c(97, 2, 1), stringsAsFactors = FALSE)
+  rotulos <- function(fijos) {
+    p <- suppressMessages(suppressWarnings(graficar_barras_agrupadas(
+      d, "categoria", var_n = "N", cols_porcentaje = "pct", etiquetas_series = c(pct = "Porcentaje"), cols_n = c(pct = "n"),
+      decimales = 1, decimales_fijos = fijos, umbral_etiqueta = 0)))
+    unlist(lapply(p$layers, function(l) if (is.data.frame(l$data) && "lab" %in% names(l$data)) as.character(l$data$lab)))
+  }
+  expect_true(all(c("97.0%", "2.0%", "1.0%") %in% rotulos(TRUE)))
+  expect_true(all(c("97%", "2%", "1%") %in% rotulos(FALSE)))   # sin la opción, como siempre
+})
+
+# P4: la ficha técnica da a cada fila la altura de sus líneas, no reparte el alto fijo.
+test_that("la ficha técnica ACNUR declara la altura de cada fila", {
+  filas <- list(list(criterio = "Estudio", detalle = "RMS"), list(criterio = "Universo incluido", detalle = "486 personas"))
+  s <- .graficos_acnur_technical_slides(filas, .graficos_acnur_table_style())[[1]]
+  h <- s$payload$estilo$row_heights
+  expect_length(h, 2L)
+  expect_lt(sum(h), .graficos_acnur_table_style()$table_height / 2)
+})
+
+# P7: un título largo baja de tamaño hasta caber en dos líneas, con piso.
+test_that("el título de lámina se achica hasta caber en dos líneas", {
+  largo <- paste("Aunque usted no trabajó durante los últimos 7 días, ¿tenía usted algún negocio, o trabajo como",
+                 "colaborador(a) no remunerado en un negocio o finca familiar, del cual estuviera temporalmente ausente?")
+  pt <- .ppt_titulo_pt_que_cabe(largo, 24, ancho_in = 11.5)
+  expect_lt(pt, 24)
+  expect_lte(.lam_lineas_tinta(largo, 11.5, pt, FALSE), 2L)
+  expect_equal(.ppt_titulo_pt_que_cabe("¿Cuál es su nacionalidad?", 24, ancho_in = 11.5), 24)
+  expect_equal(.ppt_titulo_pt_que_cabe(largo, 24, ancho_in = 11.5, aplica = FALSE), 24)   # portada y separadores
+  expect_equal(.ppt_titulo_pt_que_cabe(largo, 24, ancho_in = NULL), 24)                    # sin ancho no se toca
+  expect_gte(.ppt_titulo_pt_que_cabe(paste(rep(largo, 3), collapse = " "), 24, ancho_in = 11.5), 16)
+})

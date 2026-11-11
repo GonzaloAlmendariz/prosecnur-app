@@ -34,17 +34,23 @@ Estados: **pendiente**, **resuelto** (test en verde y visto en el render), **blo
 | R3 | Decimales: se mantienen (Gonzalo: ACNUR los pide) | decidido |
 | R4 | Ajustes visuales finos contra la referencia 2025 | pendiente: ver abajo |
 
-## Pendientes vistos en el render corregido (sin tocar todavía)
+## Ajustes visuales contra la referencia 2025
 
-| # | Observación | Cómo se comprobó |
-|---|---|---|
-| P1 | Las cifras pierden el cero final: "2%" y "1%" junto a "96.6%". La referencia usa siempre dos decimales ("1.22%") | render del RMS, lámina de nacionalidad |
-| P2 | La base dice "409 respuestas de la muestra total (84.2%)." en letra muy pequeña; la referencia dice "Single choice, Response rate = 99.52% on a total of 413 records" | render del RMS contra la referencia 2025 |
-| P3 | Sin eje de porcentajes; la referencia lo trae (0%, 25%, 50%…) | ídem |
-| P4 | La tabla de la ficha técnica estira su última fila hasta el pie de la lámina cuando tiene pocas filas | render del RMS, lámina 2 |
-| P5 | Al salir "Nombre del encuestado(a)", la sección "Parte 1. Indicadores Sociodemográficos & Movilidad" se queda sin preguntas y su separador desaparece; la referencia lo conserva antes de "S2" | plan del RMS antes y después (163 → 160 láminas: la pregunta, el separador y la segunda página del índice) |
-| P6 | Rótulos largos del eje en letra muy pequeña (razón de llegada, tipo de documento) | render del RMS |
-| P7 | Un título de tres líneas se monta sobre el gráfico y su última línea queda cortada | render del RMS, láminas 119, 130, 142 y 153 (preguntas de empleo, pagos por celular, actividades extraescolares, vacunación) |
+| # | Observación | Arreglo | Estado |
+|---|---|---|---|
+| P1 | Las cifras perdían el cero final: "2%" y "1%" junto a "96.6%" | Opción nueva `decimales_fijos` en las barras agrupadas; el perfil ACNUR la enciende ("2.0%", "0.0%") | resuelto: test; visto en el render |
+| P2 | La base salía en letra muy pequeña y chocaba con el eje | El perfil ACNUR le da 11 pt y su propia franja bajo el eje (`canvas_h_caption_in` 0.42) | resuelto: visto en el render. El texto ("409 respuestas de la muestra total (84.2%).") no cambió; la referencia dice "Single choice, Response rate = 99.52% on a total of 413 records" |
+| P3 | Faltaba el eje de porcentajes | El perfil ACNUR enciende `marcas_eje` (0, 25, 50, 75 y 100 % con guías); las marcas escalan con los rótulos en vez de 8 pt fijos | resuelto: test; visto en el render |
+| P4 | La ficha técnica estiraba su última fila hasta el pie de la lámina | Cada fila declara la altura de sus líneas (`row_heights`) | resuelto: test; ver render final |
+| P5 | Al salir "Nombre del encuestado(a)" desaparece el separador "Parte 1" | No es un error de código: en el XLSForm del RMS "Parte 1" sólo contiene la lista de miembros del hogar y esa pregunta. La referencia 2025 pone ahí los gráficos de los miembros; el motor manda los grupos repetibles al final del mazo y sólo separa por el grupo más externo (la referencia también separa S1, S2…) | bloqueado: decisión de Gonzalo sobre dónde van los grupos repetibles y si se separa por subsección |
+| P6 | Rótulos largos diminutos | El rótulo se parte a 45 caracteres y no a 38: con tres líneas el gráfico crecía en alto y al encajarlo se reducía entero | resuelto: test del perfil; visto en el render |
+| P7 | Títulos de tres líneas montados sobre el gráfico | El título baja de tamaño, medido con la tinta real, hasta caber en dos líneas (piso 16 pt) | resuelto: test; visto en el render. Un título de más de dos líneas a 16 pt (vacunación, 250 caracteres) queda en tres |
+
+## Vistos en el render final, sin tocar
+
+- Cuando el último rótulo ocupa dos líneas, su segunda línea roza la marca "0%" del eje (razón de llegada, lámina 25 del
+  RMS).
+- El título que baja de tamaño para caber en dos líneas (16 a 20 pt) convive con títulos de 24 pt en el mismo mazo.
 
 ## Descartado en la muestra
 

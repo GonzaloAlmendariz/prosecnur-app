@@ -220,6 +220,7 @@
 #'
 #' @param mostrar_valores Si `TRUE`, agrega etiquetas de porcentaje sobre las barras.
 #' @param decimales Numero de decimales para etiquetas no enteras.
+#' @param decimales_fijos Si `TRUE`, toda cifra lleva sus `decimales`, también la entera ("2.0%" y no "2%").
 #' @param umbral_etiqueta Umbral minimo (en escala 0-1) para mostrar una etiqueta.
 #'   Valores menores se ocultan.
 #' @param mostrar_ceros Si `TRUE`, conserva las categorias que NADIE eligio y
@@ -404,6 +405,7 @@ graficar_barras_agrupadas <- function(
     comparativo               = NULL,
     mostrar_valores           = TRUE,
     decimales                 = 1,
+    decimales_fijos           = FALSE,
     umbral_etiqueta           = 0.03,
     mostrar_ceros             = FALSE,
     minimo_cero_visual        = 0,
@@ -1296,7 +1298,7 @@ graficar_barras_agrupadas <- function(
     pct_num <- df_lab$.valor_plot * 100
     pct_round <- .pulso_round_half_up(pct_num, dec)
     tol <- 10^(-(dec + 1))
-    es_entero <- is.finite(pct_round) & (abs(pct_round - round(pct_round)) < tol)
+    es_entero <- is.finite(pct_round) & (abs(pct_round - round(pct_round)) < tol) & !isTRUE(decimales_fijos)
 
     lab_base <- character(nrow(df_lab))
 
@@ -1305,7 +1307,7 @@ graficar_barras_agrupadas <- function(
 
     mask_zero <- !is.na(df_lab$.valor_plot) & df_lab$.valor_plot <= 0
     if (mostrar_ceros) {
-      lab_base[mask_zero] <- "0%"
+      lab_base[mask_zero] <- if (isTRUE(decimales_fijos) && dec > 0) paste0(.pulso_fmt_half_up(0, dec), "%") else "0%"
     } else {
       lab_base[mask_zero] <- NA_character_
     }
@@ -1320,7 +1322,7 @@ graficar_barras_agrupadas <- function(
     cero_con_casos_lab[is.na(cero_con_casos_lab)] <- FALSE
     con_piso <- .barras_cero_rotulado(df_lab$.valor_plot, dec) &
       (mostrar_ceros | cero_con_casos_lab)
-    lab_base[con_piso & is.na(lab_base)] <- "0%"
+    lab_base[con_piso & is.na(lab_base)] <- if (isTRUE(decimales_fijos) && dec > 0) paste0(.pulso_fmt_half_up(0, dec), "%") else "0%"
     bajo_umbral <- !mask_zero & !con_piso & !is.na(df_lab$.valor_plot) &
       df_lab$.valor_plot < umbral_etiqueta
     lab_base[bajo_umbral] <- NA_character_
@@ -1829,7 +1831,8 @@ graficar_barras_agrupadas <- function(
                                   labels = function(z) .pulso_fmt_pct_half_up(z * (100 / tope_marcas) / 100, 0),
                                   expand = ggplot2::expansion(mult = c(0, 0.02))) +
       ggplot2::theme(panel.grid.major.x = ggplot2::element_line(color = .std_color("filete"), linewidth = 0.3),
-                     axis.text.x = ggplot2::element_text(size = 8, color = .std_color("texto_tenue"), family = font_family))
+                     axis.text.x = ggplot2::element_text(size = max(8, size_ejes_eff * 0.75),   # escala con los rótulos (P3 ACNUR)
+                                                                         color = .std_color("texto_tenue"), family = font_family))
   }
 
   # leyenda grob (con separacion real)

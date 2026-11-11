@@ -5022,15 +5022,23 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
         canvas_h_toprow_in = 0,
         canvas_h_header_in = 0.32,
         canvas_h_legend_in = 0.10,
-        canvas_h_caption_in = 0.08,
+        # La base va en su propia franja, bajo las marcas del eje: con 0.08 in chocaba con "75%" y "100%".
+        canvas_h_caption_in = 0.42,
         alto_por_categoria = 0.42,
         grosor_barras = 0.66,
         lineheight_eje_y = 1.08,
-        ancho_max_eje_y = 38,
+        # Con 38 caracteres un rótulo largo se partía en tres líneas, el gráfico crecía en alto y al encajarlo en la
+        # lámina se reducía entero: rótulos y cifras salían diminutos (checklist-informe-acnur-2026-11-11, P6).
+        ancho_max_eje_y = 45,
         forzar_ancho_max_eje_y = TRUE,
         mostrar_valores = TRUE,
         mostrar_ceros = FALSE,
         decimales = 1,
+        # El formato ACNUR escribe siempre los decimales: "2.0%" junto a "96.6%", no "2%" (P1).
+        decimales_fijos = TRUE,
+        # Eje con 0, 25, 50, 75 y 100 % y sus guías, como la referencia RMS 2025 (P3).
+        marcas_eje = TRUE,
+        size_nota_pie = 11,
         umbral_etiqueta = 0.001,
         umbral_posicion = 0.055,
         mostrar_barra_extra = FALSE,
