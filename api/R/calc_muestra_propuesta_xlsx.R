@@ -71,9 +71,9 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
   notas_res <- c(
     if (length(t$agregados)) sprintf("Las metas incluyen lo que agrega el mínimo de %d por segmento: %s.",
                                      as.integer(propuesta$minimo_segmento %||% 30L), paste(t$agregados, collapse = "; ")),
-    "Margen de referencia: el de una muestra aleatoria simple del mismo tamaño, 95 % de confianza y p = 0.5; es una referencia de precisión, no un margen de error del diseño.")
-  res <- data.frame(`Público` = c(d$publicos, "Total"), `Cómo se reparte la meta` = c(d$segmentacion, ""),
-                    `Personas en la base` = c(d$N, sum(d$N)), check.names = FALSE)
+    "El margen de error es referencial, por tratarse de una muestra no probabilística.")
+  res <- data.frame(`Público` = c(d$publicos, "Total"), `Segmento de cruce` = c(d$segmentacion, ""),
+                    `Población` = c(d$N, sum(d$N)), check.names = FALSE)
   for (k in esc) {
     m <- d$metas[[k]]
     res[[paste0(k, ": meta")]] <- c(m, sum(m))
@@ -116,13 +116,12 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
     hojas_pub <- c(hojas_pub, hoja)
     control <- identical(d$usos[match(p, d$publicos)], "control")
     al_min <- attr(t$segmentos[[p]], "al_minimo")
-    .cmx_hoja(wb, hoja, paste0(if (control) "Metas por cuota de control: " else "Metas por segmento: ", p),
-              sprintf("%sReparto proporcional al tamaño de cada %s%s.",
-                      if (control) "Cuotas para controlar la composición de la muestra; no se reportan resultados por cuota. " else "",
-                      if (control) "cuota" else "segmento",
-                      if (length(al_min)) sprintf("; suben al mínimo de %d (o a todas sus personas): %s",
-                                                  as.integer(propuesta$minimo_segmento %||% 30L), paste(al_min, collapse = ", ")) else ""))
-    tab <- data.frame(Segmento = c(s$segmento, "Total"), `Personas en la base` = c(s$N, sum(s$N)), check.names = FALSE)
+    sub_h <- paste(c(
+      if (control) "Cuotas para controlar la composición de la muestra; no se reportan resultados por cuota.",
+      if (length(al_min)) sprintf("Suben al mínimo de %d (o a todas sus personas): %s.",
+                                  as.integer(propuesta$minimo_segmento %||% 30L), paste(al_min, collapse = ", "))), collapse = " ")
+    .cmx_hoja(wb, hoja, paste0(if (control) "Metas por cuota de control: " else "Metas por segmento: ", p), sub_h)
+    tab <- data.frame(Segmento = c(s$segmento, "Total"), `Población` = c(s$N, sum(s$N)), check.names = FALSE)
     for (k in esc) {
       tab[[paste0("Meta ", k)]] <- c(s[[k]], sum(s[[k]]))
       tab[[paste0("Respuesta necesaria ", k)]] <- c(s[[k]] / s$N, sum(s[[k]]) / sum(s$N))
@@ -135,7 +134,8 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
     openxlsx::setColWidths(wb, hoja, cols = seq_len(ncol(tab)), widths = c(36, rep(14, ncol(tab) - 1L)))
   }
 
-  # --- Viabilidad y avisos.
+  # --- Viabilidad y avisos: lámina interna, sólo si se pide (revisión 2026-11-11).
+  if (isTRUE(propuesta$incluir_viabilidad)) {
   .cmx_hoja(wb, "Viabilidad", "Viabilidad de las metas",
             "Respuesta necesaria = meta sobre personas en la base; se compara con la respuesta de referencia.")
   v <- data.frame(`Público` = d$publicos, check.names = FALSE)
@@ -149,6 +149,7 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
     openxlsx::writeData(wb, "Viabilidad", t$avisos, startRow = fin + 3, startCol = 1)
   }
   openxlsx::setColWidths(wb, "Viabilidad", cols = seq_len(ncol(v)), widths = c(26, rep(18, ncol(v) - 2L), 40))
+  }
 
   # --- Diseño (el mismo procedimiento que la lámina del PPT).
   .cmx_hoja(wb, "Diseño", "Diseño muestral", "")
@@ -159,5 +160,5 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
   # Impresión: horizontal y una página de ancho.
   for (h in names(wb)) openxlsx::pageSetup(wb, h, orientation = "landscape", fitToWidth = 1, fitToHeight = 0)
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
-  invisible(list(path = path_xlsx, hojas = c("Resumen", hojas_pub, "Viabilidad", "Diseño"), tablas = t))
+  invisible(list(path = path_xlsx, hojas = c("Resumen", hojas_pub, if (isTRUE(propuesta$incluir_viabilidad)) "Viabilidad", "Diseño"), tablas = t))
 }

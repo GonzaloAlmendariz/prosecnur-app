@@ -17,7 +17,7 @@
     .prop_comp("Administrativos", "administrativos", 2194L, m[2], 0.508, adm, "Tipo de contrato"),
     .prop_comp("Egresados", "egresados", 12512L, m[3], 0.105)))
   # (Egresados sin cuotas: meta única.)
-  list(titulo = "Encuesta de prueba", referencia_rotulo = "medición anterior",
+  list(titulo = "Encuesta de prueba", referencia_rotulo = "medición anterior", incluir_viabilidad = TRUE,
        escenarios = list(esc("Propuesta A", c(900L, 900L, 600L)), esc("Propuesta B", c(600L, 600L, 400L))))
 }
 
@@ -40,9 +40,10 @@ test_that("las tablas comparan los escenarios con las metas del motor", {
   expect_identical(attr(d, "al_minimo"), "Contratado a tiempo completo")
   expect_false("Egresados" %in% names(t$segmentos))
   # Para cada actor queda dicho cómo se reparte su meta.
-  expect_identical(t$poblacion[["Cómo se reparte la meta"]][1:3],
-                   c("Condición y categoría: 5 segmentos que se reportan", "Tipo de contrato: 3 segmentos que se reportan",
-                     "Meta única, sin cuotas"))
+  # Revisión 2026-11-11: se nombran los segmentos de cruce; un actor sin cruce no lleva nada.
+  expect_identical(t$poblacion[["Segmento de cruce"]][2:3],
+                   c("Tipo de contrato: Nombrado, Contratado y Autoridades (direcciones)", ""))
+  expect_identical(names(t$poblacion), c("Público", "Segmento de cruce", "Población"))
 })
 
 test_that("la viabilidad dice qué escenario exige más respuesta y qué segmento no alcanza", {
@@ -53,6 +54,15 @@ test_that("la viabilidad dice qué escenario exige más respuesta y qué segment
   # Autoridades: 30 de 37 en ambos escenarios; los segmentos proporcionales de docentes no se repiten.
   expect_length(t$avisos, 1L)
   expect_match(t$avisos, "Autoridades (direcciones): 30 encuestas de 37 personas, 81 % de respuesta, en todos los escenarios", fixed = TRUE)
+})
+
+test_that("sin pedirla, la propuesta para el cliente no lleva la lámina de viabilidad", {
+  skip_if_not_installed("officer"); skip_if_not_installed("flextable")
+  p <- .prop_dci(); p$incluir_viabilidad <- NULL
+  r <- calc_muestra_propuesta_ppt(p, tempfile(fileext = ".pptx"))
+  expect_identical(as.integer(r$laminas), 7L)
+  rx <- calc_muestra_propuesta_xlsx(p, tempfile(fileext = ".xlsx"))
+  expect_false("Viabilidad" %in% rx$hojas)
 })
 
 test_that("el PPT trae portada, cinco tipos de lámina y contraportada al final", {
@@ -66,7 +76,7 @@ test_that("el PPT trae portada, cinco tipos de lámina y contraportada al final"
   # pptx_summary avisa coerción con las celdas combinadas de las filas de sección.
   textos <- suppressWarnings(officer::pptx_summary(doc))
   titulos <- unique(textos$text[grepl("^(DISEÑO|POBLACIÓN|ESCENARIOS|METAS|VIABILIDAD)", textos$text)])
-  expect_identical(titulos, c("DISEÑO MUESTRAL", "POBLACIÓN Y SEGMENTOS", "ESCENARIOS DE MUESTRA",
+  expect_identical(titulos, c("DISEÑO MUESTRAL", "POBLACIÓN Y SEGMENTOS DE CRUCE", "ESCENARIOS DE MUESTRA",
                               "METAS POR SEGMENTO: DOCENTES", "METAS POR SEGMENTO: ADMINISTRATIVOS", "VIABILIDAD DE LAS METAS"))
   # Un barrido no habla de sorteo salvo para decir que no lo hay.
   con_sorteo <- textos$text[grepl("sorteo", textos$text, ignore.case = TRUE)]

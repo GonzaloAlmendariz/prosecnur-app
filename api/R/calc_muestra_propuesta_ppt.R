@@ -14,7 +14,7 @@
 # meta, parametros, marco con estratos); se normaliza y se calcula aquí.
 
 .CMP_TABLA <- list(left = 0.62, top = 1.30, width = 12.10, fila = 0.42, fila_densa = 0.30,
-                   letra = 12, letra_densa = 10.5, max_filas_comodas = 11L, nota_alto = 0.55)
+                   letra = 12, letra_densa = 10.5, max_filas_comodas = 13L, nota_alto = 0.55)
 
 .cmp_fmt_n <- function(x) formatC(as.numeric(x), format = "d", big.mark = ",")
 .cmp_fmt_pct <- function(x, dec = 1) ifelse(is.finite(x), paste0(formatC(100 * x, format = "f", digits = dec), " %"), "")
@@ -61,18 +61,22 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
     if (identical(u, "control")) "control" else "reporte"
   }
   usos <- vapply(seq_along(base), uso_de, "")
+  # Revisión de Gonzalo (2026-11-11, PPT _REV): la columna nombra los segmentos de cruce ("Por qué no
+  # simplemente se mencionan?"); un actor sin segmentos de cruce no lleva nada ("si no hay segmento de cruce
+  # simplemente no se reporta nada"). `segmentacion_detalle` reemplaza la lista cuando hace falta aclarar algo.
+  .y_lista <- function(x) if (length(x) <= 1L) x else paste(paste(x[-length(x)], collapse = ", "), "y", x[length(x)])
   segs <- vapply(seq_along(base), function(i) {
-    e <- base[[i]]$marco$estratos %||% list()
+    if (usos[i] != "reporte") return("")
+    det <- as.character((esc[[1]]$componentes[[i]] %||% list())$segmentacion_detalle %||% "")[1]
+    if (nzchar(det)) return(det)
+    etiquetas <- vapply(base[[i]]$marco$estratos, `[[`, "", "label")
     crit <- crit_de(i)
-    if (usos[i] == "unica") return("Meta única, sin cuotas")
-    n <- length(e)
-    detalle <- if (usos[i] == "control") sprintf("%d %s de control, no se reportan", n, if (n == 1L) "cuota" else "cuotas")
-               else sprintf("%d %s que se reportan", n, if (n == 1L) "segmento" else "segmentos")
-    if (nzchar(crit)) sprintf("%s: %s", crit, detalle) else paste0(toupper(substr(detalle, 1, 1)), substring(detalle, 2))
+    lista <- .y_lista(etiquetas)
+    if (nzchar(crit)) sprintf("%s: %s", crit, lista) else lista
   }, "")
   poblacion <- data.frame(`Público` = c(publicos, "Total"),
-                          `Cómo se reparte la meta` = c(segs, ""),
-                          `Personas en la base` = .cmp_fmt_n(c(N, sum(N))), check.names = FALSE)
+                          `Segmento de cruce` = c(segs, ""),
+                          `Población` = .cmp_fmt_n(c(N, sum(N))), check.names = FALSE)
 
   # Dos bloques con su fila de sección: encuestas (con total) y margen de referencia.
   filas <- c("Encuestas", publicos, "Total", "Margen de referencia", publicos)
@@ -99,7 +103,7 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
     est <- base[[i]]$marco$estratos %||% list()
     if (!length(est)) next
     df <- data.frame(Segmento = c(vapply(est, `[[`, "", "label"), "Total"),
-                     `Personas en la base` = .cmp_fmt_n(c(vapply(est, function(e) as.integer(e$N), 1L), N[i])),
+                     `Población` = .cmp_fmt_n(c(vapply(est, function(e) as.integer(e$N), 1L), N[i])),
                      check.names = FALSE)
     num <- data.frame(segmento = vapply(est, `[[`, "", "label"), N = vapply(est, function(e) as.integer(e$N), 1L))
     for (k in seq_along(calc)) {
@@ -164,23 +168,28 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
     Etapa = c("Selección", "Cuotas de control", "Seguimiento", "Excedente"),
     Procedimiento = c(
       "Se invita a toda la base de cada público con un enlace personal; no hay sorteo previo.",
-      sprintf("La meta de cada público se reparte entre sus segmentos en proporción a su tamaño. Un segmento que queda por debajo de %d encuestas sube a %d (o a todas sus personas si son menos), y esas encuestas se suman a la meta del público.", piso, piso),
+      if (piso > 0L) sprintf("La meta de cada público se reparte entre sus segmentos en proporción a su tamaño. Un segmento que queda por debajo de %d encuestas sube a %d (o a todas sus personas si son menos), y esas encuestas se suman a la meta del público.", piso, piso)
+      else "La meta de cada público se reparte entre sus segmentos en proporción a su tamaño.",
       "Avance semanal por público y segmento; los recordatorios se dejan de enviar al segmento que cumple su meta.",
       "Si un segmento supera su meta, el excedente se retira por selección aleatoria y se declara en la ficha técnica; así la base mantiene la proporción de la población sin ponderar."),
     check.names = FALSE)
 }
 
 .cmp_flextable <- function(df, filas_densas = FALSE, primera = 0.30, total = FALSE,
-                           secciones = attr(df, "secciones"), totales = attr(df, "totales")) {
+                           secciones = attr(df, "secciones"), totales = attr(df, "totales"), anchos = NULL) {
   T <- .CMP_TABLA
   azul <- .std_color("azul"); cebra <- .std_color("cebra"); filete <- .std_color("filete")
   letra <- if (filas_densas) T$letra_densa else T$letra
   alto <- if (filas_densas) T$fila_densa else T$fila
   ft <- flextable::flextable(df)
   ft <- flextable::set_table_properties(ft, layout = "fixed")
-  w1 <- T$width * primera
-  ft <- flextable::width(ft, j = 1, width = w1)
-  if (ncol(df) > 1L) ft <- flextable::width(ft, j = 2:ncol(df), width = (T$width - w1) / (ncol(df) - 1L))
+  if (!is.null(anchos) && length(anchos) == ncol(df)) {
+    ft <- flextable::width(ft, j = seq_len(ncol(df)), width = T$width * anchos / sum(anchos))
+  } else {
+    w1 <- T$width * primera
+    ft <- flextable::width(ft, j = 1, width = w1)
+    if (ncol(df) > 1L) ft <- flextable::width(ft, j = 2:ncol(df), width = (T$width - w1) / (ncol(df) - 1L))
+  }
   ft <- flextable::font(ft, fontname = "Arial", part = "all")
   ft <- flextable::fontsize(ft, size = letra, part = "all")
   ft <- flextable::color(ft, color = azul, part = "body")
@@ -216,11 +225,12 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
 }
 
 # Alto de cada fila según las líneas que pide su celda más larga (Arial: ~2 caracteres por pt de ancho en pulgadas).
-.cmp_altos <- function(df, primera, densa) {
+.cmp_altos <- function(df, primera, densa, anchos = NULL) {
   T <- .CMP_TABLA
   letra <- if (densa) T$letra_densa else T$letra
   base <- if (densa) T$fila_densa else T$fila
-  w <- c(T$width * primera, rep((T$width * (1 - primera)) / max(1L, ncol(df) - 1L), ncol(df) - 1L)) - 0.22
+  w <- (if (!is.null(anchos)) T$width * anchos else
+    c(T$width * primera, rep((T$width * (1 - primera)) / max(1L, ncol(df) - 1L), ncol(df) - 1L))) - 0.22
   por_linea <- 144 / letra
   lineas <- function(txt) max(1, ceiling(nchar(as.character(txt)) / pmax(4, w * por_linea)))
   filas <- rbind(names(df), as.matrix(df))
@@ -230,15 +240,22 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   }, 0)
 }
 
-.cmp_lamina_tabla <- function(doc, titulo, df, nota = NULL, primera = 0.30, total = FALSE, texto_largo = FALSE) {
+.cmp_lamina_tabla <- function(doc, titulo, df, nota = NULL, primera = 0.30, total = FALSE, texto_largo = FALSE,
+                              llenar = FALSE, anchos = NULL, izquierda = integer()) {
   T <- .CMP_TABLA
   densa <- nrow(df) > T$max_filas_comodas
-  altos <- .cmp_altos(df, primera, densa)
+  altos <- .cmp_altos(df, primera, densa, anchos)
+  # `llenar`: la tabla ocupa el alto disponible de la lámina ("el alto no se aprovecha", revisión 2026-11-11).
+  if (llenar) {
+    disponible <- 7.5 - T$top - 0.55 - if (!is.null(nota) && nzchar(nota)) T$nota_alto + 0.3 else 0
+    if (sum(altos) < disponible) altos <- altos * min(disponible / sum(altos), 1.9)
+  }
   doc <- officer::add_slide(doc, layout = "Title and Content", master = "Office Theme")
   titulo_fp <- officer::fp_text(color = .std_color("coral"), font.size = 22, bold = TRUE, font.family = "Arial")
   doc <- officer::ph_with(doc, officer::fpar(officer::ftext(toupper(titulo), titulo_fp)),
                           location = officer::ph_location_type(type = "title"))
-  ft <- .cmp_flextable(df, filas_densas = densa, primera = primera, total = total)
+  ft <- .cmp_flextable(df, filas_densas = densa, primera = primera, total = total, anchos = anchos)
+  if (length(izquierda)) ft <- flextable::align(ft, j = izquierda, align = "left", part = "all")
   ft <- flextable::height(ft, height = altos[1], part = "header")
   ft <- flextable::height(ft, i = seq_len(nrow(df)), height = altos[-1], part = "body")
   if (texto_largo) {
@@ -293,11 +310,10 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
 
   piso <- as.integer(propuesta$minimo_segmento %||% 30L)
   proc <- propuesta$procedimiento %||% .cmp_procedimiento_barrido(piso)
-  doc <- .cmp_lamina_tabla(doc, "Diseño muestral", proc, primera = 0.20, texto_largo = TRUE,
-                           nota = "Diseño no probabilístico: los resultados describen a quienes respondieron; se comparan con la base por sexo y segmento.")
-  doc <- .cmp_lamina_tabla(doc, "Población y segmentos", tablas$poblacion, primera = 0.24, total = TRUE,
-                           nota = propuesta$nota_marco %||% NULL)
-  nota_esc <- "Margen de referencia: el de una muestra aleatoria simple del mismo tamaño, con 95 % de confianza y p = 0.5. Es una referencia de precisión, no un margen de error del diseño."
+  doc <- .cmp_lamina_tabla(doc, "Diseño muestral", proc, primera = 0.20, texto_largo = TRUE)
+  doc <- .cmp_lamina_tabla(doc, "Población y segmentos de cruce", tablas$poblacion, primera = 0.22, total = TRUE,
+                           nota = propuesta$nota_marco %||% NULL, llenar = TRUE, anchos = c(0.22, 0.60, 0.18), izquierda = 2L)
+  nota_esc <- "El margen de error es referencial, por tratarse de una muestra no probabilística."
   if (length(tablas$agregados)) nota_esc <- paste0(
     sprintf("Las metas incluyen lo que agrega el mínimo de %d por segmento: %s. ", piso, paste(tablas$agregados, collapse = "; ")), nota_esc)
   doc <- .cmp_lamina_tabla(doc, "Escenarios de muestra", tablas$comparacion, primera = 0.40, nota = nota_esc)
@@ -306,15 +322,19 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
     control <- identical(attr(tab, "uso"), "control")
     crit <- attr(tab, "criterio") %||% ""
     titulo <- paste0(if (control) "Metas por cuota de control: " else "Metas por segmento: ", p)
-    nota <- sprintf("%sReparto proporcional al tamaño de cada %s%s.",
-                    if (control) "Cuotas para controlar la composición de la muestra; no se reportan resultados por cuota. " else "",
-                    if (control) "cuota" else "segmento",
-                    if (length(attr(tab, "al_minimo"))) sprintf("; suben al mínimo de %d (o a todas sus personas): %s", piso, paste(attr(tab, "al_minimo"), collapse = ", ")) else "")
+    # Sin nota de relleno: sólo se dice lo que la tabla no muestra.
+    nota <- paste(c(
+      if (control) "Cuotas para controlar la composición de la muestra; no se reportan resultados por cuota.",
+      if (length(attr(tab, "al_minimo"))) sprintf("Suben al mínimo de %d (o a todas sus personas): %s.", piso, paste(attr(tab, "al_minimo"), collapse = ", "))),
+      collapse = " ")
+    if (!nzchar(nota)) nota <- NULL
     if (nzchar(crit)) names(tab)[1] <- crit
     doc <- .cmp_lamina_tabla(doc, titulo, tab, primera = 0.40, total = TRUE, nota = nota)
   }
   nota_v <- if (length(tablas$avisos)) paste0("Segmentos que exigen más respuesta de la esperada. ", paste(tablas$avisos, collapse = ". "), ".") else NULL
-  doc <- .cmp_lamina_tabla(doc, "Viabilidad de las metas", tablas$viabilidad, primera = 0.22, nota = nota_v)
+  # Lámina interna: una propuesta para el cliente no la lleva salvo que se pida ("Y esto para qué? Es una
+  # propuesta para cliente", revisión 2026-11-11).
+  if (isTRUE(propuesta$incluir_viabilidad)) doc <- .cmp_lamina_tabla(doc, "Viabilidad de las metas", tablas$viabilidad, primera = 0.22, nota = nota_v)
 
   # La contraportada (segunda del plan) pasa al final.
   doc <- officer::move_slide(doc, index = 2L, to = length(doc))
