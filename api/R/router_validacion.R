@@ -2045,10 +2045,15 @@ mount_validacion <- function(pr) {
 
     # --- Reglas custom: editar -----------------------------------------------
     plumber::pr_handle("PUT", "/api/validacion/v2/reglas_custom/<id>",
-      wrap_endpoint(function(req, res, id = NULL, ...) {
+      # Sin `id` formal: Plumber vuelca los campos del JSON como argumentos y
+      # el editor manda la regla entera, `id` incluido, así que un `id = NULL`
+      # recibía dos valores y el PUT respondía 500. El id vale sólo el de la
+      # ruta; el del cuerpo se ignora.
+      wrap_endpoint(function(req, res, ...) {
         sid <- session_header(req)
         base <- .get_base_nombre(req)
-        if (is.null(id) || !nzchar(id)) stop_api(400, "E_MISSING_ID", "Falta id")
+        id <- as.character(req$argsPath$id %||% "")[1]
+        if (is.na(id) || !nzchar(id)) stop_api(400, "E_MISSING_ID", "Falta id")
         body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
         Encoding(body_raw) <- "UTF-8"
         parsed <- tryCatch(
