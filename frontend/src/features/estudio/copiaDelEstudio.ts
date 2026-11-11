@@ -23,7 +23,7 @@ export const OPCIONES_TIPO: readonly { valor: OpcionTipo; rotulo: string; diseno
   { valor: "territorial:conveniencia", rotulo: "Territorial por cuotas", diseno: "Sin sorteo: las cuotas se fijan antes del campo." },
   { valor: "aulas", rotulo: "Aulas universitarias", diseno: "La muestra se diseña en Cálculo de muestra." },
   { valor: "telefonico", rotulo: "Telefónico", diseno: "La lista de contactos la entrega el cliente." },
-  { valor: "acreditacion", rotulo: "Acreditación", diseno: "Los públicos y sus porcentajes se fijan en Monitoreo." },
+  { valor: "acreditacion", rotulo: "Acreditación", diseno: "Las metas por público se diseñan en Cálculo de muestra." },
 ];
 
 /**
@@ -51,7 +51,9 @@ export function perfilDeOpcion(opcion: OpcionTipo, conMarco: boolean, previo: Pl
   const [tipo, variante] = opcion.split(":") as [PlannerTipoPerfil, string | undefined];
   const base: PlannerPerfil = previo && previo.tipo === tipo
     ? previo
-    : { tipo, seleccion: null, diseno: tipo === "territorial" ? "hojas-ruta" : tipo === "aulas" ? "calc-muestra" : "cliente", canales: [], poblaciones: [] };
+    // ADR 0143: una acreditación declarada ahora la diseña Cálculo de muestra; la que ya existía (previo del
+    // mismo tipo) conserva lo suyo.
+    : { tipo, seleccion: null, diseno: tipo === "territorial" ? "hojas-ruta" : tipo === "aulas" || tipo === "acreditacion" ? "calc-muestra" : "cliente", canales: [], poblaciones: [] };
   const seleccion = tipo === "territorial" ? (variante as PlannerPerfil["seleccion"]) : tipo === "aulas" ? (conMarco ? "marco" : "conglomerados") : null;
   return {
     ...base,

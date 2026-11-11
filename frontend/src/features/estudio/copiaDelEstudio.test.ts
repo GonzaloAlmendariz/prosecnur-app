@@ -26,3 +26,15 @@ describe("Ficha del estudio · aulas con o sin marco de alumnos", () => {
     expect(vacio.material.proposito).toBeNull();
   });
 });
+
+// ADR 0143 (2026-11-11): sólo las acreditaciones que se declaran ahora abren Cálculo de muestra.
+describe("Ficha del estudio · acreditación", () => {
+  test("una acreditación nueva la diseña Cálculo de muestra", () => {
+    expect(perfilDeOpcion("acreditacion", false, undefined)).toMatchObject({ tipo: "acreditacion", diseno: "calc-muestra" });
+  });
+
+  test("una acreditación ya guardada conserva quién diseña", () => {
+    const previo = { tipo: "acreditacion" as const, seleccion: null, diseno: "cliente" as const, canales: [], poblaciones: [] };
+    expect(perfilDeOpcion("acreditacion", false, previo).diseno).toBe("cliente");
+  });
+});

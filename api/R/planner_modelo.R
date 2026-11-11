@@ -62,10 +62,14 @@ PLANNER_MAX_INSUMOS <- 60L
 }
 
 # ADR 0124: quién diseña la muestra sale del tipo (la variante territorial la
-# ajusta .planner_norm_perfil): aulas, Cálculo; telefónico, la lista del cliente;
-# acreditación, Monitoreo con porcentajes, así que Cálculo no participa.
+# ajusta .planner_norm_perfil): aulas, Cálculo; telefónico, la lista del cliente.
+# ADR 0143 (2026-11-11, Gonzalo: "se habilita sólo en los nuevos estudios que
+# marquen acreditación al iniciar el proyecto"): una acreditación que se declara
+# ahora la diseña Cálculo de muestra (metas por público y propuesta). Un estudio
+# guardado conserva el `diseno` que ya tenía; la proyección de un .pulso sin
+# perfiles declarados sigue dando "cliente" (planner_proyeccion.R).
 .planner_diseno_por_tipo <- function(tipo) {
-  switch(tipo, territorial = "hojas-ruta", aulas = "calc-muestra", "cliente")
+  switch(tipo, territorial = "hojas-ruta", aulas = "calc-muestra", acreditacion = "calc-muestra", "cliente")
 }
 
 .planner_id <- function(x, default = "") {

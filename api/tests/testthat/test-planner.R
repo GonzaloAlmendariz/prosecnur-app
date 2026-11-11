@@ -190,9 +190,11 @@ test_that("un estudio tiene un solo tipo y quién diseña la muestra sale del ti
   expect_equal(diseno(tipo = "territorial", seleccion = "conveniencia"), "cuotas")
   expect_equal(diseno(tipo = "aulas"), "calc-muestra")
   expect_equal(diseno(tipo = "telefonico"), "cliente")
-  # Acreditación: la muestra la define Monitoreo con porcentajes; Cálculo no participa.
-  expect_equal(diseno(tipo = "acreditacion"), "cliente")
-  expect_null(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion"))))$calc$modo)
+  # ADR 0143: una acreditación que se declara ahora la diseña Cálculo; la que ya guardó "cliente" lo conserva.
+  expect_equal(diseno(tipo = "acreditacion"), "calc-muestra")
+  expect_equal(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion"))))$calc$modo, "acreditacion")
+  expect_equal(diseno(tipo = "acreditacion", diseno = "cliente"), "cliente")
+  expect_null(.planner_modos_de(list(.planner_norm_perfil(list(tipo = "acreditacion", diseno = "cliente"))))$calc$modo)
 })
 
 test_that("un .pulso que ya guardó dos perfiles se lee y fija el modo con el primero", {
@@ -278,9 +280,10 @@ test_that("la tabla perfil → modo del §4, perfil por perfil", {
   expect_null(cli$calc$modo)
   expect_equal(unlist(cli$calc$del_cliente), "telefonico")
 
-  # Acreditación: la muestra la define Monitoreo con porcentajes (ADR 0124).
+  # ADR 0143: una acreditación declarada ahora abre Cálculo; la guardada con "cliente" no.
   acr <- m(tipo = "acreditacion")
-  expect_null(acr$calc$modo)
+  expect_equal(acr$calc$modo, "acreditacion")
+  expect_null(m(tipo = "acreditacion", diseno = "cliente")$calc$modo)
   # ADR 0125 §5: los canales los declara el Modelo de Monitoreo; sin ellos, correo.
   expect_equal(unlist(acr$material$campanas), "correo")
   expect_equal(acr$material$proposito, "acreditacion")

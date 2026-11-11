@@ -75,6 +75,18 @@ base, sin sorteo. El resultado declara:
 
 **Otros canales** (`presencial` para docentes o egresados): siguen el ADR 0091.
 
+## Quién diseña la muestra de una acreditación
+
+Hasta este ADR, la Ficha guardaba toda acreditación con `diseno = "cliente"` (ADR 0124: "los públicos y sus
+porcentajes se fijan en Monitoreo") y Cálculo de muestra no abría su modo. Decisión de Gonzalo (2026-11-11): "se
+habilita sólo en los nuevos estudios que marquen acreditación al iniciar el proyecto".
+
+- Una acreditación que se declara desde ahora queda con `diseno = "calc-muestra"`: Cálculo abre el modo
+  Acreditación, con sus metas por público y el panel Propuesta (PPT y Excel de escenarios). Monitoreo sigue con el
+  avance y las cuotas.
+- Un estudio ya guardado conserva el `diseno` que tenía, y un `.pulso` sin perfiles declarados sigue proyectándose
+  con `"cliente"`.
+
 ## Consecuencias
 
 - Un `.pulso` guardado con docentes o egresados por correo o teléfono pasa de
