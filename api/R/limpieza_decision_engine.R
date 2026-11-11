@@ -402,13 +402,16 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   list(ids = ids, n_sin_llave = 0L, motivo = NULL)
 }
 
+# Un id por número de fila (`<tabla>::row::N`) cuenta filas del archivo
+# recibido (`.limpieza_filas_origen()`), no la posición tras filtrar.
 .limpieza_ids_metodo_anterior <- function(df, table_key) {
+  filas <- .limpieza_filas_origen(df)
   for (cand in .limpieza_uuid_candidates()) {
     if (cand %in% names(df)) {
       ids <- as.character(df[[cand]])
       ok <- !is.na(ids) & nzchar(ids)
       if (any(ok)) {
-        fallback <- sprintf("%s::row::%d", table_key, seq_len(nrow(df)))
+        fallback <- sprintf("%s::row::%d", table_key, filas)
         ids[!ok] <- fallback[!ok]
         return(list(ids = ids, metodo = "columna_candidata", variables = character(0),
                     columna = cand, n_filas_sin_llave = as.integer(sum(!ok))))
@@ -418,12 +421,12 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
 
   if ("_index" %in% names(df)) {
     idx <- suppressWarnings(as.integer(df[["_index"]]))
-    idx[is.na(idx)] <- seq_len(nrow(df))[is.na(idx)]
+    idx[is.na(idx)] <- filas[is.na(idx)]
     return(list(ids = sprintf("%s::idx::%d", table_key, idx), metodo = "numero_fila",
                 variables = character(0), columna = "_index", n_filas_sin_llave = 0L))
   }
 
-  list(ids = sprintf("%s::row::%d", table_key, seq_len(nrow(df))), metodo = "numero_fila",
+  list(ids = sprintf("%s::row::%d", table_key, filas), metodo = "numero_fila",
        variables = character(0), columna = NA_character_, n_filas_sin_llave = 0L)
 }
 
@@ -511,8 +514,14 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   if (identical(out$metodo, "llave_declarada")) {
     return(list(metodo = "llave_declarada", variables = as.list(out$variables)))
   }
-  list(metodo = "anterior",
-       columna = if (is.na(out$columna)) "posicion" else as.character(out$columna))
+  marca <- list(metodo = "anterior",
+                columna = if (is.na(out$columna)) "posicion" else as.character(out$columna))
+  # Si la tabla tiene casos por número de fila y la auditoría numera por el
+  # archivo recibido, se anota: así una decisión de antes (que contaba la
+  # tabla auditada) se distingue de una de ahora (limpieza_fila_origen.R).
+  por_fila <- identical(marca$columna, "posicion") || isTRUE(out$n_filas_sin_llave > 0L)
+  if (por_fila && .limpieza_tiene_fila_origen(df)) marca$numeracion <- .LIMPIEZA_NUMERACION_ORIGEN
+  marca
 }
 
 # Tabla de la última auditoría donde vive la regla de una decisión; principal
@@ -561,19 +570,20 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     return(list(ids = .limpieza_ids_metodo_anterior(df, table_key)$ids,
                 aplicable = TRUE, motivo = NA_character_))
   }
+  filas <- .limpieza_filas_origen(df)
   if (identical(col, "posicion")) {
-    return(list(ids = sprintf("%s::row::%d", table_key, seq_len(n)),
+    return(list(ids = sprintf("%s::row::%d", table_key, filas),
                 aplicable = TRUE, motivo = NA_character_))
   }
   if (!(col %in% names(df))) return(no_aplica("columna_ausente"))
   if (identical(col, "_index")) {
     idx <- suppressWarnings(as.integer(df[["_index"]]))
-    idx[is.na(idx)] <- seq_len(n)[is.na(idx)]
+    idx[is.na(idx)] <- filas[is.na(idx)]
     return(list(ids = sprintf("%s::idx::%d", table_key, idx), aplicable = TRUE, motivo = NA_character_))
   }
   ids <- as.character(df[[col]])
   ok <- !is.na(ids) & nzchar(ids)
-  ids[!ok] <- sprintf("%s::row::%d", table_key, seq_len(n))[!ok]
+  ids[!ok] <- sprintf("%s::row::%d", table_key, filas)[!ok]
   list(ids = ids, aplicable = TRUE, motivo = NA_character_)
 }
 
@@ -586,40 +596,76 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
 # se resuelve SOLO con el método con que se tomaron (su marca); si ese método
 # ya no sirve, no llega a ninguna fila y `aplicable` es FALSE. Una decisión sin
 # casos guardados (la regla entera) se resuelve con los casos que marca la
-# regla en la última auditoría, con la llave que rige hoy; si la regla no marca
-# ninguno, `filas` es NULL (el llamador decide qué significa).
+# regla en la última auditoría, con la llave que rige hoy.
+#
+# Una decisión que no llega a ninguna fila de `df` tampoco es aplicable, y
+# `motivo` dice por qué: la regla ya no marca casos (`regla_sin_casos`; antes
+# una corrección se aplicaba entonces a TODAS las filas), o sus casos no están
+# en la tabla principal (`sin_filas_en_principal`: registros de una hija sin el
+# id del envío, ids que ya no existen). Ids por número de fila contados sobre
+# la tabla auditada (decisiones o auditorías anteriores a la fila de origen)
+# solo se leen si esa numeración coincide con la del archivo recibido
+# (limpieza_fila_origen.R); si no, la decisión no se aplica a nadie.
 #
 # `df` es la tabla tal como llega, ANTES de excluir nada: los ids se calculan
 # una sola vez sobre ella y quien aplica cruza por la fila original
-# (`ids_filas` es el id de cada fila con el método de la decisión).
-.limpieza_resolver_decision <- function(d, scope, df, table_key = "principal") {
+# (`ids_filas` es el id de cada fila con el método de la decisión). Con
+# `es_auditada = TRUE`, `df` es la tabla de la auditoría (al publicar si la
+# decisión es aplicable) y no sirve para medir la numeración de la que se limpia.
+.limpieza_resolver_decision <- function(d, scope, df, table_key = "principal", es_auditada = FALSE) {
+  n <- if (is.data.frame(df)) nrow(df) else 0L
+  df_aplicar <- if (isTRUE(es_auditada)) NULL else df
+  no_aplica <- function(motivo, ids = rep(NA_character_, n)) {
+    list(filas = rep(FALSE, n), ids_filas = ids, aplicable = FALSE, motivo = motivo)
+  }
   explicitos <- .limpieza_ids_explicitos(d)
   if (length(explicitos)) {
     r <- .limpieza_ids_por_marca(df, table_key, d$identificacion_casos)
-    if (!isTRUE(r$aplicable)) {
-      return(list(filas = rep(FALSE, nrow(df)), ids_filas = r$ids, aplicable = FALSE,
-                  motivo = r$motivo))
+    if (!isTRUE(r$aplicable)) return(no_aplica(r$motivo, r$ids))
+    if (.limpieza_decision_numeracion_anterior(d) &&
+        !isTRUE(.limpieza_numeracion_auditada_es_origen(scope, df_aplicar))) {
+      return(no_aplica("numeracion_anterior", r$ids))
     }
-    return(list(filas = r$ids %in% explicitos, ids_filas = r$ids, aplicable = TRUE,
-                motivo = NA_character_))
+    filas <- r$ids %in% explicitos
+    if (!any(filas)) return(no_aplica("sin_filas_en_principal", r$ids))
+    return(list(filas = filas, ids_filas = r$ids, aplicable = TRUE, motivo = NA_character_))
   }
   identidad <- .limpieza_identidad_caso(scope)$variables
   ids <- .limpieza_rule_case_map(scope$evaluacion, d$source_id, identidad)$case_ids
   ids <- ids[!is.na(ids) & nzchar(ids)]
   propios <- .limpieza_make_case_ids(df, table_key, identidad)
-  if (!length(ids)) return(list(filas = NULL, ids_filas = propios, aplicable = TRUE, motivo = NA_character_))
-  list(filas = propios %in% ids, ids_filas = propios, aplicable = TRUE, motivo = NA_character_)
+  if (!length(ids)) return(no_aplica("regla_sin_casos", propios))
+  if (any(.limpieza_ids_por_numero_de_fila(ids, table_key)) &&
+      !.limpieza_tiene_fila_origen(.limpieza_tabla_auditada(scope, table_key)) &&
+      !isTRUE(.limpieza_numeracion_auditada_es_origen(scope, df_aplicar))) {
+    return(no_aplica("auditoria_sin_fila_de_origen", propios))
+  }
+  filas <- propios %in% ids
+  if (!any(filas)) return(no_aplica("sin_filas_en_principal", propios))
+  list(filas = filas, ids_filas = propios, aplicable = TRUE, motivo = NA_character_)
 }
 
 # Si una decisión se puede aplicar hoy, para publicarlo por decisión en la
-# respuesta de la limpieza. Se comprueba en la tabla de su regla en la última
-# auditoría (la principal si no tiene regla); sin auditoría no se sabe (NA).
+# respuesta de la limpieza. Con casos guardados, el método de su marca se
+# comprueba primero en la tabla de su regla (donde se tomaron); después, como
+# toda decisión que cambia datos, se resuelve contra la tabla principal de la
+# última auditoría, que es donde se aplica. Ignorar una regla no toca filas y
+# siempre es aplicable. Sin auditoría no se sabe (NA).
 .limpieza_aplicabilidad <- function(d, scope) {
-  if (!length(.limpieza_ids_explicitos(d))) return(list(aplicable = TRUE, motivo = NA_character_))
-  tabla <- .limpieza_tabla_de_regla(scope, d$source_id)
-  df <- .limpieza_tabla_auditada(scope, tabla)
-  if (!is.data.frame(df)) return(list(aplicable = NA, motivo = NA_character_))
-  r <- .limpieza_ids_por_marca(df, tabla, d$identificacion_casos)
+  if (identical(as.character(d$action_type %||% "")[1], "ignore_rule")) {
+    return(list(aplicable = TRUE, motivo = NA_character_))
+  }
+  principal <- .limpieza_tabla_auditada(scope, "principal")
+  if (!is.data.frame(principal)) return(list(aplicable = NA, motivo = NA_character_))
+  if (length(.limpieza_ids_explicitos(d))) {
+    tabla <- .limpieza_tabla_de_regla(scope, d$source_id)
+    df <- .limpieza_tabla_auditada(scope, tabla)
+    if (is.data.frame(df)) {
+      r <- .limpieza_ids_por_marca(df, tabla, d$identificacion_casos)
+      if (!isTRUE(r$aplicable)) return(list(aplicable = FALSE, motivo = r$motivo))
+    }
+  }
+  r <- .limpieza_resolver_decision(d, scope, principal, "principal", es_auditada = TRUE)
   list(aplicable = isTRUE(r$aplicable), motivo = r$motivo)
 }
 
@@ -638,6 +684,14 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     llave_con_vacios = "la llave que identifica los casos tiene filas sin valor",
     llave_ausente = "la llave que identifica los casos ya no está en la base",
     columna_ausente = "la columna que identifica los casos ya no está en la base",
+    regla_sin_casos = "la regla ya no marca casos en la última auditoría",
+    sin_filas_en_principal = "sus casos no corresponden a ninguna fila de la tabla principal",
+    numeracion_anterior = paste(
+      "sus casos se guardaron por número de fila contando solo los casos válidos,",
+      "y esa numeración ya no coincide con la de la base recibida"),
+    auditoria_sin_fila_de_origen = paste(
+      "la última auditoría no conserva el número de fila de la base recibida;",
+      "vuelve a correr la auditoría"),
     "el método con que se identificaron sus casos ya no sirve")
 }
 
@@ -1153,9 +1207,13 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   df <- scope$evaluacion$datos_tablas[[mapa$table]] %||% scope$evaluacion$datos
   covered <- if (length(mapa$row_idx) && is.data.frame(df)) {
     cubiertas <- rep(FALSE, length(mapa$row_idx))
+    numeracion_origen <- isTRUE(.limpieza_numeracion_auditada_es_origen(scope))
     for (d in ready_hits) {
       r <- .limpieza_ids_por_marca(df, mapa$table, d$identificacion_casos)
       if (!isTRUE(r$aplicable)) next
+      # Ids por número de fila de la numeración anterior que ya no se pueden
+      # leer: no cubren nada (compararlos con los de hoy cubriría otra fila).
+      if (.limpieza_decision_numeracion_anterior(d) && !numeracion_origen) next
       cubiertas <- cubiertas | (r$ids[mapa$row_idx] %in% .limpieza_ids_explicitos(d))
     }
     sum(cubiertas)
@@ -1297,7 +1355,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   ready <- Filter(function(d) identical(as.character(d$status %||% ""), "ready"), decisions %||% list())
   if (!length(ready)) {
     return(list(
-      data = dplyr::select(data_out, -dplyr::all_of(".__case_id__")),
+      data = dplyr::select(data_out, -dplyr::any_of(c(".__case_id__", .LIMPIEZA_COL_FILA_ORIGEN))),
       excluded_cases = tibble::tibble(),
       replacements = tibble::tibble(),
       imputations = tibble::tibble(),
@@ -1367,10 +1425,12 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     if (!nzchar(var)) next
 
     r <- resolver(d)
+    # Una decisión que no llega a ninguna fila (la regla ya no marca casos, sus
+    # casos no están en la base) no se aplica a nadie y se avisa. Antes, una
+    # corrección de la regla entera cuya regla no marcaba casos alcanzaba a
+    # TODAS las filas.
     if (!isTRUE(r$aplicable)) { avisar_no_aplicable(d, r$motivo); next }
-    # Como antes: una decisión sobre la regla entera cuya regla no marca casos
-    # alcanza a todas las filas. Si no, se cruza por la fila original.
-    row_mask <- if (!is.null(r$filas)) r$filas[data_out[[col_fila]]] else rep(TRUE, nrow(data_out))
+    row_mask <- r$filas[data_out[[col_fila]]]
     if (!any(row_mask)) next
 
     if (identical(d$action_type, "complete_select_multiple_hierarchy")) {
@@ -1563,7 +1623,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   }
 
   list(
-    data = dplyr::select(data_out, -dplyr::any_of(c(".__case_id__", col_fila))),
+    data = dplyr::select(data_out, -dplyr::any_of(c(".__case_id__", col_fila, .LIMPIEZA_COL_FILA_ORIGEN))),
     excluded_cases = if (length(excluded_cases_df)) excluded_cases_df else tibble::tibble(),
     replacements = if (length(replacements_log)) dplyr::bind_rows(replacements_log) else tibble::tibble(),
     imputations = if (length(imputations_log)) dplyr::bind_rows(imputations_log) else tibble::tibble(),
@@ -1582,6 +1642,15 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   )
 }
 
+# Cuenta de filas del antes y del después de la vista previa, sobre la MISMA
+# base: la que se limpia, que conserva los casos fuera del universo (E8).
+#   filas_base            filas de la base que se limpia (antes) o de la base
+#                         limpia (después); filas_base antes - casos excluidos
+#                         = filas_base después.
+#   filas_evaluadas       de esas, las del universo del estudio (las que se
+#                         auditan; antes, las de la tabla principal auditada).
+#   filas_fuera_universo  las que el caso válido deja fuera y siguen en la base.
+# `total_inconsistencias` son hallazgos (`.limpieza_total_hallazgos()`).
 .limpieza_before_metrics <- function(scope) {
   ev <- scope$evaluacion
   if (is.null(ev) || is.null(ev$resumen)) {
@@ -1589,22 +1658,39 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
       total_inconsistencias = 0L,
       reglas_con_casos = 0L,
       reglas_total = 0L,
-      filas_base = 0L
+      filas_base = 0L,
+      filas_evaluadas = 0L,
+      filas_fuera_universo = 0L
     ))
   }
   res <- ev$resumen
-  total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
-  total <- if (is.numeric(total_raw) && length(total_raw) == 1L) {
-    as.integer(total_raw)
-  } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
-    as.integer(total_raw$cabecera$Total_inconsistencias[1] %||% 0L)
-  } else 0L
+  total <- .limpieza_total_hallazgos(ev)
+  aud <- .limpieza_tabla_auditada(scope, "principal")
+  evaluadas <- as.integer(if (is.data.frame(aud)) nrow(aud) else 0L)
+  fuera <- .limpieza_filas_fuera_universo(ev, scope$operational_config)
   list(
-    total_inconsistencias = total,
+    total_inconsistencias = if (is.na(total)) 0L else total,
     reglas_con_casos = as.integer(sum(as.integer(res$n_inconsistencias %||% 0L) > 0L, na.rm = TRUE)),
     reglas_total = as.integer(nrow(res)),
-    filas_base = as.integer(nrow(ev$datos %||% tibble::tibble()))
+    filas_base = if (is.na(fuera)) NA_integer_ else as.integer(evaluadas + fuera),
+    filas_evaluadas = evaluadas,
+    filas_fuera_universo = fuera
   )
+}
+
+# La cuenta de antes medida sobre la base que se va a limpiar, cruzando por la
+# fila de origen con la tabla auditada.
+.limpieza_before_medido <- function(before, scope, data_raw) {
+  aud <- .limpieza_tabla_auditada(scope, "principal")
+  n <- as.integer(nrow(data_raw))
+  fuera <- if (.limpieza_tiene_fila_origen(aud) && .limpieza_tiene_fila_origen(data_raw)) {
+    sum(!(.limpieza_filas_origen(data_raw) %in% .limpieza_filas_origen(aud)))
+  } else if (is.data.frame(aud)) {
+    max(0L, n - nrow(aud))
+  } else 0L
+  before$filas_base <- n
+  before$filas_fuera_universo <- as.integer(fuera)
+  before
 }
 
 .limpieza_simulate <- function(sid, base_nombre, scope, decisions = NULL) {
@@ -1637,42 +1723,43 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
 
   files <- .resolve_base_files(sid, base_nombre)
   inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
+  # La base que se limpia: sin el filtro de caso válido (ADR 0075, los casos
+  # fuera del universo siguen en la base limpia), con su fila de origen.
   data_raw <- read_validation_data_ast(
     path = files$data$path,
     ext = files$data_ext,
     instrumento = inst
   )$principal
+  before <- .limpieza_before_medido(before, scope, data_raw)
   apply_out <- .limpieza_apply_decisions_to_data(data_raw, scope, ready, inst = inst)
   plan_final <- .limpieza_effective_plan(scope, inst = inst, decisions = ready)
 
+  # El después se evalúa sobre el mismo universo que el antes: sin los casos
+  # que el caso válido deja fuera (que siguen en la base limpia).
+  n_limpia <- as.integer(nrow(apply_out$data %||% tibble::tibble()))
+  datos_universo <- if (is.data.frame(apply_out$data)) {
+    caso_valido_filtrar_evaluacion(apply_out$data, scope$operational_config)$data
+  } else apply_out$data
+  n_universo <- as.integer(nrow(datos_universo %||% tibble::tibble()))
   ev_after <- if (!is.null(plan_final) && nrow(plan_final) > 0L) {
     evaluar_consistencia(
-      datos = apply_out$data,
+      datos = datos_universo,
       plan = plan_final,
       contar_na_como_inconsistencia = FALSE
     )
   } else NULL
 
+  filas_after <- list(filas_base = n_limpia, filas_evaluadas = n_universo,
+                      filas_fuera_universo = as.integer(n_limpia - n_universo))
   after <- if (is.null(ev_after)) {
-    list(
-      total_inconsistencias = 0L,
-      reglas_con_casos = 0L,
-      reglas_total = 0L,
-      filas_base = as.integer(nrow(apply_out$data %||% tibble::tibble()))
-    )
+    c(list(total_inconsistencias = 0L, reglas_con_casos = 0L, reglas_total = 0L), filas_after)
   } else {
-    total_raw <- tryCatch(total_inconsistencias(ev_after), error = function(e) NULL)
-    total <- if (is.numeric(total_raw) && length(total_raw) == 1L) {
-      as.integer(total_raw)
-    } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
-      as.integer(total_raw$cabecera$Total_inconsistencias[1] %||% 0L)
-    } else 0L
-    list(
-      total_inconsistencias = total,
+    total <- .limpieza_total_hallazgos(ev_after)
+    c(list(
+      total_inconsistencias = if (is.na(total)) 0L else total,
       reglas_con_casos = as.integer(sum(as.integer(ev_after$resumen$n_inconsistencias %||% 0L) > 0L, na.rm = TRUE)),
-      reglas_total = as.integer(nrow(ev_after$resumen %||% tibble::tibble())),
-      filas_base = as.integer(nrow(apply_out$data %||% tibble::tibble()))
-    )
+      reglas_total = as.integer(nrow(ev_after$resumen %||% tibble::tibble()))
+    ), filas_after)
   }
 
   impact <- apply_out$impact
@@ -1735,6 +1822,10 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     total_reglas_con_casos = as.integer(length(queue)),
     total_reglas_automaticas = as.integer(sum(vapply(queue, function(x) identical(x$source_type %||% "", "instrument_rule"), logical(1)))),
     total_reglas_custom = as.integer(sum(vapply(queue, function(x) identical(x$source_type %||% "", "custom_rule"), logical(1)))),
+    # Hallazgos (pares caso y regla) de la última auditoría, no casos.
+    # `total_casos_afectados` es el nombre anterior de la misma cifra: se
+    # conserva porque `types.ts` lo declara, y no se usa para casos.
+    total_hallazgos = as.integer(preview$before$total_inconsistencias %||% 0L),
     total_casos_afectados = as.integer(preview$before$total_inconsistencias %||% 0L),
     total_decisiones = as.integer(length(decisions)),
     decisiones_listas = as.integer(sum(vapply(decisions, function(d) identical(as.character(d$status %||% ""), "ready"), logical(1)))),

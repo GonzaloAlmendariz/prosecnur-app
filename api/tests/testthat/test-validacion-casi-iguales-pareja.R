@@ -65,9 +65,8 @@ test_that("una fila marcada sin pareja publica null, no una lista vacía", {
   local_mocked_bindings(validacion_parejas_de_evaluacion = function(...) completas[completas$fila_a != 1L, ])
   scope <- list(evaluacion = ev)
   casos_df <- x$df[c(1, 3, 5, 6), "id", drop = FALSE]
-  det <- .validacion_drill_detalle_casos(scope, "OP_duplicates", casos_df,
-                                         as.list(sprintf("principal::row::%d", c(1, 3, 5, 6))),
-                                         list(), NULL)
+  det <- .validacion_drill_detalle_casos(scope, "OP_duplicates", casos_df, list(), NULL)
+  expect_identical(det$case_ids, sprintf("principal::row::%d", c(1, 3, 5, 6)))
   expect_true(is.na(det$coincide_con[[1]]))
   expect_true(is.na(det$coincide_con[[2]]))
   expect_identical(det$coincide_con[[3]][[1]]$id_caso, "principal::row::6")

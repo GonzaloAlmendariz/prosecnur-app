@@ -687,6 +687,11 @@ validation_bundle_from_plan_xlsx <- function(path,
   main_name <- lx$meta$main %||% names(lx$data)[1]
   tables <- .inherit_parent_columns(lx$data, main_name = main_name)
   tables <- .restore_instrument_case_aliases(tables, instrumento = instrumento)
+  # Número de fila en el archivo recibido, antes de cualquier filtro
+  # (limpieza_fila_origen.R): la auditoría y la limpieza cruzan por él.
+  if (!is.null(main_name) && main_name %in% names(tables)) {
+    tables[[main_name]] <- .validacion_marcar_fila_origen(tables[[main_name]])
+  }
   if (!"principal" %in% names(tables) && !is.null(main_name) && main_name %in% names(tables)) {
     tables <- c(list(principal = tables[[main_name]]), tables)
   }
@@ -709,6 +714,7 @@ validation_bundle_from_plan_xlsx <- function(path,
     rc_checks = lx$rc_checks %||% list(),
     meta = lx$meta %||% list(),
     row_filter = filtered$filter %||% NULL,
+    caso_valido_filter = filtered$caso_valido %||% NULL,
     source = source
   )
 }
@@ -738,6 +744,7 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL,
     sav = haven::read_sav(path),
     stop(sprintf("Unsupported data extension for AST runtime: %s", ext))
   )
+  df <- .validacion_marcar_fila_origen(df)
   df <- normalize_data_for_xlsform(df, instrumento)
   filtered <- .validation_filter_sm_partial_rows(df)
   df <- filtered$data
@@ -751,6 +758,7 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL,
     rc_checks = list(),
     meta = list(main = "principal"),
     row_filter = filtered$filter %||% NULL,
+    caso_valido_filter = filtered$caso_valido %||% NULL,
     source = "single_table"
   )
 }
@@ -1042,7 +1050,8 @@ evaluate_validation_bundle <- function(bundle,
       datos_tablas = data_input$tables %||% list(principal = data_input$principal %||% tibble::tibble()),
       resumen = tibble::tibble(),
       reglas_meta = .rule_meta_from_bundle(bundle),
-      diagnostico_reglas = tibble::tibble()
+      diagnostico_reglas = tibble::tibble(),
+      caso_valido_filter = if (is.list(data_input) && !is.data.frame(data_input)) data_input$caso_valido_filter %||% NULL else NULL
     ))
   }
 
@@ -1216,6 +1225,9 @@ evaluate_validation_bundle <- function(bundle,
     reglas_meta = reglas_meta,
     diagnostico_reglas = diagnostico_reglas,
     row_filter = data_ctx$row_filter %||% NULL,
+    # Filas que el caso válido dejó fuera: la limpieza cuenta antes y después
+    # sobre la base que se limpia, que las conserva (limpieza_fila_origen.R).
+    caso_valido_filter = data_ctx$caso_valido_filter %||% NULL,
     bundle = bundle
   )
 }

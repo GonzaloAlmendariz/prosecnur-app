@@ -22,7 +22,8 @@ test_that("un caso con dos hallazgos cuenta 1 caso y 2 hallazgos", {
   expect_identical(cifras$n_casos_evaluados, 10L)
   expect_identical(cifras$n_reglas_con_casos, 2L)
   expect_identical(cifras$por_tabla[[1]]$tabla, "principal")
-  expect_identical(cifras$por_tabla[[1]]$n_casos_con_hallazgos, 1L)
+  expect_identical(cifras$por_tabla[[1]]$n_encuestados_con_hallazgos, 1L)
+  expect_identical(cifras$n_encuestados_con_hallazgos, 1L)
 
   # La tarjeta conserva su significado: hallazgos.
   tarjeta <- Filter(function(k) identical(k$title, "Total inconsistencias"), limpieza$kpis)[[1]]

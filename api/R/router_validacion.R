@@ -245,6 +245,8 @@
     impact = preview$impact,
     residual_final = preview$residual_final,
     decisions_ready = preview$decisions_ready,
+    # Avisos de la aplicación (una decisión que no se aplica, y por qué).
+    warnings = as.list(as.character(preview$logs$warnings %||% character(0))),
     preview_error = preview$preview_error %||% NULL
   )
 }
@@ -1065,7 +1067,7 @@ mount_validacion <- function(pr) {
         ext = files$data$ext,
         instrumento = inst
       )
-      available_variables <- names(main_data_ctx$principal %||% data.frame())
+      available_variables <- names(.limpieza_sin_columnas_internas(main_data_ctx$principal %||% data.frame()))
       op_config <- normalize_validation_operational_config(
         parsed_body$operational_config %||% operational_config %||% scope$operational_config %||% NULL,
         available_variables = available_variables
@@ -1449,34 +1451,13 @@ mount_validacion <- function(pr) {
         as.numeric(aud$resumen$porcentaje[1])
       } else NA_real_
 
-      # Extraer casos del primer elemento de aud$casos.
+      # Extraer casos del primer elemento de aud$casos. El id de cada caso sale
+      # de la misma función que la cola y GET /caso (validacion_caso_completo.R).
       casos_df <- if (length(aud$casos) > 0L) aud$casos[[1]] else NULL
-      case_ids <- character(0)
-      # Detectar columna UUID: buscar nombres típicos.
-      uuid_col <- NULL
-      if (!is.null(casos_df) && nrow(casos_df)) {
-        candidatos_uuid <- c("_uuid", "uuid", "respondent_id", "response_id", "_id", "_submission_id",
-                              "_submission_uuid", "id_caso", "fila_id")
-        for (cname in candidatos_uuid) {
-          if (cname %in% names(casos_df)) { uuid_col <- cname; break }
-        }
-        if (!is.null(uuid_col)) {
-          case_ids <- as.character(casos_df[[uuid_col]])
-        } else {
-          case_map <- .limpieza_rule_case_map(scope$evaluacion, id_regla)
-          case_ids <- case_map$case_ids %||% character(0)
-          if (length(case_ids) == nrow(casos_df)) {
-            uuid_col <- "_pulso_case_id"
-          } else {
-            case_ids <- sprintf("%s::row::%d", tabla %||% "principal", seq_len(nrow(casos_df)))
-            uuid_col <- "_pulso_case_id"
-          }
-        }
-      }
-      detalle_casos <- .validacion_drill_detalle_casos(scope, id_regla, casos_df, case_ids,
+      detalle_casos <- .validacion_drill_detalle_casos(scope, id_regla, casos_df,
                                                        variable_roles, inst)
       case_ids <- detalle_casos$case_ids
-      if (isTRUE(detalle_casos$ids_de_la_llave)) uuid_col <- "_pulso_case_id"
+      uuid_col <- detalle_casos$uuid_col
       value_label_vars <- unique(c(
         vars,
         .drill_data_names(casos_df),
@@ -1830,7 +1811,8 @@ mount_validacion <- function(pr) {
                       identidad = list(llaves = list(), agentes = list()),
                       periodo = NULL, caso_valido = list(), abiertas = list())
 
-        data <- scope$evaluacion$datos %||% NULL
+        # Sin la columna interna de la fila de origen: no es una variable del estudio.
+        data <- .limpieza_sin_columnas_internas(scope$evaluacion$datos %||% NULL)
         if (is.null(data)) {
           data <- tryCatch({
             files <- .resolve_base_files(sid, base)
@@ -1890,7 +1872,8 @@ mount_validacion <- function(pr) {
         # se lee del archivo de la base. Sin par cargado no hay nada que sembrar
         # y se devuelve vacío en vez de cortar: la pestaña puede pedir semillas
         # antes de que Fase 1 esté completa.
-        data <- scope$evaluacion$datos %||% NULL
+        # Sin la columna interna de la fila de origen: no es una variable del estudio.
+        data <- .limpieza_sin_columnas_internas(scope$evaluacion$datos %||% NULL)
         if (is.null(data)) {
           data <- tryCatch({
             files <- .resolve_base_files(sid, base)

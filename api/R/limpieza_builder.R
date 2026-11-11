@@ -88,64 +88,15 @@
 
 # Hallazgos de la auditoría: un hallazgo es un caso marcado por una regla, así
 # que un caso marcado por dos reglas son dos hallazgos. Es la cifra de la
-# tarjeta "Total inconsistencias" (sale de `total_inconsistencias()`).
+# tarjeta "Total inconsistencias", de `cifras_hallazgos$n_hallazgos` y del
+# antes y después de la vista previa: la suma de `n_inconsistencias` de las
+# reglas evaluadas (las que no se pudieron evaluar, NA, no suman). Sin reglas
+# evaluadas es 0; NA solo si no hay resumen de auditoría.
 .limpieza_total_hallazgos <- function(ev) {
-  total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
-  if (is.numeric(total_raw) && length(total_raw) == 1L) {
-    as.integer(total_raw)
-  } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
-    ca <- total_raw$cabecera
-    as.integer(if (is.data.frame(ca)) ca$Total_inconsistencias[1]
-               else ca[[1]]$Total_inconsistencias)
-  } else NA_integer_
-}
-
-# Cifras de cabecera de Hallazgos, en hallazgos y en casos distintos.
-#   n_hallazgos            suma, regla por regla, de los casos que marcó cada
-#                          regla (= tarjeta "Total inconsistencias").
-#   n_casos_con_hallazgos  casos distintos con al menos un hallazgo, contados
-#                          por su id de caso (el mismo que usan la cola y las
-#                          decisiones), en todas las tablas de la auditoría.
-#   n_casos_evaluados      filas de la tabla principal de la auditoría.
-#   por_tabla              lo mismo por tabla (en una madre con hijas de grupo
-#                          repetido, cada hija es una tabla).
-# Las reglas no evaluadas (n_inconsistencias NA) no aportan casos.
-.limpieza_cifras_hallazgos <- function(scope) {
-  ev <- scope$evaluacion
-  if (is.null(ev) || is.null(ev$resumen)) return(NULL)
-  res <- ev$resumen
-  tablas <- ev$datos_tablas %||% list(principal = ev$datos)
-  identidad <- .limpieza_identidad_caso(scope)$variables
-  cache <- new.env(parent = emptyenv())
-
-  con_casos <- if (nrow(res)) {
-    n <- suppressWarnings(as.integer(res$n_inconsistencias))
-    as.character(res$id_regla[!is.na(n) & n > 0L])
-  } else character(0)
-  mapas <- lapply(con_casos, function(rid) .limpieza_rule_case_map(ev, rid, identidad, cache))
-  tabla_de <- vapply(mapas, function(m) as.character(m$table %||% "principal"), character(1))
-
-  nombres <- unique(c(names(tablas), tabla_de))
-  por_tabla <- lapply(nombres, function(t) {
-    ms <- mapas[tabla_de == t]
-    ids <- unique(as.character(unlist(lapply(ms, `[[`, "case_ids"), use.names = FALSE)))
-    df <- tablas[[t]]
-    list(
-      tabla = t,
-      n_filas = if (is.data.frame(df)) nrow(df) else NA_integer_,
-      n_hallazgos = as.integer(sum(vapply(ms, function(m) length(m$row_idx), integer(1)))),
-      n_casos_con_hallazgos = length(ids)
-    )
-  })
-  todos <- unique(as.character(unlist(lapply(mapas, `[[`, "case_ids"), use.names = FALSE)))
-  principal <- tablas$principal %||% ev$datos
-  list(
-    n_hallazgos = .limpieza_total_hallazgos(ev),
-    n_casos_con_hallazgos = length(todos),
-    n_casos_evaluados = if (is.data.frame(principal)) nrow(principal) else NA_integer_,
-    n_reglas_con_casos = length(con_casos),
-    por_tabla = por_tabla
-  )
+  res <- (ev %||% list())$resumen
+  if (!is.data.frame(res)) return(NA_integer_)
+  if (!nrow(res) || !"n_inconsistencias" %in% names(res)) return(0L)
+  as.integer(sum(suppressWarnings(as.integer(res$n_inconsistencias)), na.rm = TRUE))
 }
 
 # -----------------------------------------------------------------------------

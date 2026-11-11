@@ -205,6 +205,9 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
                        error = function(e) NULL) %||% base_nombre %||% NA_character_
   identidad <- .limpieza_identidad_caso(scope)$variables
   tablas <- ev$datos_tablas %||% list(principal = ev$datos)
+  # Las copias de la tabla principal (la hoja original de un Excel) no son otra
+  # tabla del caso: ni lo encuentran ni salen en `en_otras_tablas`.
+  tablas <- tablas[setdiff(names(tablas), .limpieza_tablas_alias(ev))]
   orden <- c(intersect("principal", names(tablas)), setdiff(names(tablas), "principal"))
 
   encontrado <- NULL
@@ -247,14 +250,18 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
 }
 
 # Lo que el detalle de casos de una regla (POST /instrumento/regla) suma por
-# fila: el enunciado de lo esperado, la pareja de las respuestas casi iguales
-# y, con la llave declarada vigente, los ids de caso de esa llave (los mismos
-# de la cola). Cada fila de `casos_df` se ubica en la tabla de la auditoría
-# (`.validacion_filas_de_casos()`); una fila que no se puede ubicar va NA.
-.validacion_drill_detalle_casos <- function(scope, id_regla, casos_df, case_ids,
-                                            variable_roles, inst) {
-  n <- if (is.data.frame(casos_df)) min(nrow(casos_df), 500L) else 0L
-  out <- list(case_ids = case_ids, ids_de_la_llave = FALSE,
+# fila: el id de caso, el enunciado de lo esperado y la pareja de las
+# respuestas casi iguales. Cada fila de `casos_df` se ubica en la tabla de la
+# auditoría (`.validacion_filas_de_casos()`) y su id sale de la misma función
+# que la cola y GET /caso (`.limpieza_make_case_ids()`), nunca de la columna
+# tal cual ni de numerar los casos marcados. Una fila que no se puede ubicar
+# lleva su id solo si la columna que identifica los casos lo trae y es uno de
+# los que la regla marca; si no, NA (null): una decisión armada con él se
+# rechaza al guardarla en vez de caer en otra fila.
+.validacion_drill_detalle_casos <- function(scope, id_regla, casos_df, variable_roles, inst) {
+  n_casos <- if (is.data.frame(casos_df)) nrow(casos_df) else 0L
+  n <- min(n_casos, 500L)
+  out <- list(case_ids = character(0), ids_de_la_llave = FALSE, uuid_col = NA_character_,
               esperado = rep(list(NA), n), coincide_con = NA)
   if (!n) {
     out$esperado <- list()
@@ -265,12 +272,23 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
   mapa <- .limpieza_rule_case_map(ev, id_regla, identidad)
   df <- ev$datos_tablas[[mapa$table]] %||% ev$datos
   filas <- .validacion_filas_de_casos(casos_df, df, mapa$row_idx)
-  if (all(is.na(filas))) return(out)
-  ids_tabla <- .limpieza_make_case_ids(df, mapa$table, identidad)
-  if (length(identidad)) {
-    out$case_ids <- ids_tabla[filas]
-    out$ids_de_la_llave <- TRUE
+  ident <- .limpieza_identificar_casos(df, mapa$table, identidad)
+  ids_tabla <- ident$ids
+  out$case_ids <- if (length(ids_tabla)) ids_tabla[filas] else rep(NA_character_, n_casos)
+  col <- as.character(ident$columna %||% NA_character_)[1]
+  if (!is.na(col) && col %in% names(casos_df) && identical(ident$metodo, "columna_candidata")) {
+    sin_fila <- is.na(out$case_ids)
+    crudos <- as.character(casos_df[[col]])
+    validos <- sin_fila & !is.na(crudos) & crudos %in% mapa$case_ids
+    out$case_ids[validos] <- crudos[validos]
   }
+  out$ids_de_la_llave <- length(identidad) > 0L
+  # Columna de `casos` que trae el id tal cual, para mostrarlo; si algún id no
+  # coincide con ella (filas sin valor, número de fila), el id es solo el de
+  # `case_ids`.
+  out$uuid_col <- if (!is.na(col) && col %in% names(casos_df) &&
+                      identical(as.character(casos_df[[col]]), out$case_ids)) col else "_pulso_case_id"
+  if (all(is.na(filas))) return(out)
   ids <- ids_tabla[utils::head(filas, n)]
   res <- ev$resumen
   fila <- as.list(res[which(as.character(res$id_regla) == id_regla)[1], , drop = FALSE])
