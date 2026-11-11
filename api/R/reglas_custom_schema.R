@@ -13,7 +13,14 @@
 #   - outliers_z           — |z-score| > k.
 #   - duplicados           — tuplas de variables repetidas.
 #   - fuera_catalogo       — valor no en lista `valores`.
-#   - coherencia_2v        — "si x <op> <valor_x> entonces y <op> <valor_y>".
+#   - coherencia_2v        — "si x <op> <valor_x> entonces y <op> <valor_y>"; en lugar
+#                            de `valor_y` puede comparar con otra pregunta
+#                            (`valor_y_variable`).
+#   - condiciones          — "Condiciones combinadas": marca el caso cuando se cumplen
+#                            todas (`modo = "todas"`) o alguna (`modo = "alguna"`)
+#                            de `params$condiciones`; cada una compara una
+#                            variable con un valor o con otra pregunta. Sin grupos
+#                            anidados.
 #   - select_multiple_hierarchy — si una opcion esta marcada, exige otras.
 #   - select_multiple_exclusive — opciones excluyentes no conviven con otras.
 #   - select_multiple_cardinality — min/max de opciones marcadas.
@@ -27,8 +34,14 @@
   "duplicados", "fuera_catalogo", "coherencia_2v",
   "select_multiple_hierarchy", "select_multiple_exclusive",
   "select_multiple_cardinality", "select_multiple_selection",
-  "continuidad_secuencia", "cruce_identidad"
+  "continuidad_secuencia", "cruce_identidad",
+  "condiciones"
 )
+
+# Comparar con otra pregunta solo admite operadores de comparación: "está
+# entre" o "contiene" no tienen sentido contra una columna.
+.regla_operadores_comparar_variable <- c("==", "!=", ">", ">=", "<", "<=")
+.regla_condiciones_modos <- c("todas", "alguna")
 
 .regla_operadores_basicos <- c("==", "!=", ">", ">=", "<", "<=", "in", "not_in")
 .regla_operadores_gate <- c(
@@ -51,7 +64,12 @@
              sprintf("Tipo '%s' no soportado. Válidos: %s",
                       tipo, paste(.regla_tipos_soportados, collapse = ", ")))
   }
-  vars <- unlist(r$variables %||% list())
+  # En "Condiciones combinadas" las variables salen de las condiciones: se
+  # validan primero para que una regla sin condiciones diga eso y no "faltan
+  # variables".
+  if (identical(tipo, "condiciones")) .regla_validar_condiciones(r$params %||% list())
+  vars <- if (identical(tipo, "condiciones")) .regla_variables_efectivas(r)
+          else unlist(r$variables %||% list())
   if (!length(vars) || any(!nzchar(vars))) {
     stop_api(400, "E_REGLA_SIN_VARS",
              "Falta 'variables' (debe incluir al menos 1 variable).")
@@ -137,8 +155,24 @@
     if (is.null(params$valor_x)) {
       stop_api(400, "E_REGLA_VALOR_X", "'coherencia_2v' requiere 'valor_x'.")
     }
-    if (is.null(params$valor_y)) {
-      stop_api(400, "E_REGLA_VALOR_Y", "'coherencia_2v' requiere 'valor_y'.")
+    var_y <- trimws(calc_str(params$valor_y_variable))
+    if (nzchar(var_y)) {
+      # `[[` y no `$`: `params$valor_y` encontraría `valor_y_variable` por
+      # coincidencia parcial de nombre.
+      if (!is.null(params[["valor_y"]])) {
+        stop_api(400, "E_REGLA_VALOR_Y",
+                 "'coherencia_2v' compara con un valor o con otra pregunta, no con los dos: manda 'valor_y' o 'valor_y_variable'.")
+      }
+      if (!(oy %in% .regla_operadores_comparar_variable)) {
+        stop_api(400, "E_REGLA_OP_Y",
+                 sprintf("Para comparar con otra pregunta, op_y debe ser uno de: %s",
+                         paste(.regla_operadores_comparar_variable, collapse = ", ")))
+      }
+      if (identical(var_y, as.character(vars[2]))) {
+        stop_api(400, "E_REGLA_VALOR_Y", "'valor_y_variable' no puede ser la misma pregunta que compara.")
+      }
+    } else if (is.null(params[["valor_y"]])) {
+      stop_api(400, "E_REGLA_VALOR_Y", "'coherencia_2v' requiere 'valor_y' o 'valor_y_variable'.")
     }
   } else if (tipo == "select_multiple_hierarchy") {
     map <- .transform_normalize_hierarchy_map(params$hierarchy_map %||% params$map %||% NULL)
@@ -240,6 +274,89 @@
   }
 
   invisible(TRUE)
+}
+
+# Una condición de "Condiciones combinadas": variable, operador y un valor (o
+# una lista de valores con "in", "not_in" y "contains*") o la pregunta con la que
+# se compara (`variable_comparada`). Nunca las dos cosas.
+.regla_validar_condiciones <- function(params) {
+  modo <- trimws(calc_str(params$modo))
+  if (!(modo %in% .regla_condiciones_modos)) {
+    stop_api(400, "E_REGLA_CONDICIONES_MODO",
+             "'condiciones' requiere params$modo: \"todas\" o \"alguna\".")
+  }
+  conds <- params$condiciones %||% list()
+  if (!is.list(conds) || !length(conds)) {
+    stop_api(400, "E_REGLA_CONDICIONES_VACIAS",
+             "'condiciones' requiere al menos una condición en params$condiciones.")
+  }
+  for (i in seq_along(conds)) .regla_validar_condicion(conds[[i]], i)
+  invisible(TRUE)
+}
+
+.regla_validar_condicion <- function(cond, i) {
+  if (!is.list(cond)) {
+    stop_api(400, "E_REGLA_CONDICION_VAR", sprintf("La condición %d no es un objeto.", i))
+  }
+  var <- trimws(calc_str(cond$variable))
+  if (!nzchar(var)) {
+    stop_api(400, "E_REGLA_CONDICION_VAR", sprintf("La condición %d no dice qué pregunta revisa.", i))
+  }
+  op <- trimws(calc_str(cond$op))
+  if (!(op %in% .regla_operadores_gate)) {
+    stop_api(400, "E_REGLA_CONDICION_OP",
+             sprintf("La condición %d tiene un operador inválido: '%s'. Válidos: %s",
+                     i, op, paste(.regla_operadores_gate, collapse = ", ")))
+  }
+  comparada <- trimws(calc_str(cond$variable_comparada))
+  if (nzchar(comparada)) {
+    if (!is.null(cond$valor)) {
+      stop_api(400, "E_REGLA_CONDICION_VALOR",
+               sprintf("La condición %d compara con un valor o con otra pregunta, no con los dos.", i))
+    }
+    if (!(op %in% .regla_operadores_comparar_variable)) {
+      stop_api(400, "E_REGLA_CONDICION_OP",
+               sprintf("La condición %d compara con otra pregunta y solo admite: %s",
+                       i, paste(.regla_operadores_comparar_variable, collapse = ", ")))
+    }
+    if (identical(comparada, var)) {
+      stop_api(400, "E_REGLA_CONDICION_VALOR",
+               sprintf("La condición %d compara una pregunta consigo misma.", i))
+    }
+    return(invisible(TRUE))
+  }
+  if (op %in% c("in", "not_in", "contains", "not_contains", "contains_any", "contains_all", "contains_none")) {
+    if (!length(.regla_chr_values(cond$valor))) {
+      stop_api(400, "E_REGLA_CONDICION_VALOR",
+               sprintf("La condición %d requiere al menos un valor en 'valor'.", i))
+    }
+  } else if (is.null(cond$valor) || !length(unlist(cond$valor)) ||
+             !nzchar(trimws(calc_str(cond$valor)))) {
+    stop_api(400, "E_REGLA_CONDICION_VALOR",
+             sprintf("La condición %d requiere 'valor' o 'variable_comparada'.", i))
+  }
+  invisible(TRUE)
+}
+
+# Las variables que una regla lee. En "Condiciones combinadas" salen de las
+# condiciones (la revisada y la comparada) aunque `variables` venga vacío; en
+# `coherencia_2v` se suma la pregunta comparada. El resto usa `variables` tal cual.
+.regla_variables_efectivas <- function(r) {
+  vars <- as.character(unlist(r$variables %||% list(), use.names = FALSE))
+  tipo <- as.character(r$tipo %||% "")[1]
+  params <- r$params %||% list()
+  if (identical(tipo, "condiciones")) {
+    conds <- params$condiciones %||% list()
+    extra <- unlist(lapply(conds, function(cond) {
+      if (!is.list(cond)) return(character(0))
+      c(trimws(calc_str(cond$variable)), trimws(calc_str(cond$variable_comparada)))
+    }), use.names = FALSE)
+    vars <- c(vars, extra)
+  } else if (identical(tipo, "coherencia_2v")) {
+    vars <- c(vars, trimws(calc_str(params$valor_y_variable)))
+  }
+  vars <- vars[!is.na(vars) & nzchar(vars)]
+  unique(vars)
 }
 
 .regla_chr_values <- function(x) {

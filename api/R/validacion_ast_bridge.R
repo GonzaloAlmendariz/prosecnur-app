@@ -37,12 +37,17 @@
 bridge_regla_custom <- function(r) {
   if (!is.list(r)) stop("bridge_regla_custom(): r debe ser lista.")
   tipo <- as.character(r$tipo %||% "")
-  vars <- as.character(unlist(r$variables %||% list()))
+  vars <- .regla_variables_efectivas(r)
   params <- r$params %||% list()
   sev <- as.character(r$severidad %||% "error")
   if (!(sev %in% c("error", "advertencia", "info"))) sev <- "error"
-  nombre <- as.character(r$nombre %||% r$id %||% tipo)
-  objetivo <- as.character(r$mensaje %||% nombre)
+  # Un nombre vacío (regla aún sin nombrar, como en el conteo previo) no puede
+  # tumbar `make_rule()`: se usa el id y, si tampoco hay, el tipo.
+  nombre <- Find(function(x) length(x) && !is.na(x[1]) && nzchar(x[1]),
+                 list(as.character(r$nombre %||% ""), as.character(r$id %||% ""), tipo)) %||% "regla"
+  nombre <- nombre[1]
+  objetivo <- as.character(r$mensaje %||% "")
+  if (!length(objetivo) || is.na(objetivo[1]) || !nzchar(objetivo[1])) objetivo <- nombre
   id_hint <- as.character(r$id %||% "")
 
   # ID provisto por el UI se respeta (para mantener referencia estable
@@ -127,7 +132,9 @@ bridge_regla_custom <- function(r) {
     ),
     "coherencia_2v" = {
       when_ast <- .cond_from_legacy(vars[1], params$op_x, params$valor_x)
-      then_ast <- .cond_from_legacy(vars[2], params$op_y, params$valor_y)
+      var_y <- trimws(calc_str(params$valor_y_variable))
+      then_ast <- if (nzchar(var_y)) ast_compare_vars(vars[2], params$op_y, var_y)
+                  else .cond_from_legacy(vars[2], params$op_y, params[["valor_y"]])
       # Para coherencia, el gate se aplica SOBRE la cláusula `when`
       # (si hay gate, la coherencia sólo se verifica cuando gate=T).
       effective_when <- if (is.null(gate_ast)) when_ast
@@ -200,6 +207,29 @@ bridge_regla_custom <- function(r) {
         subtipo = "seleccion"
       )
     },
+    # "Condiciones combinadas": el filtro previo queda como gate, igual que en
+    # los demás tipos, y las condiciones como predicado (todas = y, alguna = o).
+    "condiciones" = .rule_custom_condiciones(
+      params = params,
+      gate = gate_ast,
+      nombre = nombre,
+      objetivo = objetivo,
+      severidad = sev
+    ),
+    # Estos dos tipos se evalúan con su expresión R, la misma del plan: no
+    # tienen primitiva propia en el árbol del motor.
+    "continuidad_secuencia" = .rule_custom_raw_expr(
+      vars = vars[1],
+      expr = .regla_expr_continuidad_secuencia(vars[1]),
+      gate = gate_ast, tipo_regla = "pattern",
+      nombre = nombre, objetivo = objetivo, severidad = sev
+    ),
+    "cruce_identidad" = .rule_custom_raw_expr(
+      vars = vars,
+      expr = .regla_expr_cruce_identidad(vars),
+      gate = gate_ast, tipo_regla = "duplicate",
+      nombre = nombre, objetivo = objetivo, severidad = sev
+    ),
     stop(sprintf("bridge_regla_custom(): tipo '%s' no soportado.", tipo))
   )
 
@@ -320,6 +350,59 @@ bridge_regla_custom <- function(r) {
     severidad = severidad,
     subtipo = subtipo
   )
+}
+
+.rule_custom_condiciones <- function(params, gate, nombre, objetivo, severidad) {
+  conds <- params$condiciones %||% list()
+  revisadas <- unique(vapply(conds, function(c) trimws(calc_str(c$variable)), character(1)))
+  comparadas <- unique(vapply(conds, function(c) trimws(calc_str(c$variable_comparada)), character(1)))
+  comparadas <- setdiff(comparadas[nzchar(comparadas)], revisadas)
+  r <- make_rule(
+    nombre = nombre,
+    tipo_regla = "coherence",
+    fuente = "custom",
+    predicate = .regla_condiciones_ast(params),
+    gate = gate,
+    severidad = severidad,
+    objetivo = objetivo
+  )
+  out <- .rule_apply_metadata(
+    r,
+    primary_var = revisadas[1],
+    variable_roles = list(
+      target = revisadas[1],
+      drivers = revisadas[-1],
+      compare = comparadas,
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    ),
+    presentation = list(subtipo_semantico = "condiciones")
+  )
+  out$variables <- unique(c(revisadas, comparadas, out$variables %||% character(0)))
+  out
+}
+
+.rule_custom_raw_expr <- function(vars, expr, gate, tipo_regla, nombre, objetivo, severidad) {
+  r <- make_rule(
+    nombre = nombre,
+    tipo_regla = tipo_regla,
+    fuente = "custom",
+    predicate = ast_odk_raw(expr, origin = "legacy_r_expr"),
+    gate = gate,
+    severidad = severidad,
+    objetivo = objetivo
+  )
+  out <- .rule_apply_metadata(
+    r,
+    primary_var = vars[1],
+    variable_roles = list(
+      target = vars[1],
+      drivers = character(0),
+      compare = vars[-1],
+      gate = if (!is.null(gate)) ast_variables(gate) else character(0)
+    )
+  )
+  out$variables <- unique(c(vars, out$variables %||% character(0)))
+  out
 }
 
 #' Convierte una lista de reglas custom a lista de vd_rule (filtrando inactivas).

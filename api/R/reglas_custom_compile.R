@@ -203,9 +203,39 @@
   oy <- as.character(params$op_y)
   # Para "in" / "not_in" el valor es una lista.
   fx <- .regla_expr_cond(vx, ox, params$valor_x)
-  fy <- .regla_expr_cond(vy, oy, params$valor_y)
+  # Comparar con otra pregunta usa la misma expresión que el motor de la
+  # auditoría (`.c_cmp_vars`): numérica, y por fecha si las dos lo son.
+  var_y <- trimws(calc_str(params$valor_y_variable))
+  fy <- if (nzchar(var_y)) .c_cmp_vars(vy, oy, var_y) else .regla_expr_cond(vy, oy, params[["valor_y"]])
   # Violación: cond_x es TRUE pero cond_y es FALSE.
   sprintf("((%s) & !(%s))", fx, fy)
+}
+
+# "Condiciones combinadas". La regla se arma como árbol del motor (el mismo que
+# evalúa la auditoría) y de ahí sale el texto R, para que el plan, el script de
+# limpieza y la auditoría marquen exactamente los mismos casos. Una condición sin
+# respuesta en su pregunta no se cumple: el caso no se marca por un vacío.
+.regla_condicion_ast <- function(cond) {
+  var <- trimws(calc_str(cond$variable))
+  op <- trimws(calc_str(cond$op))
+  comparada <- trimws(calc_str(cond$variable_comparada))
+  if (nzchar(comparada)) return(ast_compare_vars(var, op, comparada))
+  valor <- if (op %in% .regla_operadores_comparar_variable) {
+    v <- unlist(cond$valor, use.names = FALSE)[1]
+    if (is.character(v)) trimws(v) else v
+  } else {
+    .regla_chr_values(cond$valor)
+  }
+  .cond_from_legacy(var, op, valor)
+}
+
+.regla_condiciones_ast <- function(params) {
+  partes <- lapply(params$condiciones %||% list(), .regla_condicion_ast)
+  if (identical(trimws(calc_str(params$modo)), "alguna")) ast_or(partes) else ast_and(partes)
+}
+
+.regla_expr_condiciones <- function(params) {
+  ast_to_r(ast_normalize(.regla_condiciones_ast(params)))
 }
 
 .regla_expr_select_multiple_hierarchy <- function(var, params) {
@@ -337,7 +367,7 @@
 # -----------------------------------------------------------------------------
 .compilar_regla_custom <- function(r, instrumento = NULL) {
   .validar_regla_custom(r)
-  vars <- as.character(unlist(r$variables))
+  vars <- .regla_variables_efectivas(r)
   id <- as.character(r$id %||% sprintf("RC_%s", uuid::UUIDgenerate()))
   nombre_human <- as.character(r$nombre %||% id)
   mensaje <- as.character(r$mensaje %||% nombre_human)
@@ -360,6 +390,7 @@
     "select_multiple_selection" = .regla_expr_select_multiple_selection(vars[1], r$params),
     "continuidad_secuencia" = .regla_expr_continuidad_secuencia(vars[1]),
     "cruce_identidad" = .regla_expr_cruce_identidad(vars),
+    "condiciones"    = .regla_expr_condiciones(r$params),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )
   expr <- .regla_apply_gate(expr, r)

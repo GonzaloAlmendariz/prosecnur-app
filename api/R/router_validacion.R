@@ -39,6 +39,17 @@
 # Valida y resuelve el scope de validación para una base concreta. Usa
 # `.resolve_base_nombre()` de session_store.R. Si pide una base que no
 # existe, lanza 404.
+# Id de una ruta con parámetro, leído solo de la ruta. Los handlers con ese
+# parámetro no lo declaran como argumento formal: Plumber también vuelca ahí
+# los campos del cuerpo, y un cuerpo que traiga el mismo nombre respondía 500.
+.validacion_id_de_ruta <- function(req, nombre) {
+  id <- as.character(req$argsPath[[nombre]] %||% "")[1]
+  if (is.na(id) || !nzchar(id)) {
+    stop_api(400, "E_MISSING_ID_REGLA", "La ruta debe incluir el id de la regla.")
+  }
+  id
+}
+
 .get_base_scope <- function(sid, base_nombre = NULL) {
   # Esta llamada valida existencia + resuelve fallbacks legacy.
   validacion_scope_get(sid, base_nombre)
@@ -1183,8 +1194,25 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
+    # --- Auditoría única (scoped) -------------------------------------------
+    # Plan del formulario menos las desactivadas, más las reglas propias
+    # activas (validacion_auditoria.R). Es la que llama la pantalla nueva; las
+    # dos rutas siguientes quedan por compatibilidad y llaman al mismo armado.
+    plumber::pr_post("/api/validacion/v2/auditoria", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      validacion_auditoria_lanzar(sid, .get_base_nombre(req), kind = "validacion.v2.auditoria")
+    })) |>
+
+    # --- Auditoría: ¿las reglas cambiaron desde la última? ------------------
+    plumber::pr_get("/api/validacion/v2/auditoria/estado", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      validacion_auditoria_estado(sid, .get_base_nombre(req))
+    })) |>
+
     # --- Instrumento: auditoría async (scoped) -------------------------------
-    plumber::pr_post("/api/validacion/v2/instrumento/auditoria", wrap_endpoint(function(req, res) {
+    # Compatibilidad: exige el plan del formulario, como antes, pero audita el
+    # paquete completo; ya no borra los hallazgos de las reglas propias.
+    plumber::pr_post("/api/validacion/v2/instrumento/auditoria", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -1192,128 +1220,7 @@ mount_validacion <- function(pr) {
         stop_api(409, "E_NO_PLAN",
                  "Primero construye o importa el plan.")
       }
-      files <- .resolve_base_files(sid, base)
-
-      # Capturamos base nombre efectivo para el callback (puede ser NULL
-      # en legacy).
-      base_effective <- files$base_nombre
-
-      compat <- validation_profile_for_base(base_effective %||% base)
-      base_meta <- .validacion_mb_base_meta(sid, base_effective %||% base)
-      validation_exclusions <- .validacion_mb_collection_exclusions(base_meta)
-      bundle_efectivo <- scope$plan_result$bundle %||%
-        validation_bundle_from_plan_df(scope$plan_result$plan,
-                                       existing_bundle = scope$plan_result$bundle %||% NULL,
-                                       compatibility = compat)
-      bundle_efectivo <- .validacion_patch_integrated_bundle(bundle_efectivo, base_meta)
-
-      # Filtrar reglas desactivadas (toggle "ignorar") antes de correr.
-      desactivadas <- scope$reglas_desactivadas %||% character(0)
-      if (length(desactivadas) && length(bundle_efectivo$rules %||% list())) {
-        bundle_efectivo$rules <- Filter(function(r) !(r$id %in% desactivadas), bundle_efectivo$rules)
-        bundle_efectivo$plan <- compile_rules_to_plan(bundle_efectivo$rules)
-      }
-      bundle_efectivo <- .validacion_filter_bundle_excluded_vars(
-        bundle_efectivo,
-        scope$variables_excluidas %||% character(0)
-      )
-
-      # api_path para que el subprocess callr pueda cargar el paquete.
-      api_path <- .app_api_dir()
-
-      # ADR 0030 Fase 2: si la base activa es madre de bases hija repeat, las
-      # resolvemos (paths + repeat_group) para ensamblar el modelo multi-tabla
-      # dentro del job. Vacío ⇒ camino single-table intacto.
-      repeat_children <- .validacion_resolve_repeat_children(sid, base_effective %||% base)
-      job_id <- job_submit(
-        sid = sid,
-        kind = "validacion.v2.auditoria",
-        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), operational_config = NULL, progress_path = NULL) {
-          # Locale UTF-8 para que `pkgload::load_all()` pueda parsear
-          # archivos .R con caracteres acentuados (el subprocess callr
-          # no hereda las opciones locale del main process).
-          tryCatch(
-            Sys.setlocale("LC_ALL", "en_US.UTF-8"),
-            warning = function(w) NULL, error = function(e) NULL
-          )
-          options(encoding = "UTF-8")
-          # El subprocess callr::r_bg arranca limpio — cargamos el
-          # paquete para tener disponibles `evaluar_consistencia` y
-          # compañía. Mismo patrón que router_analitica.R / router_graficos.R.
-          if (requireNamespace("pkgload", quietly = TRUE)) {
-            pkgload::load_all(api_path, quiet = TRUE)
-          } else if (requireNamespace("devtools", quietly = TRUE)) {
-            devtools::load_all(api_path, quiet = TRUE)
-          }
-          report <- if (exists("job_progress_writer", mode = "function")) {
-            job_progress_writer(progress_path)
-          } else {
-            function(...) invisible(NULL)
-          }
-          report("loading", percent = 8, message = "Leyendo instrumento y base...")
-          inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
-          # Ensamblar madre+hijas si hay repeats; si no, lectura single-table.
-          datos <- if (length(repeat_children)) {
-            assemble_validation_data_multibase(
-              main_data_path = data_path,
-              main_data_ext = data_ext,
-              main_instrumento = inst,
-              repeat_children = repeat_children
-            )
-          } else {
-            read_validation_data_ast(
-              path = data_path,
-              ext = data_ext,
-              instrumento = inst,
-              operational_config = operational_config
-            )
-          }
-          report("evaluate", percent = 45, message = "Evaluando reglas de consistencia...")
-          ev <- evaluate_validation_bundle(
-            bundle = bundle,
-            data_input = datos,
-            compatibility = validation_profile_for_base(base_name),
-            strict = FALSE,
-            validation_exclusions = validation_exclusions
-          )
-          report("export", percent = 92, message = "Preparando resumen de auditoria...")
-          total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
-          total_scalar <- if (is.numeric(total_raw) && length(total_raw) == 1) {
-            as.integer(total_raw)
-          } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
-            ca <- total_raw$cabecera
-            as.integer(if (is.data.frame(ca)) ca$Total_inconsistencias[1] else ca[[1]]$Total_inconsistencias)
-          } else NA_integer_
-          list(ev = ev, total = total_scalar)
-        },
-        args = list(
-          data_path = files$data$path,
-          data_ext = files$data_ext,
-          xlsform_path = files$xlsform$path,
-          bundle = bundle_efectivo,
-          base_name = base_effective %||% base,
-          api_path = api_path,
-          validation_exclusions = validation_exclusions,
-          repeat_children = repeat_children,
-          # El criterio de caso válido viaja al worker: los casos que el estudio
-          # declaró fuera del universo no deben generar inconsistencias.
-          operational_config = scope$operational_config %||% NULL
-        ),
-        on_complete = function(j) {
-          raw <- j$result_data
-          validacion_scope_set(j$sid, base_effective, "evaluacion", raw$ev)
-          # Con la auditoría de vuelta existe catálogo de reglas: las
-          # exclusiones que sobrevivieron a una recarga de instrumento pueden
-          # volver al borrador si su regla reapareció.
-          .limpieza_rehidratar_preservadas(j$sid, base_effective)
-          .limpieza_invalidate_outputs(j$sid, base_effective)
-          list(
-            ok = TRUE,
-            total_inconsistencias = raw$total %||% NA_integer_
-          )
-        }
-      )
-      list(ok = TRUE, job_id = job_id, kind = "validacion.v2.auditoria")
+      validacion_auditoria_lanzar(sid, base, kind = "validacion.v2.auditoria")
     })) |>
 
     # --- Instrumento: resultado consolidado (view descriptors) ---------------
@@ -1600,13 +1507,14 @@ mount_validacion <- function(pr) {
     # --- Instrumento: toggle activar/desactivar una regla --------------------
     # Body: { activa: true|false }. Persiste en scope$reglas_desactivadas.
     # Invalida la evaluación porque las reglas efectivas cambiaron.
+    # Sin `id_regla` formal: Plumber vuelca los campos del JSON como argumentos
+    # y un cuerpo con `id_regla` (la regla entera) chocaba con el de la ruta y
+    # respondía 500, como pasaba en el PUT de reglas propias. Vale el de la ruta.
     plumber::pr_handle("PATCH", "/api/validacion/v2/instrumento/regla/<id_regla>/activa",
-      wrap_endpoint(function(req, res, id_regla = NULL, ...) {
+      wrap_endpoint(function(req, res, ...) {
         sid <- session_header(req)
         base <- .get_base_nombre(req)
-        if (is.null(id_regla) || !nzchar(id_regla)) {
-          stop_api(400, "E_MISSING_ID_REGLA", "Path debe incluir id_regla.")
-        }
+        id_regla <- .validacion_id_de_ruta(req, "id_regla")
         body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
         Encoding(body_raw) <- "UTF-8"
         parsed <- tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
@@ -1653,13 +1561,12 @@ mount_validacion <- function(pr) {
     # Body: subconjunto de {nombre, objetivo, tipo_observacion, categoria,
     # mensaje}. Actualiza plan_result$plan in-place (respetando nombres de
     # columna que use el plan). Invalida la evaluación.
+    # El id vale solo el de la ruta (ver el PATCH de /activa).
     plumber::pr_handle("PATCH", "/api/validacion/v2/instrumento/regla/<id_regla>/atributos",
-      wrap_endpoint(function(req, res, id_regla = NULL, ...) {
+      wrap_endpoint(function(req, res, ...) {
         sid <- session_header(req)
         base <- .get_base_nombre(req)
-        if (is.null(id_regla) || !nzchar(id_regla)) {
-          stop_api(400, "E_MISSING_ID_REGLA", "Path debe incluir id_regla.")
-        }
+        id_regla <- .validacion_id_de_ruta(req, "id_regla")
         body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
         Encoding(body_raw) <- "UTF-8"
         parsed <- tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
@@ -2024,7 +1931,7 @@ mount_validacion <- function(pr) {
         activa = isTRUE(parsed$activa %||% TRUE),
         nombre = as.character(parsed$nombre %||% new_id),
         tipo = as.character(parsed$tipo),
-        variables = as.list(unlist(parsed$variables)),
+        variables = as.list(.regla_variables_efectivas(parsed)),
         params = parsed$params %||% list(),
         mensaje = as.character(parsed$mensaje %||% parsed$nombre %||% new_id),
         severidad = .regla_severidad(parsed),
@@ -2080,6 +1987,7 @@ mount_validacion <- function(pr) {
                                          "planned_action_type", "recommended_scope",
                                          "gate_expr", "gate_conditions") %in% names(parsed))
         if (isTRUE(needs_schema_validation)) .validar_regla_custom(r)
+        r$variables <- as.list(.regla_variables_efectivas(r))
         r$planned_action_type <- .regla_tratamiento(r)
         r$recommended_scope <- .regla_alcance_tratamiento(r)
         existing[[idx]] <- r
@@ -2105,132 +2013,33 @@ mount_validacion <- function(pr) {
         list(ok = TRUE, id = id)
     })) |>
 
+    # --- Reglas custom: conteo previo sin guardar ---------------------------
+    # Cuerpo: la regla como la manda el editor. De solo lectura: no guarda la
+    # regla ni toca la evaluación (reglas_custom_probar.R).
+    # La proporción viaja sin redondear (el serializador global deja 4 decimales).
+    plumber::pr_post("/api/validacion/v2/reglas_custom/probar",
+      wrap_endpoint(function(req, res, ...) {
+        sid <- session_header(req)
+        regla <- .validacion_request_json(req)
+        if (!is.null(regla$regla) && is.list(regla$regla)) regla <- regla$regla
+        reglas_custom_probar(sid, .get_base_nombre(req), regla)
+    }), serializer = .cm_serializer_sin_redondeo()) |>
+
     # --- Reglas custom: ejecutar ---------------------------------------------
-    # Compila todas las reglas activas, las concatena al plan_result$plan
-    # (mismo shape) y corre evaluar_consistencia. Guarda la evaluación en
-    # scope$evaluacion para que InstrumentoTab la muestre con las reglas
-    # custom mezcladas (id_regla = RC_*, categoría = "custom").
+    # Compatibilidad: audita el paquete completo (validacion_auditoria.R). Ya
+    # no exige reglas propias si hay plan del formulario.
     plumber::pr_post("/api/validacion/v2/reglas_custom/ejecutar",
-      wrap_endpoint(function(req, res) {
+      wrap_endpoint(function(req, res, ...) {
         sid <- session_header(req)
         base <- .get_base_nombre(req)
         scope <- .get_base_scope(sid, base)
-        reglas <- scope$reglas_custom %||% list()
-        activas <- Filter(function(r) isTRUE(r$activa), reglas)
-        if (!length(activas)) {
+        activas <- Filter(function(r) isTRUE(r$activa), scope$reglas_custom %||% list())
+        if (!length(activas) && is.null(scope$plan_result)) {
           stop_api(409, "E_NO_REGLAS_ACTIVAS",
-                   "No hay reglas custom activas para ejecutar.")
+                   "No hay reglas propias activas ni plan del formulario para auditar.")
         }
-        files <- .resolve_base_files(sid, base)
-        base_effective <- files$base_nombre
-
-        compat <- validation_profile_for_base(base_effective %||% base)
-        bundle_inst <- scope$plan_result$bundle %||%
-          if (!is.null(scope$plan_result$plan)) {
-            validation_bundle_from_plan_df(
-              plan_df = scope$plan_result$plan,
-              existing_bundle = scope$plan_result$bundle %||% NULL,
-              compatibility = compat
-            )
-          } else {
-            list(rules = list(), plan = compile_rules_to_plan(list()), compatibility = compat)
-          }
-
-        desactivadas <- scope$reglas_desactivadas %||% character(0)
-        if (length(desactivadas) && length(bundle_inst$rules %||% list())) {
-          bundle_inst$rules <- Filter(function(r) !(r$id %in% desactivadas), bundle_inst$rules)
-        }
-        bundle_custom <- bridge_reglas_custom_list(activas)
-        bundle_final <- bundle_inst
-        bundle_final$rules <- .dedup_rules_exact(c(bundle_inst$rules %||% list(), bundle_custom))
-        bundle_final$plan <- compile_rules_to_plan(bundle_final$rules)
-        bundle_final <- .validacion_patch_integrated_bundle(
-          bundle_final,
-          .validacion_mb_base_meta(sid, base_effective %||% base)
-        )
-        bundle_final <- .validacion_filter_bundle_excluded_vars(
-          bundle_final,
-          scope$variables_excluidas %||% character(0)
-        )
-        validation_exclusions <- .validacion_mb_collection_exclusions_for_base(sid, base_effective %||% base)
-
-        api_path <- .app_api_dir()
-
-        # ADR 0030 Fase 2: hijas repeat de la base activa para el ensamblado.
-        repeat_children <- .validacion_resolve_repeat_children(sid, base_effective %||% base)
-        job_id <- job_submit(
-          sid = sid,
-          kind = "validacion.v2.reglas_custom.ejecutar",
-          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), operational_config = NULL, progress_path = NULL) {
-            tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
-                     warning = function(w) NULL, error = function(e) NULL)
-            options(encoding = "UTF-8")
-            if (requireNamespace("pkgload", quietly = TRUE)) {
-              pkgload::load_all(api_path, quiet = TRUE)
-            } else if (requireNamespace("devtools", quietly = TRUE)) {
-              devtools::load_all(api_path, quiet = TRUE)
-            }
-            report <- if (exists("job_progress_writer", mode = "function")) {
-              job_progress_writer(progress_path)
-            } else {
-              function(...) invisible(NULL)
-            }
-            report("loading", percent = 8, message = "Leyendo instrumento y base...")
-            inst <- leer_xlsform_limpieza(xlsform_path, verbose = FALSE)
-            datos <- if (length(repeat_children)) {
-              assemble_validation_data_multibase(
-                main_data_path = data_path,
-                main_data_ext = data_ext,
-                main_instrumento = inst,
-                repeat_children = repeat_children
-              )
-            } else {
-              read_validation_data_ast(
-                path = data_path,
-                ext = data_ext,
-                instrumento = inst,
-                operational_config = operational_config
-              )
-            }
-            report("evaluate", percent = 45, message = "Ejecutando reglas activas...")
-            ev <- evaluate_validation_bundle(
-              bundle = bundle,
-              data_input = datos,
-              compatibility = validation_profile_for_base(base_name),
-              strict = FALSE,
-              validation_exclusions = validation_exclusions
-            )
-            report("export", percent = 92, message = "Preparando resultados...")
-            total_raw <- tryCatch(total_inconsistencias(ev), error = function(e) NULL)
-            total <- if (is.numeric(total_raw) && length(total_raw) == 1) {
-              as.integer(total_raw)
-            } else if (is.list(total_raw) && !is.null(total_raw$cabecera)) {
-              ca <- total_raw$cabecera
-              as.integer(if (is.data.frame(ca)) ca$Total_inconsistencias[1] else ca[[1]]$Total_inconsistencias)
-            } else NA_integer_
-            list(ev = ev, total = total)
-          },
-          args = list(
-            data_path = files$data$path,
-            data_ext = files$data_ext,
-            xlsform_path = files$xlsform$path,
-            bundle = bundle_final,
-            base_name = base_effective %||% base,
-            api_path = api_path,
-            validation_exclusions = validation_exclusions,
-            repeat_children = repeat_children,
-            operational_config = scope$operational_config %||% NULL
-          ),
-          on_complete = function(j) {
-            raw <- j$result_data
-            validacion_scope_set(j$sid, base_effective, "evaluacion", raw$ev)
-            .limpieza_rehidratar_preservadas(j$sid, base_effective)
-            .limpieza_invalidate_outputs(j$sid, base_effective)
-            list(ok = TRUE, total_inconsistencias = raw$total %||% NA_integer_)
-          }
-        )
-        list(ok = TRUE, job_id = job_id,
-              kind = "validacion.v2.reglas_custom.ejecutar",
-              n_custom = length(activas))
+        out <- validacion_auditoria_lanzar(sid, base, kind = "validacion.v2.reglas_custom.ejecutar")
+        out$n_custom <- length(activas)
+        out
     }))
 }
