@@ -1,0 +1,364 @@
+/* Vista de tabla de Codificar (etapa P3b del rediseño de Procesamiento).
+ *
+ * Los marcos no son de esta hoja: el de la tabla es `.pulso-cv2-resp-list` (el mismo de la lista de
+ * tarjetas, que además es el dueño del desplazamiento), la lista de códigos usa el menú del select del
+ * kit (`.pulso-select-content`) y un código asignado es un chip con controles del kit. Aquí solo va la
+ * rejilla de las filas y lo que cambia dentro de ellas. */
+
+/* ---------- Conmutador Tarjetas | Tabla (mismo segmentado que el explorador de Validación) ---------- */
+
+/* Selector compuesto: gana al indicador del kit sin depender del orden del bundle. */
+.pulso-ct-vista.pulso-gliding-tab-list {
+  --pulso-gliding-indicator-bg: var(--pulso-surface);
+  --pulso-gliding-indicator-border: var(--pulso-border);
+  --pulso-gliding-indicator-shadow: var(--pulso-shadow-low);
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: calc(var(--pulso-space-1) / 2);
+  padding: calc(var(--pulso-space-1) - 1px);
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-3);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-ct-vista.pulso-gliding-tab-list > button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-height: calc(var(--pulso-control-height-sm) - var(--pulso-space-1) / 2);
+  padding: 0 var(--pulso-space-2);
+  border: 0;
+  border-radius: calc(var(--pulso-control-radius) - 2px);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-ct-vista.pulso-gliding-tab-list > button[aria-checked="true"] {
+  color: var(--module-accent, var(--pulso-primary));
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* El anillo de foco es el del kit; aquí solo entra en la pista para no salirse del segmentado. */
+.pulso-ct-vista.pulso-gliding-tab-list > button:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .pulso-ct-vista.pulso-gliding-tab-list > button:hover:not([aria-checked="true"]) {
+    color: var(--pulso-text);
+  }
+}
+
+/* En tabla, las respuestas necesitan más ancho que los grupos. Por debajo de 1200 px sigue el reparto
+ * de siempre (y su paso a una columna): la tabla apila la celda del código, ver el final de la hoja. */
+@media (min-width: 1200px) {
+  .pulso-cv2-split.pulso-ct-split {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+}
+
+/* ---------- La tabla ---------- */
+
+.pulso-ct {
+  --pulso-ct-columnas: minmax(0, 1fr) calc(var(--pulso-space-9) + var(--pulso-space-5)) minmax(0, 40%);
+  container: pulso-ct / inline-size;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-ct-marco {
+  position: relative;
+}
+
+.pulso-ct-tabla {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* Cabecera pegada: es hija directa de la tabla, que es quien mide todo el alto. */
+.pulso-ct-cab {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+.pulso-ct-cab-fila,
+.pulso-ct-fila {
+  display: grid;
+  grid-template-columns: var(--pulso-ct-columnas);
+  align-items: center;
+}
+
+.pulso-ct-cab-fila {
+  min-height: var(--pulso-control-height-lg);
+}
+
+.pulso-ct-fila {
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-ct-cuerpo > .pulso-ct-fila:last-child {
+  border-bottom: 0;
+}
+
+@media (hover: hover) {
+  .pulso-ct-fila:hover {
+    background: var(--pulso-surface-2);
+  }
+}
+
+/* La fila activa se distingue por el fondo y por el campo; sin franja lateral. */
+.pulso-ct-fila[data-activa] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 6%, var(--pulso-surface));
+}
+
+.pulso-ct-c-resp,
+.pulso-ct-c-veces,
+.pulso-ct-c-cod {
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-ct-cab-fila > .pulso-ct-c-resp,
+.pulso-ct-cab-fila > .pulso-ct-c-veces,
+.pulso-ct-cab-fila > .pulso-ct-c-cod {
+  padding-block: 0;
+}
+
+.pulso-ct-c-veces {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Botones de orden de la cabecera: los del kit; el de las veces se alinea con sus cifras. */
+.pulso-ct-c-veces > .pulso-table-orden {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.pulso-ct-cab-fila [aria-sort] > .pulso-table-orden {
+  color: var(--pulso-text);
+}
+
+/* El texto de la respuesta se lee entero: parte línea, no se corta. */
+.pulso-ct-texto {
+  display: block;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.35;
+}
+
+.pulso-ct-variantes {
+  display: block;
+  margin-top: calc(var(--pulso-space-1) / 2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* La celda mide lo mismo con "Sin código", con una insignia o con el campo: el alto de un control. */
+.pulso-ct-codigos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+  min-height: var(--pulso-control-height-sm);
+}
+
+.pulso-ct-vacia {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-ct-campo.pulso-input {
+  flex: 1 1 8rem;
+  width: auto;
+  min-width: 6rem;
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+}
+
+/* ---------- Un código: ficha con el número y nombre ---------- */
+
+.pulso-ct-insignia.pulso-chip-controles {
+  gap: var(--pulso-space-1);
+  max-width: 100%;
+  min-width: 0;
+  padding-inline-start: calc(var(--pulso-space-1) / 2 + 1px);
+  cursor: default;
+}
+
+.pulso-ct-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-ct-numero {
+  flex: 0 0 auto;
+  min-width: var(--pulso-space-5);
+  padding-inline: var(--pulso-space-1);
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--cv2-chip-accent, var(--pulso-border-strong)) 20%, var(--pulso-surface));
+  color: var(--pulso-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.7;
+  text-align: center;
+}
+
+/* Un código sin número: el nombre no se pega al borde de la insignia. */
+.pulso-ct-insignia .pulso-ct-nombre:first-child {
+  padding-inline-start: var(--pulso-space-1);
+}
+
+.pulso-ct-nombre {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- La lista de códigos (menú del select del kit, en portal) ---------- */
+
+.pulso-ct-lista.pulso-select-content {
+  position: fixed;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* El aire vertical es para los nombres de dos líneas: sin él tocan a la opción vecina. */
+.pulso-ct-opcion.pulso-select-item {
+  gap: var(--pulso-space-2);
+  padding-block: var(--pulso-space-1);
+  padding-inline-end: var(--pulso-space-2);
+}
+
+.pulso-ct-opcion .pulso-ct-rotulo {
+  flex: 1 1 auto;
+}
+
+/* En la lista el nombre del código se lee entero, en las líneas que haga falta: es lo que se está eligiendo. */
+.pulso-ct-opcion .pulso-ct-nombre {
+  overflow: visible;
+  font-weight: var(--pulso-weight-medium);
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.pulso-ct-casos {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-ct-opcion--crear {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-ct-sin-codigos {
+  margin: 0;
+  padding: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* ---------- Teclas ---------- */
+
+.pulso-ct-teclas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-ct-teclas > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  white-space: nowrap;
+}
+
+.pulso-ct-teclas kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--pulso-space-5);
+  min-height: var(--pulso-space-5);
+  padding-inline: var(--pulso-space-1);
+  border-radius: calc(var(--pulso-control-radius) - 2px);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-muted);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1;
+}
+
+/* ---------- Columna angosta: la celda del código baja a su propia línea ---------- */
+
+@container pulso-ct (max-width: 30rem) {
+  .pulso-ct-cab-fila,
+  .pulso-ct-fila {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pulso-ct-fila > .pulso-ct-c-cod {
+    grid-column: 1 / -1;
+    padding-block-start: 0;
+  }
+
+  /* El encabezado "Código" sigue para el lector de pantalla; a la vista sobra, la celda va debajo. */
+  .pulso-ct-cab-fila > .pulso-ct-c-cod {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pulso-ct-teclas {
+    display: none;
+  }
+}
+
+/* Con poco alto, las teclas ceden su línea a las filas (cubre 1366x768 y 1280x720). */
+@media (max-height: 820px) {
+  .pulso-ct-teclas {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-ct-fila {
+    transition: none;
+  }
+}

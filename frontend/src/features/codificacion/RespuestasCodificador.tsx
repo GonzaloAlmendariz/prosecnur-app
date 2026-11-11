@@ -12,7 +12,6 @@ import {
   Tags,
   Square,
   Target,
-  X,
 } from "lucide-react";
 import {
   apiCodifGrupos,
@@ -46,6 +45,11 @@ import { useSugerenciasModulo } from "./useSugerenciasModulo";
 import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
 import { clavesNoRespuesta, separarNoRespuestas } from "./noRespuestas";
 import "./noRespuestas.css";
+import { asignarCodigo, quitarCodigo } from "./tabla/asignacionCodigos";
+import { BuscadorRespuestas } from "./tabla/BuscadorRespuestas";
+import { ConmutadorVista } from "./tabla/ConmutadorVista";
+import { TablaCodificar } from "./tabla/TablaCodificar";
+import { useVistaCodificar } from "./tabla/vistaCodificarStore";
 
 // Estilo inline que expone el color de acento del grupo como custom property
 // para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
@@ -106,6 +110,10 @@ export function RespuestasCodificador({ parent }: Props) {
   // TXT-3: la columna que se codifica (para pedir la propuesta de módulo) y la última confirmación masiva (deshacer).
   const [colEfectiva, setColEfectiva] = useState("");
   const [ultimaMasiva, setUltimaMasiva] = useState<{ registro: RegistroConfirmacion; aviso: UltimaConfirmacion } | null>(null);
+
+  // Tarjetas o tabla: se recuerda entre preguntas (este componente se vuelve a montar con cada una).
+  const vista = useVistaCodificar((s) => s.vista);
+  const elegirVista = useVistaCodificar((s) => s.elegirVista);
 
   const skipNextSave = useRef(true);
   const saveTimer = useRef<number | null>(null);
@@ -359,22 +367,24 @@ export function RespuestasCodificador({ parent }: Props) {
     announce(`"${respuestaLabel(texto_normalizado)}" asignada a ${grupoLabel(activeGroup)}.`);
   }
 
+  // Con `esSM` el código se suma; sin él, la respuesta sale de donde esté (regla en tabla/asignacionCodigos.ts).
   function moveToGroup(texto_normalizado: string, targetGroupId: string) {
     const target = grupos.find((g) => g.id === targetGroupId);
-    if (esSM) {
-      setGrupos((gs) => gs.map((g) => {
-        if (g.id !== targetGroupId || g.respuestas.includes(texto_normalizado)) return g;
-        return { ...g, respuestas: [...g.respuestas, texto_normalizado] };
-      }));
-      if (target) announce(`"${respuestaLabel(texto_normalizado)}" asignada también a ${grupoLabel(target)}.`);
-      return;
-    }
-    // Quitar de donde esté y agregar al target
-    setGrupos((gs) => {
-      const cleaned = gs.map((g) => ({ ...g, respuestas: g.respuestas.filter((r) => r !== texto_normalizado) }));
-      return cleaned.map((g) => g.id === targetGroupId ? { ...g, respuestas: [...g.respuestas, texto_normalizado] } : g);
-    });
-    if (target) announce(`"${respuestaLabel(texto_normalizado)}" movida a ${grupoLabel(target)}.`);
+    setGrupos((gs) => asignarCodigo(gs, texto_normalizado, targetGroupId, esSM));
+    if (target) announce(`"${respuestaLabel(texto_normalizado)}" ${esSM ? "asignada también a" : "movida a"} ${grupoLabel(target)}.`);
+  }
+
+  // Vista de tabla: quitar un código de una respuesta, y crear un código con lo escrito y asignárselo.
+  function quitarDeGrupo(texto_normalizado: string, groupId: string) {
+    const g = grupos.find((x) => x.id === groupId);
+    setGrupos((gs) => quitarCodigo(gs, texto_normalizado, groupId));
+    if (g) announce(`"${respuestaLabel(texto_normalizado)}" quitada de ${grupoLabel(g)}.`);
+  }
+
+  function crearGrupoCon(texto_normalizado: string, etiqueta: string) {
+    const nuevo: Grupo = { id: `g_${Date.now()}_${Math.floor(Math.random() * 1000)}`, codigo: nextCodigo(), etiqueta, respuestas: [], origen: "nuevo" };
+    setGrupos((gs) => asignarCodigo([...gs, nuevo], texto_normalizado, nuevo.id, esSM));
+    announce(`"${respuestaLabel(texto_normalizado)}" asignada al nuevo grupo ${grupoLabel(nuevo)}.`);
   }
 
   // Multi-select real (SM): togglea la pertenencia de una respuesta en UN grupo
@@ -521,6 +531,8 @@ export function RespuestasCodificador({ parent }: Props) {
       <div className="pulso-cv2-rc-toolbar">
         <SaveStatusIndicator state={saveStatus} variant="badge" />
         <div className="pulso-cv2-rc-toolbar-spacer" />
+        {/* Aquí y no en la cabecera de la columna: no le quita una línea a la lista y no se mueve al cambiar de vista. */}
+        <ConmutadorVista vista={vista} onElegir={elegirVista} />
         {tipo === "text" && colEfectiva && (
           <>
             <PalabrasBoton />
@@ -578,7 +590,7 @@ export function RespuestasCodificador({ parent }: Props) {
 
       {/* Split-view origen → destino. El destino (grupos) lleva superficie de
           acento del módulo para leerse como el lugar donde caen las respuestas. */}
-      <div className="pulso-cv2-split">
+      <div className={`pulso-cv2-split${vista === "tabla" ? " pulso-ct-split" : ""}`}>
         {/* ORIGEN — respuestas únicas */}
         <section className="pulso-cv2-col pulso-cv2-col--origen">
           <div className="pulso-cv2-col-head">
@@ -598,44 +610,40 @@ export function RespuestasCodificador({ parent }: Props) {
               {formatoConteo(codificadas)} de {formatoConteo(respuestas.length)} codificadas
             </span>
           </div>
-          <div className="pulso-cv2-search">
-            <Search size={14} className="pulso-cv2-search-icon" />
-            <input
-              type="search"
-              placeholder="Buscar respuestas…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pulso-cv2-search-input"
-              aria-label={`Buscar respuestas de ${parent}`}
+          {vista === "tabla" ? (
+            <TablaCodificar
+              pregunta={parent}
+              respuestas={respuestas}
+              tramos={tramos}
+              grupos={grupos}
+              busqueda={query}
+              onBuscar={setQuery}
+              permiteVarios={esSM}
+              onAsignar={moveToGroup}
+              onQuitar={quitarDeGrupo}
+              onCrear={crearGrupoCon}
             />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                className="pulso-icon"
-                aria-label="Limpiar búsqueda"
-                title="Limpiar"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-          {/* C1: filas de respuesta; su alto depende de las variantes que agrupan. */}
-          <div className="pulso-cv2-resp-list" data-qa-geometry-group="codificacion/respuestas" data-qa-geometry-contract="intrinsic">
-            {visibleRespuestas.length === 0 && (
-              <EstadoVacio icono={<Search size={16} />} titulo="No hay respuestas que coincidan" />
-            )}
-            {tramos.conContenido.map(filaRespuesta)}
-            {tramos.noRespuestas.length > 0 && (
-              <div className="pulso-cv2-resp-tramo" data-qa-geometry-member="no-respuestas">
-                <span className="pulso-cv2-resp-tramo-titulo">No responden</span>
-                <span className="pulso-cv2-resp-tramo-n">
-                  {formatoConteo(tramos.noRespuestas.length)} {tramos.noRespuestas.length === 1 ? "respuesta" : "respuestas"} como "No", "." o "Ninguno"
-                </span>
+          ) : (
+            <>
+              <BuscadorRespuestas valor={query} onCambiar={setQuery} etiqueta={`Buscar respuestas de ${parent}`} />
+              {/* C1: filas de respuesta; su alto depende de las variantes que agrupan. */}
+              <div className="pulso-cv2-resp-list" data-qa-geometry-group="codificacion/respuestas" data-qa-geometry-contract="intrinsic">
+                {visibleRespuestas.length === 0 && (
+                  <EstadoVacio icono={<Search size={16} />} titulo="No hay respuestas que coincidan" />
+                )}
+                {tramos.conContenido.map(filaRespuesta)}
+                {tramos.noRespuestas.length > 0 && (
+                  <div className="pulso-cv2-resp-tramo" data-qa-geometry-member="no-respuestas">
+                    <span className="pulso-cv2-resp-tramo-titulo">No responden</span>
+                    <span className="pulso-cv2-resp-tramo-n">
+                      {formatoConteo(tramos.noRespuestas.length)} {tramos.noRespuestas.length === 1 ? "respuesta" : "respuestas"} como "No", "." o "Ninguno"
+                    </span>
+                  </div>
+                )}
+                {tramos.noRespuestas.map(filaRespuesta)}
               </div>
-            )}
-            {tramos.noRespuestas.map(filaRespuesta)}
-          </div>
+            </>
+          )}
         </section>
 
         {/* DESTINO — grupos de codificación */}
