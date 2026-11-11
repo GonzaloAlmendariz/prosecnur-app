@@ -23,10 +23,13 @@
 test_that("las tablas comparan los escenarios con las metas del motor", {
   t <- calc_muestra_propuesta_tablas(.prop_dci())
   expect_identical(t$escenarios, c("Propuesta A", "Propuesta B"))
-  expect_identical(t$comparacion[["Propuesta A"]][1:4], c("900", "900", "600", "2,400"))
-  expect_identical(t$comparacion[["Propuesta B"]][4], "1,600")
+  # Dos bloques con fila de sección: encuestas (con total) y margen de referencia.
+  expect_identical(t$comparacion$Indicador[c(1, 6)], c("Encuestas", "Margen de referencia"))
+  expect_identical(attr(t$comparacion, "secciones"), c(1L, 6L))
+  expect_identical(t$comparacion[["Propuesta A"]][2:5], c("900", "900", "600", "2,400"))
+  expect_identical(t$comparacion[["Propuesta B"]][5], "1,600")
   # Margen de referencia de 900 en 2,665: ±2.7 %.
-  expect_identical(t$comparacion[["Propuesta A"]][5], "± 2.7 %")
+  expect_identical(t$comparacion[["Propuesta A"]][7], "± 2.7 %")
   # Metas por segmento: suman la meta del público y respetan el mínimo.
   d <- t$segmentos$Docentes
   expect_identical(tail(d[["Meta Propuesta B"]], 1), "600")
@@ -53,7 +56,8 @@ test_that("el PPT trae portada, cinco tipos de lámina y contraportada al final"
   # Portada, diseño, población, escenarios, metas de docentes y de administrativos, viabilidad, cierre.
   expect_identical(as.integer(r$laminas), 8L)
   doc <- officer::read_pptx(out)
-  textos <- officer::pptx_summary(doc)
+  # pptx_summary avisa coerción con las celdas combinadas de las filas de sección.
+  textos <- suppressWarnings(officer::pptx_summary(doc))
   titulos <- unique(textos$text[grepl("^(DISEÑO|POBLACIÓN|ESCENARIOS|METAS|VIABILIDAD)", textos$text)])
   expect_identical(titulos, c("DISEÑO MUESTRAL", "POBLACIÓN Y SEGMENTOS", "ESCENARIOS DE MUESTRA",
                               "METAS POR SEGMENTO: DOCENTES", "METAS POR SEGMENTO: ADMINISTRATIVOS", "VIABILIDAD DE LAS METAS"))

@@ -61,12 +61,15 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
                           `Segmentos que se reportan` = c(segs, ""),
                           `Personas en la base` = .cmp_fmt_n(c(N, sum(N))), check.names = FALSE)
 
-  filas <- c(paste0("Encuestas: ", publicos), "Encuestas: total", paste0("Margen de referencia: ", publicos))
+  # Dos bloques con su fila de sección: encuestas (con total) y margen de referencia.
+  filas <- c("Encuestas", publicos, "Total", "Margen de referencia", publicos)
   comparacion <- data.frame(Indicador = filas, check.names = FALSE)
   for (k in seq_along(calc)) {
     m <- metas[[k]]
-    comparacion[[nombres[k]]] <- c(.cmp_fmt_n(c(m, sum(m))), paste0("± ", .cmp_fmt_pct(.cmp_margen_ref(m, N))))
+    comparacion[[nombres[k]]] <- c("", .cmp_fmt_n(c(m, sum(m))), "", paste0("± ", .cmp_fmt_pct(.cmp_margen_ref(m, N))))
   }
+  attr(comparacion, "secciones") <- c(1L, length(publicos) + 3L)
+  attr(comparacion, "totales") <- length(publicos) + 2L
 
   segmentos <- list()
   for (i in seq_along(base)) {
@@ -129,7 +132,8 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
     check.names = FALSE)
 }
 
-.cmp_flextable <- function(df, filas_densas = FALSE, primera = 0.30, total = FALSE) {
+.cmp_flextable <- function(df, filas_densas = FALSE, primera = 0.30, total = FALSE,
+                           secciones = attr(df, "secciones"), totales = attr(df, "totales")) {
   T <- .CMP_TABLA
   azul <- .std_color("azul"); cebra <- .std_color("cebra"); filete <- .std_color("filete")
   letra <- if (filas_densas) T$letra_densa else T$letra
@@ -149,14 +153,23 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   ft <- flextable::bg(ft, bg = "#FFFFFF", part = "body")
   pares <- seq_len(nrow(df))[seq_len(nrow(df)) %% 2L == 0L]
   if (length(pares)) ft <- flextable::bg(ft, i = pares, bg = cebra, part = "body")
-  if (total) {
-    ft <- flextable::bold(ft, i = nrow(df), part = "body")
-    ft <- flextable::bg(ft, i = nrow(df), bg = .std_color("banda_clara"), part = "body")
+  if (total) totales <- c(totales, nrow(df))
+  if (length(totales)) {
+    ft <- flextable::bold(ft, i = totales, part = "body")
+    ft <- flextable::bg(ft, i = totales, bg = .std_color("banda_clara"), part = "body")
+  }
+  # Filas de sección: rótulo del bloque, sin cifras, con su propia banda.
+  if (length(secciones)) {
+    ft <- flextable::bg(ft, i = secciones, bg = .std_color("numero_fondo"), part = "body")
+    ft <- flextable::color(ft, i = secciones, color = .std_color("coral"), part = "body")
+    ft <- flextable::merge_h_range(ft, i = secciones, j1 = 1, j2 = ncol(df), part = "body")
   }
   ft <- flextable::align(ft, j = 1, align = "left", part = "all")
   if (ncol(df) > 1L) ft <- flextable::align(ft, j = 2:ncol(df), align = "center", part = "all")
   ft <- flextable::valign(ft, valign = "center", part = "all")
   ft <- flextable::padding(ft, padding.left = 8, padding.right = 8, padding.top = 3, padding.bottom = 3, part = "all")
+  # Bajo una fila de sección, el rótulo de la fila se sangra.
+  if (length(secciones)) ft <- flextable::padding(ft, i = setdiff(seq_len(nrow(df)), secciones), j = 1, padding.left = 22, part = "body")
   ft <- flextable::height_all(ft, height = alto, part = "all")
   ft <- flextable::hrule(ft, rule = "atleast", part = "all")
   ft <- flextable::border_remove(ft)
@@ -196,10 +209,21 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   doc <- officer::ph_with(doc, ft, location = officer::ph_location(left = T$left, top = T$top, width = T$width, height = 1))
   if (!is.null(nota) && nzchar(nota)) {
     top <- min(T$top + sum(altos) + 0.30, 7.5 - T$nota_alto - 0.35)
-    nota_fp <- officer::fp_text(color = .std_color("azul"), font.size = 11, font.family = "Arial")
-    doc <- officer::ph_with(doc, officer::fpar(officer::ftext(nota, nota_fp), fp_p = officer::fp_par(text.align = "center")),
-                            location = officer::ph_location(left = T$left, top = top, width = T$width, height = T$nota_alto,
-                                                            bg = .std_color("cebra")))
+    # Recuadro de una celda: el texto queda centrado en los dos ejes, con borde fino.
+    nf <- flextable::flextable(data.frame(nota = nota))
+    nf <- flextable::delete_part(nf, part = "header")
+    nf <- flextable::width(nf, j = 1, width = T$width)
+    nf <- flextable::font(nf, fontname = "Arial", part = "all")
+    nf <- flextable::fontsize(nf, size = 11, part = "all")
+    nf <- flextable::color(nf, color = .std_color("azul"), part = "all")
+    nf <- flextable::bg(nf, bg = .std_color("cebra"), part = "all")
+    nf <- flextable::align(nf, align = "center", part = "all")
+    nf <- flextable::valign(nf, valign = "center", part = "all")
+    nf <- flextable::padding(nf, padding.left = 14, padding.right = 14, padding.top = 6, padding.bottom = 6, part = "all")
+    nf <- flextable::height(nf, height = T$nota_alto, part = "body")
+    nf <- flextable::hrule(nf, rule = "atleast", part = "body")
+    nf <- flextable::border_outer(nf, border = officer::fp_border(color = .std_color("azul_medio"), width = 0.75))
+    doc <- officer::ph_with(doc, nf, location = officer::ph_location(left = T$left, top = top, width = T$width, height = T$nota_alto))
   }
   doc
 }
@@ -221,7 +245,7 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   plan <- list(
     p_slide_portada(as.character(propuesta$titulo %||% "Diseño muestral")[1],
                     subtitulo = as.character(propuesta$subtitulo %||% "Propuesta técnica: diseño muestral")[1],
-                    fecha = propuesta$fecha %||% NULL),
+                    fecha = propuesta$fecha %||% NULL, subtexto = propuesta$solicitante %||% NULL),
     p_slide_cierre())
   base_tmp <- tempfile(fileext = ".pptx")
   reporte_ppt_plan(data = data.frame(x = 1), instrumento = list(survey = data.frame(type = "text", name = "x", label = "x")),
