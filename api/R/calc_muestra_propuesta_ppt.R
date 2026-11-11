@@ -19,7 +19,14 @@
 .cmp_fmt_n <- function(x) formatC(as.numeric(x), format = "d", big.mark = ",")
 # El mismo formato que escribe el motor de gráficos sobre la barra ("19%", "18.7%"): la tabla de metas y el
 # gráfico del público se leen juntos.
-.cmp_fmt_pct_grafico <- function(x) ifelse(is.finite(x), paste0(sub("\\.0$", "", formatC(round(100 * x, 1), format = "f", digits = 1)), "%"), "")
+# Redondeo del gráfico: las barras verticales (hasta .CMG_MAX_VERTICALES categorías) escriben enteros ("66%");
+# las horizontales, un decimal sin ".0" ("18.7%", "19%"). Mitad hacia arriba, como el motor.
+.cmp_fmt_pct_grafico <- function(x, n_categorias = Inf) {
+  dec <- if (n_categorias > .CMG_MAX_VERTICALES) 1L else 0L
+  v <- floor(100 * x * 10^dec + 0.5) / 10^dec
+  txt <- sub("\\.0$", "", formatC(v, format = "f", digits = dec))
+  ifelse(is.finite(x), paste0(txt, "%"), "")
+}
 .cmp_fmt_pct <- function(x, dec = 1) ifelse(is.finite(x), paste0(formatC(100 * x, format = "f", digits = dec), " %"), "")
 .cmp_margen_ref <- function(n, N) {
   ok <- n > 0 & N > 1 & n <= N
@@ -110,7 +117,7 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
     # (revisión 2026-11-11): las metas son proporcionales a él.
     df <- data.frame(Segmento = c(vapply(est, `[[`, "", "label"), "Total"),
                      `Población` = .cmp_fmt_n(c(N_seg, N[i])),
-                     `% de la población` = c(.cmp_fmt_pct_grafico(N_seg / sum(N_seg)), "100%"),
+                     `% de la población` = c(.cmp_fmt_pct_grafico(N_seg / sum(N_seg), length(N_seg)), "100%"),
                      check.names = FALSE)
     num <- data.frame(segmento = vapply(est, `[[`, "", "label"), N = vapply(est, function(e) as.integer(e$N), 1L))
     for (k in seq_along(calc)) {

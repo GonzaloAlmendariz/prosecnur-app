@@ -38,8 +38,9 @@ test_that("las tablas comparan los escenarios con las metas del motor", {
   expect_identical(tail(d[["Meta Propuesta B"]], 1), "604")
   expect_identical(d[["Meta Propuesta B"]][1], "30")
   expect_identical(attr(d, "al_minimo"), "Contratado a tiempo completo")
-  # El % de la población se escribe como en el gráfico ("66%", "4.3%"), porque explica las metas.
-  expect_identical(d[["% de la población"]][1:2], c("4.3%", "65.7%"))
+  # El % de la población se escribe como en el gráfico (barras verticales, enteros: "4%", "66%"), porque explica
+  # las metas.
+  expect_identical(d[["% de la población"]][1:2], c("4%", "66%"))
   expect_identical(tail(d[["% de la población"]], 1), "100%")
   expect_false("Egresados" %in% names(t$segmentos))
   # Para cada actor queda dicho cómo se reparte su meta.
