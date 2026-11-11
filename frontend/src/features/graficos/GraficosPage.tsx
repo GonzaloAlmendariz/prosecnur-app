@@ -59,6 +59,7 @@ const VistaGeneral = lazyWithReload(() => import("./vistaGeneral/VistaGeneral"),
 const PestanaEstilo = lazyWithReload(() => import("./estilo/PestanaEstilo"), "graficos-estilo");
 const PestanaEstiloInforme = lazyWithReload(() => import("./estiloInforme/PestanaEstiloInforme"), "graficos-estilo-informe");
 const PestanaWord = lazyWithReload(() => import("./word/PestanaWord"), "graficos-word");
+const PestanaPlantillas = lazyWithReload(() => import("./plantillas/PestanaPlantillas"), "graficos-plantillas");
 
 export default function GraficosPage() {
   const location = useLocation();
@@ -380,7 +381,9 @@ export default function GraficosPage() {
               role="tabpanel"
               aria-labelledby={`graficos-tab-${pestana}`}
             >
-              {pestana === "laminas"
+              {pestana === "plantillas"
+                ? <Suspense fallback={<div data-audit-ready="false"><CargaDeModulo label="Cargando las plantillas" /></div>}><PestanaPlantillas /></Suspense>
+                : pestana === "laminas"
                 ? <LaminasWorkbench />
                 : pestana === "informe"
                   ? <Suspense fallback={<div data-audit-ready="false"><CargaDeModulo label="Cargando la vista general…" /></div>}><VistaGeneral /></Suspense>

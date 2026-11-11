@@ -48,6 +48,7 @@ export function atajosDePestana(pestana: GraficosTabId, mod: string): Atajo[] {
         { keys: ["Supr"], label: "Eliminar la selección (pide confirmar)", group: "Ordenar" },
         AYUDA,
       ];
+    case "plantillas":
     case "identidad":
     case "reglas":
     case "word":

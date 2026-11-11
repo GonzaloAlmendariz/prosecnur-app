@@ -2196,6 +2196,8 @@
     )
   }
 
+  slides <- .graficos_aplicar_grafico_por_pregunta(slides, .graficos_grafico_por_pregunta(cfg))   # pestaña Plantillas
+
   delivery <- .graficos_delivery_options(
     cfg,
     profile_id = profile_id,

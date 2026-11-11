@@ -1,0 +1,376 @@
+/* Pestaña Plantillas de Gráficos. Mismo marco que Reglas (estiloInforme.css): barra de título a la altura del rail y un
+   solo dueño de scroll, el cuerpo. Las dos columnas son secciones independientes (contrato intrinsic): el menú queda
+   fijo arriba mientras el contenido se recorre. */
+
+.pulso-graficos-pestana > .pulso-plantillas {
+  flex: 1;
+  min-height: 0;
+}
+
+.pulso-plantillas {
+  /* Colores de marca de las plantillas de cliente, sólo para sus miniaturas. */
+  --plantilla-marca-acnur: #0072bc;
+  --plantilla-marca-coral: #ca5651;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-plantillas-barra {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: center;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  min-height: calc(var(--pulso-control-height-md) + 2 * var(--pulso-rail-bubble-offset));
+  padding: var(--pulso-rail-bubble-offset) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-plantillas-titulo {
+  margin: 0;
+  line-height: var(--pulso-control-height-md);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.pulso-plantillas-ayuda {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-plantillas-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--pulso-space-4);
+}
+
+.pulso-plantillas-columnas {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: var(--pulso-space-4);
+  align-items: start;
+}
+
+/* ---- Menú de plantillas ---- */
+
+.pulso-plantillas-menu {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-plantillas-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-plantillas-grupo > h3 {
+  margin: 0 var(--pulso-space-1);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  color: var(--pulso-text-faint);
+}
+
+.pulso-plantillas-opcion {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--pulso-space-2);
+  text-align: left;
+  font: inherit;
+  color: var(--pulso-text);
+  background: none;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pulso-plantillas-opcion:hover:not(:disabled) {
+  background: var(--pulso-surface-3);
+}
+
+.pulso-plantillas-opcion[aria-pressed="true"] {
+  background: var(--pulso-primary-soft);
+}
+
+.pulso-plantillas-opcion:disabled {
+  cursor: not-allowed;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-plantillas-opcion-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  /* Los botones heredan nowrap del kit: la descripción se parte dentro de su columna. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pulso-plantillas-opcion-texto strong {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+}
+
+.pulso-plantillas-opcion-texto small,
+.pulso-plantillas-guardada small {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-faint);
+}
+
+/* Miniatura: título y tres barras con los colores de la plantilla. */
+.pulso-plantillas-mini {
+  position: relative;
+  display: block;
+  width: 56px;
+  height: 40px;
+  overflow: hidden;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+}
+
+.pulso-plantillas-mini > i,
+.pulso-plantillas-mini > b {
+  position: absolute;
+  left: 6px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.pulso-plantillas-mini > i { top: 6px; width: 26px; background: var(--mini-titulo); }
+.pulso-plantillas-mini > b { background: var(--mini-barras); }
+.pulso-plantillas-mini > b:nth-of-type(1) { top: 16px; width: 38px; }
+.pulso-plantillas-mini > b:nth-of-type(2) { top: 23px; width: 26px; }
+.pulso-plantillas-mini > b:nth-of-type(3) { top: 30px; width: 16px; }
+
+.pulso-plantillas-guardada {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  padding-left: var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-plantillas-guardada-usar {
+  flex: 1;
+  white-space: normal;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--pulso-space-1) 0;
+  text-align: left;
+  font: inherit;
+  color: var(--pulso-text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.pulso-plantillas-guardada-usar strong {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+}
+
+/* ---- Contenido del informe ---- */
+
+.pulso-plantillas-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-plantillas-resumen {
+  flex: none;
+}
+
+.pulso-plantillas-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-left: auto;
+}
+
+.pulso-plantillas-guardar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-plantillas-estado,
+.pulso-plantillas-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-plantillas-error {
+  color: var(--pulso-danger-fg);
+  background: var(--pulso-danger-bg);
+  border-color: var(--pulso-danger-border);
+}
+
+.pulso-plantillas-herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-plantillas-buscar {
+  flex: 1;
+  min-width: 220px;
+}
+
+.pulso-plantillas-secciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-plantillas-seccion-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-plantillas-seccion-abrir {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-1) 0;
+  text-align: left;
+  font: inherit;
+  color: var(--pulso-text-faint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.pulso-plantillas-seccion-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pulso-plantillas-seccion-texto strong {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text);
+}
+
+.pulso-plantillas-seccion[data-estado="ninguna"] .pulso-plantillas-seccion-texto strong {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-plantillas-seccion-texto small,
+.pulso-plantillas-seccion-laminas,
+.pulso-plantillas-pregunta-laminas {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-plantillas-preguntas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-plantillas-pregunta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 200px 72px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3) var(--pulso-space-2) var(--pulso-space-6);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-plantillas-pregunta:last-child {
+  border-bottom: 0;
+}
+
+.pulso-plantillas-pregunta-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+}
+
+.pulso-plantillas-pregunta[data-dentro="no"] .pulso-plantillas-pregunta-texto {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-plantillas-pregunta-texto small {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-primary);
+}
+
+.pulso-plantillas-tipo {
+  padding: 2px var(--pulso-space-2);
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  background: var(--pulso-surface-3);
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-plantillas-pregunta-laminas {
+  text-align: right;
+}
+
+.pulso-plantillas-grafico-unico {
+  padding: 0 var(--pulso-space-2);
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+@media (max-width: 1280px) {
+  .pulso-plantillas-columnas {
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  }
+  .pulso-plantillas-pregunta {
+    grid-template-columns: auto minmax(0, 1fr) 150px 64px;
+  }
+  .pulso-plantillas-tipo {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .pulso-plantillas-columnas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pulso-plantillas-menu {
+    position: static;
+  }
+}

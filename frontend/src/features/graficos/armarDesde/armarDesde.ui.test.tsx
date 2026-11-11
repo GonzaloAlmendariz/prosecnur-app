@@ -31,17 +31,26 @@ const en = (url: string, nodo: ReturnType<typeof createElement>) =>
 describe("«Armar desde…» · panel direccionable y alcance", () => {
   beforeEach(() => planSugerido.mockReset());
 
-  // Mata: volver a un `useState` local para abrir (el enlace no reproduciría la vista).
-  it("?panel=armar-desde abre el popover; sin el param queda cerrado", () => {
-    const abierto = en("/procesamiento?seccion=graficos&pestana=vista-general&panel=armar-desde", createElement(SuggestedPlanButton));
+  // Mata: volver a un `useState` local para abrir (el enlace no reproduciría la vista). El popover vive sólo en el
+  // informe compartido; en la base activa el plan se arma en la pestaña Plantillas (2026-11-11).
+  it("en el informe compartido ?panel=armar-desde abre el popover; sin el param queda cerrado", () => {
+    const abierto = en("/procesamiento?seccion=graficos&pestana=vista-general&scope=consolidado&panel=armar-desde", createElement(SuggestedPlanButton));
     expect(abierto).toContain('role="dialog"');
     expect(abierto).toContain('data-pulso-panel="armar-desde"');
     expect(abierto).toContain('aria-expanded="true"');
-    const cerrado = en("/procesamiento?seccion=graficos&pestana=vista-general", createElement(SuggestedPlanButton));
+    const cerrado = en("/procesamiento?seccion=graficos&pestana=vista-general&scope=consolidado", createElement(SuggestedPlanButton));
     expect(cerrado).not.toContain('role="dialog"');
     expect(cerrado).toContain('aria-expanded="false"');
     // R12-9: el disparador es un botón de ícono del kit; su nombre es el del panel (el rótulo visible ya iba oculto).
     expect(cerrado).toContain('aria-label="Armar desde un plan sugerido"');
+  });
+
+  // Mata: volver a abrir el popover en la base activa, donde el plan se arma en la pestaña.
+  it("en la base activa el botón lleva a Plantillas y no abre un diálogo", () => {
+    const html = en("/procesamiento?seccion=graficos&pestana=laminas&panel=armar-desde", createElement(SuggestedPlanButton));
+    expect(html).not.toContain('role="dialog"');
+    expect(html).toContain('aria-label="Plantillas del informe"');
+    expect(html).not.toContain("aria-haspopup");
   });
 
   // F1. Mata: dejar el compartido deshabilitado (o con el motivo provisional) tras conectar la matriz.
@@ -57,9 +66,9 @@ describe("«Armar desde…» · panel direccionable y alcance", () => {
     expect(planSugerido).not.toHaveBeenCalled();
   });
 
-  it("CTA de los vacíos: activo dentro y fuera del compartido", () => {
+  it("CTA de los vacíos: en la base activa lleva a Plantillas y en el compartido abre la propuesta", () => {
     const activo = en("/procesamiento?seccion=graficos&pestana=laminas", createElement(BotonArmarDesdeVacio));
-    expect(activo).toContain("Armar desde un plan sugerido");
+    expect(activo).toContain("Elegir una plantilla");
     expect(activo).not.toContain("aria-disabled");
     const compartido = en("/procesamiento?seccion=graficos&pestana=laminas&scope=consolidado", createElement(BotonArmarDesdeVacio));
     expect(compartido).toContain("Armar desde un plan sugerido");

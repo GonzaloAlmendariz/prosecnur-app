@@ -27,6 +27,7 @@ import { archivoTexto } from "../../components/entregables/archivoLocal";
 import { nombreConEstudio } from "../../components/entregables/nombreConEstudio";
 import { useGeneracion } from "../../components/entregables/useGeneracion";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { useIrAPlantillas } from "./plantillas/useIrAPlantillas";
 import { PANEL_ARMAR_DESDE } from "./panelesGraficos";
 import { useGraficosReportScope } from "./reportScope";
 import {
@@ -41,61 +42,11 @@ import { enfocarSinDesplazar } from "./laminas/enfocarSinDesplazar";
 import "./armarDesde/armarDesde.css";
 import "./kitEnLaBarra.css";
 import { contenidoPropuesto, tituloPropuesto } from "./armarDesde/vistaPreviaPropuesta";
+import { clonePlanWithFreshIds, normalizeAcnurVisibleText } from "./armarDesde/clonarPlanSugerido";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { CabeceraPanel } from "../../components/CabeceraPanel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { RadioSegmentado } from "./subpestanas/RadioSegmentado";
-
-function newSlideId(prefix = "sug") {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-const VISIBLE_PAYLOAD_TEXT_KEYS = new Set([
-  "titulo",
-  "subtitulo",
-  "texto",
-  "bullets",
-  "base",
-  "pie",
-  "etiqueta",
-  "subtexto",
-  "introduccion_word",
-]);
-
-function normalizeAcnurVisibleText(value: string): string {
-  return value
-    .replace(/ACNUR\s+KOICA\s*[-–]\s*/gi, "ACNUR territorial - ")
-    .replace(/ACNUR\s+KOICA/gi, "ACNUR territorial")
-    .replace(/ACNUR\/KOICA/gi, "ACNUR territorial")
-    .replace(/Overview territorial\s+KOICA/gi, "Overview territorial")
-    .replace(/diseño\s+KOICA/gi, "diseño territorial")
-    .replace(/diseno\s+KOICA/gi, "diseño territorial")
-    .replace(/\bKOICA\b/gi, "territorial");
-}
-
-function normalizeVisiblePayloadValue(value: unknown): unknown {
-  if (typeof value === "string") return normalizeAcnurVisibleText(value);
-  if (Array.isArray(value)) return value.map((item) => (typeof item === "string" ? normalizeAcnurVisibleText(item) : item));
-  return value;
-}
-
-function cloneSuggestedPayload(payload: Slide["payload"]): Slide["payload"] {
-  const cloned = JSON.parse(JSON.stringify(payload ?? {})) as Record<string, unknown>;
-  for (const key of VISIBLE_PAYLOAD_TEXT_KEYS) {
-    if (key in cloned) cloned[key] = normalizeVisiblePayloadValue(cloned[key]);
-  }
-  return cloned as Slide["payload"];
-}
-
-function clonePlanWithFreshIds(plan: PlanJson): PlanJson {
-  return {
-    slides: (plan.slides ?? []).map((slide): Slide => ({
-      ...slide,
-      id: newSlideId("sug"),
-      payload: cloneSuggestedPayload(slide.payload),
-    })),
-  };
-}
 
 type ComparisonMode = "paired_district" | "district" | "none";
 
@@ -133,6 +84,10 @@ export function SuggestedPlanButton() {
   const open = panel.abierto;
   // ADR 0096: en el informe compartido la propuesta se pide con su alcance (la siembra desde la matriz).
   const alcance = useGraficosReportScope(useLocation().search);
+  // En la base activa el plan se arma en la pestaña Plantillas (2026-11-11): el botón lleva allá y un enlace viejo con
+  // `panel=armar-desde` también. El popover queda sólo para el informe compartido, que arma desde varias bases.
+  const enPestana = alcance !== "consolidated";
+  const irAPlantillas = useIrAPlantillas();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
@@ -167,6 +122,10 @@ export function SuggestedPlanButton() {
     setComparisonMode("none");
     setResult(null);
   }, [projectIdentity]);
+
+  useEffect(() => {
+    if (enPestana && open) irAPlantillas();
+  }, [enPestana, open, irAPlantillas]);
 
   const cerrarPanel = panel.cerrar;
   const cerrar = useRef(cerrarPanel);
@@ -205,8 +164,8 @@ export function SuggestedPlanButton() {
   // Abrir (por clic o por enlace) pide la propuesta una vez, en la base activa y en el informe compartido.
   const generar = useRef<() => void>(() => undefined);
   useEffect(() => {
-    if (debePedirPropuesta(open)) generar.current();
-  }, [open]);
+    if (!enPestana && debePedirPropuesta(open)) generar.current();
+  }, [open, enPestana]);
   // Abierto desde la barra, desde el CTA de un vacío o por enlace, el foco entra al diálogo (sin mover el scroll).
   useEffect(() => {
     if (!open) return;
@@ -299,17 +258,17 @@ export function SuggestedPlanButton() {
         tone="framed"
         ref={disparadorRef}
         className="pulso-gv2-suggest-trigger"
-        onClick={panel.alternar}
+        onClick={enPestana ? irAPlantillas : panel.alternar}
         disabled={busy}
-        aria-label={PANEL_ARMAR_DESDE.label}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        title={PANEL_ARMAR_DESDE.label}
+        aria-label={enPestana ? "Plantillas del informe" : PANEL_ARMAR_DESDE.label}
+        aria-haspopup={enPestana ? undefined : "dialog"}
+        aria-expanded={enPestana ? undefined : open}
+        title={enPestana ? "Plantillas del informe" : PANEL_ARMAR_DESDE.label}
       >
         {busy ? <Loader2 size={16} className="pulso-spin" aria-hidden="true" /> : <LayoutTemplate size={16} aria-hidden="true" />}
       </PulsoButton>
 
-      {open && (
+      {open && !enPestana && (
         <div ref={dialogoRef} tabIndex={-1} className="pulso-gv2-suggest-popover" role="dialog" aria-label={PANEL_ARMAR_DESDE.label} {...panel.props}>
           {/* R9-7: la cabecera y la X del kit; «Cancelar» sale del pie (la X y Escape cierran). */}
           <CabeceraPanel

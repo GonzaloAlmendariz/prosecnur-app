@@ -3016,6 +3016,20 @@ mount_graficos <- function(pr) {
       .graficos_plan_sugerido_por_fuente(sid, config = parsed$config %||% NULL,
                                          scope = parsed$scope %||% "")
     })) |>
+    plumber::pr_post("/api/graficos/plan/estructura", wrap_endpoint(function(req, res, ...) {
+      # Pestaña Plantillas: secciones y preguntas del informe con la plantilla elegida, dentro o fuera, con sus láminas
+      # y su gráfico (graficos_estructura_informe.R). Mismo cuerpo que /plan/sugerido; sólo la base activa.
+      sid <- session_header(req)
+      session_get(sid)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      parsed <- if (nzchar(body_raw)) {
+        Encoding(body_raw) <- "UTF-8"
+        tryCatch(jsonlite::fromJSON(body_raw, simplifyVector = FALSE), error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e)))
+      } else {
+        list()
+      }
+      .graficos_estructura_informe(sid, config = parsed$config %||% NULL)
+    })) |>
     plumber::pr_get("/api/graficos/paletas-sugeridas", wrap_endpoint(function(req, res) {
       # Devuelve todas las listas de choices del instrumento con sus
       # value-labels, para que la UI del editor de paletas sepa qué

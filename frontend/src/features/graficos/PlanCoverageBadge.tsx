@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { BarChart3, CheckCircle2, CircleSlash2, EyeOff, Loader2, RefreshCw, Target } from "lucide-react";
+import { BarChart3, CheckCircle2, CircleSlash2, EyeOff, Loader2, Target } from "lucide-react";
 import type { GraficosCoverageSummary, GraficosCoverageVariable } from "../../api/client";
-import { usePlanStore } from "./store";
-import { usePlanCoverage, variableCoverageRef } from "./usePlanCoverage";
+import { useIrAPlantillas } from "./plantillas/useIrAPlantillas";
+import { usePlanCoverage } from "./usePlanCoverage";
+import "./coberturaResumen.css";
 import { basesSinCubrir, coberturaPorBase } from "./coberturaPorBase";
 import { formatoConteo } from "../../lib/formatoNumero";
 
@@ -15,7 +16,7 @@ const STATUS_LABELS: Record<string, string> = {
   integrada_en_otra_variable: "Integradas en otra variable",
   no_graficable: "No graficables",
   vacía: "Vacías",
-  excluida_intencionalmente: "Marcadas como no graficar",
+  excluida_intencionalmente: "Fuera del informe",
 };
 
 const STATUS_HINTS: Record<string, string> = {
@@ -24,13 +25,14 @@ const STATUS_HINTS: Record<string, string> = {
   integrada_en_otra_variable: "Campos tipo Otros/Other que pertenecen a una variable madre.",
   no_graficable: "Abiertas crudas, identificadores, contactos o tipos que no conviene graficar.",
   vacía: "Variables disponibles en el instrumento pero sin datos efectivos.",
-  excluida_intencionalmente: "Variables graficables que el usuario decidió dejar fuera del plan.",
+  excluida_intencionalmente: "Preguntas que se dejaron fuera en Plantillas.",
 };
 
 /** `conNombre` antepone «Cobertura» y nombra la unidad («283/286 variables»; el inventario cuenta variables graficables, no preguntas): la barra de Láminas no deja cifras sueltas. */
 export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean } = {}) {
   const { coverage, loading, error } = usePlanCoverage();
-  const setCoverageExcluded = usePlanStore((s) => s.setCoverageExcluded);
+  // Lo que entra al informe se decide en la pestaña Plantillas (2026-11-11); aquí queda el resumen y el acceso.
+  const irAPlantillas = useIrAPlantillas();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -107,6 +109,9 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
     const map: Record<string, Array<{ source: string; variable: GraficosCoverageVariable }>> = {};
     for (const source of coverage?.sources ?? []) {
       for (const variable of source.variables ?? []) {
+        // Las columnas heredadas de la madre en una base repetible no cuentan en el resumen: tampoco se listan, así el
+        // número del grupo es el mismo que el de arriba.
+        if (variable.coverage_countable === false) continue;
         const status = variable.status || "sin_estado";
         (map[status] ??= []).push({ source: source.name, variable });
       }
@@ -168,10 +173,16 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
           )}
 
           {coverage?.warnings?.length ? (
-            <div className="pulso-gv2-coverage-warning">
-              {coverage.warnings.join("; ")}
-            </div>
+            <details className="pulso-gv2-coverage-warning">
+              <summary>{coverage.warnings.length === 1 ? "1 aviso" : `${formatoConteo(coverage.warnings.length)} avisos`}</summary>
+              <ul>{coverage.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+            </details>
           ) : null}
+
+          <div className="pulso-gv2-coverage-plantillas">
+            <span>Qué secciones y preguntas van al informe se elige en Plantillas.</span>
+            <button type="button" onClick={() => { setOpen(false); irAPlantillas(); }}>Ir a Plantillas</button>
+          </div>
 
           {summary && (
             <>
@@ -234,16 +245,8 @@ export function PlanCoverageBadge({ conNombre = false }: { conNombre?: boolean }
             </>
           )}
 
-          <CoverageGroup
-            status="sin_usar"
-            items={groups.sin_usar ?? []}
-            onExclude={(ref) => setCoverageExcluded(ref, true)}
-          />
-          <CoverageGroup
-            status="excluida_intencionalmente"
-            items={groups.excluida_intencionalmente ?? []}
-            onInclude={(ref) => setCoverageExcluded(ref, false)}
-          />
+          <CoverageGroup status="sin_usar" items={groups.sin_usar ?? []} />
+          <CoverageGroup status="excluida_intencionalmente" items={groups.excluida_intencionalmente ?? []} />
           <CoverageGroup status="cubierta_por_recodificada" items={groups.cubierta_por_recodificada ?? []} />
           <CoverageGroup status="integrada_en_otra_variable" items={groups.integrada_en_otra_variable ?? []} />
           <CoverageGroup status="no_graficable" items={groups.no_graficable ?? []} compact />
@@ -287,18 +290,16 @@ function CoverageKpi({
 function CoverageGroup({
   status,
   items,
-  onExclude,
-  onInclude,
   compact = false,
 }: {
   status: string;
   items: Array<{ source: string; variable: GraficosCoverageVariable }>;
-  onExclude?: (ref: string) => void;
-  onInclude?: (ref: string) => void;
   compact?: boolean;
 }) {
+  const [todas, setTodas] = useState(false);
   if (!items.length) return null;
-  const visible = compact ? items.slice(0, 8) : items.slice(0, 20);
+  const tope = compact ? 8 : 20;
+  const visible = todas ? items : items.slice(0, tope);
   const Icon = status === "excluida_intencionalmente" ? EyeOff :
     status === "no_graficable" || status === "vacía" ? CircleSlash2 :
       CheckCircle2;
@@ -311,35 +312,18 @@ function CoverageGroup({
       </div>
       {STATUS_HINTS[status] && <p>{STATUS_HINTS[status]}</p>}
       <div className="pulso-gv2-coverage-list">
-        {visible.map(({ source, variable }) => {
-          const ref = variableCoverageRef(source, variable);
-          return (
-            <div key={`${source}:${variable.name}`} className="pulso-gv2-coverage-row">
-              <div>
-                <span className="pulso-gv2-coverage-row-meta">
-                  {source && source !== "default" && <small>{source}</small>}
-                  <code>{variable.name}</code>
-                </span>
-                <span>{variable.label || variable.name}</span>
-                {variable.exclusion_reason && <em>{variable.exclusion_reason}</em>}
-              </div>
-              {onExclude && (
-                <button type="button" onClick={() => onExclude(ref)}>
-                  <EyeOff size={11} /> No graficar
-                </button>
-              )}
-              {onInclude && (
-                <button type="button" onClick={() => onInclude(ref)}>
-                  <RefreshCw size={11} /> Reconsiderar
-                </button>
-              )}
+        {visible.map(({ source, variable }) => (
+          <div key={`${source}:${variable.name}`} className="pulso-gv2-coverage-row">
+            <div>
+              <span>{variable.label || variable.name}</span>
+              {variable.exclusion_reason && <em>{variable.exclusion_reason}</em>}
             </div>
-          );
-        })}
-        {items.length > visible.length && (
-          <div className="pulso-gv2-coverage-more">
-            +{items.length - visible.length} variables más
           </div>
+        ))}
+        {items.length > visible.length && (
+          <button type="button" className="pulso-gv2-coverage-more" onClick={() => setTodas(true)}>
+            Ver las {formatoConteo(items.length)}
+          </button>
         )}
       </div>
     </section>

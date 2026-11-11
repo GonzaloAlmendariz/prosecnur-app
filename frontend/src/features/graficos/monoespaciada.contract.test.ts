@@ -30,7 +30,6 @@ const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace
 /** `<code>` por archivo al 2 nov 2026: columnas, variables, fórmulas y símbolos. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
   "MultiApiladasBuilder.tsx": 2,
-  "PlanCoverageBadge.tsx": 1,
   "SuggestedPlanButton.tsx": 1,
   "VariablePicker.tsx": 1,
   "VarsListPicker.tsx": 2,

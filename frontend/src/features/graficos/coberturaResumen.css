@@ -1,0 +1,49 @@
+/* Cobertura como resumen (2026-11-11): los avisos se pliegan, toda lista se puede ver completa y lo que entra al informe
+   se elige en la pestaña Plantillas. La base de estos estilos vive en v2/styles/editor-v2.css (congelado). */
+
+details.pulso-gv2-coverage-warning {
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  font-size: var(--pulso-type-caption-size);
+}
+
+details.pulso-gv2-coverage-warning > summary {
+  cursor: pointer;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+details.pulso-gv2-coverage-warning > ul {
+  margin: var(--pulso-space-2) 0 0;
+  padding-left: var(--pulso-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-gv2-coverage-plantillas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+  background: var(--pulso-primary-soft);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-gv2-coverage-plantillas > button,
+button.pulso-gv2-coverage-more {
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-primary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button.pulso-gv2-coverage-more {
+  width: 100%;
+  font-size: var(--pulso-type-caption-size);
+}
