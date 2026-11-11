@@ -911,11 +911,17 @@ export function desvioDeRuta(route, finalUrl) {
   const pedida = new URL(route, "http://qa.local");
   const final = new URL(finalUrl, "http://qa.local");
   const normalizar = (p) => p.replace(/\/+$/, "") || "/";
+  // `/procesamiento` es "Estado del estudio" y no lee la query. Pedirle una
+  // sección no cambia el pathname ni reescribe ningún nivel, así que sin esta
+  // regla la corrida mediría "Estado del estudio" y lo daría por la sección.
+  if (normalizar(pedida.pathname) === "/procesamiento") {
+    const pedidos = NIVELES_EN_QUERY.filter((nivel) => pedida.searchParams.get(nivel));
+    if (pedidos.length) {
+      return `\`/procesamiento\` muestra "Estado del estudio" y no lee ${pedidos.join(", ")}; pide la sección por su pathname (\`/graficos?pestana=…\`) o usa --ir.`;
+    }
+  }
   if (normalizar(pedida.pathname) !== normalizar(final.pathname)) {
-    const pista = normalizar(pedida.pathname) === "/procesamiento"
-      ? " `/procesamiento` es una entrada que redirige a la fase accionable e ignora la query; pide la sección por su pathname (`/graficos?pestana=…`) o usa --ir."
-      : "";
-    return `el pathname cambió (${pedida.pathname} → ${final.pathname}).${pista}`;
+    return `el pathname cambió (${pedida.pathname} → ${final.pathname}).`;
   }
   for (const nivel of NIVELES_EN_QUERY) {
     const esperado = pedida.searchParams.get(nivel);
@@ -1314,9 +1320,9 @@ async function runCaptures(opts, stack) {
             postClickWaitSelectorMatched = false;
           });
         }
-        // Dónde se aterrizó de verdad. `/procesamiento?seccion=graficos`
-        // redirige a la fase accionable —Validación, en acrconta— y suelta la
-        // query: la corrida midió Validación › Explorar y la aprobó como si
+        // Dónde se aterrizó de verdad. `/procesamiento?seccion=graficos` no
+        // abre Gráficos: `/procesamiento` es "Estado del estudio" y no lee la
+        // query, así que la corrida mediría esa pantalla y la aprobaría como si
         // fuera Gráficos. Con `--ir` la URL final es la de la última dirección.
         const finalUrl = page.url();
         const readinessMarca = finalReadiness?.marca ?? null;

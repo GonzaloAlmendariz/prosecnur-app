@@ -138,12 +138,14 @@ Los ids de panel válidos son los de `PANELES_POR_MODULO` en
 `frontend/src/lib/navegacion/manifiesto.ts`; `window.__pulsoNav.paneles()`
 lista los declarados y los montados.
 
-**No uses `/procesamiento?seccion=…`.** `/procesamiento` es una entrada que
-redirige a la fase accionable del estudio (Carga, Validación…) y descarta la
-query: la corrida mide otra pantalla. El runner avisa `ruta desviada` con la
-readiness final, y un `--post-click-wait-selector` que nunca aparece cuenta en
-`postClickWaitSelectorMisses` y deja `ok=false`. Pasa siempre ese selector
-cuando vengas a ver un panel: es lo único que prueba que se abrió.
+**No uses `/procesamiento?seccion=…`.** `/procesamiento` es la vista "Estado
+del estudio" (readiness `procesamiento-estado`) y no lee la query: la corrida
+mide esa pantalla y no la sección pedida. Cada sección se pide por su pathname
+(`/carga`, `/validacion`, `/codificacion`, `/analitica`, `/graficos`). El runner
+avisa `ruta desviada` con la readiness final, y un `--post-click-wait-selector`
+que nunca aparece cuenta en `postClickWaitSelectorMisses` y deja `ok=false`.
+Pasa siempre ese selector cuando vengas a ver un panel: es lo único que prueba
+que se abrió.
 
 Para matriz por estudio:
 
