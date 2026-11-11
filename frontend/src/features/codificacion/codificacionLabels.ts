@@ -49,10 +49,14 @@ function canonicalShortAnswer(value: string): string | null {
   return null;
 }
 
+// Solo para etiquetas de OPCIÓN que traen los dos idiomas seguidos ("Prefiere no responder Prefers not to
+// answer"). La cola en inglés empieza en mayúscula, y por eso la búsqueda distingue mayúsculas: sin eso, la
+// preposición castellana "a" pasaba por el artículo inglés y "Atención a migrantes" quedaba en "Atención".
+// El texto libre de una respuesta no pasa por aquí: ver `displayRespuestaLabel`.
 function splitBilingualLabel(value: string): string {
   for (const token of ENGLISH_BOUNDARIES) {
     const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const match = value.match(new RegExp(`\\s+${escaped}\\b`, "i"));
+    const match = value.match(new RegExp(`\\s+${escaped}\\b`));
     if (match?.index && match.index >= 6) {
       const left = normalizeSpaces(value.slice(0, match.index));
       if (left.length >= 3) return left;
@@ -99,4 +103,15 @@ export function displayCodificacionValueLabel(code: string, rawLabel?: string | 
   }
 
   return { label: cleanCode || cleanLabel, title };
+}
+
+/**
+ * Cómo se muestra una respuesta en Codificar. Si trae `label`, la respuesta es el código de una opción y se
+ * muestra como tal. Si no, es el texto libre de la persona encuestada: se muestra entero, sin partirlo; solo
+ * se normalizan los espacios y, como antes, un "si" o un "no" sueltos se escriben "Sí" y "No".
+ */
+export function displayRespuestaLabel(texto: string, label?: string | null): CodificacionDisplayLabel {
+  if (label) return displayCodificacionValueLabel(texto, label);
+  const visible = normalizeSpaces(texto);
+  return { label: canonicalShortAnswer(visible) ?? (visible || texto), title: texto };
 }

@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Inbox, Plus, Trash2, X } from "lucide-react";
 import { IconAI } from "../../lib/icons";
 import type { CSSProperties } from "react";
 import { Grupo, RespuestaUnica } from "../../api/client";
-import { displayCodificacionValueLabel } from "./codificacionLabels";
+import { displayCodificacionValueLabel, displayRespuestaLabel } from "./codificacionLabels";
 import { grupoAccentColor } from "./codificacionGrupoColor";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { EstadoChip } from "../../components/EstadoChip";
@@ -184,7 +184,7 @@ export function GrupoCodificacionCard({
         <div className="pulso-cv2-chips" data-qa-geometry-group="codificacion/grupo-chips" data-qa-geometry-contract="intrinsic">
           {grupo.respuestas.map((t, idx) => {
             const r = respByNorm.get(t);
-            const formatted = displayCodificacionValueLabel(r?.texto ?? t, r?.label);
+            const formatted = displayRespuestaLabel(r?.texto ?? t, r?.label);
             const display = formatted.label;
             const freq = r?.frecuencia ?? 0;
             return (

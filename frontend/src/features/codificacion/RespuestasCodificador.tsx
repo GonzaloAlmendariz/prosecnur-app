@@ -24,7 +24,7 @@ import type { ModuloSugerible, PropuestaModulo } from "../../api/codificacion";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
-import { cleanCodificacionLabel, displayCodificacionValueLabel } from "./codificacionLabels";
+import { cleanCodificacionLabel, displayCodificacionValueLabel, displayRespuestaLabel } from "./codificacionLabels";
 import { grupoAccentColor } from "./codificacionGrupoColor";
 import { avisoMarcaPrevia } from "./marcasPrevias";
 import { formatoConteo } from "../../lib/formatoNumero";
@@ -43,6 +43,7 @@ import {
 } from "./sugerenciasModulo";
 import { useSugerenciasModulo } from "./useSugerenciasModulo";
 import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
+import { avanceDeRespuestas } from "./avanceRespuestas";
 import { clavesNoRespuesta, separarNoRespuestas } from "./noRespuestas";
 import "./noRespuestas.css";
 import { asignarCodigo, quitarCodigo } from "./tabla/asignacionCodigos";
@@ -240,8 +241,11 @@ export function RespuestasCodificador({ parent }: Props) {
     return separarNoRespuestas(visibleRespuestas, claves);
   }, [sugerencias, respuestas, visibleRespuestas]);
 
-  const codificadas = useMemo(() => asignaciones.size, [asignaciones]);
-  const pendientes = (respuestas?.length ?? 0) - codificadas;
+  // Codificadas y pendientes salen de la misma lista (regla en avanceRespuestas.ts): un código guardado
+  // para un texto que la base ya no trae no cuenta.
+  const avance = useMemo(() => avanceDeRespuestas(respuestas, grupos), [respuestas, grupos]);
+  const codificadas = avance.codificadas;
+  const pendientes = avance.pendientes;
 
   // Para el counter de SM "Otros": conteos en términos de CASOS reales
   // (no textos únicos). Cada `respuesta.frecuencia` = filas que tienen
@@ -281,7 +285,7 @@ export function RespuestasCodificador({ parent }: Props) {
 
   function respuestaLabel(texto_normalizado: string): string {
     const found = respuestas?.find((r) => r.texto_normalizado === texto_normalizado);
-    return found ? displayCodificacionValueLabel(found.texto, found.label).label : texto_normalizado;
+    return found ? displayRespuestaLabel(found.texto, found.label).label : texto_normalizado;
   }
 
   function grupoLabel(grupo: Grupo): string {
@@ -444,11 +448,12 @@ export function RespuestasCodificador({ parent }: Props) {
     ? [
         { label: "Marcaron Otros", value: smOtros!.n_otros_marcados, tone: "neutral" },
         { label: "Con texto libre", value: totalTextoFrecuencia, tone: "info" },
-        { label: "Codificadas", value: casosCodificados, tone: "success" },
-        { label: "Sin codificar", value: Math.max(0, casosPendientesOtros), tone: casosPendientesOtros > 0 ? "warn" : "muted" },
+        // En casos, y lo dice el rótulo: la cabecera de la columna cuenta respuestas únicas con la palabra "codificadas".
+        { label: "Casos codificados", value: casosCodificados, tone: "success" },
+        { label: "Casos sin codificar", value: Math.max(0, casosPendientesOtros), tone: casosPendientesOtros > 0 ? "warn" : "muted" },
       ]
     : [
-        { label: "Respuestas", value: respuestas.length, tone: "neutral" },
+        { label: "Respuestas", value: avance.total, tone: "neutral" },
         { label: "Codificadas", value: codificadas, tone: codificadas > 0 ? "success" : "muted" },
         { label: "Sin codificar", value: pendientes, tone: pendientes > 0 ? "warn" : "muted" },
         { label: grupos.length === 1 ? "Grupo" : "Grupos", value: grupos.length, tone: "info" },
@@ -459,7 +464,7 @@ export function RespuestasCodificador({ parent }: Props) {
     const grupo = gruposAsignados[0];
     const assigned = gruposAsignados.length > 0;
     const checked = esSM && activeGroup ? activeGroup.respuestas.includes(r.texto_normalizado) : assigned;
-    const display = displayCodificacionValueLabel(r.texto, r.label);
+    const display = displayRespuestaLabel(r.texto, r.label);
     const gruposDisponibles = grupos.filter((g) => !g.respuestas.includes(r.texto_normalizado));
     const puedeAsignarRapidoSO = !assigned && grupos.length > 1;
     const assignedIds = new Set(gruposAsignados.map((g) => g.id));
@@ -607,7 +612,7 @@ export function RespuestasCodificador({ parent }: Props) {
               )}
             </span>
             <span className="pulso-cv2-col-count">
-              {formatoConteo(codificadas)} de {formatoConteo(respuestas.length)} codificadas
+              {formatoConteo(codificadas)} de {formatoConteo(avance.total)} codificadas
             </span>
           </div>
           {vista === "tabla" ? (

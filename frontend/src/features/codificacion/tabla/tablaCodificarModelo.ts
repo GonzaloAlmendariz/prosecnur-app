@@ -6,7 +6,7 @@
 
 import type { Grupo, MarcaPrevia, RespuestaUnica } from "../../../api/codificacion";
 import { grupoAccentColor } from "../codificacionGrupoColor";
-import { displayCodificacionValueLabel } from "../codificacionLabels";
+import { displayCodificacionValueLabel, displayRespuestaLabel } from "../codificacionLabels";
 import { avisoMarcaPrevia, type AvisoMarcaPrevia } from "../marcasPrevias";
 
 export type OrdenTabla = "frecuencia" | "alfabetico";
@@ -123,7 +123,7 @@ export function filasDeTabla(
     }
   }
   const fila = (r: RespuestaUnica, noResponde: boolean): FilaTabla => {
-    const d = displayCodificacionValueLabel(r.texto, r.label);
+    const d = displayRespuestaLabel(r.texto, r.label);
     return {
       clave: r.texto_normalizado,
       texto: d.label,
