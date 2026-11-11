@@ -269,10 +269,10 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   if (sum(altos) > disponible) altos <- pmax(0.24, altos * disponible / sum(altos))
   # `llenar`: la tabla ocupa el alto disponible de la lámina ("el alto no se aprovecha", revisión 2026-11-11).
   if (llenar && sum(altos) < disponible) altos <- altos * min(disponible / sum(altos), 1.9)
-  doc <- officer::add_slide(doc, layout = "Title and Content", master = "Office Theme")
-  titulo_fp <- officer::fp_text(color = .std_color("coral"), font.size = 22, bold = TRUE, font.family = "Arial")
-  doc <- officer::ph_with(doc, officer::fpar(officer::ftext(toupper(titulo), titulo_fp)),
-                          location = officer::ph_location_type(type = "title"))
+  # La misma cabecera y el mismo pie que las láminas de gráfico del motor (barra junto al título, base y folio):
+  # la propuesta se lee como un solo mazo. El folio se corrige al final, con el orden definitivo.
+  doc <- officer::add_slide(doc, layout = "Graficos2", master = "Office Theme")
+  doc <- .lam_titulo(doc, toupper(titulo))
   ft <- .cmp_flextable(df, filas_densas = densa, primera = primera, total = total, anchos = anchos)
   if (length(izquierda)) ft <- flextable::align(ft, j = izquierda, align = "left", part = "all")
   ft <- flextable::height(ft, height = altos[1], part = "header")
@@ -286,11 +286,7 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   # La nota es una indicación al pie, abajo a la izquierda, como la base de los gráficos (revisión 2026-11-11:
   # "debería ser solo una indicación estilo base en la esquina inferior izquierda"); antes era un recuadro que
   # en PowerPoint se montaba sobre la tabla.
-  if (!is.null(nota) && nzchar(nota)) {
-    nota_fp <- officer::fp_text(color = .std_color("azul"), font.size = 9, bold = TRUE, font.family = "Arial")
-    doc <- officer::ph_with(doc, officer::fpar(officer::ftext(nota, nota_fp)),
-                            location = officer::ph_location(left = 0.45, top = 7.02, width = 11.2, height = 0.3))
-  }
+  doc <- .lam_pie(doc, if (!is.null(nota) && nzchar(nota)) nota else NULL, folio = 0L)
   doc
 }
 
@@ -380,5 +376,27 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
     }
   }
   print(doc, target = path_ppt)
-  invisible(list(path = path_ppt, laminas = length(doc), tablas = tablas))
+  .cmp_folios(path_ppt, con_portada)
+  invisible(list(path = path_ppt, laminas = length(officer::read_pptx(path_ppt)), tablas = tablas))
+}
+
+#' Numera las láminas con el orden definitivo: el motor numera las de gráfico por su lugar en el plan y las de tabla
+#' salen con 0; se reescribe cada folio con su posición (sin contar la portada). Se relee el archivo para que el
+#' índice de `get_slide` sea el de la presentación.
+#' @keywords internal
+.cmp_folios <- function(path, con_portada) {
+  doc <- officer::read_pptx(path)
+  for (i in seq_len(length(doc))) {
+    # on_slide sigue el orden de la presentación; get_slide(i) sigue el de los archivos internos.
+    doc <- officer::on_slide(doc, i)
+    sl <- doc$slide$get_slide(doc$cursor)
+    xml <- sl$get()
+    ns <- xml2::xml_ns(xml)
+    t <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='Folio lamina']]//a:t", ns)
+    if (!length(t)) next
+    xml2::xml_set_text(t[[1]], as.character(i - if (con_portada) 1L else 0L))
+    sl$save()
+  }
+  print(doc, target = path)
+  invisible(path)
 }

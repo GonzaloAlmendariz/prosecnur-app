@@ -71,6 +71,14 @@ test_that("portada y diseño muestral se pueden quitar cuando las láminas van d
   doc <- officer::read_pptx(r$path)
   primera <- officer::slide_summary(officer::on_slide(doc, 1))$text
   expect_true(any(grepl("POBLACIÓN Y SEGMENTOS DE CRUCE", primera, fixed = TRUE)))
+  # Tablas y gráficos llevan folio en el orden de la presentación (sin portada, la primera es la 1).
+  folios <- vapply(seq_len(length(doc) - 1L), function(i) {
+    doc <- officer::on_slide(doc, i)
+    xml <- doc$slide$get_slide(doc$cursor)$get()
+    t <- xml2::xml_find_first(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='Folio lamina']]//a:t", xml2::xml_ns(xml))
+    xml2::xml_text(t)
+  }, "")
+  expect_identical(folios, as.character(seq_len(length(doc) - 1L)))
 })
 
 test_that("sin pedirla, la propuesta para el cliente no lleva la lámina de viabilidad", {
