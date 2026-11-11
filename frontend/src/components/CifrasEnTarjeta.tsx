@@ -24,9 +24,18 @@ export type CifraEnTarjeta = {
   tono?: "aviso" | "listo";
 };
 
-export function CifrasEnTarjeta({ cifras }: { cifras: readonly CifraEnTarjeta[] }) {
+export function CifrasEnTarjeta({ cifras, grupo }: {
+  cifras: readonly CifraEnTarjeta[];
+  /** C1: nombre del grupo geométrico. Las tarjetas son pares y comparten marco (`equal`). */
+  grupo?: string;
+}) {
   return (
-    <dl className="pulso-cifras-tarjeta" style={{ "--pulso-cifras-columnas": String(cifras.length) } as CSSProperties}>
+    <dl
+      className="pulso-cifras-tarjeta"
+      style={{ "--pulso-cifras-columnas": String(cifras.length) } as CSSProperties}
+      data-qa-geometry-group={grupo}
+      data-qa-geometry-contract={grupo ? "equal" : undefined}
+    >
       {cifras.map((c) => (
         <div key={c.id} className="pulso-cifra-tarjeta" data-tono={c.tono}>
           <dt>{c.rotulo}</dt>

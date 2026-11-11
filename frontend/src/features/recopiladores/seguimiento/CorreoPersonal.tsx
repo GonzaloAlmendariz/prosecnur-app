@@ -26,6 +26,7 @@ import { PulsoField, PulsoFieldRow } from "../../../components/PulsoField";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { BarChart3, CalendarClock, Contact, Loader2, Shuffle, Upload } from "../../../vendor/lucide-react";
@@ -33,6 +34,7 @@ import { MailchimpAvance } from "../correos/MailchimpAvance";
 import { motivoDeFallo } from "../correos/mailchimpPorApiModel";
 import { esperarTrabajo } from "../correos/mailchimpTrabajo";
 import { aProgramado, fechaHoraLegible, formatoPct, formatoPuntos, semillaDeHoy } from "./modeloSeguimiento";
+import { IrA, hrefDeContactos } from "./enlacesDeSeguimiento";
 import { AvisoDeConexiones, Chip, Confirmar, Resultado, useConexiones } from "./piezas";
 import { TablaDeComparacion } from "./TablaDeComparacion";
 import { useSeguimientoStore } from "./store";
@@ -90,6 +92,21 @@ export function CorreoPersonal() {
     { id: "rechazados", encabezado: "Rechazados", ancho: 120, tipo: "cifra", celda: (c) => formatoConteo(porId.get(c.campaign_id)?.segundo_correo.rechazados ?? 0) },
   ];
 
+  if (!cp.campanas.length) {
+    return (
+      <section className="rec-seg-tarjeta" aria-label="Correo personal" data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Contact size={18} />}
+          titulo="El estudio no tiene campañas de correo en Mailchimp"
+          descripcion="El correo personal se prueba sobre las campañas de Mailchimp del estudio."
+          accion={<IrA href="/material-campo">Ir a Campañas</IrA>}
+        />
+      </section>
+    );
+  }
+  const sinColumnas = cp.campanas.every((c) => !c.candidatas.length);
+
   return (
     <>
       <section className="rec-seg-tarjeta" aria-labelledby="rec-seg-cp">
@@ -98,6 +115,14 @@ export function CorreoPersonal() {
           <Chip>Opcional</Chip>
         </header>
         <AvisoDeConexiones necesita={["mailchimp"]} />
+        {sinColumnas ? (
+          <EstadoVacio
+            icono={<Contact size={18} />}
+            titulo="Ninguna lista trae una columna con correos personales"
+            descripcion="Se agrega como columna de la lista de contactos de cada campaña, con un correo por fila."
+            accion={<IrA href={hrefDeContactos(cp.campanas[0].campaign_id)}>Ir a Contactos</IrA>}
+          />
+        ) : null}
         <PulsoTable
           ariaLabel="Correo personal por campaña"
           columnas={columnas}
@@ -160,9 +185,9 @@ function SorteoCorreoPersonal() {
   const porId = new Map(estado.campanas.map((c) => [c.campaign_id, c]));
 
   return (
-    <section className="rec-seg-tarjeta" aria-labelledby="rec-seg-cp-sorteo">
+    <section className="rec-seg-tarjeta" aria-labelledby="rec-seg-cp-asignacion">
       <header className="rec-seg-cabeza">
-        <h3 id="rec-seg-cp-sorteo" className="rec-seg-titulo"><Shuffle size={16} aria-hidden /> Asignación al azar</h3>
+        <h3 id="rec-seg-cp-asignacion" className="rec-seg-titulo"><Shuffle size={16} aria-hidden /> Asignación al azar</h3>
         {cp.sorteado_en ? <Chip tono="hecho">Hecho</Chip> : null}
       </header>
       <div className="rec-seg-fila">
@@ -273,15 +298,15 @@ function EfectoTarjeta() {
       </span>
       {falta ? <p className="rec-seg-nota">{falta}</p> : null}
       {op.error ? <p className="rec-seg-error" role="alert">{op.error}</p> : null}
-      {e && t ? (
+      {e && t && t.xA + t.xB > 0 ? (
         <>
           <dl className="rec-seg-ab">
-            <div>
+            <div className="rec-seg-brazo is-a">
               <dt>Correo personal</dt>
               <dd>{formatoPct(t.pctA)}</dd>
               <small>{formatoConteo(t.xA)} de {formatoConteo(t.nA)}</small>
             </div>
-            <div>
+            <div className="rec-seg-brazo is-b">
               <dt>Control</dt>
               <dd>{formatoPct(t.pctB)}</dd>
               <small>{formatoConteo(t.xB)} de {formatoConteo(t.nB)}</small>
@@ -307,7 +332,13 @@ function EfectoTarjeta() {
             </p>
           ) : null}
         </>
-      ) : e ? <p className="rec-seg-vacio">{e.lectura || "Todavía no hay personas en la medición."}</p> : null}
+      ) : e ? (
+        <EstadoVacio
+          icono={<BarChart3 size={18} />}
+          titulo="Todavía no hay completas que medir"
+          descripcion={e.lectura || "Nadie de la medición completó la encuesta desde el primer envío al correo personal."}
+        />
+      ) : null}
     </section>
   );
 }

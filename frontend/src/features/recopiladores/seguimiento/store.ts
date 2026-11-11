@@ -9,8 +9,9 @@
 import { create } from "zustand";
 
 import { apiOpcionesDeSincronizacion, type OpcionesDeSincronizacion } from "../../../api/mailchimpSync";
-import { apiSeguimiento, type EstadoSeguimiento, type LatidoAntesDeEnvio } from "../../../api/mailSeguimiento";
+import { apiSeguimiento, type EstadoSeguimiento, type LatidoAntesDeEnvio, type ResultadosDeHorario } from "../../../api/mailSeguimiento";
 import { mensajeDeError } from "../correos/mailchimpPorApiModel";
+import type { IdDePaso } from "./modeloSeguimiento";
 
 export type Carga = "inicial" | "cargando" | "lista" | "error";
 
@@ -31,12 +32,21 @@ export type EstadoDeSeguimiento = {
   opciones: OpcionesDeSincronizacion | null;
   errorOpciones: string;
   fondo: EstadoDelFondo;
+  /** Última lectura de los resultados de la prueba de horarios (la usan la cabecera y el paso 6). */
+  resultados: ResultadosDeHorario | null;
+  /** Horas desde el envío con que se leen los resultados; `null` = las guardadas en el estudio. */
+  horizonte: number | null;
+  /** Pasos de la prueba abiertos o cerrados a pedido (estado de UI, no dirección). */
+  pasosAbiertos: Partial<Record<IdDePaso, boolean>>;
 
   cargar: (opciones?: { silencioso?: boolean }) => Promise<void>;
   cargarOpciones: () => Promise<void>;
   /** Una mutación devolvió el estado completo: se adopta tal cual. */
   aplicar: (estado: EstadoSeguimiento) => void;
   setFondo: (cambio: Partial<EstadoDelFondo>) => void;
+  setResultados: (resultados: ResultadosDeHorario | null) => void;
+  setHorizonte: (horizonte: number) => void;
+  alternarPaso: (id: IdDePaso, abierto: boolean) => void;
   reset: () => void;
 };
 
@@ -49,6 +59,9 @@ const INICIAL = {
   opciones: null,
   errorOpciones: "",
   fondo: FONDO_INICIAL,
+  resultados: null,
+  horizonte: null,
+  pasosAbiertos: {},
 };
 
 export const useSeguimientoStore = create<EstadoDeSeguimiento>((set, get) => ({
@@ -80,5 +93,11 @@ export const useSeguimientoStore = create<EstadoDeSeguimiento>((set, get) => ({
 
   setFondo: (cambio) => set((s) => ({ fondo: { ...s.fondo, ...cambio } })),
 
-  reset: () => set({ ...INICIAL, fondo: FONDO_INICIAL }),
+  setResultados: (resultados) => set({ resultados }),
+
+  setHorizonte: (horizonte) => set({ horizonte }),
+
+  alternarPaso: (id, abierto) => set((s) => ({ pasosAbiertos: { ...s.pasosAbiertos, [id]: abierto } })),
+
+  reset: () => set({ ...INICIAL, fondo: FONDO_INICIAL, pasosAbiertos: {} }),
 }));

@@ -6,10 +6,11 @@
 // La app no envía ni programa: crea borradores y la hora se pone en Mailchimp.
 // Contrato de Superficie: `.../horarios/pasos` (intrinsic), un paso por fila.
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import {
   apiEtiquetarGrupos,
+  apiResultadosDeHorario,
   apiGuardarHorario,
   apiLeerEnvios,
   apiSortearHorario,
@@ -19,6 +20,8 @@ import {
   type EtiquetasDeGrupo,
   type LecturaDeEnvios,
 } from "../../../api/mailSeguimiento";
+import { EstadoChip } from "../../../components/EstadoChip";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoField, PulsoFieldRow } from "../../../components/PulsoField";
 import { PulsoInput } from "../../../components/PulsoInput";
@@ -26,7 +29,7 @@ import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
-import { Loader2, Search, Shuffle, Tags } from "../../../vendor/lucide-react";
+import { Loader2, Mail, Search, Shuffle, Tags } from "../../../vendor/lucide-react";
 import { MailchimpAvance } from "../correos/MailchimpAvance";
 import { leerRemitente, type Remitente } from "../correos/mailchimpPorApiModel";
 import { esperarTrabajo } from "../correos/mailchimpTrabajo";
@@ -40,7 +43,9 @@ import {
   semillaDeHoy,
   type PasoDeLaPrueba,
 } from "./modeloSeguimiento";
-import { AvisoDeConexiones, Chip, Confirmar, Resultado, useConexiones } from "./piezas";
+import { IrA } from "./enlacesDeSeguimiento";
+import { pasoAbierto, faltaDelPaso, resumenDelPaso } from "./modeloTablero";
+import { AvisoDeConexiones, Confirmar, Resultado, useConexiones } from "./piezas";
 import { PlanDeRecordatorios } from "./PlanDeRecordatorios";
 import { ResultadosDeHorarios } from "./ResultadosDeHorarios";
 import { useSeguimientoStore } from "./store";
@@ -49,10 +54,33 @@ import { useOperacion } from "./useOperacion";
 export function PruebaDeHorarios() {
   const estado = useSeguimientoStore((s) => s.estado);
   const carga = useSeguimientoStore((s) => s.carga);
+  const pedidos = useSeguimientoStore((s) => s.pasosAbiertos);
+  const hayResultados = useSeguimientoStore((s) => Boolean(s.resultados?.rondas.length));
   const [remitente, setRemitente] = useState<Remitente>(leerRemitente);
+  // Los resultados se leen al entrar a la pestaña, no al abrir el paso 6: la cabecera los
+  // muestra y el paso 6 se abre solo cuando hay datos (si se leyeran al abrirlo, nunca se abriría).
+  const sorteado = Boolean(estado?.horario.sorteado_en);
+  const pedidoHorizonte = useSeguimientoStore((s) => s.horizonte);
+  const horizonte = pedidoHorizonte ?? estado?.horario.horizonte_h ?? 24;
+  useEffect(() => {
+    if (!sorteado) return undefined;
+    let vigente = true;
+    apiResultadosDeHorario(horizonte)
+      .then((res) => { if (vigente) useSeguimientoStore.getState().setResultados(res); })
+      // Sin lectura la cabecera dice "Sin resultados" y el paso 6 muestra el error al abrirlo.
+      .catch(() => undefined);
+    return () => { vigente = false; };
+  }, [horizonte, sorteado]);
   if (!estado) return carga === "error" ? null : <LoadingBlock label="Leyendo la prueba de horarios" />;
   const pasos = pasosDeLaPrueba(estado.horario);
-  const paso = (id: PasoDeLaPrueba["id"]) => pasos.find((p) => p.id === id) as PasoDeLaPrueba;
+  const contenido: Record<PasoDeLaPrueba["id"], ReactNode> = {
+    publicos: <PasoPublicos />,
+    asignacion: <PasoSorteo />,
+    etiquetas: <PasoEtiquetas />,
+    plan: <PlanDeRecordatorios remitente={remitente} />,
+    borradores: <PasoBorradores remitente={remitente} onRemitente={setRemitente} />,
+    resultados: <ResultadosDeHorarios />,
+  };
 
   return (
     <>
@@ -63,28 +91,72 @@ export function PruebaDeHorarios() {
         data-qa-geometry-group="material-campo/correo/seguimiento/horarios/pasos"
         data-qa-geometry-contract="intrinsic"
       >
-        <Paso paso={paso("publicos")}><PasoPublicos /></Paso>
-        <Paso paso={paso("sorteo")}><PasoSorteo /></Paso>
-        <Paso paso={paso("etiquetas")}><PasoEtiquetas /></Paso>
-        <Paso paso={paso("plan")}><PlanDeRecordatorios remitente={remitente} /></Paso>
-        <Paso paso={paso("borradores")}><PasoBorradores remitente={remitente} onRemitente={setRemitente} /></Paso>
-        <Paso paso={paso("resultados")}><ResultadosDeHorarios /></Paso>
+        {pasos.map((paso) => {
+          const forzado = paso.estado === "sigue" || (paso.id === "resultados" && hayResultados);
+          const abierto = pasoAbierto(paso.id, paso.estado, pedidos, hayResultados);
+          return (
+            <Paso
+              key={paso.id}
+              paso={paso}
+              abierto={abierto}
+              forzado={forzado}
+              linea={paso.estado === "hecho" ? resumenDelPaso(paso.id, estado) : faltaDelPaso(paso.id, estado)}
+              onAlternar={() => useSeguimientoStore.getState().alternarPaso(paso.id, !abierto)}
+            >
+              {contenido[paso.id]}
+            </Paso>
+          );
+        })}
       </ol>
     </>
   );
 }
 
-function Paso({ paso, children }: { paso: PasoDeLaPrueba; children: ReactNode }) {
+const TONO_DEL_PASO = { hecho: "success", sigue: "info", pendiente: "neutral" } as const;
+
+/**
+ * Un paso en la línea de tiempo. El que sigue va abierto y destacado; uno hecho se
+ * pliega a su resumen con "Cambiar"; uno pendiente se ve atenuado con lo que le falta y
+ * "Ver". Abrir o cerrar es estado de la vista (store), no dirección.
+ */
+function Paso({ paso, abierto, forzado, linea, onAlternar, children }: {
+  paso: PasoDeLaPrueba;
+  abierto: boolean;
+  forzado: boolean;
+  linea: string;
+  onAlternar: () => void;
+  children: ReactNode;
+}) {
   const id = `rec-seg-paso-${paso.id}`;
   return (
-    <li className={`rec-seg-paso is-${paso.estado}`} aria-labelledby={id} aria-current={paso.estado === "sigue" ? "step" : undefined}>
+    <li
+      className={`rec-seg-paso is-${paso.estado}${abierto ? " is-abierto" : ""}`}
+      aria-labelledby={id}
+      aria-current={paso.estado === "sigue" ? "step" : undefined}
+    >
       <span className="rec-seg-num" aria-hidden>{paso.numero}</span>
       <div className="rec-seg-paso-cuerpo">
-        <header className="rec-seg-cabeza">
+        <header className="rec-seg-paso-cabeza">
           <h3 id={id} className="rec-seg-titulo">{paso.titulo}</h3>
-          <Chip tono={paso.estado === "pendiente" ? undefined : paso.estado}>{ROTULO_DE_ESTADO[paso.estado]}</Chip>
+          <EstadoChip label={ROTULO_DE_ESTADO[paso.estado]} tone={TONO_DEL_PASO[paso.estado]} />
+          {forzado ? null : (
+            <PulsoButton
+              variant="ghost"
+              size="sm"
+              className="rec-seg-paso-alternar"
+              aria-expanded={abierto}
+              aria-controls={`${id}-contenido`}
+              onClick={onAlternar}
+            >
+              {abierto ? "Cerrar" : paso.estado === "hecho" ? "Cambiar" : "Ver"}
+            </PulsoButton>
+          )}
         </header>
-        {children}
+        {abierto ? (
+          <div id={`${id}-contenido`} className="rec-seg-paso-contenido">{children}</div>
+        ) : (
+          <p className="rec-seg-paso-linea">{linea}</p>
+        )}
       </div>
     </li>
   );
@@ -146,6 +218,16 @@ function PasoPublicos() {
   })();
 
   if (!estado || !h) return null;
+  if (!estado.campanas.length) {
+    return (
+      <EstadoVacio
+        icono={<Mail size={18} />}
+        titulo="La prueba no tiene públicos"
+        descripcion="Cada público es una campaña de correo en Mailchimp, y el estudio todavía no tiene ninguna."
+        accion={<IrA href="/material-campo">Ir a Campañas</IrA>}
+      />
+    );
+  }
   const desde = horas?.desde ?? h.oficina_desde;
   const hasta = horas?.hasta ?? h.oficina_hasta;
   const horasValidas = esHora(desde) && esHora(hasta) && desde < hasta;

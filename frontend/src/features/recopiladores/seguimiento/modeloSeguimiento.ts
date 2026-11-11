@@ -173,13 +173,13 @@ export function resumenDeActualizacion(
 
 // ---- Prueba de horarios: pasos ------------------------------------------------------------
 
-export type IdDePaso = "publicos" | "sorteo" | "etiquetas" | "plan" | "borradores" | "resultados";
+export type IdDePaso = "publicos" | "asignacion" | "etiquetas" | "plan" | "borradores" | "resultados";
 export type EstadoDePaso = "hecho" | "sigue" | "pendiente";
 export type PasoDeLaPrueba = { id: IdDePaso; numero: number; titulo: string; estado: EstadoDePaso };
 
 const TITULOS: Record<IdDePaso, string> = {
   publicos: "Públicos y horario de oficina",
-  sorteo: "Asignación al azar de los grupos",
+  asignacion: "Asignación al azar de los grupos",
   etiquetas: "Etiquetas en Mailchimp",
   plan: "Plan de recordatorios",
   borradores: "Borradores por grupo",
@@ -200,7 +200,7 @@ export function planCompleto(h: HorarioSeguimiento): boolean {
 export function pasosDeLaPrueba(h: HorarioSeguimiento): PasoDeLaPrueba[] {
   const hecho: Record<IdDePaso, boolean> = {
     publicos: h.campanas.length > 0,
-    sorteo: Boolean(h.sorteado_en),
+    asignacion: Boolean(h.sorteado_en),
     etiquetas: Boolean(h.etiquetado_en),
     plan: planCompleto(h),
     borradores: conHora(h.plan).length > 0 && conHora(h.plan).every((f) => f.mailchimp_id),

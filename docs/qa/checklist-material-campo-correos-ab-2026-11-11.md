@@ -116,3 +116,42 @@ Fricciones del recorrido, como alguien nuevo:
 
 **Decisión de redacción tomada al construir:** se dice "asignación al azar" y no "sorteo" en la interfaz (regla de
 redacción de `CLAUDE.md`), también en los mensajes del motor ("Asigna primero los grupos al azar").
+
+## Revamp visual de Seguimiento (pedido del 2026-11-11, "mejora el UI aún más")
+
+**Dirección congelada.** Problema: Seguimiento se lee como un formulario largo de tarjetas iguales; el título de la
+pestaña no se ve; los seis pasos tienen la misma jerarquía visual (hechos, el que sigue y los pendientes); los
+resultados son tablas de texto ("+2.31 pp (IC 95 %: ...)") que no se leen de un vistazo; los vacíos son líneas
+sueltas. Tarea primaria: saber en qué paso está la prueba y qué hora gana. Se conserva: navegación v3 (sección
+`seguimiento` con tres pestañas), textos y contratos del motor. Patrón reutilizado: Aulas › Accesos
+(`AccesosTablero`: `CifrasEnTarjeta` arriba, chequeos numerados con estado), `TabHeading`, `EstadoVacio`,
+`BarraDeAvance`. Criterio de éxito: en 1440x1000 y 1024x600 se ve sin desplazarse el título, las cifras y el paso
+que sigue; cada recordatorio muestra ganador, cifras e intervalo sin leer la tabla; ningún vacío es una línea suelta.
+
+| # | Punto | Estado |
+|---|---|---|
+| R1 | Título visible y cifras por pestaña (`TabHeading` + `CifrasEnTarjeta`) | hecho, por revisar |
+| R2 | Jerarquía de los seis pasos: línea de tiempo, paso que sigue abierto, hechos plegados en una línea con su resumen, pendientes atenuados | hecho, por revisar |
+| R3 | Resultados de un vistazo: cifras grandes por grupo (A navy, B ocre) con barra, píldora de veredicto, intervalo dibujado por público | hecho, por revisar |
+| R4 | Grilla del plan: banda por recordatorio con "Ya salió", punto de color por grupo, chip de estado de cada borrador, alto parejo | hecho, por revisar |
+| R5 | Estados vacíos con `EstadoVacio`, con causa y acción ("Ir a Campañas", "Ir a Contactos", "Ir a Envíos") | hecho, por revisar (vistos en tests de render; el .pulso de QA no tiene vacíos) |
+| R6 | D8: entrada a Seguimiento desde un correo abierto con el mismo `SectionPillbar` "Correo, Seguimiento" | hecho en commit aparte, **por decidir**: choca con el pedido del 2026-10-20 (el correo abierto sin banda propia, para que el editor gane alto); la banda resta unos 50 px al editor a 1024x600 |
+
+**Defectos encontrados en la QA y corregidos.** (1) El paso 6 salía plegado aunque había envíos, y las cifras de
+arriba decían "Sin resultados": los resultados sólo se leían al abrir el paso, que sólo se abría con resultados; ahora
+se leen al entrar a la pestaña. (2) Las cifras grandes salían sin el color de su grupo y sin barra: los tokens
+`--pulso-data-brazo-*` viven en `tokens-datos.css`, que no se cargaba en Seguimiento. (3) "Estudiantes de pregr…"
+y luego las horas se cortaban en la tabla por público: anchos de columna. (4) A 1024x600 las cuatro cifras pasaban a
+2x2 y los pasos hechos ocupaban dos líneas cada uno, y el paso que sigue quedaba bajo el pliegue: cifras en una fila
+hasta 900 px y pasos hechos en una sola línea.
+
+**Evidencia.** Capturas en 1440x1000 y 1024x600 de las tres pestañas, del paso 4 abierto con la grilla, de los
+resultados y del editor de un correo abierto con la barra nueva, sobre el .pulso sintético (5 públicos). `tsc`
+exit 0; `make gate-front AREA=recopiladores` exit 0 (168 archivos, 2,091 tests); redacción sin hallazgos.
+
+**Anotado, no corregido.** Los campos "Fechas y horas" del plan muestran 09:30 y 20:00 por defecto aunque el plan
+guardado use otras horas (sólo afectan a "Proponer plan cruzado"). Los tokens de los grupos son de un solo tema (el
+modo oscuro no se revisó).
+
+Pila de QA: backend aislado en 8851 con `HOME` aparte y una copia del lanzador **sin** el paso que reinstala el
+paquete R (`load_all` solamente), por la prohibición de hoy de `R CMD INSTALL`. El 8787 no se tocó.

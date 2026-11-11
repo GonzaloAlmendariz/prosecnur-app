@@ -16,9 +16,10 @@ import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { PageFrame } from "../../../components/PageFrame";
 import { SectionPillbar } from "../../../components/SectionPillbar";
 import { PROSECNUR_MODULES } from "../../../lib/modules";
-import { ArrowLeft, RefreshCw } from "../../../vendor/lucide-react";
+import { Activity, ArrowLeft, RefreshCw } from "../../../vendor/lucide-react";
 import { searchDeCampanas } from "../campanas/direccionDeCampanas";
 import { useDensidadDelChrome } from "../useDensidadDelChrome";
+import { CabeceraDeSeguimiento } from "./CabeceraDeSeguimiento";
 import { CorreoPersonal } from "./CorreoPersonal";
 import { SECCION_SEGUIMIENTO, type PestanaDeSeguimiento } from "./navegacionSeguimiento";
 import { PruebaDeHorarios } from "./PruebaDeHorarios";
@@ -27,6 +28,8 @@ import { useSeguimientoStore } from "./store";
 import "../styles/recopiladores-shell.css";
 import "../campanas/campanas.css";
 import "../correos/correosSincronizacion.css";
+// Los colores de grupo A y B (tokens --pulso-data-brazo-*) viven en tokens-datos.css, que se importa donde se usa.
+import "../../../app/tokens-datos.css";
 import "./seguimiento.css";
 
 const MODO_CORREO = PROSECNUR_MODULES.find((m) => m.slug === "material-campo")?.modos?.find((m) => m.id === "correo");
@@ -41,8 +44,8 @@ const RAIL: readonly ContextTabRailItem<PestanaDeSeguimiento>[] = (SECCION?.tabs
 }));
 
 const COPIA: Record<PestanaDeSeguimiento, { title: string; lead: string }> = {
-  respondieron: { title: "Quién respondió", lead: "Respuestas de SurveyMonkey cruzadas con cada campaña de Mailchimp del estudio." },
-  horarios: { title: "Prueba de horarios", lead: "Dos grupos por público con recordatorios a horas distintas." },
+  respondieron: { title: "Quién respondió", lead: "Encuestas completas por campaña de Mailchimp." },
+  horarios: { title: "Prueba de horarios", lead: "Grupo A contra grupo B, con recordatorios a horas distintas." },
   "correo-personal": { title: "Correo personal", lead: "Un segundo correo para una parte de quienes no responden." },
 };
 
@@ -151,6 +154,12 @@ export function SeguimientoShell({ pestana }: { pestana: PestanaDeSeguimiento })
             data-qa-geometry-group={`material-campo/correo/seguimiento/${pestana}`}
             data-qa-geometry-contract="intrinsic"
           >
+            <CabeceraDeSeguimiento
+              pestana={pestana}
+              titulo={copia.title}
+              detalle={copia.lead}
+              icono={RAIL.find((t) => t.key === pestana)?.icon ?? Activity}
+            />
             {pestana === "respondieron" ? <QuienRespondio /> : null}
             {pestana === "horarios" ? <PruebaDeHorarios /> : null}
             {pestana === "correo-personal" ? <CorreoPersonal /> : null}

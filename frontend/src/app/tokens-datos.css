@@ -11,6 +11,16 @@
   --pulso-data-seq-5: #002457;
 }
 
+/* Los dos brazos de una comparación A contra B (Material de campo > Correo > Seguimiento:
+ * grupo A y grupo B de la prueba de horarios, correo personal y control). Los mismos del
+ * informe PDF de la prueba (`.MPH_PDF_COL`): navy para A, ocre para B, y su fondo suave. */
+:root {
+  --pulso-data-brazo-a: #002457;
+  --pulso-data-brazo-a-suave: #dfe6f1;
+  --pulso-data-brazo-b: #b7791f;
+  --pulso-data-brazo-b-suave: #f5e9d3;
+}
+
 /* Lienzo cartográfico de Hojas de ruta (ADR 0114). El Canvas lee estos tokens
  * con getComputedStyle: el mapa no lleva hex propios.
  * NSE en divergente (revisión del 7 nov 2026): azules hacia Alto, ocres hacia Bajo y un gris

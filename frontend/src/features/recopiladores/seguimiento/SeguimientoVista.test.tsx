@@ -74,12 +74,29 @@ function pintar(nodo: React.ReactNode, e: EstadoSeguimiento | null) {
   return renderToStaticMarkup(<MemoryRouter>{nodo}</MemoryRouter>);
 }
 
+const html = (ronda: Parameters<typeof TarjetaDeRonda>[0]["ronda"]) => renderToStaticMarkup(<MemoryRouter><TarjetaDeRonda ronda={ronda} /></MemoryRouter>);
 const texto = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/\s+/g, " ");
 
 beforeEach(() => useSeguimientoStore.getState().reset());
 
 describe("Quién respondió", () => {
-  it.each([0, 1, 3])("con %i campañas declara su superficie y mantiene el marco", (n) => {
+  it("sin campañas, un vacío dentro de su tarjeta que dice la causa y adónde ir", () => {
+    const html = pintar(<QuienRespondio />, estado(0));
+    expect(html).toContain("data-estado-vacio");
+    expect(texto(html)).toContain("El estudio no tiene campañas de correo en Mailchimp");
+    expect(texto(html)).toContain("Ir a Campañas");
+    expect(html).not.toContain("Actualizar todas las campañas");
+  });
+
+  it("campañas sin contactos: lo dice y lleva a Contactos", () => {
+    const e = estado(2);
+    const sin = { ...e, campanas: e.campanas.map((c) => ({ ...c, contactos: false })) };
+    const html = pintar(<QuienRespondio />, sin);
+    expect(texto(html)).toContain("Ninguna campaña tiene contactos");
+    expect(html).toContain("campana=correo.c1&amp;seccion=correo&amp;pestana=contactos");
+  });
+
+  it.each([1, 5, 20])("con %i campañas declara su superficie y mantiene el marco", (n) => {
     const html = pintar(<QuienRespondio />, estado(n));
     expect(html).toContain('data-qa-geometry-group="material-campo/correo/seguimiento/respondieron/acciones"');
     expect(html).toContain('data-qa-geometry-contract="equal"');
@@ -87,7 +104,6 @@ describe("Quién respondió", () => {
     expect(html).toContain("Archivar en Mailchimp a quienes respondieron");
     expect(html).toContain("Actualizar antes de cada envío programado");
     expect(html).toContain('role="switch"');
-    if (!n) expect(texto(html)).toContain("El estudio no tiene campañas de correo en Mailchimp.");
   });
 
   it("dice las cifras con su base y distingue sin leer de cero", () => {
@@ -112,20 +128,49 @@ describe("Prueba de horarios", () => {
     expect([...orden].sort((a, b) => a - b)).toEqual(orden);
     expect(html).toContain('data-qa-geometry-group="material-campo/correo/seguimiento/horarios/pasos"');
     // Asignados y sin etiquetas: el siguiente paso es el 3.
-    expect(html).toMatch(/rec-seg-paso is-sigue"[^>]*aria-labelledby="rec-seg-paso-etiquetas"/);
-    expect(t).toContain("Asignados el");
+    expect(html).toMatch(/rec-seg-paso is-sigue is-abierto"[^>]*aria-labelledby="rec-seg-paso-etiquetas"/);
+    // Hechos plegados a su resumen, con "Cambiar"; el que sigue, abierto; pendientes con lo que falta.
+    expect(t).toContain("Asignados el 11/11 con la semilla 20261111: 2,970 personas, 50/50");
+    expect(t).not.toContain("Volver a asignar");
+    expect(t).toContain("Cambiar");
+    expect(t).toContain("Poner las etiquetas en Mailchimp");
+    expect(t).toContain("Falta la hora de cada grupo en cada recordatorio.");
+    expect(t).not.toContain("Proponer plan cruzado");
+  });
+
+  it("un paso plegado se abre a pedido, sin cambiar la dirección", () => {
+    useSeguimientoStore.setState({ pasosAbiertos: { asignacion: true, plan: true, borradores: true } });
+    const e = estado(2);
+    useSeguimientoStore.setState({ estado: e, carga: "lista", opciones: OPCIONES });
+    const html = renderToStaticMarkup(<MemoryRouter><PruebaDeHorarios /></MemoryRouter>);
+    const t = texto(html);
     expect(t).toContain("Volver a asignar");
     expect(t).toContain("Proponer plan cruzado");
     expect(t).toContain("Recordatorio 2, Público 1: falta la hora de un grupo.");
     expect(html).toContain('aria-label="Abrir en Mailchimp"');
+    expect(t).toContain("Borrador creado");
+    expect(t).toContain("Sin borrador");
     expect(t).toContain("Leer envíos de Mailchimp");
     expect(t).toContain("La app no envía: revisa, programa y envía en Mailchimp.");
+    expect(html).toMatch(/aria-expanded="true"[^>]*>Cerrar/);
   });
 
-  it("sin públicos, el primer paso es el que sigue y el plan lo dice", () => {
-    const t = texto(pintar(<PruebaDeHorarios />, estado(0)));
-    expect(t).toContain("Marca primero los públicos de la prueba.");
-    expect(t).toContain("Los resultados aparecen después de asignar los grupos y del primer envío.");
+  it("sin campañas, el primer paso lo dice con su causa y adónde ir", () => {
+    const html = pintar(<PruebaDeHorarios />, estado(0));
+    const t = texto(html);
+    expect(html).toContain("data-estado-vacio");
+    expect(t).toContain("La prueba no tiene públicos");
+    expect(t).toContain("Ir a Campañas");
+    expect(t).toContain("Aparecen cuando sale el primer recordatorio.");
+  });
+
+  it("un plan sin recordatorios lleva a Envíos", () => {
+    useSeguimientoStore.setState({ pasosAbiertos: { plan: true } });
+    const e = estado(1, { rondas: [], plan: [], avisos: [] });
+    useSeguimientoStore.setState({ estado: e, carga: "lista", opciones: OPCIONES });
+    const html = renderToStaticMarkup(<MemoryRouter><PruebaDeHorarios /></MemoryRouter>);
+    expect(texto(html)).toContain("El plan no tiene recordatorios");
+    expect(html).toMatch(/href="\/material-campo\?modo=correo&amp;campana=correo\.c1&amp;seccion=correo&amp;pestana=editor&amp;panel=correo-envios"/);
   });
 
   it("una tarjeta de resultados lee A contra B con su base, la diferencia y el veredicto", () => {
@@ -148,17 +193,21 @@ describe("Prueba de horarios", () => {
     expect(t).toContain("En curso");
     expect(t).toContain("4.22 %");
     expect(t).toContain("788 de 18,688");
-    expect(t).toContain("4.20 % (784 de 18,648)");
+    expect(t).toContain("4.20 % 784 de 18,648");
     expect(t).toContain("+0.99 pp");
     expect(t).toContain("p < 0.001");
-    expect(t).toContain("Gana el grupo A (9:30 a. m.)");
+    // La píldora del recordatorio: en curso, "Va ganando"; en verde semántico.
+    expect(html(r.rondas[0])).toMatch(/rec-seg-veredicto is-gana is-grande">Va ganando 9:30 a\. m\./);
+    expect(t).toContain("Gana 9:30 a. m.");
     expect(t).toContain("Sin diferencia clara");
+    expect(html(r.rondas[0])).toContain('class="rec-seg-intervalo"');
+    expect(html(r.rondas[0])).toContain("rec-seg-intervalo-punto is-a");
     expect(t).toContain("Fuera de la comparación: Público 3 (los dos grupos tuvieron la misma hora).");
   });
 });
 
 describe("Correo personal", () => {
-  it.each([0, 1, 3])("con %i campañas se marca opcional y declara sus pares", (n) => {
+  it.each([1, 3, 20])("con %i campañas se marca opcional y declara sus pares", (n) => {
     const html = pintar(<CorreoPersonal />, estado(n));
     const t = texto(html);
     expect(t).toContain("Opcional");
@@ -167,6 +216,14 @@ describe("Correo personal", () => {
     expect(t).toContain("Los correos que Mailchimp rechaza no se reintentan.");
     expect(t).toContain("Efecto del correo personal");
     if (n === 3) expect(t).toContain("Sin columnas con correos");
+  });
+
+  it("sin campañas, un vacío con su causa; sin columnas con correos, lleva a Contactos", () => {
+    expect(texto(pintar(<CorreoPersonal />, estado(0)))).toContain("El estudio no tiene campañas de correo en Mailchimp");
+    const sinColumnas = estado(1, {}, { campanas: [{ campaign_id: "c1", publico: "Público 1", columna: "", candidatas: [] }] });
+    const html = pintar(<CorreoPersonal />, sinColumnas);
+    expect(texto(html)).toContain("Ninguna lista trae una columna con correos personales");
+    expect(html).toContain("pestana=contactos");
   });
 
   it("80 % por defecto y el efecto pide primero la asignación", () => {
@@ -187,6 +244,20 @@ describe("la sección entera", () => {
     expect(html).toMatch(/data-rail-grupo="Opcional"[^]*aria-label="Correo personal"/);
     expect(html).toContain('aria-selected="true"');
     expect(texto(html)).toContain("Seguimiento");
+  });
+
+  it.each(["respondieron", "horarios", "correo-personal"] as const)("%s: título visible y cuatro cifras pares", (pestana) => {
+    const html = pintar(<SeguimientoShell pestana={pestana} />, estado(5));
+    expect(html).toMatch(/<h2>[^<]+<\/h2>/);
+    expect(html).toContain(`data-qa-geometry-group="material-campo/correo/seguimiento/${pestana}/cifras" data-qa-geometry-contract="equal"`);
+    expect(html.match(/class="pulso-cifra-tarjeta"/g)?.length).toBe(4);
+  });
+
+  it("las cifras dicen su base: respondieron sobre quienes tienen enlace en las campañas leídas", () => {
+    const t = texto(pintar(<SeguimientoShell pestana="respondieron" />, estado(3)));
+    // c2 y c3 leídas: 800 + 1,200 = 2,000 respondieron de 1,980 + 2,970 = 4,950 con enlace.
+    expect(t).toContain("2,000 de 4,950");
+    expect(t).toContain("en 2 de 3 campañas leídas");
   });
 
   it("sin el estado todavía, no se declara lista", () => {

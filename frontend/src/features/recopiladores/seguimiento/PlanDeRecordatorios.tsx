@@ -15,23 +15,26 @@ import {
   apiProponerPlan,
   type Grupo,
 } from "../../../api/mailSeguimiento";
+import { EstadoChip } from "../../../components/EstadoChip";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoField, PulsoFieldRow } from "../../../components/PulsoField";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
-import { ExternalLink, FilePen, Loader2, Shuffle } from "../../../vendor/lucide-react";
+import { CalendarClock, ExternalLink, FilePen, Loader2, Shuffle } from "../../../vendor/lucide-react";
 import { faltaParaElBorrador, guardarRemitente, mensajeDeError, type Remitente } from "../correos/mailchimpPorApiModel";
 import {
   aProgramado,
   esFecha,
   esHora,
-  salioCorto,
   fechasDelPlan,
   grillaDelPlan,
   planConHora,
   type CeldaDelPlan,
   type FilaDeLaGrilla,
 } from "./modeloSeguimiento";
+import { IrA, hrefDeEnvios } from "./enlacesDeSeguimiento";
+import { cabeceraDeRonda, estadoDeCelda } from "./modeloTablero";
 import { Chip } from "./piezas";
 import { useSeguimientoStore } from "./store";
 import { useOperacion } from "./useOperacion";
@@ -60,7 +63,16 @@ export function PlanDeRecordatorios({ remitente }: { remitente: Remitente }) {
   if (!estado) return null;
   const h = estado.horario;
   if (!h.campanas.length) return <p className="rec-seg-nota">Marca primero los públicos de la prueba.</p>;
-  if (!h.rondas.length) return <p className="rec-seg-vacio">Las campañas de la prueba todavía no tienen recordatorios: agrégalos en Envíos de cada correo.</p>;
+  if (!h.rondas.length) {
+    return (
+      <EstadoVacio
+        icono={<CalendarClock size={18} />}
+        titulo="El plan no tiene recordatorios"
+        descripcion="Las campañas de la prueba todavía no tienen recordatorios: se agregan en los Envíos de cada correo."
+        accion={<IrA href={hrefDeEnvios(h.campanas[0])}>Ir a Envíos</IrA>}
+      />
+    );
+  }
 
   const publicos = Object.fromEntries(estado.campanas.map((c) => [c.campaign_id, c.publico]));
   const grilla = grillaDelPlan(h, publicos);
@@ -120,8 +132,10 @@ export function PlanDeRecordatorios({ remitente }: { remitente: Remitente }) {
     const f = celda.fila;
     const valor = celdas.ediciones[k] ?? f?.programado ?? "";
     const creando = celdas.creando === k;
+    const est = estadoDeCelda(f);
     return (
       <span className="rec-seg-celda">
+        <span className={`rec-seg-marca is-${celda.grupo.toLowerCase()}`} aria-hidden />
         <PulsoInput
           size="sm"
           type="datetime-local"
@@ -131,7 +145,7 @@ export function PlanDeRecordatorios({ remitente }: { remitente: Remitente }) {
           onChange={(e) => setCeldas((c) => ({ ...c, ediciones: { ...c.ediciones, [k]: e.target.value } }))}
           onBlur={() => guardarHora(ronda, fila.campaign_id, celda.grupo)}
         />
-        {f?.enviado ? <Chip tono="hecho">Salió {salioCorto(f.enviado, f.programado)}</Chip> : null}
+        <span className={`rec-seg-celda-estado is-${est.tono}`}>{est.texto}</span>
         {f?.mailchimp_id ? (
           <a className="rec-seg-abrir" href={celdas.urls[k] || CAMPANAS_EN_MAILCHIMP} target="_blank" rel="noopener noreferrer" aria-label="Abrir en Mailchimp" title={`Borrador ${f.mailchimp_id}`}>
             <ExternalLink size={13} aria-hidden /> Mailchimp
@@ -158,8 +172,8 @@ export function PlanDeRecordatorios({ remitente }: { remitente: Remitente }) {
       celda: (f) => (f.oficina ? <>{f.publico} <Chip>Oficina</Chip></> : f.publico),
       valor: (f) => f.publico,
     },
-    { id: "A", encabezado: "Grupo A", ancho: 400, celda: (f) => pintarCelda(ronda, f, f.A) },
-    { id: "B", encabezado: "Grupo B", ancho: 400, celda: (f) => pintarCelda(ronda, f, f.B) },
+    { id: "A", encabezado: "Grupo A", ancho: 460, celda: (f) => pintarCelda(ronda, f, f.A) },
+    { id: "B", encabezado: "Grupo B", ancho: 460, celda: (f) => pintarCelda(ronda, f, f.B) },
   ];
 
   return (
@@ -217,9 +231,15 @@ export function PlanDeRecordatorios({ remitente }: { remitente: Remitente }) {
         </ul>
       ) : null}
 
-      {grilla.map((r) => (
-        <div key={r.ronda} className="rec-seg-ronda-plan">
-          <h4 className="rec-seg-subtitulo">{r.etiqueta}</h4>
+      {grilla.map((r) => {
+        const cab = cabeceraDeRonda(h.plan, r.ronda);
+        return (
+        <section key={r.ronda} className="rec-seg-ronda-plan rec-seg-ronda-tabla" aria-labelledby={`rec-seg-ronda-${r.ronda}`}>
+          <header className="rec-seg-ronda-banda">
+            <h4 id={`rec-seg-ronda-${r.ronda}`} className="rec-seg-subtitulo">{r.etiqueta}</h4>
+            {cab.fecha ? <span className="rec-seg-ronda-fecha">{cab.fecha}</span> : <span className="rec-seg-ronda-fecha">Sin fecha</span>}
+            {cab.salio ? <EstadoChip label="Ya salió" tone="success" /> : null}
+          </header>
           <PulsoTable
             ariaLabel={`Plan del ${r.etiqueta.toLocaleLowerCase("es-PE")}`}
             columnas={columnasDe(r.ronda)}
@@ -227,8 +247,9 @@ export function PlanDeRecordatorios({ remitente }: { remitente: Remitente }) {
             idDeFila={(f) => f.campaign_id}
             vacio="Sin públicos en la prueba."
           />
-        </div>
-      ))}
+        </section>
+        );
+      })}
     </>
   );
 }

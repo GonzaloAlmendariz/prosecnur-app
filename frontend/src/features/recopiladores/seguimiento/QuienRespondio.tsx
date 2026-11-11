@@ -21,12 +21,14 @@ import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
-import { CalendarClock, CheckCheck, Loader2, RefreshCw, Users } from "../../../vendor/lucide-react";
+import { CalendarClock, CheckCheck, Loader2, Mail, RefreshCw, Users } from "../../../vendor/lucide-react";
 import { MailchimpAvance } from "../correos/MailchimpAvance";
 import { esperarTrabajo } from "../correos/mailchimpTrabajo";
 import { conteoConPct, faltaEnCampana, faltaParaActualizar, fechaHoraLegible, resumenDeActualizacion } from "./modeloSeguimiento";
+import { IrA, hrefDeContactos } from "./enlacesDeSeguimiento";
 import { AvisoDeConexiones, Resultado, useConexiones } from "./piezas";
 import { useSeguimientoStore } from "./store";
 import { useOperacion } from "./useOperacion";
@@ -50,6 +52,22 @@ export function QuienRespondio() {
   const audiencias = opciones?.mailchimp.audiences ?? [];
   const encuestas = opciones?.surveymonkey.surveys ?? [];
 
+  // C3/C5: vacío legítimo, dentro de su tarjeta, con la causa y dónde se arregla.
+  if (!estado.campanas.length) {
+    return (
+      <section className="rec-seg-tarjeta" aria-label="Campañas de Mailchimp" data-qa-geometry-capacity="owned">
+        <EstadoVacio
+          tamano="normal"
+          icono={<Mail size={18} />}
+          titulo="El estudio no tiene campañas de correo en Mailchimp"
+          descripcion="Se crean en Campañas, con Nueva campaña y la plataforma Mailchimp."
+          accion={<IrA href="/material-campo">Ir a Campañas</IrA>}
+        />
+      </section>
+    );
+  }
+  const sinContactos = estado.campanas.every((c) => !c.contactos);
+
   return (
     <>
       <section className="rec-seg-tarjeta" aria-labelledby="rec-seg-campanas">
@@ -71,6 +89,14 @@ export function QuienRespondio() {
             />
           </PulsoField>
         </div>
+        {sinContactos ? (
+          <EstadoVacio
+            icono={<Users size={18} />}
+            titulo="Ninguna campaña tiene contactos"
+            descripcion="La lista de cada campaña se importa en sus Contactos."
+            accion={<IrA href={hrefDeContactos(estado.campanas[0].campaign_id)}>Ir a Contactos</IrA>}
+          />
+        ) : null}
         <TablaDeCampanas
           campanas={estado.campanas}
           encuestas={encuestas}
