@@ -338,10 +338,10 @@ export const DIRECCION_UNIVERSO = serializarDireccion({
   panel: "universo",
 });
 
-export const DIRECCION_FUENTES = serializarDireccion({
+export const DIRECCION_BASES_DE_CARGA = serializarDireccion({
   modulo: "procesamiento",
   seccion: "carga",
-  pestana: "fuentes",
+  pestana: "bases",
 });
 
 /** Dónde se resuelve cada error del motor, con su dirección canónica. */
@@ -362,7 +362,7 @@ export function accionParaError(codigo: string | null): AccionDeError | null {
     return { etiqueta: "Ir a Equivalencias", href: DIRECCION_EQUIVALENCIAS };
   }
   if (codigo === "E_NO_RP_DATA" || codigo === "E_ANALITICA_SOURCE_MISSING") {
-    return { etiqueta: "Ir a Fuentes", href: DIRECCION_FUENTES };
+    return { etiqueta: "Ir a Bases", href: DIRECCION_BASES_DE_CARGA };
   }
   return null;
 }

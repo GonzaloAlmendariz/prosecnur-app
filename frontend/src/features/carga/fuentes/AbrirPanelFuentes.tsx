@@ -5,6 +5,7 @@
 import type { ReactNode } from "react";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
 import { PulsoButton, type PulsoButtonVariant } from "../../../components/PulsoButton";
+import { estadoAlAbrir } from "./compararFuentesModel";
 
 type Props = {
   /** Recibe el `search` actual y devuelve el que abre el panel. */
@@ -28,7 +29,10 @@ function ConDireccion({ destino, clave, variant, className, children, etiqueta }
       aria-haspopup="dialog"
       aria-label={etiqueta}
       data-plf-abrir={clave}
-      onClick={() => navigate({ pathname: location.pathname, search: destino(location.search) }, { replace: true })}
+      onClick={() => navigate(
+        { pathname: location.pathname, search: destino(location.search) },
+        { replace: true, state: estadoAlAbrir(location.search) },
+      )}
     >
       {children}
     </PulsoButton>

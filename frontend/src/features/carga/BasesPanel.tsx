@@ -71,6 +71,7 @@ import {
 } from "./surveymonkey/smBasesModel";
 import { IndependentSiblingsSurveyMonkeyWizard } from "./independiente/IndependentSiblingsWizard";
 import { FilePicker } from "./BasesFilePicker";
+import { opcionesCanonicas } from "./opcionesCanonicas";
 import { EstadoVacio } from "../../components/EstadoVacio";
 import { Inbox } from "../../vendor/lucide-react";
 export {
@@ -208,17 +209,7 @@ export function BasesPanel({
   const integratedSignature = integratedBases
     .map((base) => `${base.nombre}:${base.multi_integrated?.imported_at ?? ""}:${base.multi_integrated?.origin_key_name ?? ""}`)
     .join("|");
-  const canonicalOptionsRaw = [
-    ...(hasSessionXlsform ? [{ fileId: "", label: "Formulario cargado en Carga/Editor" }] : []),
-    ...bases.map((base) => ({ fileId: base.xlsform_file_id, label: `${base.nombre}, formulario` })),
-  ];
-  const canonicalOptionKeys = new Set<string>();
-  const canonicalOptions = canonicalOptionsRaw.filter((option) => {
-    const key = option.fileId || "session-xlsform";
-    if (canonicalOptionKeys.has(key)) return false;
-    canonicalOptionKeys.add(key);
-    return true;
-  });
+  const canonicalOptions = opcionesCanonicas(bases, Boolean(hasSessionXlsform));
 
   useEffect(() => {
     if (estudio.processing_mode === "independent_siblings") {
@@ -238,7 +229,7 @@ export function BasesPanel({
     if (!window.confirm(
       `¿Quitar la base "${nombre}"?\n\nSus datos y su instrumento se descartan. Si un slide de gráficos usa variables con prefijo "${nombre}$", van a quedar huérfanas.`
     )) return;
-    setError(""); setBusy(`Quitando ${nombre}…`);
+    setError(""); setBusy(`Quitando ${nombre}`);
     try {
       await apiEstudioRemoveBase(nombre);
       const p = await apiEstudioGet();
@@ -256,7 +247,7 @@ export function BasesPanel({
       setRenaming(null);
       return;
     }
-    setError(""); setBusy(`Renombrando ${nombreActual} → ${nuevo}…`);
+    setError(""); setBusy(`Renombrando ${nombreActual} a ${nuevo}`);
     try {
       const p = await apiEstudioRenameBase(nombreActual, nuevo);
       await onChanged(p);
@@ -277,7 +268,7 @@ export function BasesPanel({
       `Los archivos (formulario + respuestas) quedan como carga simple y puedes ` +
       `seguir trabajando normalmente.`
     )) return;
-    setError(""); setBusy("Volviendo a carga simple…");
+    setError(""); setBusy("Volviendo a carga simple");
     try {
       await apiEstudioDowngradeToSingle();
       await onDowngraded?.();
@@ -297,7 +288,7 @@ export function BasesPanel({
       `Esto NO se puede deshacer.\n\n¿Continuar?`
     );
     if (!confirm1) return;
-    setError(""); setBusy("Descartando estudio…");
+    setError(""); setBusy("Descartando estudio");
     try {
       // Quitar todas las bases una a una. El backend se encarga del
       // cleanup de estudio cuando la última base sale.
@@ -318,7 +309,7 @@ export function BasesPanel({
       setEditingEstudioNombre(false);
       return;
     }
-    setError(""); setBusy(`Guardando nombre…`);
+    setError(""); setBusy("Guardando nombre");
     try {
       const p = await apiEstudioSetNombre(nuevo);
       await onChanged(p);
@@ -478,7 +469,7 @@ export function BasesPanel({
                 <ReplaceFilesForm
                   baseNombre={b.nombre}
                   onSubmit={async ({ xlsformFileId, dataFileId }) => {
-                    setError(""); setBusy(`Reemplazando archivos de ${b.nombre}…`);
+                    setError(""); setBusy(`Reemplazando archivos de ${b.nombre}`);
                     try {
                       const payload = await apiEstudioReplaceBaseFiles(b.nombre, {
                         xlsform_file_id: xlsformFileId || undefined,
@@ -1108,7 +1099,7 @@ function AddBaseForm({
                 : !dataFile
                 ? "Falta subir las respuestas."
                 : nombreDuplicado
-                ? "Cambia el nombre — ya existe una base así."
+                ? "Ya existe una base con ese nombre."
                 : !nombreValido
                 ? "El nombre tiene caracteres no permitidos."
                 : ""}
@@ -1130,7 +1121,7 @@ function AddBaseForm({
             disabled={!puedeAgregar}
           >
             <Plus size={12} />
-            {uploading ? "Subiendo…" : "Agregar base"}
+            {uploading ? "Subiendo" : "Agregar base"}
           </button>
         </div>
       </div>
@@ -1142,7 +1133,8 @@ function AddBaseForm({
 // ReplaceFilesForm — editor inline para cambiar XLSForm y/o data de una
 // base existente. Al menos uno de los dos archivos debe ser provisto.
 // =====================================================================
-function ReplaceFilesForm({
+/** Reemplazar el formulario o las respuestas de una base (también lo usa el inspector de Carga › Bases). */
+export function ReplaceFilesForm({
   baseNombre, onSubmit, onCancel,
 }: {
   baseNombre: string;
@@ -1247,7 +1239,7 @@ function ReplaceFilesForm({
             disabled={!puedeReemplazar}
           >
             <RefreshCw size={12} />
-            {uploading ? "Reemplazando…" : "Reemplazar"}
+            {uploading ? "Reemplazando" : "Reemplazar"}
           </button>
         </div>
       </div>

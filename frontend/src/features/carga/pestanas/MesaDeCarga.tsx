@@ -27,17 +27,18 @@ export function MesaDeCarga({
   children: ReactNode;
 }) {
   // Pestañas de lectura que crecen con su contenido en escritorio bajo
-  // (CargaWorkbenchBajo.css). Revisión lleva su propia regla. Bases ya no lleva
-  // la regla de Plan (`is-plan`), que cortaba el scroll: la pestaña es la de
-  // Fuentes con la decisión de organización arriba (ADR 0142).
-  const crece = activa === "bases" || activa === "variables" || activa === "equivalencias";
+  // (CargaWorkbenchBajo.css). Revisión lleva su propia regla. Bases no crece:
+  // sus dos marcos (colección e inspector) llegan al borde inferior en todo
+  // tamaño y cada uno desplaza su cuerpo (`pestanas/bases/bases.css`).
+  const crece = activa === "variables" || activa === "equivalencias";
+  const bases = activa === "bases" ? " pulso-carga-workbench--bases" : "";
   return (
     <AdaptiveSplitView
       ariaLabel={varias ? "Mesa de trabajo de varias bases" : "Mesa de trabajo de carga"}
       railLabel="Pestañas de carga"
       className={varias
-        ? `pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout${activa === "revision" ? " pulso-carga-workbench--revision" : ""}${crece ? " pulso-carga-workbench--crece" : ""}`
-        : `pulso-upload-section pulso-carga-workbench pulso-context-tab-layout${crece ? " pulso-carga-workbench--crece" : ""}`}
+        ? `pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout${activa === "revision" ? " pulso-carga-workbench--revision" : ""}${crece ? " pulso-carga-workbench--crece" : ""}${bases}`
+        : `pulso-upload-section pulso-carga-workbench pulso-context-tab-layout${crece ? " pulso-carga-workbench--crece" : ""}${bases}`}
       rail={(
         <CargaWorkspaceNavigation
           active={activa}

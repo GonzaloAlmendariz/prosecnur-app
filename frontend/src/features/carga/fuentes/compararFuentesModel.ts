@@ -54,6 +54,31 @@ export function searchSinPanelYFoco(search: string): string {
   return conNivel(conNivel(search, "panel", null), "foco", null);
 }
 
+/**
+ * El `foco` que había al abrir un panel de Fuentes (la base del inspector de
+ * Bases), guardado en el estado de la navegación y no en la dirección: la
+ * dirección del panel sigue igual (`foco=<base>` o `foco=<a>~<b>`) y un enlace
+ * guardado se lee como siempre. Al cerrar, el foco vuelve a ese valor, así el
+ * inspector de la base sigue abierto; sin estado (un enlace), se limpia.
+ */
+export type EstadoDePanelDeFuentes = { focoAlCerrar: string | null };
+
+export function estadoAlAbrir(search: string): EstadoDePanelDeFuentes {
+  const foco = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get("foco");
+  return { focoAlCerrar: foco?.trim() || null };
+}
+
+export function focoAlCerrar(estado: unknown): string | null {
+  if (!estado || typeof estado !== "object" || !("focoAlCerrar" in estado)) return null;
+  const foco = (estado as { focoAlCerrar: unknown }).focoAlCerrar;
+  return typeof foco === "string" && foco.trim() ? foco.trim() : null;
+}
+
+/** Cierra el panel y deja el foco que había al abrirlo (o ninguno). */
+export function searchAlCerrarPanel(search: string, estado: unknown): string {
+  return conNivel(conNivel(search, "panel", null), "foco", focoAlCerrar(estado));
+}
+
 // ---------------------------------------------------------------------------
 // Foco de la comparación: «<baseA>~<baseB>»
 // ---------------------------------------------------------------------------

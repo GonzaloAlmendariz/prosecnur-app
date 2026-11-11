@@ -9,10 +9,12 @@ import { ContenedorEntregable } from "../../../components/entregables/Contenedor
 import { useGeneracion, type Generacion } from "../../../components/entregables/useGeneracion";
 import "./entregas.css";
 
-/** La base preparada de `nombre`, en Excel; el motor la archiva con Procesamiento (`data_normalizada`). */
-export function useDescargaDeBase(nombre: string): Generacion & { descargar: () => void } {
-  const gen = useGeneracion({ titulo: `Base preparada de ${nombre}`, modulo: "Procesamiento", formato: "xlsx", articulo: "la" });
-  return { ...gen, descargar: () => { void gen.ejecutar(() => apiCargaExportNormalized("xlsx", nombre)); } };
+/**
+ * La base preparada de `nombre`, en Excel; el motor la archiva con Procesamiento (`data_normalizada`).
+ * Con `nombre` vacío es la base de un estudio de una base; `etiqueta` la nombra en el título. */
+export function useDescargaDeBase(nombre: string, etiqueta: string = nombre): Generacion & { descargar: () => void } {
+  const gen = useGeneracion({ titulo: `Base preparada de ${etiqueta}`, modulo: "Procesamiento", formato: "xlsx", articulo: "la" });
+  return { ...gen, descargar: () => { void gen.ejecutar(() => apiCargaExportNormalized("xlsx", nombre || null)); } };
 }
 
 /** El contenedor en el pie de la fila de la base, a todo su ancho. */

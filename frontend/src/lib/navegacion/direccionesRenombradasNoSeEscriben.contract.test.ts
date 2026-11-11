@@ -82,10 +82,22 @@ const CLAVES_VIEJAS_CARGA = new Set(["plan", "fuentes", "estructura", "datos"]);
  * archivo que esta rebanada no podía tocar. Cada entrada es deuda con dueño: la
  * dirección funciona porque el alias la lee, pero alarga su vida.
  */
-const PENDIENTES_CARGA: readonly string[] = [
-  // `DIRECCION_FUENTES` ("Ir a Fuentes" ante E_NO_RP_DATA): Analítica la pasa a `bases` en su propia rebanada.
-  "features/analitica/panes/comparativosModel.ts",
+type PendienteCarga = { archivo: string; constante: string };
+
+/**
+ * La excepción nombra la constante, no el archivo entero: cualquier otra
+ * dirección vieja del mismo archivo sigue en rojo.
+ */
+const PENDIENTES_CARGA: readonly PendienteCarga[] = [
+  // Vacía: `DIRECCION_FUENTES` de Analítica pasó a `DIRECCION_BASES_DE_CARGA` (`pestana: "bases"`).
 ];
+
+/** La declaración `const <nombre> = …` exceptuada en este archivo. */
+function esPendiente(relativo: string, node: ts.Node): boolean {
+  return ts.isVariableDeclaration(node)
+    && ts.isIdentifier(node.name)
+    && PENDIENTES_CARGA.some((p) => p.archivo === relativo && p.constante === (node.name as ts.Identifier).text);
+}
 
 function textoLiteral(nodo: ts.Node | undefined): string | null {
   return nodo && ts.isStringLiteralLike(nodo) ? nodo.text : null;
@@ -101,9 +113,9 @@ function escritoresDeCargaPorNivel(): string[] {
   const hallazgos: string[] = [];
   for (const source of parseSourcesContaining("pestana", [".ts", ".tsx"])) {
     const relativo = source.relative.split("\\").join("/");
-    if (PENDIENTES_CARGA.includes(relativo)) continue;
     const enCarga = relativo.startsWith("features/carga/");
     const visit = (node: ts.Node) => {
+      if (esPendiente(relativo, node)) return;
       if (ts.isObjectLiteralExpression(node)) {
         const valor = (clave: string) => {
           const prop = node.properties.find(
@@ -161,11 +173,20 @@ describe("pestañas de Carga renombradas por el ADR 0142", () => {
   });
 
   test("cada pendiente sigue escribiendo una clave vieja (si no, se borra de la lista)", () => {
-    for (const relativo of PENDIENTES_CARGA) {
+    for (const { archivo, constante } of PENDIENTES_CARGA) {
       const fuente = parseSourcesContaining("pestana", [".ts", ".tsx"])
-        .find((s) => s.relative.split("\\").join("/") === relativo);
-      expect(fuente, `${relativo} ya no existe`).toBeDefined();
-      expect(fuente?.text).toMatch(/seccion: "carga",\s*pestana: "(?:plan|fuentes|estructura|datos)"/);
+        .find((s) => s.relative.split("\\").join("/") === archivo);
+      expect(fuente, `${archivo} ya no existe`).toBeDefined();
+      let declaracion = "";
+      const buscar = (node: ts.Node) => {
+        if (fuente && esPendiente(archivo, node) && (node as ts.VariableDeclaration).name.getText(fuente.sourceFile) === constante) {
+          declaracion = node.getText(fuente.sourceFile);
+        }
+        ts.forEachChild(node, buscar);
+      };
+      if (fuente) buscar(fuente.sourceFile);
+      expect(declaracion, `${archivo} ya no declara ${constante}`).not.toBe("");
+      expect(declaracion).toMatch(/seccion: "carga",\s*pestana: "(?:plan|fuentes|estructura|datos)"/);
     }
   });
 });

@@ -7,7 +7,7 @@ import { apiCargaArmonizacionBase } from "../../../api/cargaArmonizacion";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { ArmonizacionBaseVista, type CargaArmonizacion } from "./ArmonizacionBaseVista";
-import { PANEL_ARMONIZACION_BASE, searchSinPanelYFoco } from "./compararFuentesModel";
+import { PANEL_ARMONIZACION_BASE, searchAlCerrarPanel } from "./compararFuentesModel";
 import { PanelLateralFuentes } from "./PanelLateralFuentes";
 
 import { EstadoVacio } from "../../../components/EstadoVacio";
@@ -39,8 +39,8 @@ function PanelConDireccion() {
   }, [foco]);
 
   const cerrar = useCallback(
-    () => navigate({ pathname: location.pathname, search: searchSinPanelYFoco(location.search) }, { replace: true }),
-    [location.pathname, location.search, navigate],
+    () => navigate({ pathname: location.pathname, search: searchAlCerrarPanel(location.search, location.state) }, { replace: true }),
+    [location.pathname, location.search, location.state, navigate],
   );
 
   return (

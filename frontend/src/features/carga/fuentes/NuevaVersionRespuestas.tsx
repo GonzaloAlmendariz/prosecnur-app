@@ -53,7 +53,7 @@ export function NuevaVersionRespuestas({
         </p>
         <div className="pulso-bde-version-acciones">
           <label htmlFor={`${id}-archivo`} className="pulso-button pulso-button--primary pulso-button--sm pulso-bde-version-elegir" aria-disabled={subiendo || ocupado}>
-            {subiendo ? "Cargando…" : "Elegir archivo"}
+            {subiendo ? "Cargando" : "Elegir archivo"}
             <input
               id={`${id}-archivo`}
               type="file"

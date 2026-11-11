@@ -1,22 +1,22 @@
 {
   "una-base_con-insumos_equivalencias": {
-    "marcado": "9322e66e5bf82a3045a7d3a2d60c229415f515f93e690e56253b5f8e021f68d9",
-    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+    "marcado": "3c58eba8d64865ccb6b0bfde07962989b0ae66218ea62cc4daea815887c23827",
+    "pedidos": "04bb4ed094f39f847645a244af68aa69aaff93d300202b6624a030d13cd7087a"
   },
   "una-base_equivalencias_no-disponible": {
-    "marcado": "9322e66e5bf82a3045a7d3a2d60c229415f515f93e690e56253b5f8e021f68d9",
-    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+    "marcado": "3c58eba8d64865ccb6b0bfde07962989b0ae66218ea62cc4daea815887c23827",
+    "pedidos": "04bb4ed094f39f847645a244af68aa69aaff93d300202b6624a030d13cd7087a"
   },
   "una-base_sin-archivos_equivalencias": {
-    "marcado": "9491bbb881d5db1f49206d479ae12dbabae43bd749ec8cb8181d0c676d1b76e1",
+    "marcado": "407c80e305e6b69dbe31a8a0ef21a3a42879026a17ae36617a159cba5ce244c8",
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "varias_integradas_equivalencias": {
-    "marcado": "b564f935386ec855f500ba99006553146b69f190f1f5f9f0e24d9872f0cedf9b",
+    "marcado": "382d6513ac0d4289ebe90592cef3bdfc879acedcb18fbfd8b097dbf0b76d72e1",
     "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
   },
   "varias_integradas_equivalencias_no-disponible": {
-    "marcado": "b564f935386ec855f500ba99006553146b69f190f1f5f9f0e24d9872f0cedf9b",
+    "marcado": "382d6513ac0d4289ebe90592cef3bdfc879acedcb18fbfd8b097dbf0b76d72e1",
     "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
   },
   "varias_separadas_equivalencias": {
@@ -24,7 +24,7 @@
     "pedidos": "7fa0652c05e6b66496db76d34094e4888a7168db2124ffe68f1d3a75322b8943"
   },
   "varias_sin-bases_equivalencias": {
-    "marcado": "147ff8eae7082021378032fc8f2b3390ab7c6673a404fc3d6e2f3ff0e3ca3b87",
-    "pedidos": "d92802ba9f6daf921766b07ca9eccb3261f67407f234f19af77c7fc60f2da85f"
+    "marcado": "37675b643a99e34ec6c6e4bcaf7e9ab4146d2e7438c53ba75549319d981fdaaf",
+    "pedidos": "bb6b2c8f7a4b618c938b24c0fdf70c21c41a2f1aa6a120616191c5becd517d0e"
   }
 }

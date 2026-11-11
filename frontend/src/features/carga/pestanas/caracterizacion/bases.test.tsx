@@ -5,20 +5,31 @@
  * ADR 0142: Bases reúne lo que eran Plan y Fuentes. Los escenarios que antes
  * entraban por `pestana=plan` o `pestana=fuentes` siguen como escenarios de
  * alias (misma vista, dirección sin reescribir).
+ *
+ * R2 (P4b): Bases es una colección con inspector. La relación entre las bases
+ * es una línea con "Cambiar" (`panel=relacion`); "Agregar base" es un recorrido
+ * por pasos (`panel=agregar-base`, el origen en `foco`); el inspector se abre
+ * con `foco=<base>`. Los diálogos se montan en un portal, así que este grupo
+ * mide también el marcado del portal.
  */
-import { describe, expect } from "vitest";
+import { act } from "react";
+import { describe, expect, it } from "vitest";
 import { useCargaStore } from "../../store";
 import {
   ARCHIVO_FORMULARIO,
   ARCHIVO_RESPUESTAS,
+  Fallo,
   BASES_DOS,
-  ORIGEN,
+  MADRE_E_HIJA,
   SUBIDA,
   UNA_BASE_COMPLETA,
   UNA_BASE_VACIA,
   VARIAS_INTEGRADAS,
   VARIAS_SEPARADAS,
   base,
+  asentar,
+  control,
+  direccionActual,
   elegirArchivo,
   escenario,
   escenariosDeMatriz,
@@ -32,96 +43,137 @@ import {
   pulsar,
   rutasDeMonitoreo,
   rutasDeRevision,
+  type Ruta,
 } from "./arnes";
 
-prepararGrupo("bases");
+prepararGrupo("bases", { conPortales: true });
 
 escenariosDeMatriz("bases");
 escenariosDeAlias("plan", "bases");
 escenariosDeAlias("fuentes", "bases");
 
-describe("CargaPage, una base: Bases por origen y en curso", () => {
-  escenario("una-base_bases_plataforma", "Plataforma, antes de leer el catálogo", async () => {
+const AGREGAR = 'button[data-plf-abrir="agregar-base"]';
+const AGREGAR_EN_VACIO = ".pulso-estado-vacio button";
+const origen = (id: string) => `button.pulso-bases-origen[data-origen="${id}"]`;
+const agregarEn = (origenId: string) => `/carga?pestana=bases&panel=agregar-base&foco=${origenId}`;
+
+/** La base `default` que deja la carga simple en el estudio. */
+const BASE_UNICA = base("default", {
+  n_filas: 421,
+  n_columnas: 141,
+  xlsform_file_name: "formulario_hogares.xlsx",
+  data_file_name: "respuestas_hogares_03_08_26.xlsx",
+});
+const ESTUDIO_UNA_BASE: Ruta = ["GET", "/api/estudio", estudio([BASE_UNICA], { processing_mode: "multibase", topology_declared: null })];
+
+const SEIS = ["docentes", "estudiantes", "egresados", "empleadores", "administrativos", "autoridades"].map((n, i) => base(n, { n_filas: 100 + i * 37 }));
+const VARIAS_SEIS = {
+  estado: estado({
+    has_estudio: true,
+    estudio_processing_mode: "multibase",
+    estudio_topology_declared: "separate",
+    n_bases: 6,
+    bases_nombres: SEIS.map((b) => b.nombre),
+    active_base: "docentes",
+  }),
+  estudio: estudio(SEIS),
+};
+
+/** Dos bases separadas, una de SurveyMonkey (recibe otra fuente) y otra de archivos. */
+const BASES_SM = [
+  base("docentes", { source_kind: "surveymonkey", survey_id: "501", source_title: "Encuesta a docentes", source_channel: "QR en aula", n_filas: 42 }),
+  base("estudiantes", { n_filas: 310 }),
+];
+const VARIAS_SM = { ...VARIAS_SEPARADAS, estudio: estudio(BASES_SM) };
+
+const PUBLICADOS: Ruta = ["GET", "/api/carga/formularios-publicados", {
+  ok: true,
+  formularios: [{
+    form_id: "f1", form_name: "Encuesta a egresados", revision_id: "r1", revision_no: 2,
+    published_at: "2026-03-01T00:00:00Z", survey_id: "", campanas: [], logic_status: "", logic_external: false,
+    logic_external_herramienta: "", n_campos: 40,
+  }],
+}];
+
+describe("CargaPage, una base: Agregar base por origen y en curso", () => {
+  escenario("una-base_bases_agregar", "sin archivos: el primer paso de Agregar base", async () => {
     await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
-    await pulsar(ORIGEN, "Plataforma");
+    await pulsar(AGREGAR_EN_VACIO, "Agregar base");
+    fijar("una-base_bases_agregar");
+  });
+
+  escenario("una-base_bases_plataforma", "SurveyMonkey, antes de leer el catálogo", async () => {
+    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
+    await pulsar(AGREGAR_EN_VACIO, "Agregar base");
+    await pulsar(origen("surveymonkey"));
     fijar("una-base_bases_plataforma");
   });
 
-  escenario("una-base_bases_plataforma-catalogo-sm", "Plataforma, catálogo de SurveyMonkey leído", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
-    await pulsar(ORIGEN, "Plataforma");
+  escenario("una-base_bases_plataforma-catalogo-sm", "SurveyMonkey, catálogo leído", async () => {
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("surveymonkey") });
     await pulsar("button.pulso-platform-load");
     fijar("una-base_bases_plataforma-catalogo-sm");
   });
 
-  escenario("una-base_bases_plataforma-catalogo-kobo", "Plataforma, catálogo de KoboToolbox leído y segundo proyecto elegido", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
-    await pulsar(ORIGEN, "Plataforma");
-    await pulsar(".pulso-platform-provider-tabs button", "KoboToolbox");
+  escenario("una-base_bases_plataforma-catalogo-kobo", "KoboToolbox, catálogo leído y segundo proyecto elegido", async () => {
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("kobo") });
     await pulsar("button.pulso-platform-load");
     await pulsar("button.pulso-platform-row", "Piloto de hogares");
     fijar("una-base_bases_plataforma-catalogo-kobo");
   });
 
-  escenario("una-base_bases_plataforma-importando", "Plataforma, importando la encuesta elegida", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
-    await pulsar(ORIGEN, "Plataforma");
+  escenario("una-base_bases_plataforma-importando", "SurveyMonkey, importando la encuesta elegida", async () => {
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("surveymonkey") });
     await pulsar("button.pulso-platform-load");
     await pulsar("button.pulso-platform-import-button");
     fijar("una-base_bases_plataforma-importando");
   });
 
-  escenario("una-base_bases_plataforma-sin-conexion", "Plataforma sin conexiones", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases", rutas: [["GET", "/api/connections", { ok: true, connections: [] }]] });
-    await pulsar(ORIGEN, "Plataforma");
+  escenario("una-base_bases_plataforma-sin-conexion", "SurveyMonkey sin conexiones", async () => {
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("surveymonkey"), rutas: [["GET", "/api/connections", { ok: true, connections: [] }]] });
     fijar("una-base_bases_plataforma-sin-conexion");
   });
 
   escenario("una-base_bases_monitoreo", "Monitoreo, antes de revisar", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
-    await pulsar(ORIGEN, "Monitoreo");
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("monitoreo") });
     fijar("una-base_bases_monitoreo");
   });
 
   escenario("una-base_bases_monitoreo-telefonico-sin-formulario", "Monitoreo telefónico: trabajo de campo con formulario pendiente de subir", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases", rutas: rutasDeMonitoreo("telefonico", "needs_upload") });
-    await pulsar(ORIGEN, "Monitoreo");
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("monitoreo"), rutas: rutasDeMonitoreo("telefonico", "needs_upload") });
     await pulsar("button", "Revisar Monitoreo");
     fijar("una-base_bases_monitoreo-telefonico-sin-formulario");
   });
 
   escenario("una-base_bases_monitoreo-territorial-listo", "Monitoreo territorial: trabajo de campo listo que reemplaza la base actual", async () => {
-    await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: rutasDeMonitoreo("territorial", "local", true) });
-    await pulsar(ORIGEN, "Monitoreo");
+    await montar({ estado: UNA_BASE_COMPLETA, entrada: agregarEn("monitoreo"), rutas: [...rutasDeMonitoreo("territorial", "local", true), ESTUDIO_UNA_BASE] });
     await pulsar("button", "Revisar Monitoreo");
     fijar("una-base_bases_monitoreo-territorial-listo");
   });
 
   escenario("una-base_bases_monitoreo-territorial-trayendo", "Monitoreo territorial: trayendo el trabajo de campo", async () => {
-    await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: rutasDeMonitoreo("territorial", "local", true) });
-    await pulsar(ORIGEN, "Monitoreo");
+    await montar({ estado: UNA_BASE_COMPLETA, entrada: agregarEn("monitoreo"), rutas: [...rutasDeMonitoreo("territorial", "local", true), ESTUDIO_UNA_BASE] });
     await pulsar("button", "Revisar Monitoreo");
     await pulsar("button.pulso-carga-handoff-primary");
     fijar("una-base_bases_monitoreo-territorial-trayendo");
   });
 
   escenario("una-base_bases_monitoreo-acreditacion", "Monitoreo de acreditación: asignaciones y creación conjunta", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases", rutas: rutasDeMonitoreo("acreditacion", "local") });
-    await pulsar(ORIGEN, "Monitoreo");
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("monitoreo"), rutas: rutasDeMonitoreo("acreditacion", "local") });
     await pulsar("button", "Revisar Monitoreo");
     fijar("una-base_bases_monitoreo-acreditacion");
   });
 
-  escenario("una-base_bases_subiendo-formulario", "subiendo el formulario", async () => {
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
+  escenario("una-base_bases_subiendo-formulario", "Archivos: subiendo el formulario", async () => {
+    await montar({ estado: UNA_BASE_VACIA, entrada: agregarEn("archivos") });
     await elegirArchivo(ARCHIVO_FORMULARIO, "formulario.xlsx");
     fijar("una-base_bases_subiendo-formulario");
   });
 
-  escenario("una-base_bases_formulario-subido", "formulario subido, respuestas en espera", async () => {
+  escenario("una-base_bases_formulario-subido", "Archivos: formulario subido, la tarjeta dice que faltan las respuestas", async () => {
     await montar({
       estado: UNA_BASE_VACIA,
-      pestana: "bases",
+      entrada: agregarEn("archivos"),
       rutas: SUBIDA,
       trasRefrescar: [estado({ xlsform: true, instrumento_parsed: true })],
     });
@@ -129,10 +181,10 @@ describe("CargaPage, una base: Bases por origen y en curso", () => {
     fijar("una-base_bases_formulario-subido");
   });
 
-  escenario("una-base_bases_respuestas-subidas", "formulario y respuestas subidos, con mapeo de códigos por confirmar", async () => {
+  escenario("una-base_bases_respuestas-subidas", "Archivos: formulario y respuestas subidos, con mapeo de códigos por confirmar", async () => {
     await montar({
       estado: UNA_BASE_VACIA,
-      pestana: "bases",
+      entrada: agregarEn("archivos"),
       rutas: [...SUBIDA, ...rutasDeRevision(true)],
       trasRefrescar: [estado({ xlsform: true, instrumento_parsed: true }), UNA_BASE_COMPLETA],
     });
@@ -141,11 +193,38 @@ describe("CargaPage, una base: Bases por origen y en curso", () => {
     fijar("una-base_bases_respuestas-subidas");
   });
 
-  escenario("una-base_bases_respuestas-sin-formulario", "respuestas elegidas sin formulario: aviso de orden", async () => {
-    await montar({ estado: estado({ data: true }), pestana: "bases" });
+  escenario("una-base_bases_respuestas-sin-formulario", "Archivos: respuestas elegidas sin formulario, aviso de orden", async () => {
+    await montar({ estado: estado({ data: true }), entrada: agregarEn("archivos") });
     // La tarjeta de respuestas está deshabilitada; se fuerza el cambio para ver el aviso.
     await elegirArchivo(ARCHIVO_RESPUESTAS, "respuestas.xlsx");
     fijar("una-base_bases_respuestas-sin-formulario");
+  });
+
+  escenario("una-base_bases_sin-estudio", "solo el formulario y sin estudio: una tarjeta que dice lo que falta", async () => {
+    await montar({ estado: estado({ xlsform: true, instrumento_parsed: true }), pestana: "bases" });
+    fijar("una-base_bases_sin-estudio");
+  });
+
+  escenario("una-base_bases_completa", "una base completa: la tarjeta con su cifra y sin Agregar base", async () => {
+    await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: [ESTUDIO_UNA_BASE] });
+    expect(control(".pulso-bases-cifra").textContent).toBe("421respuestas recibidas");
+    fijar("una-base_bases_completa");
+  });
+
+  escenario("una-base_bases_completa-inspector", "una base completa con el inspector abierto", async () => {
+    await montar({ estado: UNA_BASE_COMPLETA, entrada: "/carga?pestana=bases&foco=default", rutas: [ESTUDIO_UNA_BASE] });
+    fijar("una-base_bases_completa-inspector");
+  });
+
+  escenario("una-base_bases_cambiar-archivos", "una base completa: sus archivos, sin el paso de origen", async () => {
+    await montar({ estado: UNA_BASE_COMPLETA, entrada: agregarEn("archivos"), rutas: [ESTUDIO_UNA_BASE] });
+    fijar("una-base_bases_cambiar-archivos");
+  });
+
+  escenario("una-base_bases_relacion", "la relación entre las bases abierta con Cambiar", async () => {
+    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
+    await pulsar('button[data-plf-abrir="relacion"]');
+    fijar("una-base_bases_relacion");
   });
 
   escenario("una-base_bases_plan-de-varias-bases", "con varias bases separadas elegidas y sin estudio todavía", async () => {
@@ -155,51 +234,92 @@ describe("CargaPage, una base: Bases por origen y en curso", () => {
   });
 
   // Era "una-base_plan_plan-de-varias-bases" (pestaña Plan, intención integrada).
-  escenario("una-base_bases_plan-integrada", "con base integrada elegida y sin estudio todavía", async () => {
+  escenario("una-base_bases_plan-integrada", "con base integrada elegida y sin estudio todavía, relación abierta", async () => {
     useCargaStore.getState().setTopologyIntent("integrated");
-    await montar({ estado: UNA_BASE_VACIA, pestana: "bases" });
+    await montar({ estado: UNA_BASE_VACIA, entrada: "/carga?pestana=bases&panel=relacion" });
     fijar("una-base_bases_plan-integrada");
   });
 });
 
-describe("CargaPage, varias bases: Bases por origen y en curso", () => {
-  for (const origen of ["Plataforma", "Monitoreo"]) {
-    escenario(`varias_integradas_bases_${origen.toLowerCase()}`, `formulario compartido, origen ${origen}`, async () => {
+describe("CargaPage, varias bases: colección, inspector y Agregar base", () => {
+  for (const clave of ["varias", "monitoreo", "sav"]) {
+    escenario(`varias_integradas_bases_${clave}`, `base integrada, Agregar base desde ${clave}`, async () => {
       await montar({ ...VARIAS_INTEGRADAS, pestana: "bases" });
-      await pulsar(ORIGEN, origen);
-      fijar(`varias_integradas_bases_${origen.toLowerCase()}`);
+      await pulsar(AGREGAR);
+      await pulsar(origen(clave));
+      fijar(`varias_integradas_bases_${clave}`);
     });
   }
 
-  escenario("varias_integradas_bases_monitoreo-acreditacion", "formulario compartido, Monitoreo de acreditación revisado", async () => {
-    await montar({ ...VARIAS_INTEGRADAS, pestana: "bases", rutas: rutasDeMonitoreo("acreditacion", "local") });
-    await pulsar(ORIGEN, "Monitoreo");
+  escenario("varias_integradas_bases_monitoreo-acreditacion", "base integrada, Monitoreo de acreditación revisado", async () => {
+    await montar({ ...VARIAS_INTEGRADAS, entrada: agregarEn("monitoreo"), rutas: rutasDeMonitoreo("acreditacion", "local") });
     await pulsar("button", "Revisar Monitoreo");
     fijar("varias_integradas_bases_monitoreo-acreditacion");
   });
 
-  for (const [rotulo, clave] of [
-    ["SurveyMonkey", "surveymonkey"],
-    ["KoboToolbox", "kobo"],
-    ["Archivos", "archivos"],
-    ["Archivo .sav", "sav"],
-    ["Monitoreo", "monitoreo"],
-  ]) {
-    escenario(`varias_separadas_bases_agregar-${clave}`, `bases separadas, Agregar base desde ${rotulo}`, async () => {
+  escenario("varias_integradas_bases_inspector", "base integrada: el inspector dice cómo se unieron sus fuentes", async () => {
+    await montar({ ...VARIAS_INTEGRADAS, entrada: "/carga?pestana=bases&foco=integrada" });
+    fijar("varias_integradas_bases_inspector");
+  });
+
+  escenario("varias_separadas_bases_agregar", "bases separadas: el primer paso de Agregar base", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
+    await pulsar(AGREGAR);
+    fijar("varias_separadas_bases_agregar");
+  });
+
+  for (const clave of ["surveymonkey", "kobo", "archivos", "sav", "monitoreo", "varias"]) {
+    escenario(`varias_separadas_bases_agregar-${clave}`, `bases separadas, Agregar base desde ${clave}`, async () => {
       await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
-      await pulsar("button.pulso-button--primary", "Agregar base");
-      await pulsar("button.pulso-bde-origen-opcion", rotulo);
+      await pulsar(AGREGAR);
+      await pulsar(origen(clave));
       fijar(`varias_separadas_bases_agregar-${clave}`);
     });
   }
 
+  escenario("varias_separadas_bases_agregar-formulario", "bases separadas con un formulario publicado, Agregar base desde él", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases", rutas: [PUBLICADOS] });
+    await pulsar(AGREGAR);
+    await pulsar(origen("formulario"));
+    fijar("varias_separadas_bases_agregar-formulario");
+  });
+
   escenario("varias_separadas_bases_importando", "bases separadas, importando una encuesta como base nueva", async () => {
-    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
-    await pulsar("button.pulso-button--primary", "Agregar base");
-    await pulsar("button.pulso-bde-origen-opcion", "SurveyMonkey");
+    await montar({ ...VARIAS_SEPARADAS, entrada: agregarEn("surveymonkey") });
     await pulsar("button.pulso-platform-load");
     await pulsar("button.pulso-platform-import-button");
     fijar("varias_separadas_bases_importando");
+  });
+
+  escenario("varias_separadas_bases_inspector", "bases separadas: inspector de una base de archivos", async () => {
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=docentes" });
+    fijar("varias_separadas_bases_inspector");
+  });
+
+  escenario("varias_separadas_bases_inspector-sm", "bases separadas: inspector de una base de SurveyMonkey", async () => {
+    await montar({ ...VARIAS_SM, entrada: "/carga?pestana=bases&foco=docentes" });
+    fijar("varias_separadas_bases_inspector-sm");
+  });
+
+  escenario("varias_separadas_bases_agregar-fuente", "bases separadas: otra encuesta para una base de SurveyMonkey", async () => {
+    await montar({ ...VARIAS_SM, entrada: "/carga?pestana=bases&panel=agregar-fuente&foco=docentes" });
+    fijar("varias_separadas_bases_agregar-fuente");
+  });
+
+  escenario("varias_seis_bases", "seis bases separadas", async () => {
+    await montar({ ...VARIAS_SEIS, pestana: "bases" });
+    fijar("varias_seis_bases");
+  });
+
+  escenario("varias_madre-hija_bases", "madre con grupo repetido: la hija va dentro de su madre", async () => {
+    await montar({ ...MADRE_E_HIJA, pestana: "bases" });
+    expect(document.querySelectorAll(".pulso-bases-tarjeta")).toHaveLength(1);
+    fijar("varias_madre-hija_bases");
+  });
+
+  escenario("varias_madre-hija_bases_inspector-hija", "madre con grupo repetido: inspector de la hija", async () => {
+    await montar({ ...MADRE_E_HIJA, entrada: "/carga?pestana=bases&foco=miembros" });
+    fijar("varias_madre-hija_bases_inspector-hija");
   });
 
   escenario("varias_independientes_bases", "hermanas independientes", async () => {
@@ -218,6 +338,23 @@ describe("CargaPage, varias bases: Bases por origen y en curso", () => {
     });
     fijar("varias_independientes_bases");
   });
+
+  escenario("varias_independientes_bases_agregar-varias", "hermanas independientes: Varias encuestas a la vez", async () => {
+    const bases = BASES_DOS.map((b) => ({ ...b, processing_mode: "independent_siblings", source_kind: "surveymonkey", survey_id: `9${b.n_filas}` }));
+    await montar({
+      estado: estado({
+        has_estudio: true,
+        estudio_processing_mode: "independent_siblings",
+        estudio_topology_declared: "independent",
+        n_bases: 2,
+        bases_nombres: ["docentes", "estudiantes"],
+        active_base: "docentes",
+      }),
+      estudio: estudio(bases, { processing_mode: "independent_siblings", topology_declared: "independent" }),
+      entrada: agregarEn("varias"),
+    });
+    fijar("varias_independientes_bases_agregar-varias");
+  });
 });
 
 describe("CargaPage, Bases no pide el catálogo de variables por base", () => {
@@ -235,3 +372,249 @@ describe("CargaPage, Bases no pide el catálogo de variables por base", () => {
     });
   }
 });
+
+describe("CargaPage › Bases: interacción por dirección", () => {
+  it("la tarjeta abre el inspector con foco=<base> y la X lo cierra", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
+    expect(document.getElementById("pulso-bases-inspector")).toBeNull();
+    await pulsar("button.pulso-bases-tarjeta-abrir", "estudiantes");
+    expect(direccionActual()).toBe("/carga?pestana=bases&foco=estudiantes");
+    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de estudiantes");
+    await pulsar('#pulso-bases-inspector button[aria-label="Cerrar el detalle de la base"]');
+    expect(direccionActual()).toBe("/carga?pestana=bases");
+    expect(document.getElementById("pulso-bases-inspector")).toBeNull();
+  });
+
+  it("un enlace guardado con foco=<base> abre el inspector de esa base", async () => {
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=docentes" });
+    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de docentes");
+    expect(control("button.pulso-bases-tarjeta-abrir", "docentes").getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("Cambiar abre la relación entre las bases en panel=relacion", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    await pulsar('button[data-plf-abrir="relacion"]');
+    expect(direccionActual()).toBe("/carga?pestana=bases&panel=relacion");
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain("¿Cuántas bases organizará el estudio?");
+  });
+
+  it("Agregar una fuente queda deshabilitada con su causa fuera de SurveyMonkey, y habilitada en SurveyMonkey", async () => {
+    await montar({ ...VARIAS_SM, entrada: "/carga?pestana=bases&foco=estudiantes" });
+    const deshabilitada = control("#pulso-bases-inspector button", "Agregar una fuente") as HTMLButtonElement;
+    expect(deshabilitada.disabled).toBe(true);
+    const causa = document.getElementById(deshabilitada.getAttribute("aria-describedby") ?? "");
+    expect(causa?.textContent).toBe("Todavía no se pueden unir más fuentes a una base de este origen.");
+
+    await montar({ ...VARIAS_SM, entrada: "/carga?pestana=bases&foco=docentes" });
+    const habilitada = control("#pulso-bases-inspector button", "Agregar una fuente") as HTMLButtonElement;
+    expect(habilitada.disabled).toBe(false);
+    expect(habilitada.hasAttribute("aria-describedby")).toBe(false);
+    await pulsar("#pulso-bases-inspector button", "Agregar una fuente");
+    expect(direccionActual()).toBe("/carga?pestana=bases&foco=docentes&panel=agregar-fuente");
+  });
+
+  it("el origen de Agregar base vive en la dirección", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
+    await pulsar(AGREGAR);
+    expect(direccionActual()).toBe("/carga?pestana=bases&panel=agregar-base");
+    await pulsar(origen("kobo"));
+    expect(direccionActual()).toBe("/carga?pestana=bases&panel=agregar-base&foco=kobo");
+    // El foco del recorrido es el origen, no una base: no abre el inspector.
+    expect(document.getElementById("pulso-bases-inspector")).toBeNull();
+  });
+});
+
+/** Escribe en un campo controlado por React. */
+async function escribir(selector: string, valor: string) {
+  const campo = control(selector) as HTMLInputElement;
+  const fijarValor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  await act(async () => {
+    fijarValor?.call(campo, valor);
+    campo.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+/**
+ * El doble del motor para el estudio de varias bases. `downgrade-to-single`
+ * responde como `router_estudio.R`: rechaza con E_MULTIPLE_BASES si el estudio
+ * tiene más de una entrada en `bases` (cada hija de grupo repetido cuenta).
+ */
+function rutasDelEstudio(entradas: number): Ruta[] {
+  return [
+    ["DELETE", /^\/api\/estudio\/base\//, { ok: true, n_bases: 0 }],
+    ["POST", "/api/estudio/downgrade-to-single", entradas > 1
+      ? new Fallo("E_MULTIPLE_BASES", "El estudio tiene varias bases. Quita las extras antes de volver al modo simple.")
+      : { ok: true }],
+    ["PATCH", "/api/estudio", estudio(BASES_DOS, { nombre: "Egresados 2026" })],
+  ];
+}
+const RUTAS_DEL_ESTUDIO = rutasDelEstudio(2);
+
+const UNA_SOLA_EN_VARIAS = {
+  estado: estado({
+    has_estudio: true,
+    estudio_processing_mode: "multibase",
+    estudio_topology_declared: "separate",
+    n_bases: 1,
+    bases_nombres: ["docentes"],
+    active_base: "docentes",
+  }),
+  estudio: estudio([base("docentes")]),
+};
+
+describe("CargaPage › Bases: acciones del estudio en la relación entre las bases", () => {
+  it("con dos bases la salida es Quitar todas las bases, y quita cada una antes de volver a la carga simple", async () => {
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&panel=relacion", rutas: RUTAS_DEL_ESTUDIO });
+    const panel = () => document.querySelector('[role="dialog"]')?.textContent ?? "";
+    expect(panel()).not.toContain("Volver a una base");
+    await pulsar('[role="dialog"] button', "Quitar todas las bases");
+    expect(panel()).toContain("Se quitan las 2 bases; sus respuestas dejan de estar en el proyecto. No se puede deshacer.");
+    await pulsar('[role="dialog"] .pulso-bases-confirmar button', "Quitar todas las bases");
+    expect(pedidosHechos()).toEqual(expect.arrayContaining(["DELETE /api/estudio/base/docentes", "DELETE /api/estudio/base/estudiantes"]));
+    expect(pedidosHechos()).not.toContain("POST /api/estudio/downgrade-to-single");
+    expect(direccionActual()).toBe("/carga");
+  });
+
+  it("con madre e hija la salida es Quitar todas las bases, como cuenta el motor, y lo dice", async () => {
+    await montar({ ...MADRE_E_HIJA, entrada: "/carga?pestana=bases&panel=relacion", rutas: rutasDelEstudio(2) });
+    const panel = () => document.querySelector('[role="dialog"]')?.textContent ?? "";
+    expect(panel()).not.toContain("Volver a una base");
+    await pulsar('[role="dialog"] button', "Quitar todas las bases");
+    expect(panel()).toContain("Se quita la base y su grupo repetido; sus respuestas dejan de estar en el proyecto. No se puede deshacer.");
+    await pulsar('[role="dialog"] .pulso-bases-confirmar button', "Quitar todas las bases");
+    expect(pedidosHechos()).toEqual(expect.arrayContaining(["DELETE /api/estudio/base/hogares", "DELETE /api/estudio/base/miembros"]));
+    expect(pedidosHechos()).not.toContain("POST /api/estudio/downgrade-to-single");
+  });
+
+  it("con una sola entrada la salida es Volver a una base y conserva los datos", async () => {
+    await montar({ ...UNA_SOLA_EN_VARIAS, entrada: "/carga?pestana=bases&panel=relacion", rutas: rutasDelEstudio(1) });
+    const panel = () => document.querySelector('[role="dialog"]')?.textContent ?? "";
+    expect(panel()).not.toContain("Quitar todas las bases");
+    await pulsar('[role="dialog"] button', "Volver a una base");
+    expect(panel()).toContain("El formulario y las respuestas quedan como una base.");
+    await pulsar('[role="dialog"] .pulso-bases-confirmar button', "Volver a una base");
+    expect(pedidosHechos()).toContain("POST /api/estudio/downgrade-to-single");
+    expect(pedidosHechos().some((p) => p.startsWith("DELETE"))).toBe(false);
+  });
+
+  it("si el motor rechaza la vuelta, el panel dice la causa y que el estudio sigue como estaba", async () => {
+    // El doble rechaza como si el estudio tuviera más de una entrada.
+    await montar({ ...UNA_SOLA_EN_VARIAS, entrada: "/carga?pestana=bases&panel=relacion", rutas: rutasDelEstudio(2) });
+    await pulsar('[role="dialog"] button', "Volver a una base");
+    await pulsar('[role="dialog"] .pulso-bases-confirmar button', "Volver a una base");
+    const panel = document.querySelector('[role="dialog"]')?.textContent ?? "";
+    expect(panel).toContain("No se pudo volver a una base");
+    expect(panel).toContain("El estudio tiene varias bases. Quita las extras antes de volver al modo simple.");
+    expect(panel).toContain("El estudio sigue como estaba.");
+  });
+
+  it("el nombre del estudio se cambia en la relación entre las bases", async () => {
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&panel=relacion", rutas: RUTAS_DEL_ESTUDIO });
+    await escribir('[role="dialog"] .pulso-bases-estudio-nombre input', "Egresados 2026");
+    await pulsar('[role="dialog"] .pulso-bases-estudio-nombre button', "Guardar");
+    expect(pedidosHechos()).toContain("PATCH /api/estudio");
+  });
+
+  it("el inspector reemplaza el formulario o las respuestas de una base, como la fila de BasesPanel", async () => {
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=docentes" });
+    expect(document.querySelector("#pulso-bases-inspector .pulso-base-editor.is-replace")).toBeNull();
+    await pulsar("#pulso-bases-inspector button", "Reemplazar archivos");
+    expect(document.querySelector("#pulso-bases-inspector .pulso-base-editor.is-replace")).not.toBeNull();
+  });
+});
+
+/** Dos bases ligadas a la misma revisión publicada: tienen "Ver armonización" y "Comparar con". */
+const BASES_LIGADAS = [base("docentes", { instrument_revision_id: "r1" }), base("estudiantes", { instrument_revision_id: "r1", n_filas: 480 })];
+const VARIAS_LIGADAS = { ...VARIAS_SEPARADAS, estudio: estudio(BASES_LIGADAS) };
+const PUBLICADO_R1: Ruta = ["GET", "/api/carga/formularios-publicados", {
+  ok: true,
+  formularios: [{
+    form_id: "f1", form_name: "Encuesta docente", revision_id: "r1", revision_no: 1,
+    published_at: "2026-03-01T00:00:00Z", survey_id: "", campanas: [], logic_status: "", logic_external: false,
+    logic_external_herramienta: "", n_campos: 40,
+  }],
+}];
+
+describe("CargaPage › Bases: funciones que no se pierden (verificación R2)", () => {
+  it("Fuentes previstas fija cuántos orígenes admite el asistente de integración", async () => {
+    await montar({ ...VARIAS_INTEGRADAS, entrada: agregarEn("varias") });
+    const campo = control('[role="dialog"] .pulso-bases-entradas input') as HTMLInputElement;
+    expect(document.querySelector('[role="dialog"] .pulso-bases-entradas')?.textContent).toContain("Fuentes previstas");
+    expect(campo.value).toBe("2");
+    await escribir('[role="dialog"] .pulso-bases-entradas input', "3");
+    await asentar();
+    expect(document.querySelectorAll('[role="dialog"] .pulso-integrated-origin-row')).toHaveLength(3);
+  });
+
+  it("una base con archivos cambia su fuente desde el inspector, con el paso Origen y sus cuatro orígenes", async () => {
+    await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: [ESTUDIO_UNA_BASE] });
+    await pulsar("button.pulso-bases-tarjeta-abrir");
+    await pulsar("#pulso-bases-inspector button", "Cambiar la fuente");
+    const dialogo = () => document.querySelector('[role="dialog"]');
+    expect(dialogo()?.textContent).toContain("Cambiar la fuente");
+    expect(dialogo()?.textContent).toContain("Lo que traigas reemplaza el formulario o las respuestas que tiene la base.");
+    expect(Array.from(document.querySelectorAll<HTMLElement>("button.pulso-bases-origen")).map((b) => b.dataset.origen)).toEqual(["archivos", "surveymonkey", "kobo", "monitoreo"]);
+    await pulsar(origen("monitoreo"));
+    expect(dialogo()?.textContent).toContain("Revisar Monitoreo");
+    await pulsar('[role="dialog"] .pulso-stepper button', "Origen");
+    await pulsar(origen("surveymonkey"));
+    expect(document.querySelector('[role="dialog"] button.pulso-platform-load')).not.toBeNull();
+    // Con una base no se ofrece "Formulario publicado": no se pide su catálogo.
+    expect(pedidosHechos().some((p) => p.includes("formularios-publicados"))).toBe(false);
+  });
+
+  it("la base integrada dice cómo se integró y abre su bitácora sin cerrar el inspector", async () => {
+    await montar({ ...VARIAS_INTEGRADAS, entrada: "/carga?pestana=bases&foco=integrada" });
+    const inspector = () => document.getElementById("pulso-bases-inspector")?.textContent ?? "";
+    expect(inspector()).toContain("Unidas por la columna publico");
+    expect(inspector()).toContain("Formulario guía");
+    expect(inspector()).toContain("Respuestas integradas");
+    expect(inspector()).toContain("Fraseo final común");
+    await pulsar("#pulso-bases-inspector button", "Bitácora de la integración");
+    expect(direccionActual()).toBe("/carga?pestana=bases&foco=integrada&panel=bitacora-integracion");
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain("Variables preservadas por origen");
+    expect(document.getElementById("pulso-bases-inspector")).not.toBeNull();
+  });
+
+  it("Comparar abre y cierra sin perder el inspector, y el foco vuelve al botón", async () => {
+    await montar({ ...VARIAS_LIGADAS, entrada: "/carga?pestana=bases&foco=docentes", rutas: [PUBLICADO_R1] });
+    await pulsar("#pulso-bases-inspector button", "Comparar con estudiantes");
+    expect(direccionActual()).toBe("/carga?pestana=bases&foco=docentes%7Eestudiantes&panel=comparar-fuentes");
+    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de docentes");
+    await pulsar('[role="dialog"] .pulso-plf-cerrar');
+    expect(direccionActual()).toBe("/carga?pestana=bases&foco=docentes");
+    expect(document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label")).toBe("Detalle de docentes");
+    expect((document.activeElement as HTMLElement | null)?.dataset.plfAbrir).toBe("comparar:docentes");
+  });
+
+  it("Ver armonización cierra y deja el inspector de la misma base", async () => {
+    await montar({ ...VARIAS_LIGADAS, entrada: "/carga?pestana=bases&foco=docentes", rutas: [PUBLICADO_R1] });
+    await pulsar("#pulso-bases-inspector button", "Ver armonización");
+    expect(direccionActual()).toBe("/carga?pestana=bases&foco=docentes&panel=armonizacion-base");
+    await pulsar('[role="dialog"] .pulso-plf-cerrar');
+    expect(direccionActual()).toBe("/carga?pestana=bases&foco=docentes");
+    expect(document.getElementById("pulso-bases-inspector")).not.toBeNull();
+  });
+
+  it("cerrar el inspector devuelve el foco a la tarjeta de su base", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases" });
+    await pulsar("button.pulso-bases-tarjeta-abrir", "estudiantes");
+    await pulsar('#pulso-bases-inspector button[aria-label="Cerrar el detalle de la base"]');
+    expect((document.activeElement as HTMLElement | null)?.dataset.baseAbre).toBe("estudiantes");
+  });
+
+  it("ningún nombre accesible dice el nombre interno de la base única", async () => {
+    await montar({ estado: UNA_BASE_COMPLETA, entrada: "/carga?pestana=bases&foco=default", rutas: [ESTUDIO_UNA_BASE] });
+    const nombres = Array.from(document.querySelectorAll("[aria-label]")).map((e) => e.getAttribute("aria-label") ?? "");
+    expect(nombres.filter((n) => /\bdefault\b/u.test(n))).toEqual([]);
+    expect(nombres).toContain("Variables de la base Base única");
+  });
+
+  it("la confirmación de Quitar base avisa lo que queda sin datos en Gráficos", async () => {
+    await montar({ ...VARIAS_SEPARADAS, entrada: "/carga?pestana=bases&foco=docentes" });
+    await pulsar("#pulso-bases-inspector button", "Quitar base");
+    expect(control("#pulso-bases-inspector .pulso-bases-confirmar").textContent).toContain("Las láminas de Gráficos que usan sus variables se quedan sin datos.");
+  });
+});
+

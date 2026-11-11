@@ -7,13 +7,13 @@ import { useInRouterContext, useNavigate } from "react-router-dom";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { hrefVariablesBase } from "../direccionesDeCarga";
 
-function ConDireccion({ base, children }: { base: string; children: ReactNode }) {
+function ConDireccion({ base, etiqueta, children }: { base: string; etiqueta?: string; children: ReactNode }) {
   const navigate = useNavigate();
   return (
     <PulsoButton
       variant="secondary"
       size="sm"
-      aria-label={`Variables de la base ${base}`}
+      aria-label={`Variables de la base ${etiqueta ?? base}`}
       onClick={() => navigate(hrefVariablesBase(base))}
     >
       {children}
@@ -21,6 +21,7 @@ function ConDireccion({ base, children }: { base: string; children: ReactNode })
   );
 }
 
-export function IrAVariablesDeBase(props: { base: string; children: ReactNode }) {
+/** `etiqueta` nombra la base para el lector de pantalla ("Base única" y no `default`). */
+export function IrAVariablesDeBase(props: { base: string; etiqueta?: string; children: ReactNode }) {
   return useInRouterContext() ? <ConDireccion {...props} /> : null;
 }

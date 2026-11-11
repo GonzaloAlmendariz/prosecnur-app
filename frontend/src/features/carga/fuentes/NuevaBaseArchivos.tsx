@@ -72,7 +72,7 @@ export function NuevaBaseArchivos({ estudio, onCambio }: { estudio: EstudioPaylo
       {error ? <p className="pulso-bde-error" role="alert">{error}</p> : null}
       <div>
         <PulsoButton variant="primary" size="sm" disabled={!listo} onClick={() => void crear()}>
-          <Upload size={14} aria-hidden="true" />{subiendo ? "Creando…" : "Crear la base"}
+          <Upload size={14} aria-hidden="true" />{subiendo ? "Creando" : "Crear la base"}
         </PulsoButton>
       </div>
     </div>

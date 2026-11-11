@@ -533,8 +533,20 @@ export async function montar(opciones: {
   });
   await asentar();
 }
+/**
+ * Los diálogos y paneles laterales se montan en un portal, fuera de la página.
+ * Un grupo que los mide (`prepararGrupo(nombre, { conPortales: true })`) busca
+ * controles también ahí y suma su marcado a la huella.
+ */
+let conPortales = false;
+
+function portales(): HTMLElement[] {
+  return Array.from(document.body.children).filter((e): e is HTMLElement => e !== host && e instanceof HTMLElement);
+}
+
 export function control(selector: string, texto?: string): HTMLElement {
-  const candidatos = Array.from(host.querySelectorAll<HTMLElement>(selector));
+  const raices: ParentNode[] = conPortales ? [host, ...portales()] : [host];
+  const candidatos = raices.flatMap((r) => Array.from(r.querySelectorAll<HTMLElement>(selector)));
   const hallado = texto ? candidatos.find((c) => (c.textContent ?? "").includes(texto)) : candidatos[0];
   if (!hallado) throw new Error(`No hay control ${selector}${texto ? ` con "${texto}"` : ""}`);
   return hallado;
@@ -566,7 +578,8 @@ function normalizar(html: string): string {
 }
 
 export function marcado(): string {
-  return normalizar(host.innerHTML);
+  const enPortal = conPortales ? portales().map((e) => e.outerHTML).join("") : "";
+  return normalizar(host.innerHTML) + (enPortal ? `\n<!-- en portal -->\n${normalizar(enPortal)}` : "");
 }
 
 /** Solo el riel de pestañas y la cabecera de la pestaña activa, sin el cuerpo. */
@@ -676,8 +689,9 @@ function reiniciarStores() {
 }
 
 /** Registra los ganchos del grupo. Se llama una vez, al inicio del archivo de prueba. */
-export function prepararGrupo(nombre: string) {
+export function prepararGrupo(nombre: string, opciones: { conPortales?: boolean } = {}) {
   grupo = nombre;
+  conPortales = opciones.conPortales ?? false;
 
   afterAll(() => {
     // En CI no se escribe nada: la prueba de abajo ya falla y dice por qué.

@@ -8,7 +8,6 @@
  */
 import { describe, expect } from "vitest";
 import {
-  ORIGEN,
   UNA_BASE_COMPLETA,
   VARIAS_SEPARADAS,
   escenario,
@@ -22,24 +21,23 @@ import {
 
 prepararGrupo("navegacion");
 
-/** Texto del origen de carga marcado (radio con aria-checked), o null si ninguno. */
-function origenElegido(): string | null {
-  const marcado = document.querySelector(`${ORIGEN}[aria-checked="true"]`);
-  return marcado ? (marcado.textContent ?? "").trim() : null;
+/** Nombre de la base abierta en el inspector de Bases, o null si no hay inspector. */
+function baseInspeccionada(): string | null {
+  return document.getElementById("pulso-bases-inspector")?.getAttribute("aria-label") ?? null;
 }
 
 describe("CargaPage, navegación entre pestañas", () => {
   escenario("navegacion_una-base_ida-y-vuelta", "una base: recorre las pestañas desde el riel sin remontar la página", async () => {
     await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: rutasDeRevision(false) });
     const pasos = [mesa()];
-    await pulsar(ORIGEN, "Plataforma");
-    expect(origenElegido()).toBe("Plataforma");
+    await pulsar("button.pulso-bases-tarjeta-abrir");
+    expect(baseInspeccionada()).toBe("Detalle de Base única");
     await pulsar("#carga-workspace-tab-revision");
     pasos.push(mesa());
     await pulsar("#carga-workspace-tab-bases");
     pasos.push(mesa());
-    // El origen elegido vive en la página: debe seguir en Plataforma al volver.
-    expect(origenElegido()).toBe("Plataforma");
+    // La base enfocada vive en la dirección (`foco`): al volver sigue abierta.
+    expect(baseInspeccionada()).toBe("Detalle de Base única");
     fijarMesa("navegacion_una-base_ida-y-vuelta", pasos);
   });
 

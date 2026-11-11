@@ -1,0 +1,783 @@
+/* Carga › Bases (ADR 0142, P4b R2): colección con inspector.
+ *
+ * Una línea con la relación entre las bases y "Agregar base"; debajo, las
+ * tarjetas de base (Panel del kit, todas del mismo tamaño) y, con `foco`, el
+ * inspector de 400 px a la derecha. Los marcos son del Panel: esta hoja no
+ * dibuja cajas. El scroll es del cuerpo de la mesa de Carga (un solo dueño).
+ */
+
+.pulso-bases {
+  container: pulso-bases / inline-size;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* La pestaña toma el alto que le queda al área de Carga bajo la cabecera, para
+   que sus dos marcos lleguen al borde inferior (C3). Con varias bases el área
+   es el `scrollarea` de la mesa; con una, el cuerpo de la pestaña. */
+.pulso-carga-scrollarea:has(> .pulso-bases) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mientras Carga se hidrata, la silueta de Bases ocupa el mismo alto. */
+.pulso-carga-scrollarea:has(> .pulso-carga-hidratando-cuerpo > .pulso-bases),
+.pulso-carga-hidratando-cuerpo:has(> .pulso-bases) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pulso-carga-hidratando-cuerpo:has(> .pulso-bases) {
+  flex: 1 1 auto;
+}
+
+.pulso-bases--silueta .pulso-bases-cuerpo {
+  overflow: hidden;
+}
+
+.pulso-carga-content:not(.pulso-carga-content--framed):has(> .pulso-bases) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* En escritorio bajo (alto <= 720 o preset "short") Carga pasa el scroll al
+   cuerpo de la página y deja crecer la mesa con su contenido. Bases no: la mesa
+   conserva el alto de la ventana para que sus dos marcos lleguen al pie y cada
+   uno desplace su cuerpo. La especificidad gana a `carga-scroll-corto.css`,
+   `CargaWorkbenchBajo.css` y las reglas cortas de `carga-v2.css`. */
+:root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench.pulso-carga-workbench--bases {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+:root .pulso-carga-frame .pulso-carga-workbench.pulso-carga-workbench--bases > .pulso-adaptive-main {
+  height: 100%;
+  min-height: 0;
+}
+
+:root .pulso-carga-frame .pulso-carga-workbench--bases .pulso-carga-content.pulso-carga-content--framed {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+:root .pulso-carga-frame .pulso-carga-workbench--bases .pulso-carga-content--framed > .pulso-carga-scrollarea {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pulso-bases .pulso-panel {
+  margin-bottom: 0;
+}
+
+/* ---------- Línea de la relación ---------- */
+
+.pulso-bases-barra {
+  display: flex;
+  flex: none;
+  align-items: center;
+  min-height: var(--pulso-control-height-md);
+  min-width: 0;
+}
+
+.pulso-bases-relacion {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-relacion-icono {
+  display: inline-flex;
+  flex: none;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-bases-relacion-texto {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Mesa: dos marcos a todo el alto ---------- */
+
+.pulso-bases-mesa {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-5);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-bases .pulso-panel.pulso-bases-panel,
+.pulso-bases .pulso-panel.pulso-bases-inspector {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  box-shadow: none;
+}
+
+.pulso-bases-panel > .pulso-panel-header {
+  box-sizing: border-box;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-height: var(--pulso-panel-head-h);
+  margin-bottom: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-bases-panel > .pulso-panel-header > .pulso-panel-actions {
+  flex-wrap: nowrap;
+}
+
+.pulso-bases-panel .pulso-panel-title {
+  flex-wrap: nowrap;
+}
+
+.pulso-bases-panel .pulso-panel-title > svg {
+  flex: none;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Conteo en píldora, junto al título (sin borde: es un dato, no un control). */
+.pulso-bases-conteo {
+  display: inline-flex;
+  align-items: center;
+  min-width: 22px;
+  height: 20px;
+  justify-content: center;
+  padding-inline: var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Cuerpo de cada columna: posee el alto libre y el scroll. */
+.pulso-bases-cuerpo,
+.pulso-bases-inspector-cuerpo {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.pulso-bases-cuerpo {
+  padding: var(--pulso-space-5);
+}
+
+.pulso-bases-cuerpo:focus-visible,
+.pulso-bases-inspector-cuerpo:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+/* Con una base elegida, el inspector es la columna derecha a todo el alto. */
+@container pulso-bases (min-width: 660px) {
+  .pulso-bases-mesa[data-con-inspector] {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+}
+
+/* Sin ancho para las dos columnas, el inspector va primero, la colección debajo
+   y se desplaza la pestaña entera: las columnas miden su contenido. */
+@container pulso-bases (max-width: 659px) {
+  .pulso-bases-mesa[data-con-inspector] {
+    grid-template-rows: auto auto;
+  }
+
+  .pulso-bases-mesa[data-con-inspector] > .pulso-bases-inspector {
+    order: -1;
+  }
+
+  .pulso-bases-mesa[data-con-inspector] .pulso-bases-cuerpo,
+  .pulso-bases-mesa[data-con-inspector] .pulso-bases-inspector-cuerpo {
+    overflow: visible;
+  }
+}
+
+/* Todas las tarjetas miden lo mismo (C2): filas iguales a la más alta. */
+.pulso-bases-coleccion {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(224px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+
+.pulso-bases-celda {
+  display: flex;
+  min-width: 0;
+}
+
+/* ---------- Tarjeta de base ---------- */
+
+.pulso-bases-tarjeta {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-bases-tarjeta[data-seleccionada] {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 42%, var(--pulso-surface));
+}
+
+.pulso-bases-tarjeta-abrir {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-3);
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  white-space: normal;
+  cursor: pointer;
+}
+
+/* El área de impacto es la tarjeta entera; el foco se dibuja en la tarjeta. */
+.pulso-bases-tarjeta-abrir::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  content: "";
+}
+
+.pulso-bases-tarjeta-abrir:focus-visible {
+  outline: none;
+}
+
+.pulso-bases-tarjeta:has(.pulso-bases-tarjeta-abrir:focus-visible) {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 2px;
+}
+
+.pulso-bases-tesela {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-3);
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-bases-tarjeta-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-bases-tarjeta-nombre {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.pulso-bases-tarjeta-origen {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-bases-tarjeta-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-5) var(--pulso-space-4);
+}
+
+.pulso-bases-tarjeta-dato {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+}
+
+.pulso-bases-cifra {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-cifra strong {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-kpi-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1;
+}
+
+.pulso-bases-cifra.is-sin-dato {
+  color: var(--pulso-text-faint);
+}
+
+/* Grupos repetidos: filas dentro de la tarjeta de su madre, sobre la tarjeta. */
+.pulso-bases-hijas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-bases-hija {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border: 0;
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  text-align: start;
+  cursor: pointer;
+}
+
+.pulso-bases-hija[data-seleccionada] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--pulso-text);
+}
+
+.pulso-bases-hija:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 1px;
+}
+
+.pulso-bases-hija-nombre {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pulso-bases-hija-dato {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* El vacío es la caja del EstadoVacio, a todo el ancho de la colección. */
+.pulso-bases-sin-bases {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ---------- Inspector ---------- */
+
+/* El pie lleva fondo propio: el Panel lo recorta a su radio. */
+.pulso-bases .pulso-panel.pulso-bases-inspector {
+  overflow: hidden;
+}
+
+.pulso-bases-inspector > .pulso-cabecera-panel {
+  flex: none;
+  padding-inline: var(--pulso-space-5);
+}
+
+.pulso-bases-inspector-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  padding: var(--pulso-space-5);
+}
+
+.pulso-bases-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding-bottom: var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-bases-bloque .pulso-entregable-nombre {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: 600;
+}
+
+.pulso-bases-bloque-titulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: 700;
+}
+
+.pulso-bases-dato {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-dato.is-sin-dato {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-bases-fuentes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-fuentes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-bases-fuente-titulo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-bases-canal {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-bases-vinculo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-bases-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-bases-causa {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-bases-renombrar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-bases-renombrar > :first-child {
+  flex: 1 1 160px;
+}
+
+.pulso-bases-confirmar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-confirmar > span {
+  flex: 1 1 100%;
+}
+
+/* Pie del inspector: fondo un tono más bajo, la acción principal a todo el ancho. */
+.pulso-bases-inspector-pie {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-bases-pie-principal {
+  justify-content: center;
+  width: 100%;
+}
+
+/* ---------- Relación entre las bases (panel) ---------- */
+
+.pulso-bases-relacion-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+/* La decisión completa en el panel lateral: una opción por fila, para que
+   el nombre, la marca de elegida y la descripción no se pisen en 520 px. */
+.pulso-bases-relacion-cuerpo .pulso-carga-topology-mode-gallery,
+.pulso-bases-relacion-cuerpo .pulso-carga-topology-strategy-gallery {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pulso-bases-relacion-cuerpo .pulso-carga-topology-mode-gallery > label,
+.pulso-bases-relacion-cuerpo .pulso-carga-topology-strategy-gallery > label {
+  min-height: 0;
+}
+
+/* Acciones del estudio, bajo la decisión y separadas por una línea. */
+.pulso-bases-estudio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding-top: var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-bases-estudio-nombre {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-bases-estudio-nombre > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---------- Agregar base ---------- */
+
+.pulso-bases-recorrido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+.pulso-bases-origenes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-bases-origenes > li {
+  display: flex;
+}
+
+.pulso-bases-origen {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-3);
+  width: 100%;
+  margin: 0;
+  padding: var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-bases-origen:hover {
+    background: var(--module-accent-soft, var(--pulso-primary-soft));
+  }
+}
+
+.pulso-bases-origen:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 2px;
+}
+
+.pulso-bases-origen .pulso-bases-tesela {
+  background: var(--pulso-surface);
+}
+
+.pulso-bases-origen-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-bases-origen-texto strong {
+  font-size: var(--pulso-type-body-size);
+  font-weight: 700;
+}
+
+.pulso-bases-origen-texto small {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Las tarjetas de subida sin la franja lateral de acento. */
+.pulso-bases-recorrido .pulso-upload-card::before {
+  content: none;
+}
+
+.pulso-bases-recorrido-datos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-bases-origen {
+    transition: none;
+  }
+}
+
+/* ---------- Cómo se integró una base ---------- */
+
+.pulso-bases-integracion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-bases-archivos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.pulso-bases-archivos > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-bases-archivos dt {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-bases-archivos dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.pulso-bases-decisiones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-bitacora-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-6);
+  min-width: 0;
+}
+
+.pulso-bases-bitacora-cuerpo > section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-bases-bitacora-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-bitacora-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-bases-bitacora-lista > li {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: baseline;
+  padding-block: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-bases-bitacora-lista > li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-bases-bitacora-lista small,
+.pulso-bases-fuentes code + .pulso-bases-fuente-titulo + .pulso-bases-canal {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Número previsto de fuentes o bases, antes del asistente. */
+.pulso-bases-entradas {
+  max-width: 240px;
+}

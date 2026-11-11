@@ -12,16 +12,21 @@ export type CatalogoPublicados = {
   recargar: () => void;
 };
 
-export function useFormulariosPublicados(): CatalogoPublicados {
+/** Con `activo` en falso no pide el catálogo: queda vacío y "cargado". */
+export function useFormulariosPublicados(activo = true): CatalogoPublicados {
   const [estado, setEstado] = useState<{ formularios: FormularioPublicado[]; cargado: boolean }>({ formularios: [], cargado: false });
   const [vuelta, setVuelta] = useState(0);
   useEffect(() => {
+    if (!activo) {
+      setEstado({ formularios: [], cargado: true });
+      return;
+    }
     let vivo = true;
     apiCargaFormulariosPublicados()
       .then((formularios) => { if (vivo) setEstado({ formularios, cargado: true }); })
       .catch(() => { if (vivo) setEstado({ formularios: [], cargado: true }); });
     return () => { vivo = false; };
-  }, [vuelta]);
+  }, [vuelta, activo]);
   const recargar = useCallback(() => setVuelta((v) => v + 1), []);
   return { ...estado, recargar };
 }

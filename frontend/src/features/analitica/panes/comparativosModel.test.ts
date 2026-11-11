@@ -275,7 +275,8 @@ describe("errores", () => {
     expect(accionParaError("E_PONDERACION_COLUMNA_INEXISTENTE")?.href).toBe(DIRECCION_PONDERACION);
     expect(accionParaError("E_ARMONIZADA_MAPA_ROTO")?.href).toBe(DIRECCION_EQUIVALENCIAS);
     expect(accionParaError("E_EQUIV_SIN_ARMONIZACION")?.href).toBe(DIRECCION_EQUIVALENCIAS);
-    expect(accionParaError("E_NO_RP_DATA")?.href).toBe("/carga?pestana=fuentes");
+    expect(accionParaError("E_NO_RP_DATA")).toEqual({ etiqueta: "Ir a Bases", href: "/carga?pestana=bases" });
+    expect(accionParaError("E_ANALITICA_SOURCE_MISSING")?.href).toBe("/carga?pestana=bases");
     expect(accionParaError("E_ARMONIZADA_PERIODO_REPEAT")?.href).toBe(DIRECCION_EQUIVALENCIAS);
     expect(accionParaError("E_ARMONIZADA_SIN_CRUCES")).toBeNull();
     expect(accionParaError(null)).toBeNull();

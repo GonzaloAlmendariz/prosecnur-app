@@ -1,5 +1,6 @@
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
+import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { TabHeading } from "../../components/TabHeading";
 import { Skeleton, SkeletonVista, type SkeletonVistaVariante } from "../../components/Skeleton";
@@ -16,6 +17,7 @@ import { CARGA_WORKSPACE_PANEL_ID, cargaWorkspaceTabId } from "./CargaWorkspaceN
 import { useSegundosTranscurridos } from "./useEstudioCarga";
 import "./CargaWorkspaceNavigation.css";
 import "./carga-hidratacion.css";
+import "./pestanas/bases/bases.css";
 
 /**
  * Carga mientras se hidrata (remasterización L4, maqueta L04).
@@ -75,7 +77,7 @@ export function CargaHidratando({
     <AdaptiveSplitView
       ariaLabel="Mesa de trabajo de carga"
       railLabel="Pestañas de carga"
-      className="pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout pulso-carga-hidratando"
+      className={`pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout pulso-carga-hidratando${pestana === "bases" ? " pulso-carga-workbench--bases" : ""}`}
       rail={(
         <div className="pulso-carga-workspace-navigation" data-workspace-state="neutral">
           <ContextTabRail
@@ -148,57 +150,29 @@ export function CargaHidratando({
 }
 
 /**
- * Silueta de Bases (antes Fuentes) con la forma real de la vista hidratada: franja del plan,
- * selector de origen, tarjeta del estudio, un carril de base materializada
- * (nombre, chip, tres acciones, metadatos) y la fila de alta. Al llegar los
- * datos no hay salto de layout porque cada hueco ya tenía su alto.
+ * Silueta de Bases con la forma de la pestaña hidratada (R2): la línea de la
+ * relación entre las bases y el marco "Bases del estudio" a todo el alto, con
+ * tres tarjetas del tamaño de las reales. Al llegar los datos el marco no
+ * cambia (C2). Sin cifras ni conteo: durante la lectura no hay dato que dar.
  */
 export function SiluetaFuentes() {
   return (
-    <div className="pulso-carga-hidratando-fuentes" aria-hidden="true" data-carga-silueta="bases">
-      <div className="pulso-carga-hidratando-plan">
-        <Skeleton forma="card" ancho={30} alto={30} />
-        <div className="pulso-carga-hidratando-lineas">
-          <Skeleton forma="texto" ancho="14%" alto={9} />
-          <Skeleton forma="titulo" ancho="22%" />
-          <Skeleton forma="texto" ancho="34%" alto={9} />
-        </div>
-        <Skeleton forma="texto" ancho={180} alto={34} className="pulso-skeleton--pastilla" />
+    <div className="pulso-bases pulso-bases--silueta" aria-hidden="true" data-carga-silueta="bases">
+      <div className="pulso-bases-barra">
+        <Skeleton forma="texto" ancho={280} alto={12} />
       </div>
-      <div className="pulso-carga-hidratando-origen">
-        <Skeleton forma="texto" ancho={86} alto={28} className="pulso-skeleton--pastilla" />
-        <Skeleton forma="texto" ancho={104} alto={28} className="pulso-skeleton--pastilla" />
-        <Skeleton forma="texto" ancho={104} alto={28} className="pulso-skeleton--pastilla" />
-      </div>
-      <div className="pulso-carga-hidratando-estudio">
-        <Skeleton forma="card" ancho={30} alto={30} />
-        <div className="pulso-carga-hidratando-lineas">
-          <Skeleton forma="texto" ancho="10%" alto={9} />
-          <Skeleton forma="titulo" ancho="18%" />
-          <Skeleton forma="texto" ancho="40%" alto={9} />
-        </div>
-        <Skeleton forma="texto" ancho={64} alto={24} className="pulso-skeleton--pastilla" />
-      </div>
-      <div className="pulso-carga-hidratando-carril">
-        <Skeleton forma="card" ancho={34} alto={34} />
-        <div className="pulso-carga-hidratando-lineas">
-          <div className="pulso-carga-hidratando-fila">
-            <Skeleton forma="titulo" ancho="28%" />
-            <Skeleton forma="texto" ancho={56} alto={20} className="pulso-skeleton--pastilla" />
+      <div className="pulso-bases-mesa">
+        <Panel noPadding className="pulso-bases-panel" title={<Skeleton forma="titulo" ancho={150} />}>
+          <div className="pulso-bases-cuerpo">
+            <div className="pulso-bases-coleccion">
+              {[0, 1, 2].map((i) => (
+                <div className="pulso-bases-celda" key={i}>
+                  <Skeleton forma="card" alto={113} />
+                </div>
+              ))}
+            </div>
           </div>
-          <Skeleton forma="texto" ancho="52%" alto={10} />
-        </div>
-        <div className="pulso-carga-hidratando-acciones">
-          <Skeleton forma="texto" ancho={118} alto={28} className="pulso-skeleton--pastilla" />
-          <Skeleton forma="texto" ancho={130} alto={28} className="pulso-skeleton--pastilla" />
-          <Skeleton forma="texto" ancho={70} alto={28} className="pulso-skeleton--pastilla" />
-        </div>
-      </div>
-      <div className="pulso-carga-hidratando-alta">
-        <Skeleton forma="fila" />
-        <Skeleton forma="fila" />
-        <Skeleton forma="fila" />
-        <Skeleton forma="texto" ancho={130} alto={30} className="pulso-skeleton--pastilla" />
+        </Panel>
       </div>
     </div>
   );

@@ -116,7 +116,6 @@ export default function CargaPage() {
   const normalizationDetails = dataPreviewNormalizationDetails(dataPreview);
   const [forceMultiBase, setForceMultiBase] = useState(false);
   const [preferredMultiStrategy, setPreferredMultiStrategy] = useState<MultiBaseStrategy | undefined>(undefined);
-  const [sourceMode, setSourceMode] = useState<SourceMode>("files");
   const monitoringReviewActionLabel = "Revisar Monitoreo";
   const [selectedCargaBase, setSelectedCargaBase] = useState("");
   // L5b: los imports de plataforma corren en el store (sobreviven a cambiar de
@@ -141,7 +140,6 @@ export default function CargaPage() {
     ocupado: !!busy,
     setBusy,
     setError,
-    setSourceMode,
     onEstudioChanged,
     refresh,
   });
@@ -162,8 +160,6 @@ export default function CargaPage() {
   const [reconDialogOpen, setReconDialogOpen] = useState(false);
   const planningSeedRef = useRef("");
   const reconInfo = cargaReview ? reviewReconciliationInfo(cargaReview) : null;
-
-  const sourceModes = cargaSourceModes(processingSuggestions);
 
   const efectosDeInsumos = {
     setError, setBusy, setInstrumento, setEstructura, setDataPreview, setCambiosRespuestas,
@@ -413,11 +409,6 @@ export default function CargaPage() {
   function goCargaWorkspaceTab(next: CargaWorkspaceTab, replace = false) {
     cargaDireccion.irA("pestana", next === PESTANA_CARGA_POR_DEFECTO ? null : next, { replace });
   }
-  // Flag que le pide al BasesPanel abrir directamente su form "Agregar
-  // base" al montar. Se activa tras convertir single → multi con el
-  // botón "+ Agregar otra base" para que el usuario no tenga que
-  // buscar el botón dentro del panel.
-  const [autoOpenAddBase, setAutoOpenAddBase] = useState(false);
   const lastSessionIdRef = useRef(sessionId);
 
   useEffect(() => {
@@ -446,7 +437,6 @@ export default function CargaPage() {
     setEstructura(null);
     setEsquemaBase("");
     setEstudio(null);
-    setAutoOpenAddBase(false);
     setSelectedCargaBase("");
     setCargaReview(null);
     setReconDialogOpen(false);
@@ -544,12 +534,10 @@ export default function CargaPage() {
         const payload = await apiEstudioGet();
         setEstudio(payload);
         setForceMultiBase(true);
-        setAutoOpenAddBase(false);
       } else {
         const payload = await apiEstudioInit();
         setEstudio(payload);
         setForceMultiBase(true);
-        setAutoOpenAddBase(false);
       }
       // `forceMultiBase` sólo vive en este montaje. Sin persistir la decisión,
       // cerrar el proyecto y volver a abrirlo lo devolvía a la carga simple.
@@ -591,13 +579,21 @@ export default function CargaPage() {
     setMonitoringReviewed(reviewed);
   }
 
+  // El estudio dejó de ser de varias bases (volver a una o quitar todas, en la relación entre las bases).
+  async function onDegradada() {
+    setEstudio(null);
+    setForceMultiBase(false);
+    setPreferredMultiStrategy(undefined);
+    setTopologyIntent("single");
+    goCargaWorkspaceTab("bases");
+    await refresh();
+  }
+
   const onBaseSavRegistrada = () => {
     void apiEstudioGet()
       .then(onEstudioChanged)
       .catch((reason: Error) => setError(reason.message));
   };
-
-  const unica = topologyResolution.mode !== "multi";
 
   // Al aplicar el filtro de universo se vuelve a leer lo que depende de él: con
   // varias bases también el estudio y el avance de todas.
@@ -647,91 +643,78 @@ export default function CargaPage() {
 
   const pestana = activeCargaTab === "bases" ? (
     <PestanaBases
+      varias={isMultiBase}
+      estudio={estudio}
+      estrategia={sourceStrategy}
+      tieneEstudio={Boolean(state?.has_estudio)}
+      ocupado={!!busy}
+      entradasPrevistas={plannedInputCount}
+      entradasMinimas={materializedInputCount}
+      onEntradasPrevistas={setPlannedInputCount}
       relacion={{
         topologia: topologyResolution,
         intencion: resolvedTopologyIntent,
         ocupado: !!busy,
         onCambiarIntencion: onTopologyIntentChange,
+        porActivar: !isMultiBase && (resolvedTopologyIntent === "multi" || topologyIntentStrategy !== null) && !topologyHasStudy,
+        estrategiaPorActivar: topologyIntentStrategy,
+        onActivarVariasBases: onEnableMultiBase,
+        estudio: isMultiBase && estudio
+          ? { nombre: typeof estudio.nombre === "string" ? estudio.nombre : "", bases: cargaBaseOptions.map((b) => b.nombre), nGruposRepetidos: cargaBaseOptions.length - topologyBases.length }
+          : null,
+        onEstudioCambiado: onEstudioChanged,
+        onSinVariasBases: onDegradada,
       }}
-      fuentes={{
-        varias: isMultiBase,
-        estudio,
-        estrategia: sourceStrategy,
-        unica,
-        plannedInputCount,
-        materializedInputCount,
+      onOrigen={(o) => {
+        if (o === "surveymonkey" || o === "kobo") setPlatformProvider(o);
+      }}
+      plataforma={plataforma}
+      monitoreo={{
+        sessionId,
+        etiquetaRevisar: monitoringReviewActionLabel,
+        onDescubierto: onMonitoringDiscovered,
+        revisado: monitoringReviewed,
+        perfil: monitoringProfile,
+        sugerencias: processingSuggestions?.groups,
+        tokenDeLectura: intakeRefreshToken,
+        onPlanGuardado: () => setIntakeRefreshToken((current) => current + 1),
+        onPromovido: async (payload) => {
+          await onEstudioChanged(payload);
+          goCargaWorkspaceTab("revision");
+        },
+        mostrarTraspaso: showFieldWorkHandoff,
+        traspaso: handoffStatus,
+        fuenteSeleccionada: selectedMonitoringSourceId,
         ocupado: !!busy,
-        onPlannedInputCountChange: setPlannedInputCount,
-        origen: { modo: sourceMode, modos: sourceModes, onModo: setSourceMode },
-        plataforma,
-        monitoreo: {
-          sessionId,
-          etiquetaRevisar: monitoringReviewActionLabel,
-          onDescubierto: onMonitoringDiscovered,
-          revisado: monitoringReviewed,
-          perfil: monitoringProfile,
-          sugerencias: processingSuggestions?.groups,
-          tokenDeLectura: intakeRefreshToken,
-          onPlanGuardado: () => setIntakeRefreshToken((current) => current + 1),
-          onPromovido: async (payload) => {
-            await onEstudioChanged(payload);
-            goCargaWorkspaceTab("revision");
-          },
-          mostrarTraspaso: showFieldWorkHandoff,
-          traspaso: handoffStatus,
-          fuenteSeleccionada: selectedMonitoringSourceId,
-          ocupado: !!busy,
-          onTraer: () => void onBringFieldWorkToProcessing(),
-          onSubirFormulario: (file) => void onPick("xlsform", file),
+        onTraer: () => void onBringFieldWorkToProcessing(),
+        onSubirFormulario: (file) => void onPick("xlsform", file),
+      }}
+      variasBases={{
+        onEstudioCambiado: onEstudioChanged,
+        onDestinoFuente: (d) => {
+          setFuenteDestino(d);
+          setVistaPreviaFuente(null);
+          if (d) setPlatformProvider("surveymonkey");
         },
-        variasBases: {
-          tieneFormulario: hasXlsform,
-          onEstudioCambiado: onEstudioChanged,
-          onOrigen: (o) => {
-            if (o === "surveymonkey" || o === "kobo") { setPlatformProvider(o); setSourceMode("platform"); }
-            else if (o === "archivos") setSourceMode("files");
-            else if (o === "monitoreo") setSourceMode("monitoring");
-          },
-          onDestinoFuente: (d) => {
-            setFuenteDestino(d);
-            setVistaPreviaFuente(null);
-            if (d) { setPlatformProvider("surveymonkey"); setSourceMode("platform"); }
-          },
-          vistaPreviaFuente: vistaPreviaFuente?.datos ?? null,
-          onConfirmarFuente: () => void onPlatformImport(),
-          onDescartarVistaPrevia: () => setVistaPreviaFuente(null),
-          abrirAgregarBase: autoOpenAddBase,
-          onAgregarBaseAbierto: () => setAutoOpenAddBase(false),
-          onDegradada: async () => {
-            setAutoOpenAddBase(false);
-            setEstudio(null);
-            setForceMultiBase(false);
-            setPreferredMultiStrategy(undefined);
-            setTopologyIntent("single");
-            goCargaWorkspaceTab("bases");
-            await refresh();
-          },
-          onBaseSavRegistrada,
-        },
-        unaBase: {
-          onUsarArchivos: () => setSourceMode("files"),
-          mostrarAvisoDelPlan: (resolvedTopologyIntent === "multi" || topologyIntentStrategy !== null) && !topologyHasStudy,
-          estrategiaDelPlan: topologyIntentStrategy,
-          onActivarVariasBases: onEnableMultiBase,
-          tieneFormulario: hasXlsform,
-          tieneRespuestas: hasData,
-          mapeoPendiente: pendingChoiceMapping,
-          formulario: instrumento,
-          vistaPrevia: dataPreview,
-          cambios: cambiosRespuestas,
-          detallesNormalizacion: normalizationDetails,
-          onCerrarCambios: () => setCambiosRespuestas(null),
-          onRevisarMapeo: setChoiceMappingReview,
-          onSubir: onPick,
-          onQuitar,
-          enlaceConRevision: state?.instrument_revision_binding,
-          baseUnica: estudio?.bases?.default,
-        },
+        vistaPreviaFuente: vistaPreviaFuente?.datos ?? null,
+        onConfirmarFuente: () => void onPlatformImport(),
+        onDescartarVistaPrevia: () => setVistaPreviaFuente(null),
+        onBaseSavRegistrada,
+      }}
+      unaBase={{
+        ocupado: !!busy,
+        tieneFormulario: hasXlsform,
+        tieneRespuestas: hasData,
+        mapeoPendiente: pendingChoiceMapping,
+        formulario: instrumento,
+        vistaPrevia: dataPreview,
+        cambios: cambiosRespuestas,
+        detallesNormalizacion: normalizationDetails,
+        onCerrarCambios: () => setCambiosRespuestas(null),
+        onRevisarMapeo: setChoiceMappingReview,
+        onSubir: onPick,
+        onQuitar,
+        enlaceConRevision: state?.instrument_revision_binding,
       }}
     />
   ) : activeCargaTab === "revision" ? (

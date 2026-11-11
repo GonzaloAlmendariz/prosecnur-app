@@ -27,6 +27,38 @@ export const PANEL_SEGMENTOS: PanelDeclarado = {
   clase: "sideover",
 };
 
+/**
+ * Carga › Bases (ADR 0142, R2): recorrido para agregar una base. Sin `foco` se
+ * elige el origen; con `foco=<origen>` (`surveymonkey`, `kobo`, `archivos`,
+ * `sav`, `monitoreo`, `formulario`, `varias`) se abre ese origen.
+ */
+export const PANEL_AGREGAR_BASE: PanelDeclarado = {
+  id: "agregar-base",
+  label: "Agregar base",
+  clase: "dialogo",
+};
+
+/** Carga › Bases: la relación entre las bases del estudio, con la decisión completa. */
+export const PANEL_RELACION: PanelDeclarado = {
+  id: "relacion",
+  label: "Relación entre las bases",
+  clase: "sideover",
+};
+
+/** Carga › Bases: otra encuesta de SurveyMonkey unida a una base existente (`foco=<base>`). */
+export const PANEL_AGREGAR_FUENTE: PanelDeclarado = {
+  id: "agregar-fuente",
+  label: "Agregar una fuente",
+  clase: "dialogo",
+};
+
+/** Carga › Bases: la bitácora completa de cómo se integró una base (`foco=<base>`). */
+export const PANEL_BITACORA_INTEGRACION: PanelDeclarado = {
+  id: "bitacora-integracion",
+  label: "Bitácora de la integración",
+  clase: "sideover",
+};
+
 /** Lo emite quien guarda o quita un segmento; el recorrido de la serie relee. */
 export const EVENTO_SEGMENTOS = "pulso:segmentos-changed";
 
@@ -46,4 +78,9 @@ export const PANELES_CARGA = [
   PANEL_VARIABLES_BASE,
   // ADR 0107: segmentos de cruce del estudio.
   PANEL_SEGMENTOS,
+  // ADR 0142 (R2): Bases.
+  PANEL_AGREGAR_BASE,
+  PANEL_RELACION,
+  PANEL_AGREGAR_FUENTE,
+  PANEL_BITACORA_INTEGRACION,
 ] as const satisfies readonly PanelDeclarado[];

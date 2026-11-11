@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const leer = (rel: string) => fs.readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 const source = leer("./CargaPage.tsx");
 const pestanaBases = leer("./pestanas/PestanaBases.tsx");
+const relacion = leer("./pestanas/bases/RelacionEntreBases.tsx");
 const modelo = leer("./pestanas/useModeloCarga.ts");
 
 /**
@@ -33,11 +34,15 @@ describe("medidor de preparación de Carga", () => {
     expect(source).not.toContain("function MultiBaseToggle(");
 
     // ADR 0142: una sola pestaña Bases para las dos organizaciones (una base y
-    // varias), con la decisión que vivía en Plan.
+    // varias), con la decisión que vivía en Plan. Desde R2 la decisión vive en
+    // el panel de la relación entre las bases, que Bases abre con "Cambiar".
     expect(source.split('activeCargaTab === "bases"')).toHaveLength(2);
     expect(source).toContain("<PestanaBases");
-    expect(pestanaBases).toMatch(/<CargaTopologyDecision[\s\S]{0,500}?resolution=/u);
-    expect(pestanaBases.match(/<CargaTopologyDecision\b/gu)).toHaveLength(1);
+    expect(pestanaBases).toContain("<LineaDeRelacion relacion={relacion} />");
+    expect(pestanaBases).toContain("<PanelDeRelacion relacion={relacion} />");
+    expect(relacion).toMatch(/<CargaTopologyDecision[\s\S]{0,500}?resolution=/u);
+    expect(relacion.match(/<CargaTopologyDecision\b/gu)).toHaveLength(1);
+    expect(pestanaBases.match(/<CargaTopologyDecision\b/gu) ?? []).toHaveLength(0);
     expect(source.match(/<CargaTopologyDecision\b/gu) ?? []).toHaveLength(0);
   });
 

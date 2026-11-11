@@ -88,7 +88,7 @@ export function CargaSourcesPlan({
           disabled={disabled || single}
           onChange={(event) => onPlannedInputCountChange(Math.max(minimum, Number(event.target.value)))}
         />
-        <small>{single ? "Cantidad fijada por el plan" : `Entre ${minimum} y ${max}`}</small>
+        <small>{single ? "Una base, una entrada" : `Entre ${minimum} y ${max}`}</small>
       </label>
 
       <div className="pulso-carga-sources-plan-result" aria-label="Resultado previsto">

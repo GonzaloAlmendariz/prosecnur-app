@@ -17,7 +17,7 @@ import {
   mensajeErrorComparar,
   parEfectivo,
   searchConComparacion,
-  searchSinPanelYFoco,
+  searchAlCerrarPanel,
   type BaseLigada,
   type ParBases,
 } from "./compararFuentesModel";
@@ -81,10 +81,14 @@ function PanelConDireccion({ bases }: Props) {
   }, [baseA, baseB]);
 
   const escribir = useCallback(
-    (search: string) => navigate({ pathname: location.pathname, search }, { replace: true }),
-    [location.pathname, navigate],
+    // Cambiar de par conserva el estado: al cerrar el foco vuelve al de antes de abrir.
+    (search: string) => navigate({ pathname: location.pathname, search }, { replace: true, state: location.state }),
+    [location.pathname, location.state, navigate],
   );
-  const cerrar = useCallback(() => escribir(searchSinPanelYFoco(location.search)), [escribir, location.search]);
+  const cerrar = useCallback(
+    () => navigate({ pathname: location.pathname, search: searchAlCerrarPanel(location.search, location.state) }, { replace: true }),
+    [location.pathname, location.search, location.state, navigate],
+  );
 
   return (
     <PanelLateralFuentes

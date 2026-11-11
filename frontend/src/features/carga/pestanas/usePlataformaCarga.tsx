@@ -14,7 +14,7 @@ import { nombreCortoDeEncuesta, nombreLibreDeBase } from "../importSeparadoModel
 import type { MultiBaseStrategy } from "../store";
 import { ImportadorPlataforma } from "../plataforma/ImportadorPlataforma";
 import type { UseImportsDeCarga } from "../plataforma/useImportsDeCarga";
-import { connectedProfiles, type DetectedKoboSource, type SourceMode } from "./cargaPaginaModelo";
+import { connectedProfiles, type DetectedKoboSource } from "./cargaPaginaModelo";
 import type { PlatformImportPanel } from "./PanelPlataforma";
 
 /** Lo que el import necesita saber del estudio en el momento de pulsar, no al montar. */
@@ -36,7 +36,6 @@ export function usePlataformaCarga({
   ocupado,
   setBusy,
   setError,
-  setSourceMode,
   onEstudioChanged,
   refresh,
 }: {
@@ -45,7 +44,6 @@ export function usePlataformaCarga({
   ocupado: boolean;
   setBusy: (mensaje: string) => void;
   setError: (mensaje: string) => void;
-  setSourceMode: (modo: SourceMode) => void;
   onEstudioChanged: (payload: EstudioPayload) => Promise<void>;
   refresh: () => Promise<void>;
 }) {
@@ -271,7 +269,6 @@ export function usePlataformaCarga({
     setError("");
     setPlatformError("");
     setPlatformMessage("");
-    setSourceMode("platform");
     seedDetectedKoboAsset(source);
     if (!koboConnection?.has_token) {
       setPlatformError("Conecta KoboToolbox en Configuración para importar la fuente detectada.");

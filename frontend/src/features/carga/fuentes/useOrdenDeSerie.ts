@@ -9,9 +9,14 @@
 import { useEffect, useState } from "react";
 import { getEquivalencias } from "../../../api/equivalencias";
 
-export function useOrdenDeSerie(claveBases: string): string[] {
+/** Con `activo` en falso no lee: la relación no tiene serie que ordenar. */
+export function useOrdenDeSerie(claveBases: string, activo = true): string[] {
   const [periodos, setPeriodos] = useState<string[]>([]);
   useEffect(() => {
+    if (!activo) {
+      setPeriodos([]);
+      return;
+    }
     let vigente = true;
     getEquivalencias()
       .then((est) => {
@@ -24,6 +29,6 @@ export function useOrdenDeSerie(claveBases: string): string[] {
     return () => {
       vigente = false;
     };
-  }, [claveBases]);
+  }, [claveBases, activo]);
   return periodos;
 }

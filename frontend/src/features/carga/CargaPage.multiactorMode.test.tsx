@@ -8,9 +8,8 @@ const source = fs.readFileSync(
 );
 const leer = (rel: string) => fs.readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 const mesa = leer("./pestanas/MesaDeCarga.tsx");
-const fuentes = leer("./pestanas/PestanaFuentes.tsx");
-const fuentesVarias = leer("./pestanas/FuentesVariasBases.tsx");
-const fuentesUna = leer("./pestanas/FuentesUnaBase.tsx");
+const bases = leer("./pestanas/PestanaBases.tsx");
+const agregarBase = leer("./pestanas/bases/AgregarBase.tsx");
 const panelMonitoreo = leer("./pestanas/PanelMonitoreoCarga.tsx");
 const origenes = leer("./pestanas/OrigenesDeCarga.tsx");
 const styles = fs.readFileSync(
@@ -33,22 +32,21 @@ describe("origen multiactor deliberado en Carga", () => {
   });
 
   it("mantiene el batch de Monitoreo alcanzable al reabrir un estudio multibase", () => {
-    // Una sola mesa para las dos organizaciones; con varias bases el origen
-    // Monitoreo sigue montándose junto a las bases del estudio.
+    // Una sola mesa para las dos organizaciones; con una base y con varias,
+    // Monitoreo es un origen de "Agregar base" (Carga › Bases, R2).
     expect(source).toContain("<MesaDeCarga");
     expect(source).toContain("(isMultiBase && estudio)");
     expect(origenes).toContain('aria-label="Origen de carga"');
-    expect(fuentes).toContain("const panelMonitoreo = <PanelMonitoreoCarga");
-    expect(fuentesVarias).toContain('modo === "monitoring" ? panelMonitoreo : null');
-    expect(fuentesVarias).toContain("renderOrigen");
+    expect(bases).toContain("const panelMonitoreo = <PanelMonitoreoCarga");
+    expect(agregarBase).toContain('opcion.id === "monitoreo" ? (\n            panelMonitoreo');
     expect(panelMonitoreo).toContain("<ProcessingIntakePanel");
     expect(panelMonitoreo).toContain("<AcreditacionBatchPanel");
   });
 
   it("monta asignaciones y creación conjunta solo tras consentir la revisión", () => {
-    // Un solo panel de Monitoreo, usado por las dos organizaciones de Fuentes.
-    expect(fuentesVarias.match(/modo === "monitoring" \? panelMonitoreo : null/g)).toHaveLength(1);
-    expect(fuentesUna.match(/modo === "monitoring" \? panelMonitoreo : null/g)).toHaveLength(1);
+    // Un solo panel de Monitoreo, usado por las dos organizaciones de Bases.
+    expect(bases.match(/<PanelMonitoreoCarga\b/g)).toHaveLength(1);
+    expect(agregarBase.match(/panelMonitoreo\b/g)).toHaveLength(3);
     expect(panelMonitoreo.match(/<ProcessingIntakePanel/g)).toHaveLength(1);
     expect(panelMonitoreo.match(/<AcreditacionBatchPanel/g)).toHaveLength(1);
     expect(panelMonitoreo).toContain('revisado && perfil === "multi_actor"');
