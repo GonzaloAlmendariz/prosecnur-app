@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Compass, Database } from "../../vendor/lucide-react";
-import { TabHeading } from "../../components/TabHeading";
 import { apiEstudioGet, EstudioPayload } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
@@ -21,6 +20,7 @@ import { useValidacionStore } from "./store";
 import { usePestanaValidacion } from "./pestanaDireccionable";
 import type { ValidacionTabId } from "./types";
 import "./validacion-v2.css";
+import "./pestanas/marcoDePestanas.css";
 
 // =============================================================================
 // Validación (shell)
@@ -35,6 +35,8 @@ import "./validacion-v2.css";
 //     zona de contexto de la banda; solo se ve con dos bases o más.
 //   - Riel con cuatro pestañas: Explorar, Reglas, Hallazgos y Cierre. Cada una
 //     vive en `./pestanas/*` y por ahora monta las piezas de V1 sin rehacerlas.
+//   - Cada pestaña monta su cabecera (`pestanas/CabeceraDeTransicion`, plan de
+//     fidelidad, rebanada V0): la página ya no la pinta.
 //
 // Estado "pesado" (plan, evaluación, reglas custom) vive en el backend
 // scoped por base. Acá sólo manejamos la base vía zustand (ver ./store.ts);
@@ -102,12 +104,14 @@ export default function ValidacionPage() {
   }, [baseNombre, setBaseNombre, basesSignature, state?.active_base]);
 
   const prereqsOk = !!state?.xlsform && !!state?.data;
-  const activeMeta = TABS.find((tab) => tab.key === activeTab) ?? TABS[0];
-  const ActiveIcon = activeMeta.icon;
   const independentSiblings = estudio?.processing_mode === "independent_siblings" || state?.estudio_processing_mode === "independent_siblings";
   const showBaseSelector = prereqsOk && !!estudio && estudio.n_bases > 1 && !independentSiblings;
   const selectedBase = baseNombre && estudio?.bases ? estudio.bases[baseNombre] : null;
-  const displayBaseName = selectedBase?.source_alias || selectedBase?.source_title || (baseNombre && baseNombre !== "default" ? baseNombre : "Base única");
+  // Con bases hermanas independientes no hay selector común (cada base se
+  // procesa por su cuenta): el nombre de la base activa va en la zona de
+  // contexto, donde el prototipo pone la base. Con una sola base no se repite.
+  const baseSinSelector = prereqsOk && !!estudio && estudio.n_bases > 1 && independentSiblings && !!selectedBase;
+  const displayBaseName = selectedBase?.source_alias || selectedBase?.source_title || baseNombre || "";
   const activePanelScope = { activeTab, baseNombre, version } as const;
 
   // El selector común cambia la base por la API y avisa con
@@ -150,11 +154,17 @@ export default function ValidacionPage() {
       {/* El contexto de la página sube a la banda del shell en vez de dibujar una
           segunda banda debajo. Antes eran dos: la del shell con el rail de
           secciones y esta, con el resumen y el selector de base. */}
-      {/* Sin chips de estado en la banda: «Insumos» y «Lista para auditar» repiten
+      {/* Sin chips de estado en la banda: "Insumos" y "Lista para auditar" repiten
           lo que el rail de secciones ya marca como completado. Queda el selector de
           base, que sí se opera. */}
       <ChromeSlotPortal zona="contexto">
         {showBaseSelector && <ChromeBaseSelector />}
+        {baseSinSelector && (
+          <span className="pulso-validacion-base-current" title="Base activa">
+            <Database size={12} aria-hidden="true" />
+            {displayBaseName}
+          </span>
+        )}
       </ChromeSlotPortal>
 
       <AdaptiveSplitView
@@ -185,32 +195,13 @@ export default function ValidacionPage() {
               cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
             />
           ) : (
-            <>
-              {/* La cabecera del kit (L14), la misma de Carga: la base activa
-                  va en el control porque es un nombre, no una cifra. El
-                  envoltorio sólo la pega arriba del scroller; las bandas de cada
-                  pestaña se pegan debajo, a --pulso-validacion-head-h. */}
-              <div className="pulso-validacion-panel-head">
-              <TabHeading
-                eyebrow="Validación"
-                titulo={activeMeta.label}
-                icono={ActiveIcon}
-                detalle={activeMeta.description}
-                control={(
-                  <span className="pulso-validacion-base-current">
-                    <Database size={12} aria-hidden="true" />
-                    {displayBaseName}
-                  </span>
-                )}
-              />
-              </div>
-              <div className="pulso-validacion-panel-body">
-                {activeTab === "explorar" && <PestanaExplorar repeat={repeatContextFromBase(selectedBase)} />}
-                {activeTab === "reglas" && <PestanaReglas />}
-                {activeTab === "hallazgos" && <PestanaHallazgos />}
-                {activeTab === "cierre" && <PestanaCierre />}
-              </div>
-            </>
+            // La cabecera la monta cada pestaña (rebanada V0 del plan de fidelidad).
+            <div className="pulso-validacion-panel-body">
+              {activeTab === "explorar" && <PestanaExplorar repeat={repeatContextFromBase(selectedBase)} />}
+              {activeTab === "reglas" && <PestanaReglas />}
+              {activeTab === "hallazgos" && <PestanaHallazgos />}
+              {activeTab === "cierre" && <PestanaCierre />}
+            </div>
           )}
         </main>
       </AdaptiveSplitView>

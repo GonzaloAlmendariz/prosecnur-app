@@ -498,6 +498,23 @@ export function limpieza(opciones: {
     top_variables: null,
     decision_queue: cola,
     decision_draft: opciones.decisiones ?? [],
+    // Corrección 15-M del motor: las cifras de la última auditoría con su grano.
+    // Se derivan de la cola del escenario; los encuestados no pueden pasar de
+    // los casos ni de los hallazgos.
+    cifras_hallazgos: opciones.auditoria
+      ? {
+          n_hallazgos: cola.reduce((t, item) => t + item.n_casos, 0),
+          n_reglas_evaluadas: 9,
+          n_reglas_con_casos: cola.filter((item) => item.n_casos > 0).length,
+          n_casos_evaluados: 120,
+          n_encuestados_con_hallazgos: Math.min(120, cola.reduce((t, item) => t + item.n_casos, 0)),
+          n_registros_sin_encuestado: 0,
+          por_tabla: [],
+        }
+      : null,
+    identificacion_casos: opciones.auditoria
+      ? { metodo: "columna_candidata", columna: "_uuid", n_filas: 120, n_filas_sin_llave: 0 }
+      : null,
     module_stats: {
       limpieza: { decisiones: 0, casos_excluidos: 0 },
       reemplazo: { decisiones: 1, celdas: 1 },

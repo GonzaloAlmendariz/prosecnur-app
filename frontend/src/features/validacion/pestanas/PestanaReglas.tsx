@@ -18,6 +18,8 @@ import { useInstrumento } from "../instrumento/useInstrumento";
 import PlanDelFormulario from "../instrumento/PlanDelFormulario";
 import ReglasCustomTab from "../tabs/ReglasCustomTab";
 import { useValidacionStore } from "../store";
+import CabeceraDeTransicion from "./CabeceraDeTransicion";
+import { cabeceraDeReglas } from "./cabeceraDeValidacion";
 
 export default function PestanaReglas() {
   // Reglas no dibuja la auditoría: no pide su resultado ni las variables fuera de auditoría.
@@ -35,6 +37,7 @@ export default function PestanaReglas() {
       data-audit-ready="validacion-reglas"
       style={{ display: "flex", flexDirection: "column", gap: "var(--pulso-space-4)", minWidth: 0 }}
     >
+      <CabeceraDeTransicion pestana="reglas" {...cabeceraDeReglas()} />
       {loading ? (
         <CargaDeBloque label="Cargando el plan de reglas" />
       ) : !estado ? (

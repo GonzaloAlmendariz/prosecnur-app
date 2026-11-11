@@ -59,7 +59,9 @@ describe("Validación, claves viejas que se leen como alias", () => {
     ["navegacion_alias-instrumento", "/validacion?pestana=instrumento", "reglas"],
     ["navegacion_alias-reglas-custom", "/validacion?pestana=reglas_custom", "reglas"],
     ["navegacion_alias-limpieza", "/validacion?pestana=limpieza", "hallazgos"],
-    ["navegacion_alias-panel-regla", "/validacion?pestana=instrumento&panel=regla&foco=R_REQ_EDAD", "hallazgos"],
+    // Plan de fidelidad, rebanada V0: el detalle de una regla del formulario pasa a
+    // ser la ficha de Reglas (antes abría Hallazgos).
+    ["navegacion_alias-panel-regla", "/validacion?pestana=instrumento&panel=regla&foco=R_REQ_EDAD", "reglas"],
   ] as const;
   for (const [nombre, entrada, destino] of casos) {
     escenario(nombre, `${entrada} abre ${destino} sin reescribir la dirección`, async () => {

@@ -212,6 +212,18 @@ export type LimpiezaDecision = {
   status: "draft" | "ready";
   created_at: string;
   updated_at: string;
+  // Corrección 15-M del motor (contrato M2, secciones 1 y 5). Los calcula el
+  // servidor al responder y no se guardan: si el cliente los manda, se
+  // ignoran. Se leen con `normalizarAplicabilidad` (api/validacionAuditoria.ts).
+  /** `true` si llega a alguna fila de la tabla principal auditada; `false` si a ninguna; `null` sin auditoría. */
+  aplicable?: boolean | null;
+  /** Por qué no se aplica; `null` si se aplica. */
+  motivo_no_aplicable?: string | null;
+  /** Los casos que la regla marcaba cuando la decisión pasó a lista (solo registro). */
+  target_case_ids_resueltos?: string[];
+  casos_resueltos_en?: string | null;
+  /** Método con que se identificaron sus casos. */
+  identificacion_casos?: unknown;
 };
 
 // Taxonomía tipada del motor AST (v3).
@@ -277,7 +289,10 @@ export type LimpiezaDecisionSummary = {
   total_reglas_con_casos: number;
   total_reglas_automaticas: number;
   total_reglas_custom: number;
+  /** A pesar del nombre son hallazgos, no casos (Corrección 15-M): no se muestra como casos. */
   total_casos_afectados: number;
+  /** Hallazgos, pares (fila, regla): el mismo número que `cifras_hallazgos.n_hallazgos`. */
+  total_hallazgos?: number;
   total_decisiones: number;
   decisiones_listas: number;
   pendientes: number;
@@ -290,17 +305,25 @@ export type LimpiezaDecisionSummary = {
 };
 
 export type LimpiezaBeforeAfterPreview = {
+  // Corrección 15-M (E8): antes y después se cuentan sobre la misma base, la que
+  // se limpia. `filas_evaluadas` es el universo (la tabla principal auditada) y
+  // `filas_fuera_universo` lo que el caso válido deja fuera; las dos pueden
+  // llegar `null` con una auditoría anterior. Se leen con `normalizarVistaPrevia`.
   before: {
     total_inconsistencias: number;
     reglas_con_casos: number;
     reglas_total: number;
     filas_base: number;
+    filas_evaluadas?: number | null;
+    filas_fuera_universo?: number | null;
   };
   after: {
     total_inconsistencias: number;
     reglas_con_casos: number;
     reglas_total: number;
     filas_base: number;
+    filas_evaluadas?: number | null;
+    filas_fuera_universo?: number | null;
   };
   impact: {
     cases_excluded: number;
@@ -313,6 +336,8 @@ export type LimpiezaBeforeAfterPreview = {
   };
   residual_final: Array<Record<string, unknown>>;
   decisions_ready: number;
+  /** Avisos de la aplicación: una decisión que no se aplica, y por qué. */
+  warnings?: string[];
 };
 
 export type LimpiezaModuleStats = {
@@ -384,6 +409,13 @@ export type LimpiezaSummary = {
   top_variables: ViewDescriptor | null;
   decision_queue: LimpiezaQueueItem[];
   decision_draft: LimpiezaDecision[];
+  /**
+   * Cifras de la última auditoría con su grano (Corrección 15-M); `null` sin
+   * auditoría. Crudo del motor: se lee con `normalizarCifrasHallazgos`.
+   */
+  cifras_hallazgos?: unknown;
+  /** Cómo se identifican los casos de la base auditada; `null` sin auditoría. Se lee con `normalizarIdentificacionCasos`. */
+  identificacion_casos?: unknown;
   module_stats: LimpiezaModuleStats;
   before_after_preview: LimpiezaBeforeAfterPreview | null;
   artifacts: LimpiezaArtifactsBundle | Record<string, never>;

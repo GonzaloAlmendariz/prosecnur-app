@@ -7,9 +7,12 @@
  * por dirección y lo que se guarda al excluir una variable, al construir el
  * plan y al lanzar la auditoría. Desde la rebanada V2 de P6 el plan se ve en
  * Reglas y la auditoría, sus resultados y el panel en Hallazgos; los nombres de
- * los escenarios no cambian, para que las huellas sigan comparables. Los tres
- * escenarios del panel por dirección entran con la clave vieja
- * (`pestana=instrumento&panel=regla`): fijan que el alias abre Hallazgos.
+ * los escenarios no cambian, para que las huellas sigan comparables. Desde la
+ * rebanada V0 del plan de fidelidad, los tres escenarios del panel por
+ * dirección entran con la clave nueva (`pestana=hallazgos&panel=regla`), donde
+ * el detalle de transición sigue, y piden lo mismo que antes. El enlace viejo
+ * (`pestana=instrumento&panel=regla`) abre Reglas con su foco: lo fija
+ * `instrumento_panel-alias-cierra-en-hallazgos`, que conserva su nombre.
  */
 import { describe, expect } from "vitest";
 import { useValidacionStore } from "../store";
@@ -114,17 +117,17 @@ describe("Validación, Reglas del formulario: estados", () => {
 
 describe("Validación, Reglas del formulario: panel de la regla", () => {
   escenario("instrumento_panel-por-direccion_con-casos", "panel=regla con foco en una regla con casos: carga sus casos", async () => {
-    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=instrumento&panel=regla&foco=R_REQ_EDAD", rutas: rutas(true, true) });
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_REQ_EDAD", rutas: rutas(true, true) });
     fijar("instrumento_panel-por-direccion_con-casos");
   });
 
   escenario("instrumento_panel-por-direccion_sin-casos", "panel=regla con foco en una regla sin casos: solo la explicación", async () => {
-    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=instrumento&panel=regla&foco=R_SALTO_P21", rutas: rutas(true, true) });
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_SALTO_P21", rutas: rutas(true, true) });
     fijar("instrumento_panel-por-direccion_sin-casos");
   });
 
   escenario("instrumento_panel-por-direccion_inexistente", "panel=regla con foco en una regla que no está: dice por qué", async () => {
-    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=instrumento&panel=regla&foco=R_NO_ESTA", rutas: rutas(true, true) });
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_NO_ESTA", rutas: rutas(true, true) });
     fijar("instrumento_panel-por-direccion_inexistente");
   });
 
@@ -135,12 +138,16 @@ describe("Validación, Reglas del formulario: panel de la regla", () => {
     fijar("instrumento_panel-por-clic");
   });
 
-  escenario("instrumento_panel-alias-cierra-en-hallazgos", "cerrar el panel abierto con la clave vieja deja la dirección en Hallazgos", async () => {
-    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=instrumento&panel=regla&foco=R_REQ_EDAD", rutas: rutas(true, true) });
-    expect(document.querySelector("#validacion-tab-hallazgos")?.getAttribute("aria-selected")).toBe("true");
-    await pulsar('button[aria-label="Cerrar panel"]');
-    expect(direccionActual()).toBe("/validacion?pestana=hallazgos");
-    expect(document.querySelector("#validacion-tab-hallazgos")?.getAttribute("aria-selected")).toBe("true");
+  // El nombre se conserva para que la huella siga comparable; el comportamiento
+  // cambió a propósito (plan de fidelidad, rebanada V0): el enlace viejo al
+  // detalle de una regla abre Reglas con su foco, sin abrir un panel, y la
+  // dirección no se reescribe al abrir.
+  escenario("instrumento_panel-alias-cierra-en-hallazgos", "el enlace viejo al detalle de una regla abre Reglas, sin panel", async () => {
+    const entrada = "/validacion?pestana=instrumento&panel=regla&foco=R_REQ_EDAD";
+    await montar({ ...UNA_BASE, entrada, rutas: rutas(true, true) });
+    expect(document.querySelector("#validacion-tab-reglas")?.getAttribute("aria-selected")).toBe("true");
+    expect(hay('button[aria-label="Cerrar panel"]')).toBe(false);
+    expect(direccionActual()).toBe(entrada);
     fijar("instrumento_panel-alias-cierra-en-hallazgos");
   });
 });

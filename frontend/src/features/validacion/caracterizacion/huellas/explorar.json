@@ -1,24 +1,24 @@
 {
   "explorar_dos-bases": {
-    "marcado": "69a0e36a1bb06b21a2288928ee2e1fb5e99e6eb57d97ad8913d5cca3d2690e69",
+    "marcado": "e927cc73d901c604fe517bb3ada595cd3e7baee43f6653b4dc38998a7c038668",
     "pedidos": "439be9e7085b233d1d4908d44d9069e75b43a04fce4866c9731afef949ad683a",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=estudiantes]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
   "explorar_sin-datos": {
-    "marcado": "9f18467054ada2b186c1291fa1d0435a04fdba1e8db72ebcabfb48a1f2a914c5",
+    "marcado": "10495cdad828b7e91013fa23eadefed68f306a009640837700ef1e2cd98c93e0",
     "pedidos": "0ee91429b204d8e996f9372d136944f47772661882d0a28212d708f2b78a3a47"
   },
   "explorar_sin-pestana": {
-    "marcado": "0d91a2473c11fbfb24b9573798cb39bb2482ef3e2da5ce31eb45cf653240aa27",
+    "marcado": "79c5be1b0f1bc3771f04073d222b74d96bb36d74cac24644d0f87c4424bee3ba",
     "pedidos": "cdd3656c98799f0abe8a318e56d07fe23f8ff86ec2a1911603a31c87a6c806a5",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
   "explorar_una-base": {
-    "marcado": "8bcf1eed6c9c0fde8e61f646c8a1ff8900d28cd77505da9096dce83521823b2c",
+    "marcado": "e927cc73d901c604fe517bb3ada595cd3e7baee43f6653b4dc38998a7c038668",
     "pedidos": "cdd3656c98799f0abe8a318e56d07fe23f8ff86ec2a1911603a31c87a6c806a5",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"

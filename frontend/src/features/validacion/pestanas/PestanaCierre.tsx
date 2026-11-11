@@ -15,6 +15,10 @@ import AvisosDeLimpieza from "../limpieza/AvisosDeLimpieza";
 import PaqueteMetodologico from "../limpieza/PaqueteMetodologico";
 import { useValidacionStore } from "../store";
 import { usePestanaValidacion } from "../pestanaDireccionable";
+import CabeceraDeTransicion from "./CabeceraDeTransicion";
+import { cabeceraDeCierre } from "./cabeceraDeValidacion";
+
+const COLUMNA = { display: "flex", flexDirection: "column", gap: "var(--pulso-space-4)", minWidth: 0 } as const;
 
 export default function PestanaCierre() {
   const mesa = useMesaDeLimpieza();
@@ -22,7 +26,16 @@ export default function PestanaCierre() {
   const { irAPestana } = usePestanaValidacion();
   const { loading, error, data } = mesa;
 
-  if (loading) return <LoadingBlock label="Cargando el cierre" />;
+  // Mientras carga, la cabecera ya está y el bloque de carga ocupa el cuerpo.
+  // Sin marca de readiness: la pestaña todavía no tiene contenido.
+  if (loading) {
+    return (
+      <div className="pulso-validacion-pestana-cierre" style={COLUMNA}>
+        <CabeceraDeTransicion pestana="cierre" {...cabeceraDeCierre(null)} />
+        <LoadingBlock label="Cargando el cierre" />
+      </div>
+    );
+  }
 
   const auditReady = !!data?.progreso.auditoria_corrida;
 
@@ -30,8 +43,9 @@ export default function PestanaCierre() {
     <div
       className="pulso-validacion-pestana-cierre"
       data-audit-ready="validacion-cierre"
-      style={{ display: "flex", flexDirection: "column", gap: "var(--pulso-space-4)", minWidth: 0 }}
+      style={COLUMNA}
     >
+      <CabeceraDeTransicion pestana="cierre" {...cabeceraDeCierre(data)} />
       {error ? (
         <EmptyState
           icon={<AlertTriangle size={20} />}

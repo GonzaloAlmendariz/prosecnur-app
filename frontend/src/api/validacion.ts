@@ -327,7 +327,9 @@ export type InstrumentoDrillResult = {
   ok: true;
   regla: ReglaInstrumento;
   uuid_col: string | null;
-  case_ids?: string[];
+  // Un id `null` es una fila que el motor no pudo ubicar (Corrección 15-M):
+  // no se le inventa uno. Normalizador: `normalizarCaseIds` (validacionAuditoria.ts).
+  case_ids?: Array<string | null>;
   casos: Array<Record<string, unknown>>;
 };
 

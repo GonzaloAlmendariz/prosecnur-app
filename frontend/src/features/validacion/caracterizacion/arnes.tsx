@@ -329,10 +329,14 @@ export function marcado(): string {
   return normalizar(copia.innerHTML);
 }
 
-/** Solo el riel de pestañas y la cabecera de la pestaña activa, sin el cuerpo. */
+/**
+ * Solo el riel de pestañas y la cabecera de la pestaña activa, sin el cuerpo.
+ * Desde la rebanada V0 del plan de fidelidad la cabecera la monta cada pestaña
+ * (`pestanas/CabeceraDeTransicion`, clase `pulso-validacion-cabecera`).
+ */
 export function mesa(): string {
   return normalizar(
-    [".pulso-validacion-shell [role=\"tablist\"]", ".pulso-validacion-panel-head"]
+    [".pulso-validacion-shell [role=\"tablist\"]", ".pulso-validacion-cabecera"]
       .map((selector) => document.body.querySelector(selector)?.outerHTML ?? `<!-- falta ${selector} -->`)
       .join("\n"),
   );

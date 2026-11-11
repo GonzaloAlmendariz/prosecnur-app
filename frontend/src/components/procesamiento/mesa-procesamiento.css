@@ -1,0 +1,613 @@
+/* Marco común de las pestañas de Procesamiento (ADR 0142, plan de fidelidad de
+   Validación, V0): CabeceraDePestana, CifrasDePestana, MesaDePestana,
+   PanelDeMesa y FranjaDeTrabajo. Vara: tmp/revamp-procesamiento (`tabHeading`,
+   `panel`, `pp-mesa`, `prog`) y la geometría del plan 8.2.
+
+   Los marcos son el `Panel` del kit: aquí solo se ajusta su receta (radio 16,
+   cabecera de 56, sombra corta). Solo tokens --pulso-*, --module-* y
+   --motion-*; la letra por rol (app/tipografia.css). Los cortes van por el
+   ancho de la pieza (container queries), no por el de la ventana. */
+
+/* ---------- Cabecera de la pestaña ---------- */
+
+.pulso-cabecera-pestana {
+  container: cabecera-pestana / inline-size;
+  flex: none;
+  min-width: 0;
+}
+
+.pulso-cabecera-pestana > .pulso-panel.pulso-cabecera-pestana-panel {
+  margin: 0;
+  overflow: visible;
+  border-color: var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* Rejilla en vez de la fila del kit: la copia y el control se deshacen
+   (`display: contents`) para que el estado quede en la línea del título y las
+   cifras y las acciones ocupen las dos líneas a la derecha. */
+.pulso-cabecera-pestana .pulso-tab-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content) auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "tesela antetitulo antetitulo . cifras acciones"
+    "tesela titulo estado . cifras acciones";
+  column-gap: var(--pulso-space-3);
+  row-gap: 2px;
+  align-items: center;
+  min-block-size: 68px;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.pulso-cabecera-pestana .pulso-tab-heading-copy,
+.pulso-cabecera-pestana .pulso-tab-heading-control,
+.pulso-cabecera-pestana .pulso-cabecera-pestana-control {
+  display: contents;
+}
+
+.pulso-cabecera-pestana .pulso-tab-heading-icon {
+  grid-area: tesela;
+  inline-size: 40px;
+  block-size: 40px;
+  margin-inline-end: var(--pulso-space-1);
+  border: 0;
+  border-radius: 12px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-cabecera-pestana .pulso-tab-heading-eyebrow {
+  grid-area: antetitulo;
+  align-self: end;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pulso-cabecera-pestana .pulso-tab-heading-title {
+  grid-area: titulo;
+  align-self: start;
+}
+
+/* El nombre de la pestaña no cede ancho ni se recorta: lo que aprieta son las cifras. */
+.pulso-cabecera-pestana .pulso-tab-heading-title h2 {
+  overflow: visible;
+  font-size: calc(var(--pulso-type-title-size) + 2px);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+/* El estado, en palabra, con su punto. */
+.pulso-cabecera-pestana-estado {
+  grid-area: estado;
+  align-self: center;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 22px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-cabecera-pestana-estado::before {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--pulso-success-fg);
+}
+
+.pulso-cabecera-pestana-estado[data-tono="parcial"]::before,
+.pulso-cabecera-pestana-estado[data-tono="atencion"]::before {
+  background: var(--pulso-warn-accent);
+}
+
+.pulso-cabecera-pestana-estado[data-tono="bloqueado"]::before {
+  background: var(--pulso-danger-solid);
+}
+
+.pulso-cabecera-pestana-estado[data-tono="neutro"]::before {
+  background: var(--pulso-text-faint);
+}
+
+.pulso-cabecera-pestana .pulso-cifras-pestana-zona {
+  grid-area: cifras;
+}
+
+/* Las acciones, separadas de las cifras por un divisor. */
+.pulso-cabecera-pestana-acciones {
+  grid-area: acciones;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin-inline-start: var(--pulso-space-2);
+  padding-inline-start: var(--pulso-space-4);
+  border-inline-start: 1px solid var(--pulso-border);
+}
+
+/* ---------- Cifras de la cabecera ---------- */
+
+.pulso-cifras-pestana-zona {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-cifras-pestana {
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  min-width: 0;
+}
+
+/* Número arriba y lo que cuenta debajo, separadas por divisores. */
+.pulso-cifra-pestana {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: center;
+  gap: 1px;
+  padding-inline: var(--pulso-space-4);
+  white-space: nowrap;
+}
+
+.pulso-cifra-pestana + .pulso-cifra-pestana {
+  border-inline-start: 1px solid var(--pulso-border);
+}
+
+.pulso-cifra-pestana dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.25;
+}
+
+.pulso-cifra-pestana dd {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.pulso-cifra-pestana dd a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.pulso-cifra-pestana dd a:hover {
+  color: var(--module-accent, var(--pulso-primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pulso-cifra-pestana-base {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-cifra-pestana-punto {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--pulso-success-fg);
+}
+
+.pulso-cifra-pestana[data-tono="alerta"] .pulso-cifra-pestana-punto {
+  background: var(--pulso-warn-accent);
+}
+
+.pulso-cifras-pestana-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-1);
+  list-style: none;
+}
+
+.pulso-cifras-pestana-menu li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-cifras-pestana-menu b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hasta 1400 de ventana: menos aire, nada se quita ni cambia de lugar. */
+@container cabecera-pestana (max-width: 1299px) {
+  .pulso-cabecera-pestana .pulso-tab-heading {
+    padding: var(--pulso-space-2) var(--pulso-space-4);
+  }
+
+  .pulso-cifra-pestana {
+    padding-inline: var(--pulso-space-3);
+  }
+
+  .pulso-cabecera-pestana-acciones {
+    padding-inline-start: var(--pulso-space-3);
+  }
+}
+
+/* ---------- Mesa ---------- */
+
+.pulso-mesa-pestana-superficie {
+  container: mesa-pestana / inline-size;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* El marco reparte el alto: la cabecera y la franja miden lo suyo y la mesa se queda con el resto. */
+.pulso-mesa-pestana-marco {
+  --pulso-mesa-lado: 320px;
+  --pulso-mesa-inspector: 400px;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-mesa-pestana {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-5);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-mesa-pestana[data-columnas="3"] {
+  grid-template-columns: var(--pulso-mesa-lado) minmax(0, 1fr) var(--pulso-mesa-lado);
+}
+
+.pulso-mesa-pestana[data-columnas="2"] {
+  grid-template-columns: minmax(0, 1fr) var(--pulso-mesa-inspector);
+}
+
+/* Una columna con varios contenedores: los primeros miden lo suyo y el último llega al pie. */
+.pulso-mesa-pestana-pila {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-mesa-pestana-pila > .pulso-panel-de-mesa {
+  flex: 0 1 auto;
+}
+
+.pulso-mesa-pestana-pila > .pulso-panel-de-mesa:last-child {
+  flex: 1 1 auto;
+}
+
+/* ---------- Contenedor de la mesa ---------- */
+
+.pulso-panel.pulso-panel-de-mesa {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border-color: var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-panel-de-mesa > .pulso-panel-header {
+  box-sizing: border-box;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  /* 56 px como en el prototipo; con o sin acciones la cabecera mide lo mismo (C2). */
+  min-height: 56px;
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-panel-de-mesa > .pulso-panel-header > .pulso-panel-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-panel-de-mesa > .pulso-panel-header > .pulso-panel-actions {
+  flex: none;
+  flex-wrap: nowrap;
+  margin-inline-start: auto;
+}
+
+.pulso-panel-de-mesa .pulso-panel-title {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.25;
+}
+
+/* Un título largo (el nombre de una regla) baja a dos líneas; no se corta a una. */
+.pulso-panel-de-mesa-titulo {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pulso-panel-de-mesa-tesela {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  margin-inline-end: var(--pulso-space-1);
+  border-radius: 9px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-panel-de-mesa-conteo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 26px;
+  block-size: 22px;
+  box-sizing: border-box;
+  padding-inline: var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El cuerpo posee el alto libre y el scroll. */
+.pulso-panel-de-mesa-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.pulso-panel-de-mesa-cuerpo:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+/* El pie, en un tono más bajo: la acción principal a todo el ancho, de 36 px. */
+.pulso-panel-de-mesa-pie {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-panel-de-mesa-pie > .pulso-button {
+  flex: 1 1 0;
+  justify-content: center;
+  min-height: 36px;
+}
+
+/* ---------- Tamaños de la mesa ---------- */
+
+/* Superficie ancha (desde 1600 de ventana): laterales e inspector más anchos. */
+@container mesa-pestana (min-width: 1480px) {
+  .pulso-mesa-pestana-marco {
+    --pulso-mesa-lado: 360px;
+    --pulso-mesa-inspector: 440px;
+  }
+}
+
+/* Hasta 1400 de ventana: más angostos, los dos laterales iguales; menos aire. */
+@container mesa-pestana (max-width: 1299px) {
+  .pulso-mesa-pestana-marco {
+    --pulso-mesa-lado: 264px;
+    --pulso-mesa-inspector: 330px;
+    gap: var(--pulso-space-4);
+  }
+
+  .pulso-mesa-pestana,
+  .pulso-mesa-pestana-pila {
+    gap: var(--pulso-space-4);
+  }
+}
+
+/* Hasta 1100 de ventana: la de tres pasa a dos (la tercera baja a todo el
+   ancho), la de dos a una, y la pestaña se desplaza. Cada contenedor tiene un
+   alto que cabe en la ventana y su propio scroll; al llegar al final de una
+   lista la rueda sigue en la pestaña. */
+@container mesa-pestana (max-width: 979px) {
+  .pulso-mesa-pestana-marco {
+    flex: none;
+  }
+
+  .pulso-mesa-pestana {
+    flex: none;
+    grid-template-rows: auto;
+  }
+
+  .pulso-mesa-pestana[data-columnas="3"] {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .pulso-mesa-pestana[data-columnas="3"] > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .pulso-mesa-pestana[data-columnas="2"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-mesa-pestana > .pulso-panel-de-mesa,
+  .pulso-mesa-pestana-pila > .pulso-panel-de-mesa {
+    max-block-size: 520px;
+  }
+
+  .pulso-panel-de-mesa-cuerpo {
+    overscroll-behavior: auto;
+  }
+}
+
+/* Ventana baja (1366x768 y menores): se recorta el aire entre las piezas y la
+   cabecera de cada contenedor baja al alto de sus controles. */
+@media (max-height: 820px) {
+  .pulso-mesa-pestana-marco,
+  .pulso-mesa-pestana,
+  .pulso-mesa-pestana-pila {
+    gap: var(--pulso-space-3);
+  }
+
+  .pulso-panel-de-mesa > .pulso-panel-header {
+    min-height: 48px;
+    padding-block: var(--pulso-space-1);
+  }
+
+  .pulso-cabecera-pestana .pulso-tab-heading {
+    min-block-size: 60px;
+    padding-block: var(--pulso-space-2);
+  }
+}
+
+/* ---------- Trabajo en curso ---------- */
+
+.pulso-franja-trabajo {
+  container: franja-trabajo / inline-size;
+}
+
+.pulso-franja-trabajo-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.1fr) minmax(160px, 1fr) auto auto;
+  align-items: center;
+  gap: var(--pulso-space-5);
+  box-sizing: border-box;
+  min-height: 68px;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-3) var(--pulso-space-5);
+  border: 1px solid var(--module-accent-border, var(--pulso-primary-border));
+  border-radius: var(--pulso-radius-panel);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 5%, var(--pulso-surface));
+}
+
+.pulso-franja-trabajo-giro {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  box-sizing: border-box;
+  border: 1px solid var(--module-accent-border, var(--pulso-primary-border));
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.pulso-franja-trabajo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-franja-trabajo-texto b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-franja-trabajo-texto span,
+.pulso-franja-trabajo-nota {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+.pulso-franja-trabajo-avance {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-franja-trabajo-avance > .pulso-barra-avance {
+  flex: 1 1 auto;
+}
+
+.pulso-franja-trabajo-avance em {
+  min-inline-size: 44px;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-style: normal;
+  font-weight: var(--pulso-weight-heavy);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.pulso-franja-trabajo-nota {
+  max-inline-size: 22ch;
+}
+
+@container franja-trabajo (max-width: 1199px) {
+  .pulso-franja-trabajo-fila {
+    grid-template-columns: auto minmax(0, 1fr) minmax(120px, 0.8fr) auto;
+    gap: var(--pulso-space-4);
+  }
+
+  .pulso-franja-trabajo-nota {
+    display: none;
+  }
+}
+
+@container franja-trabajo (max-width: 899px) {
+  .pulso-franja-trabajo-fila {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .pulso-franja-trabajo-avance {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

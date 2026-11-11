@@ -4,6 +4,7 @@ import { PROCESAMIENTO_PESTANAS } from "../../lib/navegacion/catalogos/procesami
 import {
   ALIAS_PESTANAS_VALIDACION,
   clavePedidaValidacion,
+  esAliasDelDetalleDeRegla,
   resolverPestanaValidacion,
   searchConPestanaCanonica,
 } from "./pestanaValidacion";
@@ -37,13 +38,17 @@ describe("alias de las pestañas de Validación", () => {
     expect(clavePedidaValidacion("limpieza")).toBe("hallazgos");
   });
 
-  it("el panel de una regla con la clave de Instrumento abre Hallazgos", () => {
-    expect(clavePedidaValidacion("instrumento", "regla")).toBe("hallazgos");
-    // Otro panel no activa la regla especial.
-    expect(clavePedidaValidacion("instrumento", "otro")).toBe("reglas");
-    // La regla especial es solo de Instrumento.
-    expect(clavePedidaValidacion("reglas_custom", "regla")).toBe("reglas");
-    expect(clavePedidaValidacion("reglas", "regla")).toBe("reglas");
+  // Plan de fidelidad, rebanada V0: el detalle de una regla del formulario
+  // pasa a ser la ficha de Reglas. Antes (rebanada V2 de P6) abría Hallazgos.
+  it("el enlace viejo al detalle de una regla abre Reglas, no Hallazgos", () => {
+    expect(resolverPestanaValidacion("instrumento")).toBe("reglas");
+    expect(esAliasDelDetalleDeRegla("instrumento", "regla")).toBe(true);
+    // Otro panel, otra clave o la clave nueva no son ese enlace viejo.
+    expect(esAliasDelDetalleDeRegla("instrumento", "otro")).toBe(false);
+    expect(esAliasDelDetalleDeRegla("reglas_custom", "regla")).toBe(false);
+    expect(esAliasDelDetalleDeRegla("reglas", "regla")).toBe(false);
+    expect(esAliasDelDetalleDeRegla("hallazgos", "regla")).toBe(false);
+    expect(esAliasDelDetalleDeRegla("instrumento", null)).toBe(false);
   });
 
   it("lo que no nombra ninguna pestaña cae en Explorar", () => {
@@ -55,11 +60,17 @@ describe("alias de las pestañas de Validación", () => {
 });
 
 describe("escribir la pestaña con su clave canónica", () => {
-  it("cerrar el panel de una regla abierta por la clave vieja no salta a Reglas", () => {
-    const abierto = "?pestana=instrumento&panel=regla&foco=R_1";
-    const canonico = searchConPestanaCanonica(abierto);
-    expect(new URLSearchParams(canonico).get("pestana")).toBe("hallazgos");
-    expect(new URLSearchParams(canonico).get("foco")).toBe("R_1");
+  it("el enlace viejo al detalle de una regla se escribe como Reglas con su foco y sin el panel del editor", () => {
+    const viejo = "?pestana=instrumento&panel=regla&foco=R_1";
+    const canonico = new URLSearchParams(searchConPestanaCanonica(viejo));
+    expect(canonico.get("pestana")).toBe("reglas");
+    expect(canonico.get("foco")).toBe("R_1");
+    // `panel=regla` es ahora el editor de reglas propias: el enlace viejo no lo abre.
+    expect(canonico.get("panel")).toBeNull();
+  });
+
+  it("en la clave nueva, panel=regla es del editor y se conserva", () => {
+    expect(searchConPestanaCanonica("?pestana=reglas&panel=regla&foco=nueva")).toBe("?pestana=reglas&panel=regla&foco=nueva");
   });
 
   it("reescribe los alias y deja intactas las claves nuevas y lo demás", () => {

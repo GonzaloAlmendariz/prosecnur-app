@@ -29,6 +29,8 @@ import { StatusBar } from "../limpieza/CierreDeBase";
 import ColaYDecision from "../limpieza/ColaYDecision";
 import AvisosDeLimpieza from "../limpieza/AvisosDeLimpieza";
 import { usePestanaValidacion } from "../pestanaDireccionable";
+import CabeceraDeTransicion from "./CabeceraDeTransicion";
+import { cabeceraDeHallazgos } from "./cabeceraDeValidacion";
 
 export default function PestanaHallazgos() {
   // Al terminar la auditoría, la banda y la cola se vuelven a leer sin salir de
@@ -48,6 +50,7 @@ export default function PestanaHallazgos() {
       data-audit-ready="validacion-hallazgos"
       style={{ display: "flex", flexDirection: "column", gap: "var(--pulso-space-4)", minWidth: 0 }}
     >
+      <CabeceraDeTransicion pestana="hallazgos" {...cabeceraDeHallazgos(mesa.loading ? null : mesa.data)} />
       {inst.loading ? (
         <CargaDeBloque label="Cargando la auditoría" />
       ) : !estado ? (

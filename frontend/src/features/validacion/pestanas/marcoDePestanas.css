@@ -1,0 +1,19 @@
+/* Validación, rebanada V0 del plan de fidelidad: la cabecera ya no la pinta la
+   página en su propia fila pegada arriba; la monta cada pestaña dentro del
+   cuerpo (CabeceraDeTransicion). El área de contenido queda con una sola fila,
+   la del cuerpo, que conserva el alto que tenía.
+
+   La cabecera es un contenedor que se desplaza con la pestaña, como en el
+   prototipo a 1024: ya no hay una cabecera pegada encima, así que las bandas
+   pegajosas de las pestañas se pegan arriba del todo. */
+
+.pulso-validacion-content:has(> .pulso-validacion-panel-body) {
+  grid-template-rows: minmax(0, 1fr);
+  --pulso-validacion-sticky-top: 0px;
+}
+
+/* Explorar va suelto en el cuerpo (su hoja lo reconoce como hijo directo): la
+   separación con la cabecera la pone aquí el cuerpo, no un envoltorio. */
+.pulso-validacion-panel-body > .pulso-validacion-cabecera {
+  margin-block-end: var(--pulso-space-4);
+}

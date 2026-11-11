@@ -7,6 +7,7 @@
  * guarda lo fija la caracterización (`caracterizacion/limpieza.test.tsx`).
  */
 import type { InstrumentoDrillResult } from "../../../api/client";
+import { normalizarCaseIds } from "../../../api/validacionAuditoria";
 import type { DecisionesPreservadas, LimpiezaDecision, LimpiezaDecisionActionType, LimpiezaQueueItem, ReglaTreatmentScope } from "../types";
 import type { DecisionCounts, ReglaLike, VariableHoverData } from "../components/v2";
 
@@ -42,10 +43,29 @@ export type EditorForm = {
 };
 
 export type CaseRow = {
+  /** El id de caso del motor o, si no lo hay, una clave de la fila que no se manda nunca (ver `seleccionable`). */
   id: string;
+  /**
+   * `false` si el motor no pudo ubicar la fila y su id llegó `null` (Corrección
+   * 15-M): esa fila no se puede elegir para una decisión caso por caso. Antes
+   * se le inventaba `<regla>::row::<k>`, que el motor rechaza al guardar
+   * (422 `E_LIMPIEZA_CASOS_INVALIDOS`).
+   */
+  seleccionable: boolean;
   raw: Record<string, unknown>;
   summary: string;
 };
+
+/** Clave de una fila sin id de caso. No es un id: `buildDecisionPayload` la rechaza. */
+export function claveDeFilaSinId(posicion: number): string {
+  return `Caso sin identificador ${posicion}`;
+}
+
+const CLAVE_SIN_ID = /^Caso sin identificador \d+$/;
+
+export function esFilaSinId(id: string): boolean {
+  return CLAVE_SIN_ID.test(id);
+}
 
 export type ChoiceOption = {
   code: string;
@@ -350,8 +370,24 @@ export function decisionProcedureText(form: EditorForm, optionsByCode: Map<strin
   return "";
 }
 
+/**
+ * Una decisión caso por caso que incluye filas sin id de caso no se puede
+ * guardar: el motor no sabría a qué fila llega. Sobre todos los casos de la
+ * regla sí, porque el motor los resuelve él.
+ */
+export function avisoDeCasosSinId(form: EditorForm): string | null {
+  if (form.action_type === "ignore_rule" || form.use_all_cases) return null;
+  const sinId = form.target_case_ids.filter(esFilaSinId).length;
+  if (sinId === 0) return null;
+  return sinId === 1
+    ? "1 caso elegido no tiene identificador en la auditoría y no se puede decidir por separado. Quítalo o decide sobre todos los casos de la regla."
+    : `${sinId} casos elegidos no tienen identificador en la auditoría y no se pueden decidir por separado. Quítalos o decide sobre todos los casos de la regla.`;
+}
+
 export function getDecisionReadiness(form: EditorForm): DecisionReadiness {
   const issues: string[] = [];
+  const avisoSinId = avisoDeCasosSinId(form);
+  if (avisoSinId) issues.push(avisoSinId);
   if (form.action_type !== "ignore_rule" && form.scope_mode === "single" && form.target_case_ids.length !== 1) {
     issues.push("Selecciona un registro para guardar una decisión uno por uno.");
   } else if (form.action_type !== "ignore_rule" && !form.use_all_cases && form.target_case_ids.length === 0) {
@@ -470,6 +506,9 @@ export function buildDecisionPayload({
     throw new Error("Selecciona al menos un caso o marca que aplica a todos.");
   }
 
+  const avisoSinId = avisoDeCasosSinId(form);
+  if (avisoSinId) throw new Error(avisoSinId);
+
   if (form.action_type !== "ignore_rule" && form.scope_mode === "single" && form.target_case_ids.length !== 1) {
     throw new Error("Para revisar uno por uno, selecciona exactamente un registro.");
   }
@@ -570,10 +609,13 @@ export function buildDecisionPayload({
 export function buildCaseRows(drill: InstrumentoDrillResult | null, item: LimpiezaQueueItem | null): CaseRow[] {
   if (!drill) return [];
   const preferredKeys = uniqueStrings([...(item?.variables ?? []), ...(drill.regla.variables ?? [])]);
+  const ids = normalizarCaseIds(drill.case_ids);
   return (drill.casos ?? []).map((raw, index) => {
-    const caseId = drill.case_ids?.[index] ?? `${drill.regla.id}::row::${index + 1}`;
+    // Sin id (null, o una lista más corta que `casos`) no se inventa uno.
+    const caseId = ids[index] ?? null;
     return {
-      id: caseId,
+      id: caseId ?? claveDeFilaSinId(index + 1),
+      seleccionable: caseId !== null,
       raw,
       summary: buildCaseSummary(raw, preferredKeys),
     };
