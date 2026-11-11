@@ -63,7 +63,7 @@ test_that("con 10 % de NA/99 el raking converge y esos casos conservan su peso",
   av <- .fa_avisos(r, "categoria_fuera_de_margen")
   expect_length(av, 1)
   expect_identical(av[[1]]$casos, 10L)
-  expect_match(av[[1]]$message, "10 casos sin dato en «sexo»", fixed = TRUE)
+  expect_match(av[[1]]$message, "10 casos sin dato en \"sexo\"", fixed = TRUE)
   expect_match(av[[1]]$message, "conservan su peso", fixed = TRUE)
 })
 
@@ -116,7 +116,7 @@ test_that("la imputación se rechaza por encima del umbral con la causa y la sal
   expect_match(err$message, "faltan 10", fixed = TRUE)
   expect_match(err$message, "sexo", fixed = TRUE)
   expect_match(err$message, "5 % permitido", fixed = TRUE)
-  expect_match(err$message, "dejar fuera del margen", fixed = TRUE)
+  expect_match(err$message, "Usa \"Dejar fuera del margen\"", fixed = TRUE)
   # El umbral es configurable.
   cfg15 <- .fa_cfg(.fa_sexo, faltantes = "imputar", imputacion = list(umbral = 0.15))
   r <- ponderacion_compute(data, cfg15)

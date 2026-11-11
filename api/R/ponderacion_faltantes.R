@@ -81,10 +81,10 @@
   pct <- vapply(vars, function(v) sum(faltan[[v]]) / n, numeric(1))
   exceden <- vars[pct > umbral + 1e-12]
   if (length(exceden)) {
-    detalle <- paste(sprintf("faltan %s %% en «%s»", .ponderacion_pct_txt(pct[exceden]), exceden),
+    detalle <- paste(sprintf("faltan %s %% en \"%s\"", .ponderacion_pct_txt(pct[exceden]), exceden),
                      collapse = "; ")
     stop_api(422, "E_PONDERACION_IMPUTACION_EXCEDE_UMBRAL",
-             sprintf("No se puede imputar: %s, más que el %s %% permitido. Usa «dejar fuera del margen» o saca la variable de la calibración.",
+             sprintf("No se puede imputar: %s, más que el %s %% permitido. Usa \"Dejar fuera del margen\" o saca la variable de la calibración.",
                      detalle, .ponderacion_pct_txt(umbral)),
              details = list(umbral = umbral, porcentajes = as.list(pct[exceden])))
   }
@@ -131,8 +131,12 @@
         # imputar. Esos casos quedan fuera del margen, como con «excluir».
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
           "warn", "imputacion_sin_donantes",
-          sprintf("%d casos sin dato en «%s» no se imputaron porque ningún caso de la base tiene una categoría con meta (%s): quedan fuera del margen y conservan su peso. Revisa que las categorías de las metas sean las de la base.",
-                  sin_donante, v, paste(cats[[v]], collapse = ", ")),
+          sprintf("%d %s sin dato en \"%s\" no se %s porque ningún caso de la base tiene una categoría con meta (%s): %s fuera del margen y %s su peso. Revisa que las categorías de las metas sean las de la base.",
+                  sin_donante, .ponderacion_segun_numero(sin_donante, "caso", "casos"), v,
+                  .ponderacion_segun_numero(sin_donante, "imputó", "imputaron"),
+                  paste(cats[[v]], collapse = ", "),
+                  .ponderacion_segun_numero(sin_donante, "queda", "quedan"),
+                  .ponderacion_segun_numero(sin_donante, "conserva", "conservan")),
           var = v, casos = as.integer(sin_donante)
         )
       }
@@ -147,15 +151,26 @@
         celda = otros
       )
       if (any(hecho)) {
-        donde <- if (length(otros)) paste(sprintf("«%s»", otros), collapse = " × ") else "toda la muestra"
-        if (length(otros) && sin_celda > 0L) {
-          donde <- sprintf("%s (en toda la muestra para %d casos sin dato también en esas variables)",
-                           donde, sin_celda)
-        }
+        donde <- if (length(otros)) {
+          sprintf("entre los casos con el mismo valor en %s", .ponderacion_entre_comillas(otros))
+        } else "entre todos los casos de la muestra"
+        # Con varias variables, la celda de cada caso usa solo aquellas en que ese
+        # caso tiene valor valido; sin ninguna, el donante sale de toda la muestra.
+        notas <- c(
+          if (length(otros) > 1L) "en las variables donde el caso tiene dato",
+          if (length(otros) && sin_celda > 0L) {
+            sprintf("en toda la muestra para %d %s sin dato también en %s",
+                    sin_celda, .ponderacion_segun_numero(sin_celda, "caso", "casos"),
+                    .ponderacion_segun_numero(length(otros), "esa variable", "esas variables"))
+          }
+        )
+        if (length(notas)) donde <- sprintf("%s (%s)", donde, paste(notas, collapse = "; "))
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
           "info", "imputacion_aplicada",
-          sprintf("Se imputaron %d casos sin dato en «%s» (%s %%) por hot-deck dentro de celdas de %s, con semilla %d, sólo para calcular el peso: la variable de la base no cambia.",
-                  sum(hecho), v, .ponderacion_pct_txt(pct[[v]]), donde, semilla),
+          sprintf("%s %d %s sin dato en \"%s\" (%s %% de los casos de la base) con el valor de otro caso elegido al azar (hot-deck) %s, con semilla %d. La imputación se usa solo para calcular el peso: la variable de la base no cambia.",
+                  .ponderacion_segun_numero(sum(hecho), "Se imputó", "Se imputaron"), sum(hecho),
+                  .ponderacion_segun_numero(sum(hecho), "caso", "casos"), v,
+                  .ponderacion_pct_txt(pct[[v]]), donde, semilla),
           var = v, casos = as.integer(sum(hecho))
         )
       }
@@ -163,8 +178,10 @@
         celdas <- sort(unique(celdas_vacias))
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
           "warn", "celda_sin_donantes",
-          sprintf("%d casos sin dato en «%s» no tenían donantes en su celda (%s): se tomó el donante quitando variables de la celda desde la última hasta encontrar casos con dato.",
-                  colapsados, v, paste(celdas, collapse = "; ")),
+          sprintf("%d %s sin dato en \"%s\" no %s otro caso con dato y los mismos valores en las demás variables (%s): el valor se tomó de casos que coinciden en menos variables, quitándolas desde la última hasta encontrar casos con dato.",
+                  colapsados, .ponderacion_segun_numero(colapsados, "caso", "casos"), v,
+                  .ponderacion_segun_numero(colapsados, "tenía", "tenían"),
+                  paste(celdas, collapse = "; ")),
           var = v, casos = colapsados, celdas = celdas
         )
       }

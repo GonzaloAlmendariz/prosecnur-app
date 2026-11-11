@@ -342,23 +342,25 @@
   ya <- vapply(out, function(a) as.character(a$code %||% ""), character(1))
   if (isTRUE(res$rake_applied) && !isTRUE(res$converged) && !"no_converge" %in% ya) {
     add("warn", "no_converge",
-        "El raking no convergio. Suele deberse a objetivos incompatibles o categorias sin casos en la muestra.")
+        "El ajuste por márgenes no convergió: los márgenes pueden quedar lejos de sus metas. Suele deberse a metas incompatibles entre sí o a combinaciones de categorías de distintos márgenes sin casos en la muestra.")
   }
   if (is.finite(d$deff)) {
     if (d$deff >= 2) {
       add("warn", "deff_alto", sprintf(
-        "Efecto de diseno alto (DEFF=%.2f): la muestra efectiva baja a %.0f de %.0f (pierde %.0f%% de precision). Calibra menos variables o revisa si esta ponderacion vale la pena.",
+        "Efecto de diseño por ponderación alto (%.2f): el tamaño efectivo de la muestra baja a %.0f de %.0f casos (%.0f %% menos). Calibra con menos variables o revisa si la ponderación es necesaria.",
         d$deff, d$n_eff, d$n, d$loss_pct))
     } else if (d$deff >= 1.5) {
       add("info", "deff_medio", sprintf(
-        "La ponderacion cuesta ~%.0f%% de precision (DEFF=%.2f, n efectivo %.0f).",
-        d$loss_pct, d$deff, d$n_eff))
+        "Por la ponderación, el tamaño efectivo de la muestra es %.0f de %.0f casos (%.0f %% menos; efecto de diseño por ponderación de %.2f).",
+        d$n_eff, d$n, d$loss_pct, d$deff))
     }
   }
   if (is.finite(d$ratio_max_min) && d$ratio_max_min >= 10) {
+    # La razon es entre pesos mayores que cero (`max(wpos) / min(wpos)`): si hay
+    # algun peso 0 (`d$min`), la frase lo dice para que "el menor" no se lea 0.
     add("warn", "pesos_extremos", sprintf(
-      "Pesos muy dispersos (max/min=%.0f). Aplica un recorte (trim) para estabilizar la varianza.",
-      d$ratio_max_min))
+      "Pesos muy dispersos: el mayor es %.0f veces %s. Activa \"Recortar pesos extremos\" o baja su tope para reducir la varianza de los resultados.",
+      d$ratio_max_min, if (isTRUE(d$min > 0)) "el menor" else "el menor peso mayor que cero"))
   }
   out
 }

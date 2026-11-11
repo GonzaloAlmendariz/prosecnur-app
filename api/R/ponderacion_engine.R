@@ -14,8 +14,8 @@
 #      distrito, ...). Es lo habitual porque casi nunca se conoce la distribucion
 #      conjunta, solo los margenes. Se puede aplicar sobre el peso de diseno.
 #
-# Diagnosticos: efecto de diseno de Kish (DEFF = 1 + CV^2), tamano de muestra
-# efectivo (n_eff = (sum w)^2 / sum w^2), y comparacion de margenes antes/despues.
+# Diagnosticos: tamano de muestra efectivo (n_eff = (sum w)^2 / sum w^2), efecto
+# de diseno de Kish (DEFF = n / n_eff) y comparacion de margenes antes/despues.
 # Sin dependencias externas (no usa el paquete survey): IPF a mano, trazable.
 #
 # Cadena del peso del ADR 0131 §6 (todo opcional; sin estas opciones el peso es
@@ -43,6 +43,24 @@
 # (level/code/message) mas campos de detalle para la UI.
 .ponderacion_aviso <- function(level, code, message, ...) {
   c(list(level = level, code = code, message = message), list(...))
+}
+
+# Concordancia de numero en el texto de un aviso: `uno` si n es 1; si no, `varios`.
+.ponderacion_segun_numero <- function(n, uno, varios) {
+  if (isTRUE(as.integer(n)[1] == 1L)) uno else varios
+}
+
+# Nombres entre comillas rectas, unidos como en una frase: "a", "b" y "c".
+.ponderacion_entre_comillas <- function(x) {
+  x <- sprintf("\"%s\"", as.character(x))
+  if (length(x) < 2L) return(paste(x, collapse = ""))
+  paste(paste(x[-length(x)], collapse = ", "), x[length(x)], sep = " y ")
+}
+
+# Categorias observadas dentro de la frase de un aviso: el rotulo "(sin dato)" se
+# lee "vacío". El campo `categorias` del aviso lleva el rotulo tal cual.
+.ponderacion_valores_txt <- function(cats) {
+  paste(sub("^\\(sin dato\\)$", "vacío", as.character(cats)), collapse = ", ")
 }
 
 # Rotulo legible de una categoria observada (NA -> "(sin dato)").
@@ -122,10 +140,25 @@
   fuera <- is.na(stratum) | !stratum %in% names(targets)
   if (any(fuera)) {
     cats <- sort(unique(.ponderacion_rotulo(stratum[fuera])))
+    # Que hacer depende de que falta: a un estrato con nombre se le declara su
+    # poblacion; a los casos sin dato en la variable de estrato no hay poblacion
+    # que declararles, se revisan.
+    con_nombre <- length(setdiff(cats, "(sin dato)")) > 0L
+    sin_estrato <- "(sin dato)" %in% cats
+    accion <- if (con_nombre && sin_estrato) {
+      "Declara el tamaño de población que falta y revisa los casos sin dato en el estrato."
+    } else if (sin_estrato) {
+      "Revisa los casos sin dato en el estrato."
+    } else {
+      "Declara el tamaño de población que falta."
+    }
     avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
       "warn", "estrato_sin_poblacion",
-      sprintf("%d casos están en estratos sin tamaño de población (%s): reciben factor 1 en el diseño (no se reequilibran) y luego solo los mueve la normalización o el raking.",
-              sum(fuera), paste(cats, collapse = ", ")),
+      sprintf("%d %s en %s sin tamaño de población (%s): %s con factor 1 en el peso de diseño, sin corrección por estrato. %s",
+              sum(fuera), .ponderacion_segun_numero(sum(fuera), "caso está", "casos están"),
+              .ponderacion_segun_numero(length(cats), "un estrato", "estratos"),
+              .ponderacion_valores_txt(cats),
+              .ponderacion_segun_numero(sum(fuera), "queda", "quedan"), accion),
       categorias = cats, casos = as.integer(sum(fuera))
     )
   }
@@ -133,7 +166,9 @@
   if (length(vacios)) {
     avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
       "warn", "estrato_sin_casos",
-      sprintf("Estratos con población y sin casos en la muestra (%s): su población no queda representada.",
+      sprintf("%s (%s): su población no queda representada en el peso.",
+              .ponderacion_segun_numero(length(vacios), "Un estrato con población no tiene casos en la muestra",
+                                        "Hay estratos con población y sin casos en la muestra"),
               paste(vacios, collapse = ", ")),
       categorias = vacios
     )
@@ -235,10 +270,28 @@
     sin_casos <- names(p$targets)[p$targets > 0 &
       vapply(names(p$targets), function(l) !isTRUE(as.numeric(observed[l]) > 0), logical(1))]
     if (length(sin_casos)) {
+      # Lo que el bucle hace con el margen, que es lo que dice la cola de la frase:
+      #   - queda alguna categoria con meta y con casos: sus metas se dividen por
+      #     su suma (`tgt / sum(tgt[presentes])`), es decir, se reescalan a 100 %;
+      #   - ninguna categoria de la meta tiene casos: el paso se salta entero;
+      #   - solo quedan con casos categorias de meta 0: no hay reescalado y el
+      #     paso si corre, asi que la frase no afirma ninguna de las dos cosas.
+      con_meta <- sum(p$targets > 0)
+      alguna_con_casos <- any(vapply(names(p$targets), function(l) isTRUE(as.numeric(observed[l]) > 0), logical(1)))
+      cola <- if (length(sin_casos) < con_meta) {
+        ". Las metas de las demás categorías se reescalan para sumar 100 %."
+      } else if (!alguna_con_casos) {
+        " y el margen no se ajusta."
+      } else "."
       avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
         "warn", "categoria_sin_casos",
-        sprintf("El margen «%s» tiene categorías sin casos en la muestra (%s): su meta (%.1f%%) no se puede cumplir y el margen queda incumplido.",
-                p$var, paste(sin_casos, collapse = ", "), 100 * sum(p$targets[sin_casos])),
+        sprintf("El margen \"%s\" tiene %s en la muestra (%s): %s (%.1f %%%s) no se %s cumplir%s",
+                p$var, .ponderacion_segun_numero(length(sin_casos), "una categoría sin casos", "categorías sin casos"),
+                paste(sin_casos, collapse = ", "),
+                .ponderacion_segun_numero(length(sin_casos), "su meta", "sus metas"),
+                100 * sum(p$targets[sin_casos]),
+                .ponderacion_segun_numero(length(sin_casos), "", " en total"),
+                .ponderacion_segun_numero(length(sin_casos), "puede", "pueden"), cola),
         var = p$var, categorias = sin_casos
       )
     }
@@ -246,11 +299,13 @@
     if (any(fuera)) {
       cats <- sort(unique(.ponderacion_rotulo(p$values[fuera])))
       sin_dato <- all(.ponderacion_es_faltante(p$values[fuera], names(p$targets), codigos_faltantes))
-      que <- if (sin_dato) sprintf("sin dato en «%s»", p$var) else sprintf("de «%s» sin dato o sin meta", p$var)
+      que <- if (sin_dato) sprintf("sin dato en \"%s\"", p$var) else sprintf("de \"%s\" sin dato o sin meta", p$var)
       avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
         "info", "categoria_fuera_de_margen",
-        sprintf("%d casos %s (%s) conservan su peso en ese margen: el ajuste se aplica sólo a los casos con categoría válida, con la meta escalada a la parte del total que representan.",
-                sum(fuera), que, paste(cats, collapse = ", ")),
+        sprintf("%d %s %s (%s: %s) %s su peso en ese margen. El ajuste de este margen solo mueve a los casos con categoría válida, y su meta se calcula sobre la suma de los pesos de esos casos.",
+                sum(fuera), .ponderacion_segun_numero(sum(fuera), "caso", "casos"), que,
+                .ponderacion_segun_numero(length(cats), "valor", "valores"), .ponderacion_valores_txt(cats),
+                .ponderacion_segun_numero(sum(fuera), "conserva", "conservan")),
         var = p$var, categorias = cats, casos = as.integer(sum(fuera))
       )
     }
@@ -447,7 +502,7 @@
       vars <- vapply(margins[conteos], function(m) .ponderacion_scalar(m$var, ""), character(1))
       avisos[[1]] <- .ponderacion_aviso(
         "warn", "totales_inconsistentes",
-        sprintf("Las metas de los márgenes no suman lo mismo (%s). El peso de expansión usa el total de «%s» (%s).",
+        sprintf("Las metas de los márgenes no suman lo mismo (%s). El peso de expansión usa el total de \"%s\" (%s). Revisa las metas o declara la población total.",
                 paste(sprintf("%s = %s", vars, format(otros, big.mark = ",", trim = TRUE)), collapse = "; "),
                 vars[[1]], format(total, big.mark = ",", trim = TRUE)),
         totales = stats::setNames(as.list(otros), vars)
@@ -462,7 +517,7 @@
   }
   if (!is.null(base_raw)) return(list(total = sum(base_raw), avisos = avisos))
   stop_api(422, "E_PONDERACION_EXPANSION_SIN_TOTAL",
-           "El peso de expansión necesita la población total: las metas están en proporciones y no hay tamaños de estrato ni peso base. Declara 'total_poblacion' o escribe las metas como conteos.")
+           "El peso de expansión necesita la población total y no hay de dónde obtenerla: no hay metas en conteos, ni tamaños de estrato, ni peso base. Declara la población total o escribe las metas como conteos.")
 }
 
 .ponderacion_diag_corto <- function(w) {
@@ -599,8 +654,9 @@ ponderacion_compute <- function(data, config = list()) {
       if (!convergio) {
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
           "warn", "recorte_no_converge",
-          sprintf("El recorte a %s veces la media no se pudo conciliar con los márgenes en %d ciclos: el peso mayor queda en %.2f veces la media y el desvío máximo de margen en %.2f puntos.",
-                  format(cap), ciclos, max(w) / mean(w), 100 * desvio),
+          sprintf("El recorte de pesos extremos a %s veces la media no se pudo conciliar con los márgenes en %d %s: el peso mayor queda en %.2f veces la media y el desvío máximo de los márgenes en %.2f puntos porcentuales. Sube el tope del recorte o revisa las metas.",
+                  format(cap), ciclos, .ponderacion_segun_numero(ciclos, "ciclo", "ciclos"),
+                  max(w) / mean(w), 100 * desvio),
           ciclos = ciclos, max_sobre_media = max(w) / mean(w), max_desvio_margen = desvio
         )
       }
@@ -613,7 +669,7 @@ ponderacion_compute <- function(data, config = list()) {
       if (rake_applied && desvio > tol_margen) {
         avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
           "info", "recorte_rompe_margenes",
-          sprintf("El recorte desplazó los márgenes calibrados hasta %.2f puntos. Para conservarlos, activa la recalibración después del recorte.",
+          sprintf("El recorte de pesos extremos desplazó los márgenes calibrados hasta %.2f puntos porcentuales. Para conservarlos, activa \"Recalibrar después del recorte\".",
                   100 * desvio),
           max_desvio_margen = desvio
         )
@@ -633,8 +689,8 @@ ponderacion_compute <- function(data, config = list()) {
   if (rake_applied && !converged) {
     avisos[[length(avisos) + 1L]] <- .ponderacion_aviso(
       "warn", "no_converge",
-      sprintf("El raking no convergió en %d iteraciones: los márgenes pueden quedar lejos de sus metas. Suele deberse a metas incompatibles o a categorías sin casos en la muestra.",
-              iterations),
+      sprintf("El ajuste por márgenes no convergió en %d %s: los márgenes pueden quedar lejos de sus metas. Suele deberse a metas incompatibles entre sí o a combinaciones de categorías de distintos márgenes sin casos en la muestra.",
+              iterations, .ponderacion_segun_numero(iterations, "iteración", "iteraciones")),
       iteraciones = iterations
     )
   }
