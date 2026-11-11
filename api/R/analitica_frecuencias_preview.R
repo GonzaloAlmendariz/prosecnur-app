@@ -22,6 +22,11 @@
 #     valor numérico y peso mayor que cero; el resto usa `peso` y viene
 #     redondeado a un decimal por el motor.
 #
+# Base de cada tabla (`base.n` de `base.de`): casos SIN ponderar, enteros, con
+# peso mayor que cero (regla I1). `base.n` es el denominador del porcentaje
+# contado en casos; `base.de`, los casos que cuentan. Sale de
+# `analitica_frecuencias_base.R`; el archivo no la escribe.
+#
 # Casos: `casos$cuentan` son las filas de la base que entran a las tablas, con el
 # universo de análisis ("qué casos cuentan") ya aplicado al preparar la fuente.
 #
@@ -113,8 +118,8 @@
 # Bloque de UNA variable tal como sale en el archivo.
 .frecuencias_preview_tabla <- function(args, ctx, plan, sec, p) {
   v <- p$var
-  suma_pesos <- sum(.peso_vec(args$data))
-  ponderado <- "peso" %in% names(args$data)
+  # La base va en casos sin ponderar (I1): analitica_frecuencias_base.R.
+  con_peso <- .frecuencias_base_con_peso(args$data)
   out <- list(
     variable = v,
     variable_origen = if (grepl("_recod$", v)) sub("_recod$", "", v) else NA_character_,
@@ -130,7 +135,7 @@
     sin_datos = FALSE,
     filas = list(),
     total = list(n = NA_real_, pct = NA_real_),
-    base = list(n = NA_real_, de = NA_real_, ponderado = ponderado, denominador = NA_character_),
+    base = list(n = NA_integer_, de = con_peso, denominador = NA_character_),
     resumen = list(),
     notas = list()
   )
@@ -143,13 +148,8 @@
     out$resumen <- lapply(seq_len(nrow(tabn)), function(i) {
       list(estadistico = as.character(tabn$estadistico[[i]]), valor = as.numeric(tabn$valor[[i]]))
     })
-    # La primera fila del resumen es el conteo sin ponderar de casos válidos.
-    out$base <- list(
-      n = if (nrow(tabn)) as.numeric(tabn$valor[[1]]) else 0,
-      de = as.numeric(nrow(args$data)),
-      ponderado = FALSE,
-      denominador = "casos_validos"
-    )
+    out$base$n <- .frecuencias_base_numerica(tabn)
+    out$base$denominador <- "casos_validos"
     if (!out$sin_datos) out$notas <- as.list(notas)
     return(out)
   }
@@ -169,15 +169,22 @@
   out$tipo <- if (multiple) "multiple" else "unica"
   out$orden <- as.character(p$orden)
   out$base$denominador <- if (multiple) "marcaron_alguna_opcion" else "respondieron"
-  out$base$de <- suma_pesos
 
   if (!nrow(tab)) {
     # El archivo escribe "Sin datos" y no pone notas al pie.
     out$sin_datos <- TRUE
     out$total <- list(n = 0, pct = NA_real_)
-    out$base$n <- 0
+    out$base$n <- 0L
     return(out)
   }
+  out$base$n <- .frecuencias_base_categorica(
+    args$data, v,
+    survey = ctx$survey,
+    sm_vars_force = args$sm_vars_force,
+    orders_list = ctx$orders_list,
+    mostrar_todo = args$mostrar_todo,
+    codigos_solo_si_presentes = args$codigos_solo_si_presentes
+  )
 
   pct <- if ("pct" %in% names(tab)) as.numeric(tab$pct) else rep(NA_real_, nrow(tab))
   es_total <- as.character(tab$Opciones) == "Total"
@@ -202,7 +209,6 @@
   })
   if (!is.na(i_total)) {
     out$total <- list(n = as.numeric(tab$n[[i_total]]), pct = pct[[i_total]])
-    out$base$n <- as.numeric(tab$n[[i_total]])
   }
   out$notas <- as.list(notas)
   out
@@ -326,7 +332,8 @@ frecuencias_preview_tablas <- function(args, variables = NULL,
     motivo = if (is.list(estado)) txt(estado$motivo) else NA_character_,
     n_efectivo = if (is.list(estado)) num(estado$n_eff) else NA_real_,
     deff = if (is.list(estado)) num(estado$deff) else NA_real_,
-    sello = reporte_ponderacion_sello(estado)
+    sello = reporte_ponderacion_sello(estado),
+    escala = .frecuencias_base_escala(estado, pond)
   )
 }
 
@@ -391,9 +398,11 @@ analitica_frecuencias_preview <- function(sid, variables = NULL,
     # `cuentan` son las filas que entran a las tablas, con el universo de
     # análisis ya aplicado. Cuántas tenía la base antes de ese filtro lo publica
     # GET /api/analitica/universo, que es la única fuente de esa cifra.
+    # `con_peso` son las que tienen peso > 0: el `base.de` de cada tabla.
     casos = list(
       cuentan = nrow(args$data),
-      suma_pesos = sum(.peso_vec(args$data))
+      suma_pesos = sum(.peso_vec(args$data)),
+      con_peso = .frecuencias_base_con_peso(args$data)
     ),
     escala_pct = "proporcion",
     opciones = list(

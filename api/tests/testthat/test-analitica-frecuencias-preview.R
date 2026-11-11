@@ -240,10 +240,12 @@ test_that("ponderado, con numérica, orden descendente, secciones y notas: sigue
   expect_identical(res$ponderacion$peso_columna, "E1_age")
   expect_gt(res$casos$suma_pesos, res$casos$cuentan)
 
-  # Las cifras son sumas de peso: el Total ya no es el número de casos.
+  # Las cifras son sumas de peso: el Total ya no es el número de casos. La base
+  # sí lo es (I1): casos sin ponderar, y ya no declara `ponderado`.
   sexo <- .fp_tabla(res, "E2_sex")
-  expect_true(sexo$base$ponderado)
-  expect_equal(sexo$base$de, res$casos$suma_pesos)
+  expect_null(sexo$base$ponderado)
+  expect_identical(sexo$base$de, res$casos$con_peso)
+  expect_identical(sexo$base$n, res$casos$cuentan)
   expect_gt(sexo$total$n, res$casos$cuentan)
   expect_identical(unlist(sexo$notas),
                    c("Fuente: Encuesta de prueba.", "Base: Personas que declararon su sexo."))
@@ -265,9 +267,9 @@ test_that("ponderado, con numérica, orden descendente, secciones y notas: sigue
       "Mediana (Percentil 50)", "Percentil 75", "Máximo")
   )
   expect_identical(edad$base$denominador, "casos_validos")
-  expect_false(edad$base$ponderado)
-  expect_equal(edad$base$n, edad$resumen[[1]]$valor)
-  expect_equal(edad$base$de, res$casos$cuentan)
+  expect_null(edad$base$ponderado)
+  expect_identical(edad$base$n, as.integer(edad$resumen[[1]]$valor))
+  expect_identical(edad$base$de, res$casos$con_peso)
   expect_identical(edad$filas, list())
 
   # El rótulo de sección sale como en el archivo, sobre la primera tabla de la sección.
@@ -313,6 +315,11 @@ test_that("numéricas con datos, universo de análisis y ponderación (proyecto 
                           function(f) f$codigo, character(1)) |> sort(), c("1", "2"))
   edad <- .fp_tabla(con, "edad")
   expect_equal(edad$base$n, con$casos$cuentan)
+  # La base de cada tabla es el universo, no la base entera.
+  expect_identical(con$casos$con_peso, con$casos$cuentan)
+  expect_true(all(vapply(con$tablas, function(t) identical(t$base$de, con$casos$con_peso), logical(1))))
+  expect_lt(sexo$base$de, n_base)
+  expect_identical(sexo$base$n, con$casos$cuentan)
 })
 
 test_that("multibase: la vista previa es de la base activa y no cae en la primera", {
@@ -473,7 +480,9 @@ test_that("códigos especiales, opciones sin casos, orden y Total de la múltipl
   expect_true(is.na(codigos(voto)[nombres(voto) == "7"]))
   # Ponderado: el denominador es la suma de pesos de quienes respondieron (la fila sin dato pesa 4).
   expect_equal(voto$total$n, sum(args$data$peso) - 4)
-  expect_equal(voto$base$de, sum(args$data$peso))
+  # La base, en cambio, son casos: 9 respondieron de 10 con peso > 0.
+  expect_identical(voto$base$n, 9L)
+  expect_identical(voto$base$de, 10L)
   expect_equal(.fp_fila(voto, "1")$pct, 3 / voto$total$n)
 
   # Lista ordinal: orden del formulario aunque el global sea descendente.
@@ -560,6 +569,240 @@ test_that("si el archivo no tendría tablas, lo dice y no falla", {
   expect_identical(res$sin_tabla[[1]], list(variable = "voto", motivo = "fuera_del_archivo"))
   # El motor del archivo falla en ese mismo caso, con la clase que la vista previa reconoce.
   expect_error(.freq_reporte_contexto(args$data, args$instrumento, args$secciones), class = "freq_sin_tablas")
+})
+
+# --- Base en casos sin ponderar (contrato v2, regla I1) ----------------------
+#
+# `base.n` y `base.de` son enteros de casos con peso > 0; las filas y el Total
+# siguen siendo sumas de peso, las del archivo.
+
+# Base mínima: una única (`voto`), una múltiple con madre pegada (`medios`) y una
+# numérica (`hijos`). `datos` trae esas columnas y, si se quiere, `peso`.
+.fp_args_base <- function(datos, etiquetas_medios = c("Radio", "Televisión", "Redes")) {
+  inst <- list(
+    survey = data.frame(
+      type = c("select_one l_voto", "select_multiple l_medios", "integer"),
+      name = c("voto", "medios", "hijos"),
+      label = c("Voto", "Medios", "Hijos"),
+      list_name = c("l_voto", "l_medios", NA),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("l_voto", "l_voto", "l_medios", "l_medios", "l_medios"),
+      name = c("1", "2", "a", "b", "c"),
+      label = c("Partido A", "Partido B", etiquetas_medios),
+      stringsAsFactors = FALSE
+    )
+  )
+  list(
+    data = datos, instrumento = inst,
+    secciones = list("Todo" = c("voto", "medios", "hijos")),
+    orden = "original", mostrar_todo = FALSE,
+    incluir_titulos = TRUE, incluir_secciones = FALSE,
+    codigos_solo_si_presentes = c(98L, 99L),
+    numericas = "hijos", fuente = "Prueba", ficha_tecnica = FALSE
+  )
+}
+
+.fp_tablas_base <- function(datos, ...) {
+  res <- frecuencias_preview_tablas(.fp_args_base(datos, ...), limite = 50L)
+  stats::setNames(res$tablas, vapply(res$tablas, function(t) t$variable, character(1)))
+}
+
+# Invariantes de toda respuesta: enteros, base.n <= base.de <= casos.cuentan y
+# base.de == casos.con_peso.
+.fp_invariantes_base <- function(res) {
+  for (t in res$tablas) {
+    expect_true(is.integer(t$base$n) && length(t$base$n) == 1L && !is.na(t$base$n), label = t$variable)
+    expect_true(is.integer(t$base$de) && length(t$base$de) == 1L && !is.na(t$base$de), label = t$variable)
+    expect_lte(t$base$n, t$base$de)
+    expect_lte(t$base$de, res$casos$cuentan)
+    expect_identical(t$base$de, res$casos$con_peso)
+    expect_null(t$base$ponderado)
+  }
+  expect_true(is.integer(res$casos$con_peso))
+}
+
+test_that("base sin ponderar en acnur_acg: invariantes sin pesos, con calibración y con columna", {
+  sid <- .fp_abrir("acg")
+  sin <- analitica_frecuencias_preview(sid, limite = 500L)
+  .fp_invariantes_base(sin)
+  expect_identical(sin$casos$con_peso, sin$casos$cuentan)
+  # Sin pesos la base es el Total del archivo, tabla por tabla.
+  for (t in sin$tablas) {
+    if (identical(t$tipo, "numerica")) next
+    expect_equal(t$base$n, t$total$n, label = t$variable)
+  }
+  recod <- .fp_tabla(sin, "D1_information_recod")
+  expect_lt(recod$base$n, recod$base$de)    # no todos marcaron alguna opción
+
+  .fp_configurar(sid, function(cfg) {
+    cfg$ponderacion <- list(enabled = TRUE, rake = list(margins = list(
+      list(var = "E2_sex", targets = list(`1` = 0.35, `2` = 0.6, `3` = 0.05))
+    )))
+    cfg
+  })
+  con <- suppressWarnings(analitica_frecuencias_preview(sid, limite = 500L))
+  expect_true(con$ponderado)
+  .fp_invariantes_base(con)
+  # Las bases son las mismas que sin pesos; los Totales ya no.
+  expect_identical(lapply(con$tablas, function(t) t$base), lapply(sin$tablas, function(t) t$base))
+  impacto <- .fp_tabla(con, "E6_impact")
+  expect_identical(impacto$base$n, .fp_tabla(sin, "E6_impact")$base$n)
+  expect_false(isTRUE(all.equal(impacto$total$n, as.numeric(impacto$base$n))))
+})
+
+test_that("con pesos 1.25, 0.5 y 2.2 la base es el conteo y el Total la suma de pesos", {
+  datos <- data.frame(
+    voto = c("1", "2", "1", NA),
+    medios = c("a", "a b", NA, "c"),
+    hijos = c(1, 2, 3, NA),
+    peso = c(1.25, 0.5, 2.2, 1),
+    stringsAsFactors = FALSE
+  )
+  t <- .fp_tablas_base(datos)
+  expect_identical(t$voto$base$n, 3L)
+  expect_equal(t$voto$total$n, 1.25 + 0.5 + 2.2)
+  expect_identical(t$voto$base$de, 4L)
+  expect_identical(t$medios$base$n, 3L)
+  expect_equal(t$medios$total$n, 1.25 + 0.5 + 1)
+  expect_identical(t$hijos$base$n, 3L)
+})
+
+test_that("un caso con peso 0 no entra en base.n ni en base.de", {
+  datos <- data.frame(
+    voto = c("1", "2", "1", "2"),
+    medios = c("a", "b", "a b", "c"),
+    hijos = c(1, 2, 3, 4),
+    peso = c(1, 0, 1, 1),
+    stringsAsFactors = FALSE
+  )
+  t <- .fp_tablas_base(datos)
+  for (v in c("voto", "medios", "hijos")) {
+    expect_identical(t[[v]]$base$n, 3L, label = v)
+    expect_identical(t[[v]]$base$de, 3L, label = v)
+  }
+  res <- frecuencias_preview_tablas(.fp_args_base(datos))
+  expect_identical(.frecuencias_base_con_peso(datos), 3L)
+  expect_lt(.frecuencias_base_con_peso(datos), nrow(datos))
+  expect_length(res$tablas, 3L)
+})
+
+test_that("numérica con valores 10, 20, NA, 30 y pesos 1, 0, 1, NA: base 1 de 2", {
+  datos <- data.frame(
+    voto = c("1", "1", "1", "1"),
+    medios = c("a", "a", "a", "a"),
+    hijos = c(10, 20, NA, 30),
+    peso = c(1, 0, 1, NA),
+    stringsAsFactors = FALSE
+  )
+  hijos <- .fp_tablas_base(datos)$hijos
+  expect_identical(hijos$tipo, "numerica")
+  expect_identical(hijos$base$n, 1L)
+  expect_identical(hijos$base$de, 2L)
+  expect_identical(hijos$base$denominador, "casos_validos")
+  expect_identical(hijos$resumen[[1]]$valor, 1)
+})
+
+test_that("múltiple: un caso que marca dos opciones cuenta una vez, con madre pegada o con columnas por opción", {
+  datos <- data.frame(
+    voto = c("1", "2", "1"),
+    medios = c("a b", "a", ""),
+    hijos = c(1, 2, 3),
+    stringsAsFactors = FALSE
+  )
+  medios <- .fp_tablas_base(datos)$medios
+  expect_identical(medios$base$n, 2L)
+  expect_identical(sum(vapply(medios$filas, function(f) f$n, numeric(1))), 3)
+
+  dummies <- data.frame(
+    voto = c("1", "2", "1"),
+    `medios/a` = c(1, 1, 0), `medios/b` = c(1, 0, 0), `medios/c` = c(0, 0, 0),
+    hijos = c(1, 2, 3),
+    peso = c(2, 1, 1),
+    check.names = FALSE
+  )
+  medios <- .fp_tablas_base(dummies)$medios
+  expect_identical(medios$tipo, "multiple")
+  expect_identical(medios$base$n, 2L)
+  expect_equal(medios$total$n, 3)
+  expect_identical(medios$base$de, 3L)
+})
+
+test_that("múltiple con dos opciones del mismo rótulo: el archivo las junta y la base no se duplica", {
+  datos <- data.frame(
+    voto = c("1", "2", "1", "2"),
+    medios = c("a b", "a", "b", "c"),
+    hijos = c(1, 2, 3, 4),
+    stringsAsFactors = FALSE
+  )
+  medios <- .fp_tablas_base(datos, etiquetas_medios = c("Radio", "Radio", "Redes"))$medios
+  radio <- Filter(function(f) identical(f$etiqueta, "Radio"), medios$filas)
+  expect_length(radio, 1L)
+  expect_identical(radio[[1]]$n, 4)            # la fila del archivo suma las dos opciones
+  expect_identical(medios$base$n, 4L)          # cuatro personas, no cinco marcas
+  expect_identical(medios$total$n, 4)
+})
+
+test_that("ponderacion.escala: normalizada, expansión, nula sin ponderar y nula con pesos de una columna", {
+  sid <- .fp_abrir("acg")
+  escala <- function(pond) {
+    .fp_configurar(sid, function(cfg) {
+      cfg$ponderacion <- pond
+      cfg
+    })
+    suppressWarnings(analitica_frecuencias_preview(sid, variables = "E2_sex"))
+  }
+  margenes <- list(margins = list(list(var = "E2_sex", targets = list(`1` = 0.4, `2` = 0.55, `3` = 0.05))))
+
+  sin <- escala(NULL)
+  expect_identical(sin$ponderacion$escala, NA_character_)
+  expect_identical(sin$casos$con_peso, sin$casos$cuentan)
+
+  norm <- escala(list(enabled = TRUE, rake = margenes))
+  expect_identical(norm$ponderacion$estado, "aplicada")
+  expect_identical(norm$ponderacion$escala, "normalizada")
+  expect_equal(norm$casos$suma_pesos, norm$casos$cuentan)
+
+  exp <- escala(list(enabled = TRUE, rake = margenes, escala = "expansion", total_poblacion = 50000))
+  expect_identical(exp$ponderacion$escala, "expansion")
+  expect_equal(exp$casos$suma_pesos, 50000)
+  sexo <- exp$tablas[[1]]
+  expect_identical(sexo$base$n, exp$casos$cuentan)
+  expect_equal(sexo$total$n, 50000)
+
+  col <- escala(list(enabled = TRUE, modo = "columna", peso_columna = "E1_age"))
+  expect_identical(col$ponderacion$modo, "columna")
+  expect_identical(col$ponderacion$escala, NA_character_)
+
+  # Configurada pero no aplicada: no hay escala que declarar.
+  expect_identical(.frecuencias_base_escala(reporte_ponderacion_estado("no_aplicada", motivo = "x"), list()),
+                   NA_character_)
+  # Estado derivado sin `escala` (hija que hereda el peso): manda la config.
+  heredado <- reporte_ponderacion_estado("aplicada")
+  expect_identical(.frecuencias_base_escala(heredado, list(escala = "expansion")), "expansion")
+  expect_identical(.frecuencias_base_escala(heredado, list()), "normalizada")
+})
+
+test_that("con calibración, filas, Total y resumen siguen siendo los del archivo (acnur_acg)", {
+  sid <- .fp_abrir("acg")
+  .fp_configurar(sid, function(cfg) {
+    cfg$frecuencias$numericas_override <- list("E1_age")
+    cfg$ponderacion <- list(enabled = TRUE, rake = list(margins = list(
+      list(var = "E2_sex", targets = list(`1` = 0.35, `2` = 0.6, `3` = 0.05))
+    )))
+    cfg
+  })
+  res <- suppressWarnings(analitica_frecuencias_preview(sid, limite = 500L))
+  bloques <- suppressWarnings(.fp_leer_archivo(.fp_generar_archivo(sid)[[res$base$nombre]]))
+  expect_true(res$ponderado)
+  expect_identical(.fp_diferencias(res$tablas, bloques), character(0))
+  # El comparador ve un Total en casos donde el archivo escribe la suma de pesos.
+  mutada <- res$tablas
+  i <- which(vapply(mutada, function(t) identical(t$variable, "E6_impact"), logical(1)))
+  expect_false(isTRUE(all.equal(mutada[[i]]$total$n, as.numeric(mutada[[i]]$base$n))))
+  mutada[[i]]$total$n <- as.numeric(mutada[[i]]$base$n)
+  expect_match(.fp_diferencias(mutada, bloques), ": n$", all = FALSE)
 })
 
 # --- Entrada -----------------------------------------------------------------
