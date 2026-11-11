@@ -4922,7 +4922,8 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
   control = "#CBCBCB",
   red = "#EF4A60",
   yellow = "#FAEB00",
-  footer = "#CCCCCC"
+  footer = "#CCCCCC",
+  light_blue = "#8EBAE5"
 )
 
 .PPT_STYLE_PROFILES <- list(
@@ -5089,11 +5090,23 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
       pie = list(
         tipo_pie = "donut",
         leyenda_posicion = "derecha",
-        size_leyenda = 9.5,
+        # Una torta ocupa la lámina entera: a 9.5 la leyenda y las cifras se volvían ilegibles (como la del perfil).
+        size_leyenda = 14,
+        size_etiquetas_pct = 5.2,
+        decimales_pct = 1,
         color_etiquetas_pct = "white",
         etiquetas_negrita = TRUE,
         mostrar_etiquetas_pct = TRUE,
-        canvas_w_legend_right = 0.32
+        canvas_w_legend_right = 0.32,
+        # Torta elegida en la pestaña Plantillas: los azules ACNUR y gris para la no respuesta, no la paleta Pulso.
+        colores_categorias = list(.ACNUR_PPT_COLORS$blue, .ACNUR_PPT_COLORS$light_blue, .ACNUR_PPT_COLORS$control, .ACNUR_PPT_COLORS$footer)
+      ),
+      # Columnas elegidas en la pestaña Plantillas: un solo azul, como las barras del informe. El graficador completa
+      # una paleta corta con los colores de la casa, así que el azul va repetido para cualquier número de columnas.
+      barras_categoricas = list(
+        colores_categorias = as.list(rep(.ACNUR_PPT_COLORS$blue, 40)),
+        decimales = 1,
+        ancho_max_eje_x = 14
       ),
       donut = list(
         tipo_pie = "donut",

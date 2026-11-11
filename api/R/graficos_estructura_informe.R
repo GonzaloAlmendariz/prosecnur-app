@@ -26,12 +26,23 @@
 
 #' Gráficos que se ofrecen para un tipo de pregunta (la primera es la de la plantilla)
 #' @keywords internal
-.graficos_opciones_de_grafico <- function(tipo) {
-  # Una escala y una dicotomía conservan su orden: ordenarlas por frecuencia desarma la escala.
-  if (tipo %in% c("Escala", "Sí / No")) return("barras")
-  if (identical(tipo, "Opción múltiple")) return(c("barras_ordenadas", "barras"))
-  c("barras", "barras_ordenadas")
+.graficos_opciones_de_grafico <- function(tipo, n_opciones = NA_integer_) {
+  # Una escala y una dicotomía conservan su orden: ordenarlas por frecuencia desarma la escala. La torta sólo para
+  # dos opciones (más la no respuesta) y las columnas hasta seis: con más, los rótulos del eje no se leen.
+  opciones <- switch(tipo,
+    "Sí / No" = c("barras", "torta", "barras_verticales"),
+    "Escala" = c("barras", "barras_verticales"),
+    "Opción múltiple" = c("barras_ordenadas", "barras"),
+    c("barras", "barras_ordenadas", "barras_verticales")
+  )
+  n <- suppressWarnings(as.integer(n_opciones)[1])
+  if (!is.na(n) && n > 6L) opciones <- setdiff(opciones, "barras_verticales")
+  opciones
 }
+
+#' Opciones de respuesta de una pregunta, residuales incluidas (lo que dibujan columnas y torta)
+#' @keywords internal
+.graficos_n_opciones <- function(v) length(v$choices %||% list())
 
 #' Referencias de pregunta que dibuja una lámina (un gráfico, dos, o una batería)
 #' @keywords internal
@@ -91,7 +102,7 @@
       if (!nzchar(partes$source)) partes$source <- "default"
       v <- vars[[ref]] %||% vars[[partes$name]] %||% list()
       tipo <- .graficos_tipo_de_pregunta(v)
-      opciones <- .graficos_opciones_de_grafico(tipo)
+      opciones <- .graficos_opciones_de_grafico(tipo, .graficos_n_opciones(v))
       secciones[[actual]]$preguntas[[ref]] <- list(
         ref = ref,
         etiqueta = .graficos_scalar_chr(s$payload$titulo, "") %||% .graficos_scalar_chr(v$label, ref),

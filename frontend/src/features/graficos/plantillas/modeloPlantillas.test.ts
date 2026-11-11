@@ -21,7 +21,7 @@ const estructura: EstructuraDelInforme = normalizarEstructuraDelInforme({
   perfil: "acnur_kobo_cruncher_plus",
   laminas_fijas: 3,
   secciones: [
-    { titulo: "Consentimiento", preguntas: { ref: "consent", etiqueta: "¿Acepta?", tipo: "Sí / No", laminas: 1, dentro: true, grafico: "barras", graficos_posibles: "barras", por_registro: false } },
+    { titulo: "Consentimiento", preguntas: { ref: "consent", etiqueta: "¿Acepta?", tipo: "Sí / No", laminas: 1, dentro: true, grafico: "torta", graficos_posibles: ["barras", "torta", "barras_verticales"], por_registro: false } },
     {
       titulo: "Salud",
       preguntas: [
@@ -38,7 +38,8 @@ describe("normalizarEstructuraDelInforme", () => {
   it("lleva a arreglos lo que R manda como escalar o como {} y descarta las secciones vacías", () => {
     expect(estructura.secciones.map((s) => s.titulo)).toEqual(["Consentimiento", "Salud"]);
     expect(estructura.secciones[0].preguntas).toHaveLength(1);
-    expect(estructura.secciones[0].preguntas[0].graficosPosibles).toEqual(["barras"]);
+    expect(estructura.secciones[0].preguntas[0].graficosPosibles).toEqual(["barras", "torta", "barras_verticales"]);
+    expect(estructura.secciones[0].preguntas[0].grafico).toBe("torta");
     expect(estructura.avisos).toEqual(["Un aviso"]);
   });
   it("un gráfico que la pregunta no admite cae al primero posible", () => {
@@ -67,6 +68,9 @@ describe("selección sobre la estructura", () => {
   it("una sección con parte de sus preguntas fuera queda en estado mixto", () => {
     const secciones = conSeleccion(estructura, new Set(["motivo"]), {});
     expect(estadoSeccion(secciones[1])).toBe("algunas");
+  });
+  it("torta y columnas se guardan; una clave desconocida se descarta al leer", () => {
+    expect(graficosDe({ grafico_por_pregunta: { a: "torta", b: "barras_verticales", c: "dona" } })).toEqual({ a: "torta", b: "barras_verticales" });
   });
   it("el gráfico por defecto no se guarda; uno distinto sí", () => {
     let r = conGrafico({}, "motivo", "barras", "barras_ordenadas");

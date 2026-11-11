@@ -8,14 +8,16 @@
 # láminas de un gráfico. Una clave desconocida se ignora: la lámina conserva el gráfico de la plantilla.
 #
 # Claves:
-#   barras            barras horizontales en el orden de la plantilla
-#   barras_ordenadas  barras de mayor a menor (residuales al final)
+#   barras             barras horizontales en el orden de la plantilla
+#   barras_ordenadas   barras de mayor a menor (residuales al final)
+#   barras_verticales  columnas (p_barras_categoricas: el render fuerza las agrupadas al lienzo, que sólo es horizontal)
+#   torta              torta
 #
-# Sólo se ofrecen los gráficos comprobados en render por la ruta de la plantilla ACNUR (2026-11-11). Dona, barra al
-# 100 % y columnas quedan fuera hasta corregirlos: la dona salía en el azul Pulso, la barra al 100 % repetía la pregunta
-# como rótulo y las columnas salían vacías ("Sin datos").
+# Comprobados en render por la ruta de la plantilla ACNUR (2026-11-11); el perfil ACNUR les da sus azules
+# (presets `pie` y `barras_categoricas`). La barra al 100 % queda fuera: su color sale de la paleta de la lista y el
+# perfil ACNUR no tiene una paleta por defecto para cualquier lista, así que salía en el azul Pulso.
 
-.GRAFICOS_POR_PREGUNTA <- c("barras", "barras_ordenadas")
+.GRAFICOS_POR_PREGUNTA <- c("barras", "barras_ordenadas", "barras_verticales", "torta")
 
 #' Mapa referencia -> gráfico elegido, leído de la config
 #' @keywords internal
@@ -33,6 +35,8 @@
 .graficos_grafico_elegido <- function(graf, clave) {
   args <- graf$args %||% list()
   ov <- args$overrides %||% list()
+  ref <- .graficos_scalar_chr(args$var, "")
+  comunes <- ov[intersect(names(ov), c("nota_pie", "subtitulo", "excluir_opciones", "unidad_base", "color_fondo"))]
   agrupadas <- function(extra_ov = list()) {
     list(graficador = "p_barras_agrupadas",
          args = c(args[setdiff(names(args), "overrides")], list(overrides = utils::modifyList(ov, extra_ov))))
@@ -40,6 +44,9 @@
   switch(clave,
     barras = agrupadas(),
     barras_ordenadas = agrupadas(list(orden_barras = "mayor_menor", otros_al_final = TRUE)),
+    # Las columnas no salen de las barras agrupadas: el render las fuerza al lienzo, que sólo dibuja barras horizontales.
+    barras_verticales = list(graficador = "p_barras_categoricas", args = list(var = ref, overrides = comunes)),
+    torta = list(graficador = "p_pie", args = list(var = ref, overrides = c(comunes, list(tipo_pie = "pie")))),
     graf
   )
 }

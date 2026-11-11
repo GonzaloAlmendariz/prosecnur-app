@@ -49,7 +49,9 @@ test_that("la estructura agrupa por sección, cuenta láminas y marca lo excluid
   expect_equal(q$motivo$laminas, 2L)                     # una lista paginada suma sus láminas
   expect_identical(q$motivo$grafico, "barras")           # la elección del analista
   expect_identical(q$seguridad$grafico, "barras")
-  expect_identical(unlist(q$seguridad$graficos_posibles), "barras")   # una escala no se ordena por frecuencia
+  expect_identical(unlist(q$seguridad$graficos_posibles), c("barras", "barras_verticales"))   # una escala no se ordena por frecuencia
+  expect_true("torta" %in% unlist(q$consent$graficos_posibles))                                # la torta, sólo en Sí / No
+  expect_false("torta" %in% unlist(q$motivo$graficos_posibles))
   expect_true(q[["miembros$sexo"]]$por_registro)
   expect_false(q$motivo$por_registro)
 })
@@ -70,6 +72,21 @@ test_that("el gráfico elegido se aplica a la lámina y una clave no comprobada 
   expect_identical(.graficos_aplicar_grafico_por_pregunta(slides, list()), slides)
 })
 
+test_that("torta y columnas usan su graficador y conservan la base", {
+  slides <- .pp_plan()$plan$slides
+  mapa <- .graficos_grafico_por_pregunta(list(scope_rules = list(grafico_por_pregunta = list(consent = "torta", seguridad = "barras_verticales"))))
+  out <- .graficos_aplicar_grafico_por_pregunta(slides, mapa)
+  g <- function(ref) Filter(function(s) identical(s$payload$grafico$args$var, ref), out)[[1]]$payload$grafico
+  expect_identical(g("consent")$graficador, "p_pie")
+  expect_identical(g("consent")$args$overrides$tipo_pie, "pie")
+  expect_identical(g("seguridad")$graficador, "p_barras_categoricas")
+  expect_identical(g("seguridad")$args$overrides$nota_pie, "Base")
+  # El perfil ACNUR da sus azules a la torta y a las columnas, no la paleta Pulso.
+  pr <- .PPT_STYLE_PROFILES$acnur_kobo_cruncher_plus$presets
+  expect_identical(pr$pie$colores_categorias[[1]], "#0072BC")
+  expect_true(all(unlist(pr$barras_categoricas$colores_categorias) == "#0072BC"))
+})
+
 # El endpoint recibe el cuerpo como lo pasa plumber: los campos del JSON llegan también como argumentos con nombre. Sin
 # `...` en el handler respondía E_INTERNAL "unused argument (config = ...)" (QA en vivo, 2026-11-11).
 test_that("POST /api/graficos/plan/estructura acepta el cuerpo con config", {
@@ -87,4 +104,11 @@ test_that("POST /api/graficos/plan/estructura acepta el cuerpo con config", {
   expect_identical(as.integer(res$status), 200L)
   expect_true(isTRUE(out$ok))
   expect_length(out$secciones, 3L)
+})
+
+test_that("las columnas sólo se ofrecen hasta seis opciones", {
+  expect_true("barras_verticales" %in% .graficos_opciones_de_grafico("Opción única", 6L))
+  expect_false("barras_verticales" %in% .graficos_opciones_de_grafico("Opción única", 8L))
+  expect_true("barras_verticales" %in% .graficos_opciones_de_grafico("Escala", NA_integer_))
+  expect_identical(.graficos_opciones_de_grafico("Opción múltiple", 3L), c("barras_ordenadas", "barras"))
 })

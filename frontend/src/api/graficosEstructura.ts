@@ -5,7 +5,7 @@
 
 import { apiFetch, handle, headers } from "./core";
 
-export type GraficoPorPregunta = "barras" | "barras_ordenadas";
+export type GraficoPorPregunta = "barras" | "barras_ordenadas" | "barras_verticales" | "torta";
 
 export type PreguntaDelInforme = {
   ref: string;
@@ -29,7 +29,7 @@ export type EstructuraDelInforme = {
   avisos: string[];
 };
 
-const GRAFICOS: readonly GraficoPorPregunta[] = ["barras", "barras_ordenadas"];
+const GRAFICOS: readonly GraficoPorPregunta[] = ["barras", "barras_ordenadas", "barras_verticales", "torta"];
 
 const arreglo = (v: unknown): unknown[] => (Array.isArray(v) ? v : v == null || (typeof v === "object" && !Object.keys(v as object).length) ? [] : [v]);
 const registro = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});

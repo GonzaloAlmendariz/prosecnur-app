@@ -24,14 +24,18 @@ export type FiltroPreguntas = "todas" | "dentro" | "fuera";
 export const ROTULO_GRAFICO: Record<GraficoPorPregunta, string> = {
   barras: "Barras",
   barras_ordenadas: "Barras de mayor a menor",
+  barras_verticales: "Columnas",
+  torta: "Torta",
 };
+
+const GRAFICOS_VALIDOS = new Set<string>(Object.keys(ROTULO_GRAFICO));
 
 const lista = (v: unknown): string[] => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
 const mapa = (v: unknown): Record<string, GraficoPorPregunta> => {
   if (!v || typeof v !== "object" || Array.isArray(v)) return {};
   const out: Record<string, GraficoPorPregunta> = {};
   for (const [k, g] of Object.entries(v as Record<string, unknown>)) {
-    if (g === "barras" || g === "barras_ordenadas") out[k] = g;
+    if (typeof g === "string" && GRAFICOS_VALIDOS.has(g)) out[k] = g as GraficoPorPregunta;
   }
   return out;
 };
