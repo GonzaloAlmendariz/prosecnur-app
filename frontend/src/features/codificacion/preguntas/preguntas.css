@@ -1,0 +1,873 @@
+/* Codificación, Preguntas (etapa P3a del rediseño de Procesamiento).
+ *
+ * Dos paneles del kit (`components/Panel`) que llegan al borde inferior de la superficie: la lista de
+ * unidades y el inspector. Esta hoja no dibuja cajas: cada lado de una unidad es un `BloquePregunta`
+ * del kit, y las unidades se separan con aire. El punteado se usa en un solo lugar, el nodo donde se
+ * suelta la otra pregunta.
+ *
+ * Solo tokens --pulso-*, --tipo-* y --motion-*; la letra va por rol (app/tipografia.css). */
+
+/* ---------- Marco ---------- */
+
+.pulso-codificacion-frame .pulso-preg {
+  --preg-acento: var(--module-accent, var(--pulso-primary));
+  --preg-acento-suave: var(--module-accent-soft, var(--pulso-primary-soft));
+  --preg-riel: var(--pulso-space-5);
+  --preg-lazo: var(--pulso-control-height-md);
+  --preg-estado: 10.5rem;
+  container: pulso-preg / inline-size;
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* El inspector mide 400 con ancho de sobra, 330 en una ventana media y 300 en la compacta. */
+.pulso-preg-mesa {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--pulso-space-5);
+  min-height: 0;
+}
+
+@container pulso-preg (max-width: 1240px) {
+  .pulso-preg-mesa {
+    grid-template-columns: minmax(0, 1fr) 330px;
+    gap: var(--pulso-space-4);
+  }
+}
+
+@container pulso-preg (max-width: 920px) {
+  .pulso-preg-mesa {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: var(--pulso-space-3);
+  }
+}
+
+/* Los dos paneles ocupan el alto de la mesa; lo que se desplaza es su cuerpo. */
+.pulso-preg-lista.pulso-panel,
+.pulso-preg-inspector.pulso-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+/* ---------- Barra: filtros y buscador ---------- */
+
+.pulso-preg-barra {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-1);
+  padding: var(--pulso-space-3) var(--preg-riel);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* El grupo de filtros no hace caja: sus chips y el buscador comparten las líneas de la barra, así el
+   buscador ocupa lo que sobra junto al último chip en vez de bajar a una línea propia. */
+.pulso-preg-filtros {
+  display: contents;
+}
+
+.pulso-preg-buscador.pulso-cv2-search {
+  flex: 1 1 12rem;
+  max-width: 22rem;
+  height: calc(var(--pulso-control-height-md) + var(--pulso-space-1));
+  margin: 0 0 0 auto;
+}
+
+/* Un solo anillo: lo lleva la caja del buscador, no el campo que tiene dentro. */
+.pulso-preg-buscador.pulso-cv2-search:focus-within {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.pulso-preg-buscador .pulso-cv2-search-input:focus {
+  outline: none;
+}
+
+/* ---------- Lista de unidades (dueña de su desplazamiento) ---------- */
+
+.pulso-preg-unidades {
+  container: pulso-preg-unidades / inline-size;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: var(--pulso-space-8) var(--pulso-space-2);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.pulso-preg-sin-filas {
+  padding: var(--pulso-space-5) var(--preg-riel);
+}
+
+/* Encabezado de sección del formulario: un rótulo, no un control. Se queda arriba mientras pasan sus
+   unidades, sobre el fondo del panel. */
+.pulso-preg-seccion-rotulo {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: var(--pulso-space-3) var(--preg-riel) var(--pulso-space-1);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Las unidades se separan con aire. El relleno lateral de la lista más el de la unidad dan el riel de
+   20 px: los bloques arrancan sobre la misma línea que los filtros. */
+.pulso-preg-filas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0 var(--pulso-space-2) var(--pulso-space-2);
+  list-style: none;
+}
+
+/* ---------- Una unidad ---------- */
+
+/* La unidad y su botón comparten rejilla (lado, nodo, lado, estado): así el nodo punteado, que es un
+   botón aparte, cae exactamente en la columna del nodo. */
+.pulso-preg-fila {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--preg-lazo) minmax(0, 1fr) var(--preg-estado);
+  column-gap: var(--pulso-space-3);
+  align-items: stretch;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-card);
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) {
+  .pulso-preg-fila:hover {
+    background: var(--pulso-surface-2);
+  }
+}
+
+/* La seleccionada lleva el anillo y un fondo suave del módulo; sin franja lateral. */
+.pulso-preg-fila[data-seleccionada] {
+  background: color-mix(in srgb, var(--preg-acento) 6%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1.5px var(--preg-acento);
+}
+
+.pulso-preg-fila[data-ocupada] {
+  opacity: 0.7;
+}
+
+/* `position: relative` contiene el texto solo para lector de pantalla: sin él, ese texto absoluto se
+   ancla fuera de la lista y alarga el documento. */
+.pulso-preg-fila-boton {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  grid-template-columns: minmax(0, 1fr) var(--preg-lazo) minmax(0, 1fr) var(--preg-estado);
+  column-gap: var(--pulso-space-3);
+  align-items: stretch;
+  justify-content: stretch;
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+  text-align: start;
+  white-space: normal;
+  transform: none;
+  cursor: pointer;
+}
+
+/* El anillo de foco es el del kit; rodea la unidad entera. */
+.pulso-preg-fila-boton:focus-visible {
+  outline-offset: var(--pulso-space-1);
+}
+
+/* Los lados de la unidad. El alto mínimo es el de un bloque con la pregunta en una línea (60 px, 76 la
+   unidad); una pregunta de dos líneas lo supera, por eso la lista se declara `intrinsic`. */
+.pulso-preg-lados {
+  display: grid;
+  grid-column: 1 / 4;
+  grid-template-columns: minmax(0, 1fr) var(--preg-lazo) minmax(0, 1fr);
+  column-gap: var(--pulso-space-3);
+  align-items: stretch;
+  min-width: 0;
+  min-block-size: calc(var(--pulso-space-9) + var(--pulso-space-3));
+}
+
+/* Una abierta sin pareja ocupa los dos lados; al final le deja sitio al nodo punteado. */
+.pulso-preg-fila[data-forma="abierta"][data-nodo] .pulso-bloque-pregunta {
+  --pulso-bloque-reserva-fin: calc(var(--preg-lazo) + var(--pulso-space-2));
+}
+
+/* ---------- El nodo ---------- */
+
+.pulso-preg-lazo {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  justify-self: center;
+  box-sizing: border-box;
+  inline-size: var(--preg-lazo);
+  block-size: var(--preg-lazo);
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: none;
+  color: var(--pulso-text-faint);
+  transform: none;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Pareja: nodo redondo con el enlace. */
+.pulso-preg-lazo[data-lazo="unido"] {
+  border: 1.5px solid var(--preg-acento);
+  background: var(--pulso-surface);
+  color: var(--preg-acento);
+}
+
+/* Suelta: el único punteado de la pantalla, el sitio donde se suelta la otra pregunta. Es un botón
+   aparte del de la fila: va pegado al bloque de una cerrada y al final del bloque de una abierta. */
+.pulso-preg-lazo[data-lazo="suelto"] {
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 1;
+  border: 1.5px dashed var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.pulso-preg-fila[data-forma="abierta"] > .pulso-preg-lazo {
+  grid-column: 3;
+  justify-self: end;
+  margin-inline-end: var(--pulso-space-3);
+}
+
+@media (hover: hover) {
+  .pulso-preg-lazo[data-lazo="suelto"]:hover {
+    border-color: var(--preg-acento);
+    background: var(--preg-acento-suave);
+    color: var(--preg-acento);
+  }
+}
+
+.pulso-preg-lazo[data-lazo="suelto"]:active {
+  transform: scale(var(--mov-press, 0.97));
+}
+
+@keyframes pulso-preg-asienta {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pulso-preg-lazo[data-reciente] {
+  animation: pulso-preg-asienta var(--motion-dur-panel) var(--motion-ease-out) both;
+}
+
+/* ---------- El asa ---------- */
+
+/* Vive en el relleno izquierdo de la unidad, a todo su alto. */
+.pulso-preg-asa {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  display: grid;
+  place-items: center;
+  inline-size: var(--pulso-space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pulso-control-radius);
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text-faint);
+  opacity: 0.5;
+  transform: none;
+  cursor: grab;
+}
+
+.pulso-preg-asa[data-quieta] {
+  display: none;
+}
+
+.pulso-preg-fila:hover .pulso-preg-asa,
+.pulso-preg-fila[data-seleccionada] .pulso-preg-asa,
+.pulso-preg-asa:focus-visible {
+  opacity: 1;
+}
+
+.pulso-preg-asa:focus-visible {
+  outline-offset: -1px;
+}
+
+/* ---------- Estado: su propia columna, la misma en todas las unidades ---------- */
+
+.pulso-preg-fila-estado {
+  display: flex;
+  grid-column: 4;
+  align-self: center;
+  min-width: 0;
+}
+
+.pulso-preg-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pulso-preg-estado-nota {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-preg-estado-nota[data-tono="aviso"] {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* ---------- Arrastre ---------- */
+
+/* Al levantar una pregunta se ven sus destinos y lo demás se atenúa. */
+.pulso-preg-fila[data-arrastre="origen"],
+.pulso-preg-fila[data-arrastre="fuera"] {
+  opacity: 0.42;
+}
+
+.pulso-preg-fila[data-arrastre="directo"] > .pulso-preg-lazo,
+.pulso-preg-fila[data-arrastre="con-dialogo"] > .pulso-preg-lazo {
+  border-color: var(--preg-acento);
+  color: var(--preg-acento);
+}
+
+.pulso-preg-fila[data-arrastre="directo"] > .pulso-preg-lazo {
+  background: var(--preg-acento-suave);
+}
+
+.pulso-preg-fila[data-sobre] {
+  background: color-mix(in srgb, var(--preg-acento) 10%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1.5px var(--preg-acento);
+}
+
+.pulso-preg-fila[data-sobre] > .pulso-preg-lazo {
+  border-style: solid;
+  background: var(--preg-acento);
+  color: var(--pulso-surface);
+  transform: scale(1.14);
+}
+
+.pulso-preg-fantasma {
+  display: inline-flex;
+  max-width: 22rem;
+  padding: var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow:
+    0 0 0 1px var(--pulso-border-strong),
+    var(--pulso-shadow-high);
+  cursor: grabbing;
+}
+
+/* ---------- Inspector ---------- */
+
+.pulso-preg-insp-cab {
+  flex: 0 0 auto;
+  padding: var(--pulso-space-4) var(--preg-riel);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-preg-insp-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+}
+
+/* El cuerpo es el dueño del desplazamiento del inspector y de su vacío. */
+.pulso-preg-insp-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-6);
+  min-height: 0;
+  padding: var(--pulso-space-5) var(--preg-riel);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: var(--pulso-space-4);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.pulso-preg-insp-seccion {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+/* Título de sección: en castellano normal, sin versalitas. */
+.pulso-preg-insp-rotulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+}
+
+.pulso-preg-insp-rotulo-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.pulso-preg-insp-ayuda {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-preg-identidad,
+.pulso-preg-ejemplos,
+.pulso-preg-otros {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-preg-identidad > li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+  padding-block: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* La ficha del kit, a tamaño de cuerpo: aquí es el dato principal, no va dentro de una frase. */
+.pulso-preg-ficha.pulso-ficha-pregunta {
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.pulso-preg-lado-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+.pulso-preg-ejemplos > li {
+  padding-block: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.pulso-preg-otros > li {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-preg-identidad > li:first-child,
+.pulso-preg-ejemplos > li:first-child {
+  padding-block-start: 0;
+  border-top: 0;
+}
+
+.pulso-preg-otros > li:first-child {
+  border-top: 0;
+}
+
+.pulso-preg-identidad > li:last-child,
+.pulso-preg-ejemplos > li:last-child {
+  padding-block-end: 0;
+}
+
+/* Opción "Otros": una fila por opción, todas a la vista. La elegida lleva la marca llena. */
+.pulso-preg-otros-opcion {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: stretch;
+  column-gap: var(--pulso-space-2);
+  width: 100%;
+  max-width: none;
+  min-height: var(--pulso-control-height-lg);
+  padding: var(--pulso-space-2) var(--pulso-space-1);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.35;
+  text-align: start;
+  white-space: normal;
+  transform: none;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .pulso-preg-otros-opcion:hover:not(:disabled) {
+    background: var(--pulso-surface-2);
+  }
+}
+
+.pulso-preg-otros-opcion[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--preg-acento) 7%, var(--pulso-surface));
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-preg-otros-opcion:disabled {
+  cursor: not-allowed;
+}
+
+.pulso-preg-otros-opcion:focus-visible {
+  outline-offset: -2px;
+}
+
+.pulso-preg-otros-marca {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--pulso-space-4);
+  block-size: var(--pulso-space-4);
+  border: 1.5px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-surface);
+}
+
+.pulso-preg-otros-opcion[aria-pressed="true"] .pulso-preg-otros-marca {
+  border-color: var(--preg-acento);
+  background: var(--preg-acento);
+}
+
+.pulso-preg-otros-codigo {
+  min-inline-size: 2ch;
+  color: var(--pulso-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-preg-otros-texto {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-preg-otros-fija {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--tipo-sm-fg);
+}
+
+.pulso-preg-otros-fija > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Incluir en codificación y, debajo, la decisión de no codificarla. */
+.pulso-preg-incluir,
+.pulso-preg-decision {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  inline-size: 100%;
+}
+
+.pulso-preg-incluir-fila {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+/* Con el motivo abierto, el campo ocupa el ancho del inspector. */
+.pulso-preg-decision[data-abierta] {
+  align-items: stretch;
+}
+
+.pulso-preg-decision-rotulo {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-preg-decision-acciones {
+  display: flex;
+  gap: var(--pulso-space-2);
+}
+
+/* Pie del inspector: un tono más bajo, con las acciones repartidas a lo ancho. */
+.pulso-preg-insp-pie {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--preg-riel);
+  border-top: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-surface-3) 55%, var(--pulso-surface));
+}
+
+.pulso-preg-insp-pie > .pulso-button {
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* ---------- Diálogos de emparejar ---------- */
+
+/* Se portan a `body`, fuera del marco de la pestaña: aquí solo valen los tokens globales. */
+.pulso-preg-velo {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: color-mix(in srgb, var(--pulso-text) 42%, transparent);
+}
+
+.pulso-preg-selector-origen {
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4) 0;
+}
+
+.pulso-preg-selector-lista {
+  margin: 0;
+  list-style: none;
+}
+
+.pulso-preg-selector-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-1);
+  width: 100%;
+  max-width: none;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: start;
+  white-space: normal;
+  transform: none;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .pulso-preg-selector-opcion:hover {
+    background: var(--pulso-surface-2);
+  }
+}
+
+.pulso-preg-selector-opcion:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Cuál de las dos recibe los códigos: dos opciones separadas por una línea. */
+.pulso-preg-sentidos {
+  display: flex;
+  flex-direction: column;
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+}
+
+.pulso-preg-sentido {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+  cursor: pointer;
+}
+
+.pulso-preg-sentido:first-child {
+  border-top: 0;
+}
+
+.pulso-preg-sentido[data-elegido] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 6%, var(--pulso-surface));
+}
+
+.pulso-preg-sentido > input {
+  margin: var(--pulso-space-1) 0 0;
+  accent-color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Dos renglones por opción: quién recibe los códigos y quién aporta las respuestas. */
+.pulso-preg-sentido-texto {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.5;
+}
+
+.pulso-preg-sentido-rotulo {
+  padding-block-start: calc(var(--pulso-space-1) - 1px);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.pulso-preg-sentido-nota {
+  margin: 0;
+  padding: 0 var(--pulso-space-4) var(--pulso-space-3);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.pulso-preg-dialogo-pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+/* ---------- Lista angosta: la columna de estado se estrecha, no cambia de sitio ---------- */
+
+@container pulso-preg-unidades (max-width: 640px) {
+  .pulso-preg-fila {
+    --preg-estado: 8.25rem;
+    column-gap: var(--pulso-space-2);
+  }
+
+  .pulso-preg-fila-boton,
+  .pulso-preg-lados {
+    column-gap: var(--pulso-space-2);
+  }
+}
+
+/* ---------- Ventana baja: menos aire para que entren más unidades (1366x768 y menores) ---------- */
+
+@media (max-height: 800px) {
+  .pulso-preg-barra {
+    padding-block: var(--pulso-space-2);
+  }
+
+  .pulso-preg-fila {
+    padding-block: var(--pulso-space-1);
+  }
+
+  .pulso-preg-seccion-rotulo {
+    padding-block-start: var(--pulso-space-2);
+  }
+
+  .pulso-preg-insp-cab {
+    padding-block: var(--pulso-space-3);
+  }
+
+  .pulso-preg-insp-cuerpo {
+    gap: var(--pulso-space-5);
+    padding-block: var(--pulso-space-4);
+  }
+}
+
+/* ---------- Ventana angosta: una columna y la pestaña entera se desplaza ---------- */
+
+@media (max-width: 900px) {
+  .pulso-codificacion-frame .pulso-preg {
+    overflow-y: auto;
+  }
+
+  .pulso-preg-mesa {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+  }
+
+  .pulso-preg-lista.pulso-panel,
+  .pulso-preg-inspector.pulso-panel {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .pulso-preg-unidades,
+  .pulso-preg-insp-cuerpo {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .pulso-preg-seccion-rotulo {
+    position: static;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-preg-fila,
+  .pulso-preg-lazo {
+    transition: none;
+  }
+
+  .pulso-preg-lazo[data-reciente] {
+    animation: none;
+  }
+
+  .pulso-preg-lazo[data-lazo="suelto"]:active {
+    transform: none;
+  }
+}

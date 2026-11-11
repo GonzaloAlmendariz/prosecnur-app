@@ -1,1545 +1,229 @@
-import { useEffect, useMemo, useState } from "react";
+// Codificación, Preguntas (etapa P3a del rediseño de Procesamiento).
+//
+// Una lista de unidades a todo el ancho (un par enlazado o una pregunta suelta) y, a la derecha, el
+// inspector de la unidad seleccionada. Este archivo solo compone: las piezas, el modelo y la hoja viven
+// en `preguntas/`. Emparejar se hace arrastrando una suelta sobre otra o con "Emparejar con" del inspector.
+
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
-  DragEndEvent,
   DragOverlay,
-  DragStartEvent,
   KeyboardSensor,
   PointerSensor,
-  useDraggable,
-  useDroppable,
   useSensor,
   useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
-import {
-  AlertTriangle,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight as ChevronRightIcon,
-  CircleAlert,
-  GripVertical,
-  Inbox,
-  LayoutGrid,
-  Link2,
-  Link2Off,
-  Loader2,
-  PencilLine,
-  Search,
-  X as XIcon,
-} from "lucide-react";
-import { IconAI } from "../../lib/icons";
-import {
-  apiCodifColumnas,
-  apiCodifDesemparejar,
-  apiCodifMarcar,
-  apiCodifNoCategorizar,
-  apiCodifPareja,
-  apiCodifPreguntasAbiertas,
-  Arquetipo,
-  arquetipoOf,
-  guessDummyColFromOpciones,
-  OpcionSM,
-  PreguntaAbierta,
-} from "../../api/client";
+import type { PreguntaAbierta } from "../../api/codificacion";
+import { Alert } from "../../components/Alert";
+import { Panel } from "../../components/Panel";
+import { PulsoButton } from "../../components/PulsoButton";
 import { ErrorBlock } from "../../components/States";
-import { GruposTrasDesemparejar, type GruposPendientes } from "./GruposTrasDesemparejar";
-import { FilterChip } from "../../components/FilterChip";
 import { Switch } from "../../components/Switch";
-import { PairingDialog, PairingResult } from "./PairingDialog";
-import DecisionChip from "./DecisionChip";
-import NoCategorizarAction from "./NoCategorizarAction";
-import { contarSinDecidir, decisionDePregunta, frasePendientes, presentarDecision, restanteDeDecision } from "./decisionCodificacion";
-import { RelationDialog, RelationResult } from "./RelationDialog";
-import { RelationTargetDialog } from "./RelationTargetDialog";
-import { textoPlano } from "../../lib/textoPlano";
-import { sinEnfasis } from "../../lib/enfasisTexto";
-import { formatoConteo } from "../../lib/formatoNumero";
-import { EstadoVacio } from "../../components/EstadoVacio";
+import { decisionDePregunta } from "./decisionCodificacion";
+import { GruposTrasDesemparejar } from "./GruposTrasDesemparejar";
+import { PairingDialog } from "./PairingDialog";
+import { RelationDialog } from "./RelationDialog";
+import { anunciosDeArrastre, colisionDePreguntas, fantasmaJuntoAlCursor, instruccionesDeArrastre } from "./preguntas/arrastre";
+import { BarraPreguntas } from "./preguntas/BarraPreguntas";
+import { CargaPreguntas } from "./preguntas/CargaPreguntas";
+import { DecisionNoCodificar } from "./preguntas/DecisionNoCodificar";
+import { FantasmaArrastre } from "./preguntas/FantasmaArrastre";
+import { InspectorUnidad } from "./preguntas/InspectorUnidad";
+import { ListaUnidades } from "./preguntas/ListaUnidades";
+import { admiteIncluir, contarFiltros, filtroVigente, seccionesVisibles, selectorDeEmparejar, type Unidad } from "./preguntas/modeloUnidades";
+import { SelectorDePareja } from "./preguntas/SelectorDePareja";
+import { usePreguntasCodificacion } from "./preguntas/usePreguntasCodificacion";
+import { useVistaPreguntas } from "./preguntas/vistaPreguntasStore";
+import "./preguntas/preguntas.css";
 
-const srOnlyStyle: React.CSSProperties = {
-  position: "absolute",
-  width: 1, height: 1,
-  padding: 0, margin: -1,
-  overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap",
-  border: 0,
-};
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-}
-
-function escapeAttr(s: string): string { return s.replace(/"/g, '\\"'); }
-
-type Filter = "todas" | "emparejadas" | "por-codificar" | "codificadas";
-type ModoSo = "padre" | "hijo";
-
-export function defaultModoSoForQuickAdopt(tipo: string): ModoSo | undefined {
-  return tipo === "select_one" ? "padre" : undefined;
-}
-
-export function modoSoOptionsForDisplay(parent: string, childCol: string): Array<{ value: ModoSo; label: string; title: string }> {
-  return [
-    {
-      value: "padre",
-      label: "Codificar pregunta original",
-      title: `Crear ${parent}_recod con opciones originales y categorías provenientes de ${childCol}`,
-    },
-    {
-      value: "hijo",
-      label: "Codificar texto aparte",
-      title: `Crear ${childCol}_recod como texto aparte`,
-    },
-  ];
-}
-
-const TIPO_STYLE: Record<string, { bg: string; border: string; fg: string; label: string }> = {
-  select_multiple: { bg: "var(--tipo-sm-bg)", border: "var(--tipo-sm-border)", fg: "var(--tipo-sm-fg)", label: "Múltiple" },
-  select_one: { bg: "var(--tipo-so-bg)", border: "var(--tipo-so-border)", fg: "var(--tipo-so-fg)", label: "Opción única" },
-  integer: { bg: "var(--tipo-int-bg)", border: "var(--tipo-int-border)", fg: "var(--tipo-int-fg)", label: "Numérica" },
-  text: { bg: "var(--tipo-text-bg)", border: "var(--tipo-text-border)", fg: "var(--tipo-text-fg)", label: "Texto abierto" },
-};
+export { defaultModoSoForQuickAdopt, modoSoOptionsForDisplay } from "./preguntas/modeloUnidades";
 
 export function PreguntasLanding() {
-  const [data, setData] = useState<PreguntaAbierta[] | null>(null);
-  const [error, setError] = useState<string>("");
-  const [gruposPendientes, setGruposPendientes] = useState<GruposPendientes | null>(null);
-  const [filter, setFilter] = useState<Filter>("todas");
-  const [query, setQuery] = useState<string>("");
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [pairingFor, setPairingFor] = useState<{ parent: PreguntaAbierta; preselectedChild?: string } | null>(null);
-  const [relationFor, setRelationFor] = useState<{ source: PreguntaAbierta; target: PreguntaAbierta } | null>(null);
-  const [relationTargetFor, setRelationTargetFor] = useState<PreguntaAbierta | null>(null);
-  const [busyPair, setBusyPair] = useState<string>("");
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [columnas, setColumnas] = useState<string[]>([]);
-  const [recentlyAdopted, setRecentlyAdopted] = useState<Set<string>>(new Set());
-  const [liveMsg, setLiveMsg] = useState<string>("");
+  const mesa = usePreguntasCodificacion();
+  const { filtro: filtroElegido, consulta, seleccion, elegirFiltro, buscar, seleccionar } = useVistaPreguntas();
+  const [levantadaId, setLevantadaId] = useState<string | null>(null);
 
-  const sensors = useSensors(
+  const sensores = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor),
   );
 
-  async function refresh() {
-    try {
-      const r = await apiCodifPreguntasAbiertas();
-      setData(r.preguntas);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+  const { unidades } = mesa;
+  const conteos = useMemo(() => contarFiltros(unidades), [unidades]);
+  // Una base sin ninguna unidad con texto se muestra en "Todas" en vez de abrir en un vacío.
+  const filtro = filtroVigente(filtroElegido, conteos);
+  const secciones = useMemo(() => seccionesVisibles(unidades, filtro, consulta), [unidades, filtro, consulta]);
+  const seleccionada = useMemo(() => unidades.find((u) => u.id === seleccion) ?? null, [unidades, seleccion]);
+  const levantada = useMemo(() => unidades.find((u) => u.id === levantadaId) ?? null, [unidades, levantadaId]);
+
+  if (mesa.errorDeCarga) return <ErrorBlock label="No se pudieron cargar las preguntas" detail={mesa.errorDeCarga} />;
+  if (!mesa.preguntas) return <CargaPreguntas />;
+
+  function alLevantar(evento: DragStartEvent) {
+    setLevantadaId(String(evento.active.id));
   }
 
-  useEffect(() => {
-    void refresh();
-    (async () => {
-      try { const r = await apiCodifColumnas(); setColumnas(r.columnas); } catch {}
-    })();
-  }, []);
-
-  // Reverse-lookup: child_col → padre. Deriva "adoptada" para las text ya
-  // emparejadas (quita ruido del listado y muestra la relación en el padre).
-  const adoptedBy = useMemo(() => {
-    const m = new Map<string, PreguntaAbierta>();
-    if (!data) return m;
-    for (const p of data) {
-      const pj = p.pareja;
-      if (pj && typeof pj === "object" && "child_col" in pj && pj.child_col) {
-        m.set(pj.child_col, p);
-      }
-    }
-    return m;
-  }, [data]);
-
-  function announce(msg: string) {
-    setLiveMsg(msg);
-    setTimeout(() => setLiveMsg(""), 800);
+  function alSoltar(evento: DragEndEvent) {
+    setLevantadaId(null);
+    if (evento.over) mesa.soltar(String(evento.active.id), String(evento.over.id));
   }
 
-  async function animateAdoption(srcParent: string, dstParent: string) {
-    if (prefersReducedMotion()) return;
-    const srcEl = document.querySelector(`[data-parent="${escapeAttr(srcParent)}"]`) as HTMLElement | null;
-    const dstEl = document.querySelector(`[data-parent="${escapeAttr(dstParent)}"]`) as HTMLElement | null;
-    if (!srcEl || !dstEl) return;
-    const srcRect = srcEl.getBoundingClientRect();
-    const dstRect = dstEl.getBoundingClientRect();
-    const dx = dstRect.left + dstRect.width / 2 - (srcRect.left + srcRect.width / 2);
-    const dy = dstRect.top + dstRect.height / 2 - (srcRect.top + srcRect.height / 2);
-
-    const clone = srcEl.cloneNode(true) as HTMLElement;
-    clone.style.position = "fixed";
-    clone.style.left = `${srcRect.left}px`;
-    clone.style.top = `${srcRect.top}px`;
-    clone.style.width = `${srcRect.width}px`;
-    clone.style.zIndex = "50";
-    clone.style.pointerEvents = "none";
-    clone.style.transition = "transform var(--anim-dur-med) var(--anim-ease-expressive), opacity var(--anim-dur-med) var(--anim-ease-smooth), filter var(--anim-dur-med) var(--anim-ease-smooth)";
-    document.body.appendChild(clone);
-    srcEl.style.opacity = "0";
-    requestAnimationFrame(() => {
-      clone.style.transform = `translate(${dx}px, ${dy}px) scale(0.4)`;
-      clone.style.opacity = "0";
-      clone.style.filter = "blur(1px)";
-    });
-    await new Promise((r) => setTimeout(r, 320));
-    clone.remove();
+  /** Sin arrastrar: una cerrada elige su columna de texto; cualquier otra, la pregunta con la que va. */
+  function emparejar(unidad: Unidad) {
+    if (selectorDeEmparejar(unidad) === "columna") mesa.abrirEmparejar(unidad.principal);
+    else mesa.abrirBuscarPareja(unidad.principal);
   }
-
-  function glowCard(parent: string) {
-    if (prefersReducedMotion()) return;
-    const el = document.querySelector(`[data-parent="${escapeAttr(parent)}"]`);
-    if (!el) return;
-    el.classList.remove("pulso-card-glow");
-    void (el as HTMLElement).offsetWidth; // restart animation
-    el.classList.add("pulso-card-glow");
-    setTimeout(() => el.classList.remove("pulso-card-glow"), 1200);
-  }
-
-  function scrollToPadre(parent?: string) {
-    if (!parent) return;
-    const el = document.querySelector(`[data-parent="${escapeAttr(parent)}"]`) as HTMLElement | null;
-    if (!el) return;
-    el.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
-    glowCard(parent);
-  }
-
-  async function adoptDirect(padre: PreguntaAbierta, childCol: string, opcionesSm?: OpcionSM[]) {
-    setBusyPair(padre.parent);
-    try {
-      const modo_so = defaultModoSoForQuickAdopt(padre.tipo);
-      const dummy_col = padre.tipo === "select_multiple"
-        ? (padre.pareja && typeof padre.pareja === "object" && "dummy_col" in padre.pareja && padre.pareja.dummy_col
-            ? padre.pareja.dummy_col
-            : guessDummyColFromOpciones(opcionesSm))
-        : undefined;
-      await apiCodifPareja(padre.parent, childCol, modo_so, dummy_col);
-      setRecentlyAdopted((s) => new Set(s).add(padre.parent));
-      setTimeout(() => setRecentlyAdopted((s) => { const n = new Set(s); n.delete(padre.parent); return n; }), 1000);
-      await refresh();
-      glowCard(padre.parent);
-      if (padre.tipo === "select_multiple" && !dummy_col) {
-        announce(`${childCol} adoptada por ${padre.parent}. Falta indicar cuál opción es "Otros".`);
-      } else {
-        announce(`${childCol} conectada con ${padre.parent}${modo_so === "padre" ? " para codificar la pregunta original" : modo_so === "hijo" ? " como texto aparte" : ""}.`);
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  async function setDummyForSm(padre: PreguntaAbierta, dummy_col: string) {
-    setBusyPair(padre.parent);
-    try {
-      const pj = padre.pareja && typeof padre.pareja === "object" && "child_col" in padre.pareja ? padre.pareja : null;
-      if (!pj?.child_col) return;
-      // Si el usuario clickeó la opción ya seleccionada, deseleccionarla
-      // (toggle). Si clickeó otra, reemplazarla.
-      const alreadySelected = pj.dummy_col && pj.dummy_col === dummy_col;
-      if (alreadySelected) {
-        await apiCodifPareja(padre.parent, pj.child_col, undefined, "", { clear_dummy: true });
-        announce(`Selección de "Otros" quitada en ${padre.parent}.`);
-      } else {
-        await apiCodifPareja(padre.parent, pj.child_col, undefined, dummy_col);
-        announce(`Columna "Otros" configurada en ${padre.parent}.`);
-      }
-      await refresh();
-      glowCard(padre.parent);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  async function setModoSoForSelectOne(padre: PreguntaAbierta, modo_so: ModoSo) {
-    if (padre.tipo !== "select_one") return;
-    const pj = padre.pareja && typeof padre.pareja === "object" && "child_col" in padre.pareja ? padre.pareja : null;
-    if (!pj?.child_col || padre.modo_so === modo_so) return;
-    setBusyPair(padre.parent);
-    try {
-      await apiCodifPareja(padre.parent, pj.child_col, modo_so, undefined);
-      await refresh();
-      glowCard(padre.parent);
-      announce(
-        modo_so === "padre"
-          ? `${padre.parent} se codifica como pregunta original en ${padre.parent}_recod.`
-          : `${pj.child_col} se codifica como texto aparte en ${pj.child_col}_recod.`
-      );
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  const bySection = useMemo(() => {
-    if (!data) return [];
-    // Order preguntas by q_order ASC, then group by section preserving
-    // first-seen order (which is section-of-lowest-q).
-    const sorted = [...data].sort((a, b) => {
-      const qa = a.q_order ?? 999999;
-      const qb = b.q_order ?? 999999;
-      return qa - qb;
-    });
-    const map = new Map<string, { id: string; label: string; preguntas: PreguntaAbierta[] }>();
-    for (const p of sorted) {
-      const key = p.section || "(sin sección)";
-      const label = textoPlano(p.section_label) || p.section || "Sin sección";
-      if (!map.has(key)) map.set(key, { id: key, label, preguntas: [] });
-      map.get(key)!.preguntas.push(p);
-    }
-    return Array.from(map.values());
-  }, [data]);
-
-  // ADR 0078: `porCodificar` sumaba las marcadas sin material y las decididas,
-  // que no tienen nada pendiente. Lo que se cuenta es lo que queda por decidir.
-  const counts = useMemo(() => {
-    if (!data) return { total: 0, emparejadas: 0, porCodificar: 0, codificadas: 0 };
-    let emparejadas = 0, codificadas = 0;
-    for (const p of data) {
-      if (isPaired(p)) emparejadas++;
-      if (p.status === "completo") codificadas++;
-    }
-    return {
-      total: data.length,
-      emparejadas,
-      porCodificar: contarSinDecidir(data),
-      codificadas,
-    };
-  }, [data]);
-
-  const visibleSections = useMemo(() => {
-    if (!data) return [];
-    const q = query.trim().toLowerCase();
-    const wants = (p: PreguntaAbierta): boolean => {
-      const arq = arquetipoOf(p, adoptedBy);
-      // Ocultar adoptadas de filtros operativos (solo visibles en "todas")
-      if (arq === "adoptada" && filter !== "todas") return false;
-      if (filter === "emparejadas") return isPaired(p);
-      if (filter === "por-codificar") {
-        // Coherente con el contador: lo que queda por decidir, no todo lo
-        // marcado que no esté completo (ADR 0078).
-        return !!presentarDecision(decisionDePregunta(p))?.abierta;
-      }
-      if (filter === "codificadas") return p.status === "completo";
-      return true; // todas
-    };
-    const matchesQ = (p: PreguntaAbierta): boolean => {
-      if (!q) return true;
-      return p.parent.toLowerCase().includes(q) || p.parent_label.toLowerCase().includes(q) || textoPlano(p.section_label).toLowerCase().includes(q);
-    };
-    return bySection
-      .map((s) => ({ ...s, preguntas: s.preguntas.filter((p) => wants(p) && matchesQ(p)) }))
-      .filter((s) => s.preguntas.length > 0);
-  }, [bySection, data, filter, query]);
-
-  async function onConfirmPair(result: PairingResult) {
-    if (!pairingFor) return;
-    setBusyPair(pairingFor.parent.parent);
-    try {
-      await apiCodifPareja(pairingFor.parent.parent, result.child_col, result.modo_so, result.dummy_col);
-      setPairingFor(null);
-      await refresh();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  function onDragStart(e: DragStartEvent) {
-    setActiveDragId(String(e.active.id));
-  }
-
-  async function onDragEnd(e: DragEndEvent) {
-    setActiveDragId(null);
-    const { active, over } = e;
-    if (!over || !data) return;
-    const sourceId = String(active.id);
-    const targetId = String(over.id);
-    if (sourceId === targetId) return;
-    const sourcePregunta = data.find((p) => p.parent === sourceId);
-    const targetPregunta = data.find((p) => p.parent === targetId);
-    if (!sourcePregunta || !targetPregunta) return;
-
-    // Caso clásico — texto abierto arrastrado sobre SO/SM sin emparejar.
-    // Sigue el flujo directo: animación de vuelo + adoptDirect. El
-    // usuario luego ajusta modo/dummy desde la card emparejada.
-    const isClassic =
-      sourcePregunta.tipo === "text" &&
-      (targetPregunta.tipo === "select_one" || targetPregunta.tipo === "select_multiple") &&
-      !isPaired(targetPregunta);
-
-    if (isClassic) {
-      const childCol = sourcePregunta.col_efectiva || sourcePregunta.parent;
-      await animateAdoption(sourcePregunta.parent, targetPregunta.parent);
-      await adoptDirect(targetPregunta, childCol, targetPregunta.opciones_sm);
-      return;
-    }
-
-    // Caso general — el usuario arrastró una pregunta sobre otra pero la
-    // combinación no es el caso clásico. Abrimos el RelationDialog para
-    // que el analista decida la dirección de la codificación (quién es
-    // padre, quién hija) y el modo.
-    setRelationFor({ source: sourcePregunta, target: targetPregunta });
-  }
-
-  async function onConfirmRelation(r: RelationResult) {
-    if (!relationFor) return;
-    setBusyPair(r.parent);
-    try {
-      await apiCodifPareja(r.parent, r.child_col, r.modo_so, r.dummy_col);
-      setRelationFor(null);
-      await refresh();
-      glowCard(r.parent);
-      announce(`${r.child_col} relacionada con ${r.parent}.`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  const activePregunta = useMemo(() => {
-    if (!activeDragId || !data) return null;
-    return data.find((p) => p.parent === activeDragId) ?? null;
-  }, [activeDragId, data]);
-
-  const relationCandidates = useMemo(() => {
-    if (!data || !relationTargetFor) return [];
-    return data.filter((p) => {
-      if (p.parent === relationTargetFor.parent) return false;
-      const arq = arquetipoOf(p, adoptedBy);
-      return arq !== "adoptada" && arq !== "no-aplica";
-    });
-  }, [adoptedBy, data, relationTargetFor]);
-
-  async function onDesemparejar(parent: string) {
-    setBusyPair(parent);
-    // Lo agrupado mientras estuvo emparejada queda huérfano: se pregunta qué hacer.
-    const agrupadas = data?.find((p) => p.parent === parent)?.n_codificadas ?? 0;
-    try {
-      await apiCodifDesemparejar(parent);
-      if (agrupadas > 0) setGruposPendientes({ parent, n: agrupadas });
-      await refresh();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  // ADR 0078: registrar la decisión la cierra sin borrar la intención, que era
-  // lo único que se podía hacer antes (desmarcar) y perdía el rastro.
-  async function onNoCategorizar(parent: string, motivo: string, revertir?: boolean) {
-    setBusyPair(parent);
-    setError("");
-    try {
-      await apiCodifNoCategorizar(parent, motivo, { revertir });
-      await refresh();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  async function onToggleMarcada(parent: string, marcada: boolean) {
-    setBusyPair(parent);
-    try {
-      await apiCodifMarcar(parent, marcada);
-      await refresh();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusyPair("");
-    }
-  }
-
-  function toggleSection(id: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  if (error) return <ErrorBlock label="Error cargando preguntas" detail={error} />;
-  if (!data) return <OrganizarLoadingPanel />;
 
   return (
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-    <div
-      className="pulso-codificacion-organizar"
-      data-audit-ready="codificacion-organizar"
+    <DndContext
+      sensors={sensores}
+      collisionDetection={colisionDePreguntas}
+      accessibility={{ announcements: anunciosDeArrastre, screenReaderInstructions: instruccionesDeArrastre }}
+      onDragStart={alLevantar}
+      onDragEnd={alSoltar}
+      onDragCancel={() => setLevantadaId(null)}
     >
-      {/* Barra de navegación operativa: filtros agrupados + search. El
-          flujo de alto nivel vive en CodificacionPage; acá solo los
-          controles del paso "Organizar". */}
-      <div className="pulso-codificacion-organizar-toolbar">
-        <div
-          role="group"
-          aria-label="Filtrar preguntas"
-          className="pulso-codificacion-filter-row"
-        >
-          <FilterChip
-            label="Todas" count={counts.total}
-            icon={LayoutGrid} tone="neutral"
-            active={filter === "todas"} onClick={() => setFilter("todas")}
-          />
-          <FilterChip
-            label="Emparejadas" count={counts.emparejadas}
-            icon={Link2} tone="primary"
-            active={filter === "emparejadas"} onClick={() => setFilter("emparejadas")}
-          />
-          <FilterChip
-            label="Sin decidir" count={counts.porCodificar}
-            icon={PencilLine} tone="warn"
-            active={filter === "por-codificar"} onClick={() => setFilter("por-codificar")}
-          />
-          <FilterChip
-            label="Codificadas" count={counts.codificadas}
-            icon={CheckCircle2} tone="success"
-            active={filter === "codificadas"} onClick={() => setFilter("codificadas")}
+      <div className="pulso-preg" data-audit-ready="codificacion-organizar">
+        {mesa.errorDeAccion ? (
+          <div role="alert">
+            <Alert
+              kind="error"
+              acciones={<PulsoButton variant="ghost" size="sm" onClick={mesa.descartarError}>Cerrar</PulsoButton>}
+            >
+              {mesa.errorDeAccion}
+            </Alert>
+          </div>
+        ) : null}
+
+        <GruposTrasDesemparejar pendiente={mesa.gruposPendientes} onListo={mesa.resolverGrupos} />
+
+        <div className="pulso-preg-mesa">
+          <Panel noPadding className="pulso-preg-lista" aria-label="Preguntas del formulario">
+            <BarraPreguntas filtro={filtro} conteos={conteos} consulta={consulta} onFiltro={elegirFiltro} onBuscar={buscar} />
+            <ListaUnidades
+              secciones={secciones}
+              hayUnidades={unidades.length > 0}
+              buscando={consulta.trim() !== ""}
+              seleccion={seleccion}
+              ocupada={mesa.ocupada}
+              recienUnida={mesa.recienUnida}
+              levantada={levantada}
+              onSeleccionar={seleccionar}
+              onEmparejar={emparejar}
+              onVerTodas={() => {
+                elegirFiltro("todas");
+                buscar("");
+              }}
+            />
+          </Panel>
+
+          <InspectorUnidad
+            unidad={seleccionada}
+            ocupada={seleccionada !== null && mesa.ocupada === seleccionada.id}
+            incluir={
+              seleccionada && admiteIncluir(seleccionada) ? (
+                <IncluirEnCodificacion
+                  p={seleccionada.principal}
+                  busy={mesa.ocupada === seleccionada.id}
+                  onIncluir={mesa.incluir}
+                  onNoCategorizar={mesa.noCategorizar}
+                />
+              ) : null
+            }
+            onEmparejar={emparejar}
+            onCambiar={(unidad) => mesa.abrirEmparejar(unidad.principal)}
+            onDesemparejar={mesa.desemparejar}
+            onElegirModo={mesa.elegirModo}
+            onElegirOtros={mesa.elegirOpcionOtros}
           />
         </div>
-        <SearchBar value={query} onChange={setQuery} />
+
+        <div aria-live="polite" aria-atomic="true" className="pulso-sr-only">{mesa.anuncio}</div>
+
+        {mesa.emparejando ? (
+          <PairingDialog
+            pregunta={mesa.emparejando}
+            onConfirm={mesa.confirmarEmparejamiento}
+            onCancel={() => mesa.abrirEmparejar(null)}
+          />
+        ) : null}
+
+        {mesa.relacion ? (
+          <RelationDialog
+            source={mesa.relacion.source}
+            target={mesa.relacion.target}
+            onConfirm={mesa.confirmarRelacion}
+            onCancel={mesa.cerrarRelacion}
+          />
+        ) : null}
+
+        {mesa.buscandoPareja ? (
+          <SelectorDePareja
+            origen={mesa.buscandoPareja}
+            candidatas={mesa.candidatos}
+            onCancelar={() => mesa.abrirBuscarPareja(null)}
+            onElegir={mesa.elegirPareja}
+          />
+        ) : null}
       </div>
 
-      {/* ADR 0078, punto 4: el estado se comunica como número accionable, no
-          como semáforo ni porcentaje de avance. Sólo aparece cuando hay algo
-          que hacer — un "0 pendientes" permanente es ruido. */}
-      {counts.porCodificar > 0 && (
-        <div
-          data-testid="codificacion-sin-decidir"
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "8px 12px", borderRadius: "var(--pulso-radius-panel)",
-            border: "1px solid var(--pulso-warn-border)",
-            background: "var(--pulso-warn-bg)",
-            color: "var(--pulso-text)", fontSize: "var(--pulso-type-body-size)",
-          }}
-        >
-          <AlertTriangle size={14} style={{ color: "var(--pulso-warn-fg)", flex: "0 0 auto" }} />
-          <span>
-            <strong>{frasePendientes(counts.porCodificar)}</strong>. Si alguna no se va a
-            codificar, regístralo con su motivo para que no parezca un olvido.
-          </span>
-        </div>
+      {/* El fantasma se porta a document.body: un ancestro con transform (la animación de entrada de la
+          ruta) haría de bloque contenedor de su position: fixed y lo separaría del cursor. El portal
+          conserva el contexto del arrastre. */}
+      {createPortal(
+        <DragOverlay dropAnimation={null} modifiers={[fantasmaJuntoAlCursor]}>
+          {levantada ? <FantasmaArrastre pregunta={levantada.principal} /> : null}
+        </DragOverlay>,
+        document.body,
       )}
-
-      <GruposTrasDesemparejar
-        pendiente={gruposPendientes}
-        onListo={() => { setGruposPendientes(null); void refresh(); }}
-      />
-
-      {visibleSections.length === 0 && (
-        <EstadoVacio
-          tamano="normal"
-          icono={<Inbox size={18} />}
-          titulo="No hay preguntas en esta vista"
-          descripcion={
-            query
-              ? "No hay matches para tu búsqueda. Prueba con otro nombre o limpia el filtro."
-              : "Cambia el filtro de arriba para ver otras preguntas."
-          }
-        />
-      )}
-
-      {visibleSections.length > 0 && (
-        /* `intrinsic` porque la rejilla ya declara `align-items: start`: cada
-           sección mide lo que piden sus preguntas, que son cuantas sean. */
-        <div
-          className="pulso-codificacion-sections-grid"
-          data-qa-geometry-group="codificacion/secciones"
-          data-qa-geometry-contract="intrinsic"
-        >
-          {visibleSections.map((s) => (
-            <SectionBlock
-              key={s.id}
-              id={s.id}
-              label={s.label}
-              preguntas={s.preguntas}
-              collapsed={collapsed.has(s.id)}
-              onToggle={() => toggleSection(s.id)}
-              onPair={(p) => setPairingFor({ parent: p })}
-              onUnpair={onDesemparejar}
-              busyPair={busyPair}
-              dragActive={!!activeDragId}
-              adoptedBy={adoptedBy}
-              recentlyAdopted={recentlyAdopted}
-              onSetDummy={setDummyForSm}
-              onSetModoSo={setModoSoForSelectOne}
-              onScrollToPadre={scrollToPadre}
-              onToggleMarcada={onToggleMarcada}
-              onNoCategorizar={onNoCategorizar}
-              onOpenRelation={(p) => setRelationTargetFor(p)}
-            />
-          ))}
-        </div>
-      )}
-
-      <div aria-live="polite" aria-atomic="true" style={srOnlyStyle}>{liveMsg}</div>
-
-      {pairingFor && (
-        <PairingDialog
-          pregunta={pairingFor.parent}
-          preselectedChild={pairingFor.preselectedChild}
-          onConfirm={onConfirmPair}
-          onCancel={() => setPairingFor(null)}
-        />
-      )}
-
-      {relationFor && (
-        <RelationDialog
-          source={relationFor.source}
-          target={relationFor.target}
-          onConfirm={onConfirmRelation}
-          onCancel={() => setRelationFor(null)}
-        />
-      )}
-
-      {relationTargetFor && (
-        <RelationTargetDialog
-          source={relationTargetFor}
-          candidates={relationCandidates}
-          onCancel={() => setRelationTargetFor(null)}
-          onPick={(target) => {
-            setRelationTargetFor(null);
-            setRelationFor({ source: relationTargetFor, target });
-          }}
-        />
-      )}
-    </div>
-
-    {/* El overlay se porta a document.body: un ancestro (.pulso-route-surface,
-        con transform residual de su animación de entrada) actuaba como bloque
-        contenedor del position:fixed del DragOverlay y lo desplazaba ~221px
-        hacia abajo respecto del cursor (bug clásico de dnd-kit con ancestros
-        transformados). En body, el fixed vuelve a anclarse al viewport y el
-        ghost sigue fiel al punto de agarre. El portal preserva el contexto de
-        DndContext, así que onDragEnd/drop no cambian. */}
-    {createPortal(
-      <DragOverlay dropAnimation={null}>
-        {activePregunta ? <DragOverlayCard p={activePregunta} /> : null}
-      </DragOverlay>,
-      document.body
-    )}
     </DndContext>
   );
 }
 
-function OrganizarLoadingPanel() {
-  const steps = [
-    { label: "Textos abiertos", hint: "Preguntas que necesitan categorías", icon: PencilLine },
-    { label: "Vínculos con Otros", hint: "Relaciones entre opción y texto", icon: Link2 },
-    { label: "Secciones listas", hint: "Grupos para revisar sin perder contexto", icon: LayoutGrid },
-  ];
-
-  return (
-    <section className="pulso-codificacion-loading" role="status" aria-live="polite" aria-busy="true">
-      <div className="pulso-codificacion-loading-hero">
-        <span className="pulso-codificacion-loading-icon" aria-hidden="true">
-          <Loader2 size={20} className="pulso-spin" />
-        </span>
-        <div className="pulso-codificacion-loading-copy">
-          <span className="pulso-section-eyebrow">Preparando codificación</span>
-          <h3>Detectando preguntas abiertas</h3>
-          <p>
-            Revisamos formulario y respuestas para ordenar textos libres, opciones "Otros" y preguntas listas para agrupar.
-          </p>
-        </div>
-      </div>
-
-      <div className="pulso-codificacion-loading-steps" aria-label="Tareas en preparación">
-        {steps.map((step) => {
-          const Icon = step.icon;
-          return (
-            <div className="pulso-codificacion-loading-step" key={step.label}>
-              <span aria-hidden="true"><Icon size={15} /></span>
-              <strong>{step.label}</strong>
-              <small>{step.hint}</small>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="pulso-codificacion-loading-grid" aria-hidden="true">
-        {[0, 1, 2].map((section) => (
-          <div className="pulso-codificacion-loading-section" key={section}>
-            <div className="pulso-codificacion-loading-line is-title" />
-            <div className="pulso-codificacion-loading-card">
-              <div className="pulso-codificacion-loading-line is-short" />
-              <div className="pulso-codificacion-loading-line" />
-              <div className="pulso-codificacion-loading-line is-soft" />
-            </div>
-            <div className="pulso-codificacion-loading-card">
-              <div className="pulso-codificacion-loading-line is-short" />
-              <div className="pulso-codificacion-loading-line" />
-              <div className="pulso-codificacion-loading-line is-soft" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function DragOverlayCard({ p }: { p: PreguntaAbierta }) {
-  const ts = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
-  return (
-    <div
-      style={{
-        border: "1px solid var(--pulso-primary)",
-        borderLeft: `4px solid ${ts.border}`,
-        borderRadius: 8,
-        padding: 10,
-        background: "white",
-        boxShadow: "var(--pulso-shadow-med)",
-        minWidth: 220, maxWidth: 280,
-        display: "flex", flexDirection: "column", gap: 4,
-        transform: "rotate(-2deg)",
-      }}
-    >
-      <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: ts.fg }}>{p.parent}</div>
-      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>{truncate(sinEnfasis(p.parent_label), 60)}</div>
-    </div>
-  );
-}
-
-function isPaired(p: PreguntaAbierta): boolean {
-  return !!(p.pareja && typeof p.pareja === "object" && "child_col" in p.pareja && p.pareja.child_col);
-}
-
-// FilterChip local reemplazado por `components/FilterChip.tsx` —
-// unificado con otros usos cross-fase.
-
-// Search bar consistente con el resto de la app.
-// Icon lupa a la izquierda, clear button a la derecha cuando hay query,
-// focus ring primary soft.
-function SearchBar({
-  value, onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="pulso-codificacion-search">
-      <Search size={13} color="var(--pulso-text-soft)" aria-hidden="true" />
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Buscar por nombre, etiqueta o sección…"
-        aria-label="Buscar preguntas"
-      />
-      {value && (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          aria-label="Limpiar búsqueda"
-          title="Limpiar"
-          className="pulso-codificacion-search-clear"
-        >
-          <XIcon size={12} />
-        </button>
-      )}
-    </div>
-  );
-}
-
-type SectionProps = {
-  id: string;
-  label: string;
-  preguntas: PreguntaAbierta[];
-  collapsed: boolean;
-  onToggle: () => void;
-  onPair: (p: PreguntaAbierta) => void;
-  onUnpair: (parent: string) => void;
-  busyPair: string;
-  dragActive: boolean;
-  adoptedBy: Map<string, PreguntaAbierta>;
-  recentlyAdopted: Set<string>;
-  onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
-  onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
-  onScrollToPadre: (parent?: string) => void;
-  onToggleMarcada: (parent: string, marcada: boolean) => void;
-  onNoCategorizar: (parent: string, motivo: string, revertir?: boolean) => void;
-  onOpenRelation: (p: PreguntaAbierta) => void;
-};
-
-function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onNoCategorizar, onOpenRelation }: SectionProps) {
-  const emparejadas = preguntas.filter((p) => isPaired(p)).length;
-  const codificadas = preguntas.filter((p) => p.status === "completo").length;
-  const sectionDomId = `codif-sec-${domSafeId(id)}`;
-
-  return (
-    <section aria-labelledby={`${sectionDomId}-button`} className="pulso-codificacion-question-section">
-      <button
-        type="button"
-        id={`${sectionDomId}-button`}
-        className="pulso-codificacion-section-head"
-        onClick={onToggle}
-        aria-expanded={!collapsed}
-        aria-controls={`${sectionDomId}-body`}
-      >
-        {collapsed ? <ChevronRightIcon size={14} /> : <ChevronDown size={14} />}
-        <span className="pulso-codificacion-section-title">
-          {label}
-        </span>
-        <span className="pulso-codificacion-section-meta">
-          {preguntas.length} {preguntas.length === 1 ? "pregunta" : "preguntas"}
-          {emparejadas > 0 && <>, <strong className="is-paired">{emparejadas} {emparejadas === 1 ? "emparejada" : "emparejadas"}</strong></>}
-          {codificadas > 0 && <>{emparejadas > 0 ? " y " : ", "}<strong className="is-coded">{codificadas} {codificadas === 1 ? "codificada" : "codificadas"}</strong></>}
-        </span>
-      </button>
-      {!collapsed && (
-        /* C1: las tarjetas se estiran por fila (`align-items: stretch`), pero
-           entre filas miden lo que pide su contenido: contrato `intrinsic`. */
-        <div
-          id={`${sectionDomId}-body`}
-          className="pulso-codificacion-question-grid"
-          data-qa-geometry-group="codificacion/preguntas"
-          data-qa-geometry-contract="intrinsic"
-        >
-          {preguntas.map((p) => (
-            <PreguntaCard
-              key={p.parent}
-              p={p}
-              onPair={() => onPair(p)}
-              onUnpair={() => onUnpair(p.parent)}
-              busy={busyPair === p.parent}
-              dragActive={dragActive}
-              adoptedBy={adoptedBy}
-              recentlyAdopted={recentlyAdopted}
-              onSetDummy={onSetDummy}
-              onSetModoSo={onSetModoSo}
-              onScrollToPadre={onScrollToPadre}
-              onToggleMarcada={(m) => onToggleMarcada(p.parent, m)}
-              onNoCategorizar={onNoCategorizar}
-              onOpenRelation={() => onOpenRelation(p)}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-type CardProps = {
+/**
+ * "Incluir en codificación" queda puesto en la pregunta: interruptor, no casilla, y el rótulo no cambia
+ * con el estado. Una pareja entra siempre, así que su interruptor va encendido y fijo. Debajo va la
+ * decisión de no codificarla (ADR 0078), que no es lo mismo: queda registrada con su motivo y no borra
+ * la intención, mientras que apagar el interruptor la saca de la codificación sin dejar rastro.
+ */
+export function IncluirEnCodificacion({ p, busy, onIncluir, onNoCategorizar }: {
   p: PreguntaAbierta;
-  onPair: () => void;
-  onUnpair: () => void;
   busy: boolean;
-  dragActive: boolean;
-  adoptedBy: Map<string, PreguntaAbierta>;
-  recentlyAdopted: Set<string>;
-  onSetDummy: (padre: PreguntaAbierta, dummy_col: string) => void;
-  onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
-  onScrollToPadre: (parent?: string) => void;
-  onToggleMarcada: (marcada: boolean) => void;
+  onIncluir: (parent: string, marcada: boolean) => void;
   onNoCategorizar: (parent: string, motivo: string, revertir?: boolean) => void;
-  onOpenRelation: () => void;
-};
-
-function MarcarFooter({ p, arq, busy, onToggleMarcada, onNoCategorizar }: { p: PreguntaAbierta; arq: Arquetipo; busy: boolean; onToggleMarcada: (m: boolean) => void; onNoCategorizar: (parent: string, motivo: string, revertir?: boolean) => void }) {
-  // ADR 0078: la salida para cerrar sin categorizar acompaña a la de marcar,
-  // porque son las dos formas de resolver la misma pregunta.
-  const decidir = (
-    <NoCategorizarAction
-      parent={p.parent}
-      decision={decisionDePregunta(p)}
+}) {
+  const fija = p.marcada_auto;
+  const incluida = fija || p.marcada;
+  const decision = decisionDePregunta(p);
+  const noSeCodifica = (
+    <DecisionNoCodificar
+      key={p.parent}
+      decision={decision}
       motivo={p.no_categorizar?.motivo}
       busy={busy}
       onRegistrar={(motivo) => onNoCategorizar(p.parent, motivo)}
       onRevertir={() => onNoCategorizar(p.parent, "", true)}
     />
   );
-
-  // Emparejadas: auto-marcada, inmutable mientras haya pareja. La decisión de
-  // no categorizarla sigue disponible: que el módulo la detecte solo no
-  // significa que haya que codificarla.
-  if (p.marcada_auto) {
-    return (
-      <div style={{ marginTop: 8, padding: "6px 8px", borderTop: "1px solid var(--pulso-border)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <Check size={12} color="var(--pulso-success-fg)" />
-        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-success-fg)", fontWeight: 600 }}>En codificación automáticamente</span>
-        {decidir}
-      </div>
-    );
-  }
-  // Adoptadas, config-so, no-aplica: no mostrar toggle.
-  if (arq === "adoptada" || arq === "no-aplica" || arq === "config-so") return null;
-  // Resto: toggle explícito.
-  // «Incluir en codificación» queda puesto en la pregunta: interruptor, no
-  // casilla. El rótulo no cambia con el estado; lo dice la perilla.
+  // Con la decisión de no codificarla ya registrada, el interruptor encendido la contradiría: no se muestra.
+  if (decision === "no_categorizar") return <div className="pulso-preg-incluir">{noSeCodifica}</div>;
   return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        marginTop: 8, padding: "6px 8px",
-        borderTop: "1px solid var(--pulso-border)",
-        display: "flex", alignItems: "center", gap: 8,
-      }}
-    >
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: busy ? "wait" : "pointer", fontSize: "var(--pulso-type-caption-size)", fontWeight: 600, color: p.marcada ? "var(--pulso-text)" : "var(--pulso-text-soft)" }}>
+    <div className="pulso-preg-incluir">
+      <label className="pulso-preg-incluir-fila" data-incluida={incluida ? "" : undefined}>
         <Switch
           className="pulso-codificacion-switch"
-          checked={p.marcada}
-          disabled={busy}
-          onToggle={() => onToggleMarcada(!p.marcada)}
+          checked={incluida}
+          disabled={busy || fija}
+          onToggle={() => onIncluir(p.parent, !p.marcada)}
           ariaLabel={`Incluir ${p.parent} en el flujo de codificación`}
         />
         Incluir en codificación
       </label>
-      {p.marcada && decidir}
+      {fija ? <p className="pulso-preg-insp-ayuda">Se incluye mientras esté emparejada.</p> : null}
+      {incluida ? noSeCodifica : null}
     </div>
   );
-}
-
-function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onNoCategorizar, onOpenRelation }: CardProps) {
-  const arq = arquetipoOf(p, adoptedBy);
-  const tipoStyle = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
-  const marcarFooter = <MarcarFooter p={p} arq={arq} busy={busy} onToggleMarcada={onToggleMarcada} onNoCategorizar={onNoCategorizar} />;
-  const paired = isPaired(p);
-
-  // Drag-drop UNIVERSAL — cualquier pregunta se puede arrastrar sobre
-  // cualquier otra para establecer una relación de codificación. Las
-  // excepciones son las que no aplican semánticamente:
-  //   - `adoptada`: ya es hija de otra, no tiene sentido re-emparejar.
-  //   - `no-aplica`: desactivada, no entra al flujo.
-  //
-  // El caso clásico (text → SO/SM sin pareja) se resuelve con drop
-  // directo (flujo automático). Cualquier otro combo abre el
-  // `RelationDialog` para que el usuario defina la dirección de la
-  // dependencia.
-  //
-  // NOTA: `isOrphan` se mantiene SOLO para preservar el estilo visual
-  // de "card huérfana arrastrable" (dashed border, hint de arrastre).
-  // El drag real está habilitado para más casos vía `isDraggable`.
-  const isOrphan = arq === "huerfana";
-  const isDraggable = arq !== "adoptada" && arq !== "no-aplica";
-  const isDropTarget = arq !== "adoptada" && arq !== "no-aplica";
-  const draggable = useDraggable({ id: p.parent, disabled: !isDraggable });
-  const droppable = useDroppable({ id: p.parent, disabled: !isDropTarget });
-
-  const ts = tipoStyle;
-  // Solo marcamos visualmente la card cuando el cursor ENTRA en ella
-  // durante un drag activo (`dropOver`). Antes también había un
-  // highlight global (`dropHighlight`) que mostraba dashed border en
-  // TODAS las cards drop-target cuando empezaba un drag — con el drag
-  // universal eso saturaba visualmente. Ahora el feedback es puntual.
-  const dropOver = droppable.isOver && isDropTarget;
-  const cardClassName = [
-    "pulso-codificacion-question-card",
-    `is-${arq}`,
-    paired ? "is-paired" : "",
-    dropOver ? "is-drop-over" : "",
-    isDraggable ? "is-draggable" : "",
-  ].filter(Boolean).join(" ");
-  const common: React.CSSProperties = {
-    border: dropOver
-      ? `2px dashed var(--drag-valid-border)`
-      : "1px solid var(--pulso-border)",
-    borderLeft: `4px solid ${ts.border}`,
-    borderRadius: 12,
-    padding: 14,
-    background: dropOver ? "var(--drag-valid-bg)" : "rgba(255, 255, 255, 0.96)",
-    boxShadow: dropOver ? "0 10px 24px rgba(0, 36, 87, 0.14)" : "var(--pulso-shadow-low)",
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    // Cards con altura uniforme POR FILA: el stretch de CSS Grid las lleva al
-    // alto de la más alta. Sin alto mínimo (4 nov 2026): los 210 px fabricaban
-    // capacidad y una tarjeta de «Opción única» quedaba con media altura en
-    // blanco (pasada de formato de Codificación).
-    height: "100%",
-    position: "relative",
-    transition: "background 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out, opacity 140ms ease-out, transform 140ms ease-out",
-    opacity: draggable.isDragging ? 0.4 : 1,
-  };
-  // Attach dnd-kit refs — una card puede ser AL MISMO TIEMPO draggable y
-  // droppable (cualquier card se puede arrastrar sobre cualquier otra).
-  // Combinamos los dos setNodeRef en una función que los propaga a ambos.
-  const ref = (el: HTMLElement | null) => {
-    if (isDraggable) draggable.setNodeRef(el);
-    if (isDropTarget) droppable.setNodeRef(el);
-  };
-  const listeners = isDraggable ? draggable.listeners : undefined;
-  const attributes = isDraggable ? draggable.attributes : undefined;
-
-  // --- HEADER común ---
-  const header = (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-      <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: ts.fg }}>{p.parent}</div>
-      <div style={{ flex: 1 }} />
-      <ArquetipoBadge arq={arq} paired={paired} tipoStyle={ts} />
-    </div>
-  );
-
-  const label = (
-    <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text)", lineHeight: 1.35 }} title={sinEnfasis(p.parent_label)}>
-      {truncate(sinEnfasis(p.parent_label), 110)}
-    </div>
-  );
-
-  const tipoRow = (
-    <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      <span style={{ padding: "2px 6px", borderRadius: 4, background: ts.bg, color: ts.fg, fontWeight: 600 }}>{ts.label}</span>
-      {p.col_efectiva && <span>Texto leído desde <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{p.col_efectiva}</code></span>}
-    </div>
-  );
-
-  // ADR 0078: el estado va junto a los conteos, que es donde el analista mira
-  // para saber si le queda trabajo. Una marcada sin respuestas ya no se ve
-  // igual que una marcada sin categorías.
-  const decision = decisionDePregunta(p);
-  const decisionChip = (
-    <DecisionChip decision={decision} motivo={p.no_categorizar?.motivo} nota={restanteDeDecision(p)} />
-  );
-
-  const stats = (
-    <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      {p.n_respuestas > 0 && (
-        <span>
-          <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_respuestas)}</strong> respuestas, <strong style={{ color: "var(--pulso-text)" }}>{formatoConteo(p.n_unicas)}</strong> únicas
-        </span>
-      )}
-      {decisionChip}
-    </div>
-  );
-
-  const preview = p.preview && p.preview.length > 0 ? (
-    <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", fontStyle: "italic", borderLeft: "2px solid var(--pulso-border)", paddingLeft: 8 }}>
-      {p.preview.slice(0, 2).map((pv, i) => <div key={i}>“{truncate(pv, 50)}”</div>)}
-    </div>
-  ) : null;
-
-  // La codificación de cada pregunta vive en la SEGUNDA pestaña (Codificar ·
-  // Agrupar respuestas), que recorre las preguntas marcadas. Antes cada card
-  // tenía además una flecha "Codificar →" hacia la ruta de detalle: era
-  // redundante con la pestaña 2 y confundía en el paso de Preparar, así que
-  // se quitó. La ruta /codificacion/preguntas/:parent sigue existiendo por si
-  // se accede por URL.
-
-  // CASE 0: adoptada (text que ya es hija de una SO/SM)
-  if (arq === "adoptada") {
-    const padre = adoptedBy.get(p.col_efectiva || p.parent);
-    return (
-      <article
-        className={cardClassName}
-        data-parent={p.parent}
-        style={{
-          ...common,
-          background: "var(--adoptada-bg)",
-          borderLeft: `4px solid ${ts.border}`,
-          border: `1px solid var(--adoptada-border)`,
-          opacity: 0.92,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: "var(--adoptada-fg)" }}>{p.parent}</div>
-          <div style={{ flex: 1 }} />
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: "white", color: "var(--adoptada-fg)", fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", border: "1px solid var(--adoptada-border)" }}>
-            <Check size={10} /> Texto conectado
-          </span>
-        </div>
-        {label}
-        {tipoRow}
-        {stats}
-        <div style={{ flex: 1 }} />
-        <button
-          type="button"
-          onClick={() => onScrollToPadre(padre?.parent)}
-          style={{
-            fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-primary)", background: "transparent",
-            border: "none", textAlign: "left", padding: 0, cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600,
-          }}
-        >
-          ↗ Gestionar con {padre?.parent ?? "la pregunta principal"}
-        </button>
-        {marcarFooter}
-      </article>
-    );
-  }
-
-  // CASE 1: auto (integer)
-  if (arq === "auto") {
-    return (
-      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
-        {header}
-        {label}
-        {tipoRow}
-        {stats}
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <IconAI size={12} color="var(--tipo-int-fg)" />
-          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>
-            Autocodifica con su diccionario
-          </span>
-        </div>
-        {marcarFooter}
-      </article>
-    );
-  }
-
-  // CASE 2: solitaria (text puro)
-  if (arq === "solitaria") {
-    return (
-      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
-        {header}
-        {label}
-        {tipoRow}
-        {stats}
-        {preview}
-        <div style={{ flex: 1 }} />
-        {marcarFooter}
-      </article>
-    );
-  }
-
-  // CASE 3: huerfana (text con patrón _otro) — draggable
-  if (arq === "huerfana") {
-    return (
-      <article
-        ref={ref}
-        {...listeners}
-        {...attributes}
-        className={cardClassName}
-        data-parent={p.parent}
-        style={{
-          ...common,
-          borderStyle: draggable.isDragging ? "solid" : "dashed",
-          borderColor: ts.border,
-          background: "#fafaf7",
-          cursor: draggable.isDragging ? "grabbing" : "grab",
-        }}
-        aria-label={`${p.parent} — arrastrable para emparejar con su pregunta padre`}
-      >
-        <div style={{ position: "absolute", top: 10, right: 10, color: "var(--pulso-text-soft)", opacity: 0.5 }}>
-          <GripVertical size={14} />
-        </div>
-        {header}
-        {label}
-        {tipoRow}
-        {stats}
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <GripVertical size={11} /> Arrastra sobre la pregunta origen
-          </span>
-          <button
-            type="button"
-            className="pulso-secondary pulso-codificacion-relation-button"
-            disabled={busy}
-            onPointerDown={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenRelation();
-            }}
-          >
-            <Link2 size={12} /> Relacionar con...
-          </button>
-        </div>
-        {marcarFooter}
-      </article>
-    );
-  }
-
-  // CASE 5: no-aplica
-  if (arq === "no-aplica") {
-    return (
-      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={{ ...common, opacity: 0.55 }}>
-        {header}
-        {label}
-        {tipoRow}
-        <div style={{ flex: 1 }} />
-        <span style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)" }}>Desactivada</span>
-        {marcarFooter}
-      </article>
-    );
-  }
-
-  // CASE 6: pareja-so / pareja-sm
-  const pareja = p.pareja && typeof p.pareja === "object" && "child_col" in p.pareja ? p.pareja : null;
-
-  if (paired && pareja) {
-    // Emparejada. SM sin dummy_col queda en estado "necesita-dummy" visible.
-    const isSM = p.tipo === "select_multiple";
-    const needsDummy = isSM && !pareja.dummy_col;
-    const modoLabel = needsDummy
-      ? "Falta opción 'Otros'"
-      : p.modo_so === "padre"
-      ? "Pregunta original codificada"
-      : p.modo_so === "hijo"
-      ? "Texto codificado aparte"
-      : "Emparejada";
-    const fresh = recentlyAdopted.has(p.parent);
-
-    return (
-      <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 700, color: ts.fg }}>{p.parent}</div>
-          <div style={{ flex: 1 }} />
-          <span
-            className={fresh ? "pulso-badge-fresh" : undefined}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 3,
-              padding: "2px 6px", borderRadius: 4,
-              background: needsDummy ? "var(--pulso-warn-bg)" : "var(--pulso-success-bg)",
-              color: needsDummy ? "var(--pulso-warn-fg)" : "var(--pulso-success-fg)",
-              fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, letterSpacing: 0.5,
-              textTransform: "uppercase", whiteSpace: "nowrap",
-              border: needsDummy ? "1px solid #f0d799" : "none",
-            }}
-          >
-            {needsDummy ? <CircleAlert size={10} /> : <Link2 size={10} />} {modoLabel}
-          </span>
-        </div>
-        {label}
-        {tipoRow}
-        {/* La emparejada era la única variante que no montaba `stats`, y por
-            tanto la única sin chip de decisión. En acnur_acg eso dejaba a
-            D1_information —la única con decisión abierta de las 30— mostrando
-            un «En codificación automáticamente» en verde y nada más: el
-            contador del encabezado decía «1 sin decidir» y ninguna card decía
-            cuál. */}
-        {stats}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 16px 1fr", alignItems: "center", gap: 6, marginTop: 4 }}>
-          <PairedSide
-            title={p.parent}
-            subtitle={p.modo_so === "padre" ? "se recodifica con sus opciones" : p.modo_so === "hijo" ? "queda tal cual" : "pregunta"}
-            tone="primary"
-          />
-          <Link2 size={12} color="var(--pulso-primary)" />
-          <PairedSide
-            title={pareja.child_col}
-            subtitle={p.modo_so === "padre" ? "aporta nuevas categorías" : p.modo_so === "hijo" ? "se codifica como texto aparte" : "texto asociado"}
-            tone="soft"
-          />
-        </div>
-
-        {p.tipo === "select_one" && (
-          <ModoSoControl
-            parent={p.parent}
-            childCol={pareja.child_col}
-            current={p.modo_so === "hijo" ? "hijo" : "padre"}
-            busy={busy}
-            onChange={(modo) => onSetModoSo(p, modo)}
-          />
-        )}
-
-        {/* SM: picker de "Otros, especifique". Siempre visible cuando hay
-            pareja y opciones disponibles. La opción actualmente marcada
-            se muestra activa (borde primary + ícono ✓); al clickearla
-            de nuevo se deselecciona (toggle). */}
-        {p.opciones_sm && p.opciones_sm.length > 0 && (
-          <SmDummyPicker
-            padre={p}
-            opciones={p.opciones_sm}
-            busy={busy}
-            selectedCol={pareja.dummy_col || ""}
-            onSelect={(col) => onSetDummy(p, col)}
-          />
-        )}
-
-        {/* Caso sin opciones_sm: no podemos ofrecer el picker; mostramos
-            la columna de dummy en un banner informativo (fallback raro). */}
-        {(!p.opciones_sm || p.opciones_sm.length === 0) && !needsDummy && pareja.dummy_col && (() => {
-          return (
-            <div style={{
-              marginTop: 8, padding: "8px 10px",
-              background: "var(--tipo-sm-bg)",
-              border: "1px solid var(--tipo-sm-border)",
-              borderRadius: 6,
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <Check size={14} color="var(--tipo-sm-fg)" />
-              <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-caption-size)" }}>{pareja.dummy_col}</code>
-            </div>
-          );
-        })()}
-
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button type="button" onClick={onPair} disabled={busy} style={{ fontSize: "var(--pulso-type-caption-size)", padding: "3px 8px" }} title="Cambiar modo o cambiar hija">
-            Cambiar
-          </button>
-          <button type="button" onClick={onUnpair} disabled={busy} style={{ fontSize: "var(--pulso-type-caption-size)", padding: "3px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <Link2Off size={11} /> Desemparejar
-          </button>
-        </div>
-        {marcarFooter}
-      </article>
-    );
-  }
-
-  // Sin emparejar. No mostramos candidatos ni mensajes de "no se detectó"
-  // en la card — se ofrecen solo dentro del diálogo "Emparejar con…"
-  // (si hay candidatos, aparecen preseleccionados allí; si no, el diálogo
-  // permite buscar entre todas las columnas disponibles).
-  const hasCands = p.candidatos_texto && p.candidatos_texto.length > 0;
-  return (
-    <article ref={ref} {...listeners} {...attributes} className={cardClassName} data-parent={p.parent} style={common}>
-      {header}
-      {label}
-      {tipoRow}
-      {stats}
-      <div style={{ flex: 1 }} />
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <button
-          type="button"
-          onClick={onPair}
-          disabled={busy}
-          className={hasCands ? "pulso-primary" : undefined}
-          style={{ fontSize: "var(--pulso-type-body-size)", padding: "5px 10px", display: "inline-flex", alignItems: "center", gap: 4 }}
-        >
-          <Link2 size={12} /> Emparejar con…
-        </button>
-        <div style={{ flex: 1 }} />
-      </div>
-    </article>
-  );
-}
-
-function ModoSoControl({ parent, childCol, current, busy, onChange }: {
-  parent: string;
-  childCol: string;
-  current: ModoSo;
-  busy: boolean;
-  onChange: (modo: ModoSo) => void;
-}) {
-  const options = modoSoOptionsForDisplay(parent, childCol);
-  return (
-    <div
-      role="group"
-      aria-label={`Modo de codificación para ${parent}`}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 4,
-        padding: 4,
-        border: "1px solid var(--pulso-border)",
-        borderRadius: 6,
-        background: "var(--pulso-surface-2)",
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {options.map((opt) => {
-        const active = current === opt.value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            aria-pressed={active}
-            title={opt.title}
-            disabled={busy}
-            onClick={() => onChange(opt.value)}
-            style={{
-              minHeight: 36,
-              padding: "5px 7px",
-              borderRadius: 4,
-              border: `1px solid ${active ? "var(--pulso-primary)" : "transparent"}`,
-              background: active ? "white" : "transparent",
-              color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
-              fontSize: "var(--pulso-type-caption-size)",
-              fontWeight: active ? 700 : 600,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              cursor: busy ? "wait" : "pointer",
-            }}
-          >
-            {active && <Check size={12} />}
-            <span style={{ minWidth: 0, lineHeight: 1.15, whiteSpace: "normal", overflowWrap: "anywhere" }}>{opt.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
-  padre: PreguntaAbierta;
-  opciones: OpcionSM[];
-  busy: boolean;
-  selectedCol: string;
-  onSelect: (col: string) => void;
-}) {
-  const hasSelection = !!selectedCol;
-  const borderColor = hasSelection ? "var(--tipo-sm-border)" : "var(--pulso-warn-border)";
-  const bg = hasSelection ? "var(--tipo-sm-bg)" : "var(--pulso-warn-bg)";
-  const eyebrowColor = hasSelection ? "var(--tipo-sm-fg)" : "var(--pulso-warn-fg)";
-  return (
-    <div style={{
-      marginTop: 8,
-      padding: 10,
-      background: bg,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 6,
-      fontSize: "var(--pulso-type-body-size)",
-    }}>
-      <div style={{ color: eyebrowColor, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontSize: "var(--pulso-type-eyebrow-size)", textTransform: "uppercase", letterSpacing: 0.3 }}>
-        {hasSelection ? <Check size={12} /> : <CircleAlert size={12} />}
-        {hasSelection ? 'Opción "Otros, especifique"' : '¿Cuál opción es "Otros, especifique"?'}
-      </div>
-      <div style={{ fontSize: "var(--pulso-type-caption-size)", color: eyebrowColor, opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>
-        {hasSelection
-          ? <>Los textos asociados se codifican cuando esta opción fue marcada. Haz click en la opción para quitar la selección.</>
-          : <>Elige la opción que habilita el texto libre asociado.</>}
-      </div>
-      <div
-        style={{
-          display: "flex", flexDirection: "column", gap: 3,
-          // Cap más agresivo para no dominar el alto de la card en el
-          // paso 1 Organizar. ~4 items visibles (32px + 3px gap = 35px
-          // cada uno → 140px de área de scroll). El resto con scroll
-          // interno minimalista.
-          maxHeight: opciones.length > 4 ? 144 : undefined,
-          overflowY: opciones.length > 4 ? "auto" : undefined,
-          scrollbarWidth: "thin",
-          scrollbarColor: "var(--pulso-border) transparent",
-          paddingRight: opciones.length > 4 ? 4 : 0,
-        }}
-      >
-        {opciones.map((o) => {
-          const isSelected = selectedCol === o.col_dummy && o.col_dummy !== "";
-          const disabled = busy || !o.col_dummy;
-          const sugerida = o.es_otros_sugerido && !hasSelection;
-          // Priorización de estilos: seleccionada > sugerida > normal.
-          const borderCol = isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-accent)" : "var(--pulso-border)";
-          const bgCol = isSelected ? "var(--pulso-primary-soft)" : sugerida ? "var(--pulso-warn-bg)" : "white";
-          const title = disabled && !o.col_dummy
-            ? "Esta opción no puede marcarse con la base actual"
-            : isSelected
-            ? `Click para deseleccionar (actualmente marcada como "Otros")`
-            : `Usar esta opción como "Otros"`;
-          return (
-            <button
-              key={o.codigo}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelect(o.col_dummy)}
-              aria-pressed={isSelected}
-              title={title}
-              style={{
-                textAlign: "left",
-                display: "grid",
-                gridTemplateColumns: "18px 34px 1fr auto",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 8px",
-                background: bgCol,
-                border: `1px solid ${borderCol}`,
-                borderRadius: 5,
-                cursor: disabled ? "not-allowed" : "pointer",
-                opacity: disabled && !o.col_dummy ? 0.5 : 1,
-                fontSize: "var(--pulso-type-caption-size)",
-              }}
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16 }}>
-                {isSelected ? <Check size={12} color="var(--pulso-primary)" /> : null}
-              </span>
-              <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontWeight: 700, color: isSelected ? "var(--pulso-primary)" : sugerida ? "var(--pulso-warn-fg)" : "var(--pulso-text-soft)" }}>{o.codigo}</code>
-              {/* `minWidth: 0` + elipsis: la celda `1fr` se angosta con el panel
-                  y sin esto la etiqueta se pintaba fuera de su pista, sacando
-                  una barra de scroll horizontal al contenedor y cortando el
-                  final del texto contra su borde. El `title` deja el rótulo
-                  completo al alcance. */}
-              <span
-                title={o.label}
-                style={{
-                  color: "var(--pulso-text)",
-                  fontWeight: isSelected ? 600 : 400,
-                  minWidth: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {truncate(o.label, 70)}
-              </span>
-              {sugerida && !isSelected && (
-                <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-warn-fg)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
-                  ← Probable
-                </span>
-              )}
-              {isSelected && (
-                <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-primary)", textTransform: "uppercase", letterSpacing: 0.3, whiteSpace: "nowrap" }}>
-                  Seleccionada
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      {!hasSelection && opciones.every((o) => !o.es_otros_sugerido) && (
-        <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-warn-fg)", marginTop: 6, fontStyle: "italic" }}>
-          No detecté una opción "Otros" en el instrumento. Elige la que corresponde según tu criterio.
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PairedSide({ title, subtitle, tone }: { title: string; subtitle: string; tone: "primary" | "soft" }) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${tone === "primary" ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-        borderRadius: 6,
-        padding: "6px 8px",
-        background: tone === "primary" ? "var(--pulso-primary-soft)" : "var(--pulso-surface-2)",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: "var(--pulso-type-subtitle-size)", fontWeight: 600, color: tone === "primary" ? "var(--pulso-primary)" : "var(--pulso-text)", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>{title}</div>
-      <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)" }}>{subtitle}</div>
-    </div>
-  );
-}
-
-function ArquetipoBadge({ arq, paired, tipoStyle }: { arq: Arquetipo; paired: boolean; tipoStyle: { bg: string; fg: string } }) {
-  const cfg = badgeConfig(arq, paired, tipoStyle);
-  if (!cfg) return null;
-  const Icon = cfg.icon;
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 6px", borderRadius: 4, background: cfg.bg, color: cfg.fg, fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap" }}>
-      <Icon size={10} />
-      {cfg.label}
-    </span>
-  );
-}
-
-type BadgeCfg = { label: string; bg: string; fg: string; icon: typeof Check };
-
-function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; fg: string }): BadgeCfg | null {
-  // El "no-emparejamiento" NO es un status — las SO/SM pueden codificarse
-  // solas. Por lo tanto una pareja sin pareja no lleva badge; el contenido
-  // de la card (candidatos sugeridos, toggle "Incluir") indica la acción.
-  if (arq === "auto") return { label: "Auto", bg: "#e6d9f2", fg: "#4a2d66", icon: IconAI };
-  if (arq === "solitaria") return { label: "Solitaria", bg: "#f3f4f6", fg: "#4b5563", icon: Check };
-  if (arq === "huerfana") return { label: "Texto libre", bg: "#fef3c7", fg: "#78350f", icon: CircleAlert };
-  if (arq === "adoptada") return { label: "Conectada", bg: "#f0f4fa", fg: "#474f5b", icon: Link2 };
-  if (arq === "no-aplica") return { label: "Inactiva", bg: "#f3f4f6", fg: "#9ca3af", icon: Check };
-  if ((arq === "pareja-so" || arq === "pareja-sm") && paired) {
-    return { label: "Emparejada", bg: "var(--pulso-success-bg)", fg: "var(--pulso-success-fg)", icon: Link2 };
-  }
-  // pareja-so/sm sin emparejar, o config-so: sin badge de error.
-  return null;
-}
-
-function truncate(s: string, n: number) {
-  if (!s) return "";
-  return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
-
-function domSafeId(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9_-]+/gi, "-") || "sin-seccion";
 }

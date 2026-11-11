@@ -279,30 +279,6 @@
   font-size: var(--pulso-type-caption-size);
 }
 
-.pulso-codificacion-panel-body .pulso-codificacion-section-head {
-  top: 0;
-}
-
-.pulso-codificacion-question-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 42%),
-    color-mix(in srgb, var(--pulso-module-processing-soft) 28%, transparent);
-  opacity: 0;
-  transition: opacity var(--motion-dur-fast) ease;
-}@media (hover: hover) and (pointer: fine) {
-  .pulso-codificacion-question-card:hover { transform: translateY(var(--mov-hover-lift, -1px)); }
-}
-
-.pulso-codificacion-question-grid > article:hover {
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
-}
-
 .pulso-codificacion-soft-button:disabled {
   cursor: not-allowed;
   opacity: 0.62;
@@ -370,18 +346,6 @@ button.pulso-ghost-nav:disabled {
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.25;
-}
-
-.pulso-codificacion-section-meta strong {
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.pulso-codificacion-question-grid > article {
-  min-width: 0;
-}
-
-.pulso-codificacion-sections-grid .pulso-codificacion-question-card {
-  border-radius: 14px;
 }
 
 /* =============================================================================
@@ -488,7 +452,6 @@ button.pulso-ghost-nav:disabled {
   height: 100%;
 }
 
-.pulso-codificacion-frame .pulso-codificacion-organizar,
 .pulso-codificacion-frame .pulso-codificacion-matrix-workbench,
 .pulso-codificacion-frame .pulso-codificacion-adaptar {
   flex: 1 1 auto;
@@ -762,7 +725,7 @@ button.pulso-ghost-nav:disabled {
   gap: 4px 6px;
   min-width: 0;
   /* Se envuelve por palabras: a 1024 la columna mide ~240 px y el global
-     `overflow-wrap: anywhere` partía «Respuest/as» (pasada de formato). */
+     `overflow-wrap: anywhere` partía "Respuest/as" (pasada de formato). */
   overflow-wrap: normal;
   font-size: var(--pulso-type-subtitle-size);
   font-weight: var(--pulso-weight-bold);
@@ -816,7 +779,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 /* **La cruz nativa de `type="search"` se apaga.** Este campo ya trae su propio
-   botón de limpiar —el `<X>` con `aria-label="Limpiar búsqueda"`—, y Chromium
+   botón de limpiar (el `<X>` con `aria-label="Limpiar búsqueda"`), y Chromium
    dibuja además su `::-webkit-search-cancel-button` dentro del input: salían
    DOS cruces pegadas. Se queda la de la casa, que es la que hereda el color y
    el foco del campo. Mismo arreglo que en `senalesPorAula.css` (9c6d5d6f). */
@@ -1341,7 +1304,7 @@ button.pulso-ghost-nav:disabled {
   white-space: nowrap;
 }
 
-/* «Ya marcada»: esa persona ya tenía esta opción, así que mandar el texto acá
+/* "Ya marcada": esa persona ya tenía esta opción, así que mandar el texto acá
    no suma una mención. Es una advertencia sobre el efecto, no un error: se
    marca en tono de aviso y nunca deshabilita la opción — recodificar hacia
    algo ya marcado puede ser exactamente lo que el analista quiere. */
@@ -1445,23 +1408,6 @@ button.pulso-ghost-nav:disabled {
   background: var(--pulso-surface);
   text-align: left;
   cursor: pointer;
-}
-
-.pulso-codificacion-frame .pulso-codificacion-sections-grid {
-  grid-template-columns: minmax(0, 1fr);
-  align-items: stretch;
-}
-
-.pulso-codificacion-frame .pulso-codificacion-sections-grid .pulso-codificacion-question-section {
-  overflow: hidden;
-}
-
-/* 5 nov 2026 (pulido de UI): `auto-fill`, no `auto-fit`. Con auto-fit las columnas vacías se colapsaban y una
-   sección de 2 preguntas estiraba sus tarjetas al doble de ancho que la de 5 de abajo (660 vs 330 px a 1440):
-   el mismo listado con dos tamaños de tarjeta. Así todas las secciones comparten columnas. */
-.pulso-codificacion-frame .pulso-codificacion-sections-grid .pulso-codificacion-question-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-  align-items: stretch;
 }
 
 @media (max-width: 720px) {
@@ -1589,21 +1535,6 @@ button.pulso-ghost-nav:disabled {
   min-height: 420px;
 }
 
-.pulso-codificacion-search input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  padding: 4px 0;
-}
-
-.pulso-codificacion-search-clear:active {
-  transform: scale(var(--mov-press, 0.97));
-}
-
 .pulso-codificacion-sidebar-question:hover {
   border-color: var(--pulso-primary-border);
   background: var(--pulso-primary-soft);
@@ -1619,7 +1550,7 @@ button.pulso-ghost-nav:disabled {
   box-shadow: 0 7px 18px rgba(0, 36, 87, 0.1);
 }
 
-/* M13: el rótulo de la tarjeta corta en dos líneas con «…». La tarjeta es un
+/* M13: el rótulo de la tarjeta corta en dos líneas con puntos suspensivos. La tarjeta es un
    `button` y `white-space` se hereda: la regla global de botón (`nowrap`) lo
    dejaba en una sola línea recortada a secas, sin elipsis. El texto entero va
    en el `title` de la tarjeta. */
@@ -1655,7 +1586,7 @@ button.pulso-ghost-nav:disabled {
 }
 
 /* Piel del interruptor de la casa (`components/Switch`) en Codificación: sólo
- * tokens, con el acento de Procesamiento. «Incluir en codificación» queda
+ * tokens, con el acento de Procesamiento. "Incluir en codificación" queda
  * puesto en la pregunta, así que es un interruptor y no una casilla. */
 .pulso-codificacion-switch {
   --pulso-switch-accent: var(--module-accent, var(--pulso-module-processing, var(--pulso-primary)));
