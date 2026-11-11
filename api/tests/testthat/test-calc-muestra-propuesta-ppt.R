@@ -68,3 +68,22 @@ test_that("el PPT trae portada, cinco tipos de lámina y contraportada al final"
   ultima <- officer::slide_summary(officer::on_slide(doc, length(doc)))
   expect_true(any(grepl("pucp.edu.pe", ultima$text, fixed = TRUE)))
 })
+
+test_that("el Excel de escenarios trae las mismas cifras que el PPT, como números", {
+  skip_if_not_installed("openxlsx")
+  out <- tempfile(fileext = ".xlsx")
+  r <- calc_muestra_propuesta_xlsx(.prop_dci(), out)
+  expect_identical(r$hojas, c("Resumen", "Docentes", "Administrativos", "Viabilidad", "Diseño"))
+  res <- openxlsx::read.xlsx(out, sheet = "Resumen", startRow = 5)
+  # Metas de A y B por público y total: las mismas que la tabla del PPT.
+  expect_identical(as.integer(res[[4]]), c(900L, 900L, 600L, 2400L))
+  expect_identical(as.integer(res[[7]]), c(600L, 600L, 400L, 1600L))
+  # Respuesta necesaria y margen de referencia son números, no texto.
+  expect_true(is.numeric(res[[5]]))
+  expect_equal(res[[5]][1], 900 / 2665)
+  expect_equal(res[[6]][1], 1.96 * sqrt(0.25 / 900 * (2665 - 900) / 2664))
+  doc <- openxlsx::read.xlsx(out, sheet = "Docentes", startRow = 3)
+  expect_identical(as.integer(doc[[3]]), c(39L, 591L, 91L, 86L, 93L, 900L))
+  v <- openxlsx::read.xlsx(out, sheet = "Viabilidad", startRow = 4, colNames = TRUE)
+  expect_identical(v$Lectura[1:3], c("Exige más respuesta en Propuesta A", "Alcanzable", "Alcanzable"))
+})

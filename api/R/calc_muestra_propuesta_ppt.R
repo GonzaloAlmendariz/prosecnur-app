@@ -71,19 +71,22 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   attr(comparacion, "secciones") <- c(1L, length(publicos) + 3L)
   attr(comparacion, "totales") <- length(publicos) + 2L
 
-  segmentos <- list()
+  segmentos <- list(); segmentos_num <- list()
   for (i in seq_along(base)) {
     est <- base[[i]]$marco$estratos %||% list()
     if (!length(est)) next
     df <- data.frame(Segmento = c(vapply(est, `[[`, "", "label"), "Total"),
                      `Personas en la base` = .cmp_fmt_n(c(vapply(est, function(e) as.integer(e$N), 1L), N[i])),
                      check.names = FALSE)
+    num <- data.frame(segmento = vapply(est, `[[`, "", "label"), N = vapply(est, function(e) as.integer(e$N), 1L))
     for (k in seq_along(calc)) {
       d <- calc[[k]]$componentes[[i]]$resultado$distribucion_estratos %||% list()
       n <- vapply(d, function(x) as.integer(x$n), 1L)
       df[[paste0("Meta ", nombres[k])]] <- .cmp_fmt_n(c(n, sum(n)))
+      num[[nombres[k]]] <- n
     }
     segmentos[[publicos[i]]] <- df
+    segmentos_num[[publicos[i]]] <- num
   }
 
   ref <- vapply(base, function(c) as.numeric(c$parametros$tasa_respuesta %||% NA_real_), 0)
@@ -115,7 +118,10 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
             .cmp_fmt_pct(as.numeric(p[3]) / as.numeric(p[4]), 0), esc_txt)
   }, "", USE.NAMES = FALSE)
 
-  list(publicos = publicos, escenarios = nombres, poblacion = poblacion, comparacion = comparacion,
+  # Las mismas cifras sin formato, para el Excel (una sola fuente para PPT y XLSX).
+  datos <- list(publicos = publicos, segmentacion = segs, N = N, metas = stats::setNames(metas, nombres), referencia = ref,
+                referencia_rotulo = as.character(propuesta$referencia_rotulo %||% "")[1], segmentos = segmentos_num)
+  list(datos = datos, publicos = publicos, escenarios = nombres, poblacion = poblacion, comparacion = comparacion,
        segmentos = segmentos, viabilidad = viabilidad, avisos = avisos %||% character())
 }
 
