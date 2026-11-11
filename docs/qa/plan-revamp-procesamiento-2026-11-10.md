@@ -543,8 +543,9 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | Validación | Trabajo recuperado del 4 de noviembre: editar un criterio propio ya no responde 500, y el editor clasifica el hallazgo | Hecho | |
 | Validación | Red de pruebas y partición de los archivos grandes, sin cambio visible | Hecho | |
 | Validación | Cambio a las cuatro pestañas (Explorar, Reglas, Hallazgos, Cierre) | Falta | Es lo siguiente |
-| Validación | Reglas con su panel | Falta | Motor de Reglas, en curso |
-| Validación | Hallazgos por tipo | Falta | Motor de Hallazgos |
+| Validación | Motor de Reglas: auditoría única, conteo previo de una regla y condiciones combinadas | Hecho | Decidir cómo trata un vacío la coherencia entre dos preguntas |
+| Validación | Reglas con su panel | Falta | Espera el cambio a las cuatro pestañas |
+| Validación | Hallazgos por tipo | Falta | Motor de Hallazgos, en curso |
 | Validación | Cierre y retiro de los archivos viejos | Falta | Confirmar los borrados |
 | Validación | Script de limpieza replicable en `.qmd`, que piden estudios como los de ACNUR | Falta | Diseñar cómo sale de las reglas y decisiones guardadas; anotado el 2026-11-11 |
 | Codificación | Preguntas | Hecho | |
