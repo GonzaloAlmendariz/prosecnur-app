@@ -1899,10 +1899,11 @@
     out <- suppressWarnings(as.integer(value)[1])
     if (!is.finite(out) || is.na(out) || out < 1L) fallback else out
   }
+  # El índice ACNUR va en dos columnas de cinco: con 9 secciones el tope de 8 dejaba una segunda página con una sola.
   acnur_index_single_limit <- acnur_index_int(
     raw_cfg$acnur_index_single_limit %||% raw_cfg$acnurIndexSingleLimit %||%
       cfg$acnur_index_single_limit %||% cfg$acnurIndexSingleLimit,
-    8L
+    10L
   )
   acnur_index_per_slide <- acnur_index_int(
     raw_cfg$acnur_index_per_slide %||% raw_cfg$acnurIndexPerSlide %||%
@@ -2005,8 +2006,10 @@
     }
   }
 
+  acnur_cortes <- list(); acnur_ctxs <- list()   # dónde empieza cada fuente (graficos_acnur_repeats_en_seccion.R)
   for (src in coverage_for_plan$sources %||% list()) {
     source <- .graficos_scalar_chr(src$name, "default")
+    acnur_cortes[[length(acnur_cortes) + 1L]] <- list(fuente = source, inicio = length(slides))
     vars <- src$variables %||% list()
     vars <- Filter(function(v) {
       isTRUE(v$graphable) &&
@@ -2029,6 +2032,7 @@
     } else {
       NULL
     }
+    if (is.list(acnur_source_ctx)) acnur_ctxs[[source]] <- acnur_source_ctx
 
     # ADR 0030: en una fuente hija repeat a grano de INSTANCIA, abrir POR SERVICIO
     # (una sección por servicio, título = nombre del servicio, `srv_*` filtradas
@@ -2181,6 +2185,15 @@
         }
       )
     }
+  }
+
+  if (identical(profile_id, "acnur_kobo_cruncher_plus") && length(acnur_ctxs)) {
+    # Cada grupo repetible en la sección del formulario que lo contiene, y el índice rehecho con los separadores.
+    slides <- .graficos_acnur_repeats_en_su_seccion(
+      slides, acnur_cortes, acnur_ctxs,
+      surveys = lapply(acnur_ctxs, function(x) (x$inst %||% list())$survey),
+      index_single_limit = acnur_index_single_limit, index_per_slide = acnur_index_per_slide
+    )
   }
 
   delivery <- .graficos_delivery_options(

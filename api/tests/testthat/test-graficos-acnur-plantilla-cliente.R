@@ -201,3 +201,83 @@ test_that("el título de lámina se achica hasta caber en dos líneas", {
   expect_equal(.ppt_titulo_pt_que_cabe(largo, 24, ancho_in = NULL), 24)                    # sin ancho no se toca
   expect_gte(.ppt_titulo_pt_que_cabe(paste(rep(largo, 3), collapse = " "), 24, ancho_in = 11.5), 16)
 })
+
+# P5: cada grupo repetible va en la sección del formulario que lo contiene.
+.rep_survey <- function() {
+  data.frame(
+    type = c("begin_group", "select_one a", "end_group", "begin_group", "begin_repeat", "select_one s", "end_repeat",
+             "end_group", "begin_group", "select_one b", "end_group"),
+    name = c("G1", "q1", "", "Part1", "miembros", "sexo", "", "", "G2", "q2", ""),
+    label = c("Sección uno", "Q1", "", "Parte 1", "Miembros", "Sexo", "", "", "Sección dos", "Q2", ""),
+    stringsAsFactors = FALSE
+  )
+}
+.rep_sep <- function(t) list(id = t, tipo = "p_slide_seccion", payload = list(titulo = t))
+.rep_q <- function(v) list(id = v, tipo = "p_slide_1_grafico", payload = list(titulo = v, grafico = list(args = list(var = v))))
+.rep_ids <- function(sl) vapply(sl, function(s) s$id, "")
+
+test_that("un grupo repetible cuya sección no tiene láminas abre esa sección en su lugar del formulario", {
+  previas <- list(list(id = "portada", tipo = "p_slide_portada"), list(id = "indice", tipo = "p_slide_indice"))
+  principal <- list(.rep_sep("Sección uno"), .rep_q("q1"), .rep_sep("Sección dos"), .rep_q("q2"))
+  hijo <- list(.rep_q("miembros$sexo"))
+  slides <- c(previas, principal, hijo)
+  cortes <- list(list(fuente = "default", inicio = 2L), list(fuente = "miembros", inicio = 6L))
+  ctx <- list(default = list(is_repeat = FALSE), miembros = list(is_repeat = TRUE, base = list(parent_base = "default", repeat_group = "miembros")))
+  out <- .graficos_acnur_repeats_en_su_seccion(slides, cortes, ctx, surveys = list(default = .rep_survey()))
+  ids <- .rep_ids(out)
+  expect_equal(ids[-(1:2)], c("Sección uno", "q1", ids[5], "miembros$sexo", "Sección dos", "q2"))
+  expect_identical(out[[5]]$payload$titulo, "Parte 1")
+  expect_identical(unlist(out[[2]]$payload$secciones), c("Sección uno", "Parte 1", "Sección dos"))   # índice rehecho
+})
+
+test_that("si la sección ya tiene láminas, el grupo repetible va al final de ella", {
+  principal <- list(.rep_sep("Sección uno"), .rep_q("q1"), .rep_sep("Parte 1"), .rep_q("p1"), .rep_sep("Sección dos"), .rep_q("q2"))
+  slides <- c(list(list(id = "portada", tipo = "p_slide_portada")), principal, list(.rep_q("miembros$sexo")))
+  cortes <- list(list(fuente = "default", inicio = 1L), list(fuente = "miembros", inicio = 7L))
+  ctx <- list(default = list(is_repeat = FALSE), miembros = list(is_repeat = TRUE, base = list(parent_base = "default", repeat_group = "miembros")))
+  ids <- .rep_ids(.graficos_acnur_repeats_en_su_seccion(slides, cortes, ctx, surveys = list(default = .rep_survey())))
+  expect_equal(ids, c("portada", "Sección uno", "q1", "Parte 1", "p1", "miembros$sexo", "Sección dos", "q2"))
+})
+
+test_that("los separadores propios del grupo repetible se respetan y no entran al índice", {
+  principal <- list(.rep_sep("Sección uno"), .rep_q("q1"), .rep_sep("Parte 1"), .rep_q("p1"), .rep_sep("Sección dos"), .rep_q("q2"))
+  hijo <- list(.rep_sep("Servicio A"), .rep_q("miembros$sexo"))
+  slides <- c(list(list(id = "indice", tipo = "p_slide_indice")), principal, hijo)
+  cortes <- list(list(fuente = "default", inicio = 1L), list(fuente = "miembros", inicio = 7L))
+  ctx <- list(default = list(is_repeat = FALSE), miembros = list(is_repeat = TRUE, base = list(parent_base = "default", repeat_group = "miembros")))
+  out <- .graficos_acnur_repeats_en_su_seccion(slides, cortes, ctx, surveys = list(default = .rep_survey()))
+  expect_equal(.rep_ids(out)[-1], c("Sección uno", "q1", "Parte 1", "p1", "Servicio A", "miembros$sexo", "Sección dos", "q2"))
+  expect_identical(unlist(out[[1]]$payload$secciones), c("Sección uno", "Parte 1", "Sección dos"))
+  expect_null(out[[6]]$subseccion_de_repeat)   # la marca interna no sale del plan
+})
+
+test_that("sin grupos repetibles el plan no cambia", {
+  slides <- list(.rep_sep("Sección uno"), .rep_q("q1"))
+  expect_identical(.graficos_acnur_repeats_en_su_seccion(slides, list(list(fuente = "default", inicio = 0L)),
+                                                         list(default = list(is_repeat = FALSE)), list(default = .rep_survey())), slides)
+})
+
+test_that("un grupo repetible que es su propia sección entra al índice con su separador", {
+  survey <- data.frame(type = c("begin_group", "select_one a", "end_group", "begin_repeat", "select_one s", "end_repeat"),
+                       name = c("G1", "q1", "", "serv", "sat", ""), label = c("Sección uno", "Q1", "", "Evaluación", "Sat", ""),
+                       stringsAsFactors = FALSE)
+  principal <- list(.rep_sep("Sección uno"), .rep_q("q1"))
+  hijo <- list(.rep_sep("Evaluación"), .rep_q("serv$sat"))
+  slides <- c(list(list(id = "indice", tipo = "p_slide_indice")), principal, hijo)
+  cortes <- list(list(fuente = "default", inicio = 1L), list(fuente = "serv", inicio = 3L))
+  ctx <- list(default = list(is_repeat = FALSE), serv = list(is_repeat = TRUE, base = list(parent_base = "default", repeat_group = "serv")))
+  out <- .graficos_acnur_repeats_en_su_seccion(slides, cortes, ctx, surveys = list(default = survey))
+  expect_identical(unlist(out[[1]]$payload$secciones), c("Sección uno", "Evaluación"))
+})
+
+test_that("si la sección no tiene láminas y el bloque abre con un servicio, la sección lleva su separador", {
+  principal <- list(.rep_sep("Sección uno"), .rep_q("q1"), .rep_sep("Sección dos"), .rep_q("q2"))
+  hijo <- list(.rep_sep("Servicio A"), .rep_q("miembros$sexo"))
+  slides <- c(list(list(id = "indice", tipo = "p_slide_indice")), principal, hijo)
+  cortes <- list(list(fuente = "default", inicio = 1L), list(fuente = "miembros", inicio = 5L))
+  ctx <- list(default = list(is_repeat = FALSE), miembros = list(is_repeat = TRUE, base = list(parent_base = "default", repeat_group = "miembros")))
+  out <- .graficos_acnur_repeats_en_su_seccion(slides, cortes, ctx, surveys = list(default = .rep_survey()))
+  titulos <- vapply(out[-1], function(s) .graficos_scalar_chr(s$payload$titulo, ""), "")
+  expect_equal(titulos, c("Sección uno", "q1", "Parte 1", "Servicio A", "miembros$sexo", "Sección dos", "q2"))
+  expect_identical(unlist(out[[1]]$payload$secciones), c("Sección uno", "Parte 1", "Sección dos"))
+})

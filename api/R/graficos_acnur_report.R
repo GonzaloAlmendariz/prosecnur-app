@@ -968,7 +968,7 @@
       id = .graficos_plan_slide_id("acnur"),
       tipo = "p_slide_indice",
       payload = list(
-        titulo = if (page == 1L) "Contenido" else paste0("Contenido · ", page),
+        titulo = if (page == 1L) "Contenido" else "Contenido (cont.)",
         secciones = page_sections,
         subtemas = character(0),
         subindices = list(),

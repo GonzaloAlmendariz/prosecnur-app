@@ -483,7 +483,7 @@ test_that("paginacion del contenido ACNUR admite limites configurados", {
   expect_length(paged, 2L)
   expect_equal(vapply(paged, function(slide) length(slide$payload$secciones), integer(1)), c(8L, 1L))
   expect_equal(vapply(paged, function(slide) .graficos_scalar_chr(slide$payload$titulo, ""), character(1)),
-               c("Contenido", "Contenido · 2"))
+               c("Contenido", "Contenido (cont.)"))   # sin punto medio en los rótulos
 })
 
 test_that("perfil ACNUR fija la escala tipografica acordada sin reductores", {
