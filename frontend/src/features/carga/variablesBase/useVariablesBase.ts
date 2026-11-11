@@ -20,6 +20,12 @@ import { avisarCambioDeVariables, textoIncorporadas, type CargaVariablesBase } f
 export type CatalogoBase =
   | { tipo: "cargando" }
   | { tipo: "error" }
+  /**
+   * El catálogo de preguntas por base sale hoy de Equivalencias, que solo
+   * existe con bases de formularios distintos; fuera de esos estudios el
+   * servidor responde 409 (`E_EQUIV_NO_APLICA`) y no se pide.
+   */
+  | { tipo: "no-aplica" }
   | { tipo: "listo"; variables: VariableDeBase[] };
 
 export type Ocupado = "" | "declarar" | "calculada" | "codificada" | "quitar";
@@ -84,11 +90,21 @@ function mensajeDeError(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-export function useVariablesBase(base: string | null) {
+export function useVariablesBase(
+  base: string | null,
+  { conCatalogo = true }: {
+    /** Si el estudio tiene equivalencias, de donde sale el catálogo de preguntas. */
+    conCatalogo?: boolean;
+  } = {},
+) {
   const [estado, despachar] = useReducer(reducirEstado, ESTADO_INICIAL);
   const secuencia = useRef(0);
 
   const leerCatalogo = useCallback(async (nombre: string, id: number) => {
+    if (!conCatalogo) {
+      if (id === secuencia.current) despachar({ tipo: "catalogo", catalogo: { tipo: "no-aplica" } });
+      return;
+    }
     try {
       const cat = await getVariablesEquivalencias();
       if (id === secuencia.current) {
@@ -97,7 +113,7 @@ export function useVariablesBase(base: string | null) {
     } catch {
       if (id === secuencia.current) despachar({ tipo: "catalogo", catalogo: { tipo: "error" } });
     }
-  }, []);
+  }, [conCatalogo]);
 
   useEffect(() => {
     if (!base) return;

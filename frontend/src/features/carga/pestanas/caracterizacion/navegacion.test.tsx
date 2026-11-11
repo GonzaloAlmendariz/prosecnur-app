@@ -30,13 +30,13 @@ function origenElegido(): string | null {
 
 describe("CargaPage, navegación entre pestañas", () => {
   escenario("navegacion_una-base_ida-y-vuelta", "una base: recorre las pestañas desde el riel sin remontar la página", async () => {
-    await montar({ estado: UNA_BASE_COMPLETA, pestana: "fuentes", rutas: rutasDeRevision(false) });
+    await montar({ estado: UNA_BASE_COMPLETA, pestana: "bases", rutas: rutasDeRevision(false) });
     const pasos = [mesa()];
     await pulsar(ORIGEN, "Plataforma");
     expect(origenElegido()).toBe("Plataforma");
     await pulsar("#carga-workspace-tab-revision");
     pasos.push(mesa());
-    await pulsar("#carga-workspace-tab-fuentes");
+    await pulsar("#carga-workspace-tab-bases");
     pasos.push(mesa());
     // El origen elegido vive en la página: debe seguir en Plataforma al volver.
     expect(origenElegido()).toBe("Plataforma");
@@ -44,9 +44,9 @@ describe("CargaPage, navegación entre pestañas", () => {
   });
 
   escenario("navegacion_varias_recorrido", "varias bases: recorre las pestañas desde el riel", async () => {
-    await montar({ ...VARIAS_SEPARADAS, pestana: "plan", rutas: rutasDeRevision(false) });
+    await montar({ ...VARIAS_SEPARADAS, pestana: "bases", rutas: rutasDeRevision(false) });
     const pasos = [mesa()];
-    for (const pestana of ["revision", "datos", "estructura"]) {
+    for (const pestana of ["revision", "variables", "equivalencias", "formulario", "respuestas"]) {
       await pulsar(`#carga-workspace-tab-${pestana}`);
       expect(document.querySelector(`#carga-workspace-tab-${pestana}`)?.getAttribute("aria-selected")).toBe("true");
       pasos.push(mesa());

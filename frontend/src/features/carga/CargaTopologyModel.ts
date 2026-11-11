@@ -175,9 +175,9 @@ export function resolveCargaTopology(input: CargaTopologyInput): CargaTopologyRe
         modeLocked: true,
         strategyLocked: true,
         lockReason: baseCount > 1
-          ? "El estudio ya contiene varias bases separadas; su cantidad y sus fuentes se gestionan desde Fuentes."
+          ? "El estudio ya contiene varias bases separadas; se agregan y se quitan en la lista de bases."
           // Con una sola base, «Varias bases» describe para qué está preparado el estudio, no lo que ya tiene: se dice.
-          : "El estudio está preparado para varias bases separadas y por ahora tiene una. Agrega la siguiente desde Fuentes.",
+          : "El estudio está preparado para varias bases separadas y por ahora tiene una; la siguiente se agrega en la lista de bases.",
       };
     }
 
@@ -188,7 +188,7 @@ export function resolveCargaTopology(input: CargaTopologyInput): CargaTopologyRe
       modeLocked: hasMaterializedMultiBase,
       strategyLocked: false,
       lockReason: hasMaterializedMultiBase
-        ? "La preparación de varias bases ya fue activada; sus fuentes se gestionan desde Fuentes."
+        ? "La preparación de varias bases ya fue activada; sus fuentes se agregan en la lista de bases."
         : undefined,
     };
   }

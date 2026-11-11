@@ -19,10 +19,9 @@ import { AbrirPanelFuentes } from "./AbrirPanelFuentes";
 import { NuevaVersionRespuestas } from "./NuevaVersionRespuestas";
 import { ArmonizacionBasePanel } from "./ArmonizacionBasePanel";
 import { CompararFuentesPanel } from "./CompararFuentesPanel";
-import { VariablesBasePanel } from "../variablesBase/VariablesBasePanel";
 import { DescargaDeBaseEnFila, useDescargaDeBase } from "../entregas/DescargaDeBase";
 import { NombreArchivo } from "../../../components/entregables/NombreArchivo";
-import { searchConVariablesBase } from "../variablesBase/variablesBaseModel";
+import { IrAVariablesDeBase } from "./IrAVariablesDeBase";
 import { comparablesCon, hayFuentesComparables, primerParComparable, searchConArmonizacionBase, searchConComparacion } from "./compararFuentesModel";
 import "./basesDelEstudio.css";
 
@@ -174,15 +173,10 @@ function TarjetaBase({ base, vinculo, comparables, ocupado, onRenombrar, onQuita
           {onOtraFuente ? (
             <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={onOtraFuente}><GitMerge size={13} aria-hidden="true" />Agregar otra fuente</PulsoButton>
           ) : null}
-          {/* ADR 0106: columnas propias, calculadas y la marca «ya viene codificada». */}
-          <AbrirPanelFuentes
-            variant="secondary"
-            clave={`variables-base:${base.nombre}`}
-            destino={(search) => searchConVariablesBase(search, base.nombre)}
-            etiqueta={`Variables de la base ${base.nombre}`}
-          >
+          {/* ADR 0106: columnas propias, calculadas y la marca "ya viene codificada"; desde el ADR 0142, en su pestaña. */}
+          <IrAVariablesDeBase base={base.nombre}>
             <Columns3 size={13} aria-hidden="true" />Variables
-          </AbrirPanelFuentes>
+          </IrAVariablesDeBase>
           {/* ADR 0100 D1: lo decidido fuera se cambia allá y la base recibe su archivo nuevo. */}
           {onCambio ? <NuevaVersionRespuestas base={base.nombre} ocupado={ocupado} onCambio={onCambio} /> : null}
           {/* M2: acciones secundarias con el mismo PulsoButton secundario de Carga. */}
@@ -372,7 +366,6 @@ export function BasesDelEstudio({
       ) : null}
       <ArmonizacionBasePanel />
       <CompararFuentesPanel bases={bases} />
-      <VariablesBasePanel />
     </section>
   );
 }

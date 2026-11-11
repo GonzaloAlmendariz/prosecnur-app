@@ -10,6 +10,7 @@ import {
   textoHidratacionCarga,
   type HidratacionCarga,
 } from "./cargaHidratacion";
+import { ETIQUETAS_GRUPO_PESTANA } from "../../lib/navegacion/catalogos/procesamiento";
 import { CARGA_WORKSPACE_TABS, type CargaWorkspaceTab } from "./CargaWorkspaceModel";
 import { CARGA_WORKSPACE_PANEL_ID, cargaWorkspaceTabId } from "./CargaWorkspaceNavigation";
 import { useSegundosTranscurridos } from "./useEstudioCarga";
@@ -35,10 +36,10 @@ const PESTANAS_SIEMPRE = CARGA_WORKSPACE_TABS.filter(
 );
 
 const SILUETA_POR_PESTANA: Partial<Record<CargaWorkspaceTab, SkeletonVistaVariante>> = {
-  plan: "documento",
   revision: "workbench",
-  estructura: "tabla",
-  datos: "tabla",
+  variables: "documento",
+  formulario: "tabla",
+  respuestas: "tabla",
   equivalencias: "tabla",
 };
 
@@ -66,6 +67,7 @@ export function CargaHidratando({
     icon: tab.icon,
     estado: "no-evaluado",
     estadoLabel: leyendo ? "Leyendo" : "Sin leer",
+    ...(tab.grupo ? { grupo: ETIQUETAS_GRUPO_PESTANA[tab.grupo] } : {}),
   }));
   const texto = leyendo ? textoHidratacionCarga(hidratacion.motivo) : "";
 
@@ -116,7 +118,7 @@ export function CargaHidratando({
                   {texto}, <strong>{formatoTranscurrido(segundos)}</strong>
                 </span>
               </div>
-              {pestana === "fuentes" ? (
+              {pestana === "bases" ? (
                 <SiluetaFuentes />
               ) : (
                 <SkeletonVista
@@ -146,14 +148,14 @@ export function CargaHidratando({
 }
 
 /**
- * Silueta de Fuentes con la forma real de la vista hidratada: franja del plan,
+ * Silueta de Bases (antes Fuentes) con la forma real de la vista hidratada: franja del plan,
  * selector de origen, tarjeta del estudio, un carril de base materializada
  * (nombre, chip, tres acciones, metadatos) y la fila de alta. Al llegar los
  * datos no hay salto de layout porque cada hueco ya tenía su alto.
  */
 export function SiluetaFuentes() {
   return (
-    <div className="pulso-carga-hidratando-fuentes" aria-hidden="true" data-carga-silueta="fuentes">
+    <div className="pulso-carga-hidratando-fuentes" aria-hidden="true" data-carga-silueta="bases">
       <div className="pulso-carga-hidratando-plan">
         <Skeleton forma="card" ancho={30} alto={30} />
         <div className="pulso-carga-hidratando-lineas">

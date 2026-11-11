@@ -24,3 +24,12 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ADR 0142: Formulario y Respuestas son de consulta y van separadas del resto
+ * por una línea corta, centrada en el riel icon-only. */
+.pulso-carga-workspace-tab-rail .pulso-context-tab-group {
+  flex: 0 0 auto;
+  width: 50%;
+  margin-block: var(--pulso-space-1);
+  border-top: 1px solid var(--pulso-border);
+}

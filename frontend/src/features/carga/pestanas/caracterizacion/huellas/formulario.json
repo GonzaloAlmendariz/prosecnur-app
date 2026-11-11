@@ -1,0 +1,42 @@
+{
+  "una-base_con-insumos_estructura": {
+    "marcado": "7633f3e1f87a5f73ab6d68e3aca90023b44f245418cc2ebad979befd9b95ecff",
+    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+  },
+  "una-base_con-insumos_formulario": {
+    "marcado": "826b9a57e63724016c7552ddfc3a58d4291ae7011fb60f8504912af0eb303dc2",
+    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+  },
+  "una-base_sin-archivos_estructura": {
+    "marcado": "182f622cac22bf8b7ab4564d7d938a21b5e96b443ab8daed1622e4016fc875a2",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_sin-archivos_formulario": {
+    "marcado": "4a4f639056843ce68172baa956b08fd201108abbba0f52f74fe93a5a52c0e37a",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "varias_integradas_estructura": {
+    "marcado": "b4ce2cf461e9b2fd75604ac66772cb09b6c8eae32d24dcf5cc7bac7486e10245",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_integradas_formulario": {
+    "marcado": "d752c221e4f40fec2f7501949fe07a9cfd505fbc9b37c1ce9085d26751b5ffd4",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_separadas_estructura": {
+    "marcado": "e34c5e021e7d71325bd8273ab771158054242540d7416feee90994fb18f50135",
+    "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
+  },
+  "varias_separadas_formulario": {
+    "marcado": "3c8a00925a96efee83449758c4c55a1b250161685462a74fc3122b0401838306",
+    "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
+  },
+  "varias_sin-bases_estructura": {
+    "marcado": "3d8b83e76dba51eeeed7582551be2d5734392a834ad655a962893817eb4c7c97",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "varias_sin-bases_formulario": {
+    "marcado": "d090c8a032ce7ccff87daa84ac231adedd5584b18f3db8c59f18c02d12186770",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  }
+}

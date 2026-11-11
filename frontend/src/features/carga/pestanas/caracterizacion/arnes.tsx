@@ -13,6 +13,10 @@
  * VOLCAR_CARGA=<carpeta> vuelca a esa carpeta, por grupo, el marcado normalizado
  * y los pedidos de todos los escenarios que corran, pasen o no, para comparar
  * con `diff -r antes despues`.
+ *
+ * Desde el ADR 0142 la huella del marcado incluye la dirección con que termina
+ * el escenario y los avisos emergentes que dejó: un alias que reescribiera la
+ * dirección, o un aviso que dejara de darse, cambia la huella.
  */
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -20,7 +24,7 @@ import os from "node:os";
 import path from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionState } from "../../../../api/core";
 import type { EstudioBase, EstudioPayload } from "../../../../api/estudio";
@@ -34,6 +38,7 @@ vi.mock("../../../../lib/SessionContext", () => ({
 }));
 
 import CargaPage from "../../CargaPage";
+import { useToasterStore } from "../../../../components/toasterStore";
 import { usePlataformaStore } from "../../plataforma/usePlataformaStore";
 import { useCargaStore } from "../../store";
 
@@ -127,6 +132,24 @@ export function estudio(
 
 export const BASES_DOS = [base("docentes"), base("estudiantes", { n_filas: 480, n_columnas: 41 })];
 
+/** Madre con un grupo repetido y su hija: varias bases, pero sin equivalencias (una sola primaria). */
+export const BASES_MADRE_E_HIJA = [
+  base("hogares"),
+  base("miembros", { source_kind: "kobo_repeat", parent_base: "hogares", repeat_group: "miembros", n_filas: 900 }),
+];
+
+export const MADRE_E_HIJA = {
+  estado: estado({
+    has_estudio: true,
+    estudio_processing_mode: "multibase",
+    estudio_topology_declared: "separate",
+    n_bases: 2,
+    bases_nombres: ["hogares", "miembros"],
+    active_base: "hogares",
+  }),
+  estudio: estudio(BASES_MADRE_E_HIJA, { active_base: "hogares" }),
+};
+
 export const VARIAS_SEPARADAS = {
   estado: estado({
     has_estudio: true,
@@ -178,7 +201,7 @@ export const VARIAS_SIN_BASES = {
 
 // ── Backend simulado ─────────────────────────────────────────────────────────
 
-export type Respuesta = unknown | (() => unknown);
+export type Respuesta = unknown | ((url: string) => unknown);
 export type Ruta = [metodo: string, ruta: string | RegExp, respuesta: Respuesta];
 
 export const ESTRUCTURA = {
@@ -350,6 +373,23 @@ export function rutasDeMonitoreo(familia: string, instrumento: "local" | "needs_
   ];
 }
 
+/** Lo que el servidor devuelve de las variables de una base. */
+export function variablesDeBase(nombre: string) {
+  return {
+    ok: true,
+    base: nombre,
+    ya_codificada: false,
+    extras: [{ name: "obs_campo", label: "Observación de campo", tipo: "texto", opciones: [], n_validos: 48, declarada: false }],
+    calculadas: [],
+    retiradas: [],
+    retiradas_pendientes: [],
+  };
+}
+
+const RUTAS_DE_VARIABLES: Ruta[] = [
+  ["GET", /^\/api\/carga\/base-variables\?base=[^&]+$/, (url: string) => variablesDeBase(new URL(url, "http://x").searchParams.get("base") ?? "")],
+];
+
 export const SUBIDA: Ruta[] = [
   ["POST", /^\/api\/files\/upload\?kind=xlsform$/, { file_id: "f-xls", kind: "xlsform", original_name: "formulario.xlsx", size: 1, ext: "xlsx" }],
   ["POST", /^\/api\/files\/upload\?kind=/, { file_id: "f-dat", kind: "data", original_name: "respuestas.xlsx", size: 1, ext: "xlsx" }],
@@ -387,6 +427,7 @@ export function instalarBackend(propias: Ruta[]) {
     ["GET", /^\/api\/carga\/instrumento\/estructura/, ESTRUCTURA],
     ["POST", "/api/surveymonkey/multibase/surveys", ENCUESTAS],
     ["POST", "/api/carga/platform/kobo/assets", ACTIVOS_KOBO],
+    ...RUTAS_DE_VARIABLES,
   ];
   pedidos = [];
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
@@ -395,7 +436,7 @@ export function instalarBackend(propias: Ruta[]) {
     const ruta = rutas.find(([m, r]) => m === metodo && (typeof r === "string" ? r === url : r.test(url)));
     pedidos.push(`${metodo} ${url}${ruta ? "" : " (sin doble, queda en vuelo)"}`);
     if (!ruta) return new Promise<Response>(() => {});
-    const cuerpo = typeof ruta[2] === "function" ? (ruta[2] as () => unknown)() : ruta[2];
+    const cuerpo = typeof ruta[2] === "function" ? (ruta[2] as (url: string) => unknown)(url) : ruta[2];
     if (cuerpo === EN_VUELO) return new Promise<Response>(() => {});
     if (cuerpo instanceof Fallo) {
       return Promise.resolve(
@@ -427,9 +468,36 @@ export async function asentar() {
 /** Lo que `refresh()` deja como estado de sesión la próxima vez que se llama. */
 let estadosTrasRefrescar: SessionState[] = [];
 
+/** La dirección con que termina el escenario (pathname y query). */
+let direccion = "";
+let montajes = 0;
+
+function EspiaDeDireccion() {
+  const location = useLocation();
+  direccion = `${location.pathname}${location.search}`;
+  return null;
+}
+
+/** La dirección actual del escenario: un alias se lee sin reescribirla. */
+export function direccionActual(): string {
+  return direccion;
+}
+
+/** Los avisos emergentes que dejó el escenario, del más nuevo al más viejo. */
+export function avisos(): string[] {
+  return useToasterStore.getState().toasts.map((t) => (t.detalle ? `${t.mensaje}. ${t.detalle}` : t.mensaje));
+}
+
+/** Los pedidos al backend del escenario, en orden. */
+export function pedidosHechos(): readonly string[] {
+  return [...pedidos];
+}
+
 export async function montar(opciones: {
   estado: SessionState | null;
   pestana?: string;
+  /** Dirección completa de entrada (gana a `pestana`), p. ej. `/carga?panel=variables-base&foco=x`. */
+  entrada?: string;
   rutas?: Ruta[];
   estudio?: EstudioPayload | typeof EN_VUELO | Fallo;
   errorSesion?: string;
@@ -452,10 +520,13 @@ export async function montar(opciones: {
     error: opciones.errorSesion ?? "",
     sessionLost: false,
   };
-  const entrada = opciones.pestana ? `/carga?pestana=${opciones.pestana}` : "/carga";
+  const entrada = opciones.entrada ?? (opciones.pestana ? `/carga?pestana=${opciones.pestana}` : "/carga");
+  montajes += 1;
   await act(async () => {
     root.render(
-      <MemoryRouter initialEntries={[entrada]}>
+      // La clave remonta el router si un escenario monta dos veces (alias y canónica).
+      <MemoryRouter key={montajes} initialEntries={[entrada]}>
+        <EspiaDeDireccion />
         <CargaPage />
       </MemoryRouter>,
     );
@@ -507,8 +578,14 @@ export function mesa(): string {
   );
 }
 
+/** Dirección final y avisos: entran a la huella del marcado. */
+function encabezado(): string {
+  const lineas = [`<!-- dirección: ${direccion} -->`, ...avisos().map((a) => `<!-- aviso: ${a} -->`)];
+  return lineas.join("\n");
+}
+
 function volcado(): string {
-  return `<!-- pedidos al backend, en orden -->\n${pedidos.map((p) => `<!-- ${p} -->`).join("\n")}\n${marcado()}\n`;
+  return `<!-- pedidos al backend, en orden -->\n${pedidos.map((p) => `<!-- ${p} -->`).join("\n")}\n${encabezado()}\n${marcado()}\n`;
 }
 
 export const ORIGEN = "button.pulso-carga-origin-tab";
@@ -576,7 +653,7 @@ function comparar(nombre: string, actual: Huella, texto: string) {
 export function fijar(nombre: string) {
   const texto = volcado();
   volcar(nombre, texto);
-  comparar(nombre, { marcado: sha256(marcado()), pedidos: sha256(pedidos.join("\n")) }, texto);
+  comparar(nombre, { marcado: sha256(`${encabezado()}\n${marcado()}`), pedidos: sha256(pedidos.join("\n")) }, texto);
 }
 
 /**
@@ -590,12 +667,21 @@ export function fijarMesa(nombre: string, pasos: readonly string[]) {
   comparar(nombre, { marcado: sha256(medido) }, `${medido}\n`);
 }
 
+/** Stores de la página y avisos en su estado inicial. */
+function reiniciarStores() {
+  useToasterStore.getState().limpiar();
+  direccion = "";
+  useCargaStore.getState().resetForSession();
+  usePlataformaStore.setState(usePlataformaStore.getInitialState(), true);
+}
+
 /** Registra los ganchos del grupo. Se llama una vez, al inicio del archivo de prueba. */
 export function prepararGrupo(nombre: string) {
   grupo = nombre;
 
   afterAll(() => {
-    if (!ACTUALIZAR) return;
+    // En CI no se escribe nada: la prueba de abajo ya falla y dice por qué.
+    if (!ACTUALIZAR || process.env.CI) return;
     const guardadas = leerHuellas();
     const resultado: Record<string, Huella> = {};
     for (const clave of [...declarados].sort()) {
@@ -609,8 +695,7 @@ export function prepararGrupo(nombre: string) {
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     vi.stubGlobal("localStorage", { getItem: () => "sid-prueba", setItem: () => undefined, removeItem: () => undefined });
-    useCargaStore.getState().resetForSession();
-    usePlataformaStore.setState(usePlataformaStore.getInitialState(), true);
+    reiniciarStores();
     vi.stubGlobal("confirm", () => true);
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -623,6 +708,14 @@ export function prepararGrupo(nombre: string) {
     vi.unstubAllGlobals();
   });
 
+  // Regenerar deja todo en verde por construcción: en CI sería aprobar sin mirar.
+  it("ACTUALIZAR_HUELLAS_CARGA no corre en CI", () => {
+    expect(
+      ACTUALIZAR && Boolean(process.env.CI),
+      "ACTUALIZAR_HUELLAS_CARGA=1 con CI definido: regenerar las huellas en CI las daría por buenas sin compararlas",
+    ).toBe(false);
+  });
+
   it("las huellas guardadas corresponden a escenarios que existen", () => {
     if (ACTUALIZAR) return;
     const sobrantes = Object.keys(leerHuellas()).filter((clave) => !declarados.has(clave));
@@ -632,31 +725,47 @@ export function prepararGrupo(nombre: string) {
 
 // ── Matriz de estados por pestaña ────────────────────────────────────────────
 
-/** Los cinco estados de la matriz (una base vacía y completa; varias bases separadas, compartidas y sin bases) de una pestaña. */
-export function escenariosDeMatriz(pestana: string) {
-  describe("CargaPage, una base", () => {
-    escenario(`una-base_sin-archivos_${pestana}`, `sin archivos: ${pestana}`, async () => {
-      await montar({ estado: UNA_BASE_VACIA, pestana });
-      fijar(`una-base_sin-archivos_${pestana}`);
-    });
-    escenario(`una-base_con-insumos_${pestana}`, `con formulario y datos: ${pestana}`, async () => {
-      await montar({ estado: UNA_BASE_COMPLETA, pestana });
-      fijar(`una-base_con-insumos_${pestana}`);
-    });
-  });
+type OpcionesDeMontaje = Parameters<typeof montar>[0];
 
-  describe("CargaPage, varias bases", () => {
-    escenario(`varias_separadas_${pestana}`, `bases separadas: ${pestana}`, async () => {
-      await montar({ ...VARIAS_SEPARADAS, pestana });
-      fijar(`varias_separadas_${pestana}`);
-    });
-    escenario(`varias_integradas_${pestana}`, `formulario compartido: ${pestana}`, async () => {
-      await montar({ ...VARIAS_INTEGRADAS, pestana });
-      fijar(`varias_integradas_${pestana}`);
-    });
-    escenario(`varias_sin-bases_${pestana}`, `sin bases todavía: ${pestana}`, async () => {
-      await montar({ ...VARIAS_SIN_BASES, pestana });
-      fijar(`varias_sin-bases_${pestana}`);
-    });
+/** Los cinco estados de la matriz: una base vacía y completa; varias bases separadas, compartidas y sin bases. */
+const ESTADOS_DE_MATRIZ: readonly (readonly [nombre: string, titulo: string, opciones: OpcionesDeMontaje])[] = [
+  ["una-base_sin-archivos", "sin archivos", { estado: UNA_BASE_VACIA }],
+  ["una-base_con-insumos", "con formulario y datos", { estado: UNA_BASE_COMPLETA }],
+  ["varias_separadas", "bases separadas", VARIAS_SEPARADAS],
+  ["varias_integradas", "formulario compartido", VARIAS_INTEGRADAS],
+  ["varias_sin-bases", "sin bases todavía", VARIAS_SIN_BASES],
+];
+
+/** Los cinco estados de la matriz de una pestaña. */
+export function escenariosDeMatriz(pestana: string) {
+  describe(`CargaPage, matriz de estados: ${pestana}`, () => {
+    for (const [estadoNombre, titulo, opciones] of ESTADOS_DE_MATRIZ) {
+      escenario(`${estadoNombre}_${pestana}`, `${titulo}: ${pestana}`, async () => {
+        await montar({ ...opciones, pestana });
+        fijar(`${estadoNombre}_${pestana}`);
+      });
+    }
+  });
+}
+
+/**
+ * ADR 0142: una clave vieja abre lo mismo que la nueva (marcado y pedidos al
+ * backend), y la dirección conserva la clave vieja: se lee, no se reescribe.
+ * Cada escenario conserva el nombre que tenía con la clave vieja.
+ */
+export function escenariosDeAlias(vieja: string, nueva: string) {
+  describe(`CargaPage, la clave vieja ${vieja} abre ${nueva}`, () => {
+    for (const [estadoNombre, titulo, opciones] of ESTADOS_DE_MATRIZ) {
+      escenario(`${estadoNombre}_${vieja}`, `${titulo}: ${vieja} abre ${nueva}`, async () => {
+        await montar({ ...opciones, pestana: nueva });
+        const canonica = { marcado: marcado(), pedidos: pedidosHechos() };
+        reiniciarStores();
+        await montar({ ...opciones, pestana: vieja });
+        expect(direccionActual()).toBe(`/carga?pestana=${vieja}`);
+        expect(marcado()).toBe(canonica.marcado);
+        expect(pedidosHechos()).toEqual(canonica.pedidos);
+        fijar(`${estadoNombre}_${vieja}`);
+      });
+    }
   });
 }

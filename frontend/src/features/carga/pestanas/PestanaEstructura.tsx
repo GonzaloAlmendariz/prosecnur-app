@@ -43,8 +43,8 @@ export function PestanaEstructura({
       icono={<FileSpreadsheet size={18} />}
       titulo="Aún no hay estructura para revisar"
       descripcion={varias
-        ? "Agrega una base con instrumento desde Fuentes para inspeccionar secciones, preguntas y reglas."
-        : "Agrega un formulario desde Fuentes para inspeccionar secciones, preguntas y reglas."}
+        ? "Agrega una base con instrumento desde Bases para inspeccionar secciones, preguntas y reglas."
+        : "Agrega un formulario desde Bases para inspeccionar secciones, preguntas y reglas."}
     />
   );
 }

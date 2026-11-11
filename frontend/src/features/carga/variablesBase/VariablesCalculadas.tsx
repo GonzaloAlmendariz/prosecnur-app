@@ -20,6 +20,8 @@ export type VariablesCalculadasProps = {
   resumenes: Readonly<Record<string, ResumenCalculada>>;
   preguntas: readonly VariableDeBase[] | null;
   catalogoError: boolean;
+  /** El estudio no tiene de dónde sacar la lista de preguntas por base. */
+  catalogoNoAplica?: boolean;
   ocupados: readonly string[];
   guardando: boolean;
   quitando: boolean;
@@ -37,6 +39,7 @@ export function VariablesCalculadas({
   resumenes,
   preguntas,
   catalogoError,
+  catalogoNoAplica = false,
   ocupados,
   guardando,
   quitando,
@@ -80,6 +83,7 @@ export function VariablesCalculadas({
           inicial={null}
           preguntas={preguntas}
           catalogoError={catalogoError}
+          catalogoNoAplica={catalogoNoAplica}
           ocupados={ocupados}
           guardando={guardando}
           error={errorDelEditor}
@@ -102,6 +106,7 @@ export function VariablesCalculadas({
                   inicial={enEdicion}
                   preguntas={preguntas && preguntasUsables(preguntas, calculadas, c.nombre)}
                   catalogoError={catalogoError}
+                  catalogoNoAplica={catalogoNoAplica}
                   ocupados={ocupados}
                   guardando={guardando}
                   error={errorDelEditor}

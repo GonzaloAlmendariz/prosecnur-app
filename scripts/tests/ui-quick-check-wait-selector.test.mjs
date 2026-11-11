@@ -39,7 +39,7 @@ test("el --wait-selector de carga sigue contando aparte", () => {
 });
 
 test("la ruta desviada se cuenta y se detalla, pero no falla por sí sola", () => {
-  const motivo = desvioDeRuta("/carga?pestana=fuentes", "http://localhost:5173/validacion?pestana=explorar");
+  const motivo = desvioDeRuta("/carga?pestana=bases", "http://localhost:5173/validacion?pestana=explorar");
   assert.match(motivo, /\/carga → \/validacion/);
 
   const resumen = summarize([

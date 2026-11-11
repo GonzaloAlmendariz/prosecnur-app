@@ -58,7 +58,79 @@ const VIEJAS: readonly Vieja[] = [
     patron: /^\/material-campo\?seccion=/,
     lectores: [],
   },
+  // ADR 0142 (2026-11-11): las pestañas de Carga `plan`, `fuentes`, `estructura`
+  // y `datos` pasaron a `bases`, `formulario` y `respuestas`. Las lee como alias
+  // `features/carga/pestanaCarga.ts`. Los patrones van acotados a Carga porque
+  // `pestana=plan` existe en Material de campo y `pestana=datos` en Analítica.
+  {
+    marcador: "/carga?",
+    patron: /^\/carga\?(?:.*&)?pestana=(?:plan|fuentes|estructura|datos)(?:&|$)/,
+    lectores: [],
+  },
+  {
+    marcador: "seccion=carga",
+    patron: /seccion=carga&(?:.*&)?pestana=(?:plan|fuentes|estructura|datos)(?:&|$)/,
+    lectores: [],
+  },
 ];
+
+/** Claves viejas de Carga (ADR 0142). */
+const CLAVES_VIEJAS_CARGA = new Set(["plan", "fuentes", "estructura", "datos"]);
+
+/**
+ * Escritores de Carga que todavía arman la dirección con una clave vieja en un
+ * archivo que esta rebanada no podía tocar. Cada entrada es deuda con dueño: la
+ * dirección funciona porque el alias la lee, pero alarga su vida.
+ */
+const PENDIENTES_CARGA: readonly string[] = [
+  // `DIRECCION_FUENTES` ("Ir a Fuentes" ante E_NO_RP_DATA): Analítica la pasa a `bases` en su propia rebanada.
+  "features/analitica/panes/comparativosModel.ts",
+];
+
+function textoLiteral(nodo: ts.Node | undefined): string | null {
+  return nodo && ts.isStringLiteralLike(nodo) ? nodo.text : null;
+}
+
+/**
+ * Las otras dos formas de escribir una pestaña de Carga: un objeto de dirección
+ * (`{ seccion: "carga", pestana: "fuentes" }`, lo que recibe
+ * `serializarDireccion`) y una escritura de nivel dentro de Carga
+ * (`irA("pestana", "fuentes")`, `conNivel(search, "pestana", "datos")`).
+ */
+function escritoresDeCargaPorNivel(): string[] {
+  const hallazgos: string[] = [];
+  for (const source of parseSourcesContaining("pestana", [".ts", ".tsx"])) {
+    const relativo = source.relative.split("\\").join("/");
+    if (PENDIENTES_CARGA.includes(relativo)) continue;
+    const enCarga = relativo.startsWith("features/carga/");
+    const visit = (node: ts.Node) => {
+      if (ts.isObjectLiteralExpression(node)) {
+        const valor = (clave: string) => {
+          const prop = node.properties.find(
+            (p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === clave,
+          );
+          return textoLiteral(prop?.initializer);
+        };
+        const pestana = valor("pestana");
+        if (valor("seccion") === "carga" && pestana && CLAVES_VIEJAS_CARGA.has(pestana)) {
+          hallazgos.push(`${lineLabel(source, node)} → { seccion: "carga", pestana: "${pestana}" }`);
+        }
+      }
+      if (enCarga && ts.isCallExpression(node)) {
+        const args = node.arguments;
+        args.forEach((arg, i) => {
+          const siguiente = textoLiteral(args[i + 1]);
+          if (textoLiteral(arg) === "pestana" && siguiente && CLAVES_VIEJAS_CARGA.has(siguiente)) {
+            hallazgos.push(`${lineLabel(source, node)} → (..., "pestana", "${siguiente}")`);
+          }
+        });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source.sourceFile);
+  }
+  return hallazgos;
+}
 
 function escritoresDe({ marcador, patron, lectores }: Vieja): string[] {
   const hallazgos: string[] = [];
@@ -80,13 +152,31 @@ function escritoresDe({ marcador, patron, lectores }: Vieja): string[] {
   return hallazgos;
 }
 
+describe("pestañas de Carga renombradas por el ADR 0142", () => {
+  test("ningún objeto de dirección ni escritura de nivel usa una clave vieja de Carga", () => {
+    expect(
+      escritoresDeCargaPorNivel(),
+      "clave de solo lectura; escribe `bases`, `formulario` o `respuestas`",
+    ).toEqual([]);
+  });
+
+  test("cada pendiente sigue escribiendo una clave vieja (si no, se borra de la lista)", () => {
+    for (const relativo of PENDIENTES_CARGA) {
+      const fuente = parseSourcesContaining("pestana", [".ts", ".tsx"])
+        .find((s) => s.relative.split("\\").join("/") === relativo);
+      expect(fuente, `${relativo} ya no existe`).toBeDefined();
+      expect(fuente?.text).toMatch(/seccion: "carga",\s*pestana: "(?:plan|fuentes|estructura|datos)"/);
+    }
+  });
+});
+
 describe("direcciones renombradas por el ADR 0108", () => {
   test.each(VIEJAS.map((vieja) => [vieja.marcador, vieja] as const))(
     "`%s` no se escribe en producción",
     (_marcador, vieja) => {
       expect(
         escritoresDe(vieja),
-        "dirección de solo lectura; escribe `/material-campo` o `?seccion=seleccion`",
+        "dirección de solo lectura; escribe la forma nueva que dice el comentario de su entrada",
       ).toEqual([]);
     },
   );

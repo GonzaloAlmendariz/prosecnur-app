@@ -1,16 +1,9 @@
 import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
-import {
-  ClipboardCheck,
-  ClipboardList,
-  GitCompare,
-  ListTree,
-  Table2,
-  UploadCloud,
-  type LucideIcon,
-} from "../../vendor/lucide-react";
+import { ETIQUETAS_GRUPO_PESTANA } from "../../lib/navegacion/catalogos/procesamiento";
 import {
   cargaWorkspaceItems,
   type CargaWorkspaceContext,
+  type CargaWorkspaceItem,
   type CargaWorkspaceState,
   type CargaWorkspaceTab,
 } from "./CargaWorkspaceModel";
@@ -23,15 +16,6 @@ export function cargaWorkspaceTabId(tab: CargaWorkspaceTab): string {
   return `carga-workspace-tab-${tab}`;
 }
 
-const CARGA_WORKSPACE_ICONS: Readonly<Record<CargaWorkspaceTab, LucideIcon>> = {
-  plan: ClipboardList,
-  fuentes: UploadCloud,
-  revision: ClipboardCheck,
-  estructura: ListTree,
-  datos: Table2,
-  equivalencias: GitCompare,
-};
-
 const CARGA_WORKSPACE_RAIL_STATES = {
   neutral: "no-evaluado",
   pending: "sin-configurar",
@@ -40,6 +24,25 @@ const CARGA_WORKSPACE_RAIL_STATES = {
 } as const satisfies Readonly<
   Record<CargaWorkspaceState, NonNullable<ContextTabRailItem<CargaWorkspaceTab>["estado"]>>
 >;
+
+/**
+ * Una pestaña de Carga en el riel: ícono y grupo del catálogo. Sin palabra de
+ * estado (Variables) el riel no dice ninguna, ni siquiera "No evaluado".
+ */
+export function railItemDeCarga(
+  workspaceItem: CargaWorkspaceItem,
+): ContextTabRailItem<CargaWorkspaceTab> {
+  return {
+    key: workspaceItem.key,
+    label: workspaceItem.label,
+    description: workspaceItem.summary,
+    icon: workspaceItem.icon,
+    ...(workspaceItem.statusLabel
+      ? { estado: CARGA_WORKSPACE_RAIL_STATES[workspaceItem.state], estadoLabel: workspaceItem.statusLabel }
+      : {}),
+    ...(workspaceItem.grupo ? { grupo: ETIQUETAS_GRUPO_PESTANA[workspaceItem.grupo] } : {}),
+  };
+}
 
 export type CargaWorkspaceNavigationProps = {
   active: CargaWorkspaceTab;
@@ -57,16 +60,7 @@ export function CargaWorkspaceNavigation({
   const workspaceItems = cargaWorkspaceItems(context);
   const activeItem = workspaceItems.find((candidate) => candidate.key === active)
     ?? workspaceItems[0];
-  const railItems: readonly ContextTabRailItem<CargaWorkspaceTab>[] = workspaceItems.map(
-    (workspaceItem) => ({
-      key: workspaceItem.key,
-      label: workspaceItem.label,
-      description: workspaceItem.summary,
-      icon: CARGA_WORKSPACE_ICONS[workspaceItem.key],
-      estado: CARGA_WORKSPACE_RAIL_STATES[workspaceItem.state],
-      estadoLabel: workspaceItem.statusLabel,
-    }),
-  );
+  const railItems: readonly ContextTabRailItem<CargaWorkspaceTab>[] = workspaceItems.map(railItemDeCarga);
 
   return (
     <div
@@ -88,7 +82,9 @@ export function CargaWorkspaceNavigation({
         aria-live="polite"
         aria-atomic="true"
       >
-        {activeItem.label}: {activeItem.statusLabel}. {activeItem.description}
+        {activeItem.statusLabel
+          ? `${activeItem.label}: ${activeItem.statusLabel}. ${activeItem.description}`
+          : `${activeItem.label}. ${activeItem.description}`}
       </span>
     </div>
   );

@@ -129,7 +129,7 @@ describe("enlace a Equivalencias desde el diagnóstico", () => {
 
   it("enlaza a la dirección canónica cuando la pestaña existe", () => {
     const html = renderToStaticMarkup(
-      <MemoryRouter initialEntries={["/carga?pestana=fuentes"]}>
+      <MemoryRouter initialEntries={["/carga?pestana=bases"]}>
         <SmEstructuraFuenteAccion diffs={[{ kind: "different_instrument" }]} estudio={estudio({})} />
       </MemoryRouter>,
     );
@@ -139,7 +139,7 @@ describe("enlace a Equivalencias desde el diagnóstico", () => {
 
   it("sin la pestaña dice qué hacer sin un enlace muerto", () => {
     const html = renderToStaticMarkup(
-      <MemoryRouter initialEntries={["/carga?pestana=fuentes"]}>
+      <MemoryRouter initialEntries={["/carga?pestana=bases"]}>
         <SmEstructuraFuenteAccion diffs={[{ kind: "different_instrument" }]} estudio={estudio({ topology_declared: "single" })} />
       </MemoryRouter>,
     );

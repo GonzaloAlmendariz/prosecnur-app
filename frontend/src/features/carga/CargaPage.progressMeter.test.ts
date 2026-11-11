@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const leer = (rel: string) => fs.readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 const source = leer("./CargaPage.tsx");
-const pestanaPlan = leer("./pestanas/PestanaPlan.tsx");
+const pestanaBases = leer("./pestanas/PestanaBases.tsx");
 const modelo = leer("./pestanas/useModeloCarga.ts");
 
 /**
@@ -27,21 +27,21 @@ describe("medidor de preparación de Carga", () => {
     expect(source).not.toContain("<CargaCommandSummary");
   });
 
-  it("la topología es una decisión deliberada de Plan, no del toolbar", () => {
+  it("la topología es una decisión deliberada de Bases, no del toolbar", () => {
     expect(source).not.toContain("pulso-multibase-toggle is-compact");
     expect(source).not.toContain("<MultiBaseToggle");
     expect(source).not.toContain("function MultiBaseToggle(");
 
-    // Una sola pestaña Plan para las dos organizaciones (una base y varias).
-    expect(source.split('activeCargaTab === "plan"')).toHaveLength(2);
-    expect(source).toContain("<PestanaPlan");
-    expect(pestanaPlan).toMatch(/<CargaPlanOverview[\s\S]{0,500}?topology=/u);
-    expect(pestanaPlan).toMatch(/<CargaTopologyDecision[\s\S]{0,500}?resolution=/u);
-    expect(pestanaPlan.match(/<CargaTopologyDecision\b/gu)).toHaveLength(1);
+    // ADR 0142: una sola pestaña Bases para las dos organizaciones (una base y
+    // varias), con la decisión que vivía en Plan.
+    expect(source.split('activeCargaTab === "bases"')).toHaveLength(2);
+    expect(source).toContain("<PestanaBases");
+    expect(pestanaBases).toMatch(/<CargaTopologyDecision[\s\S]{0,500}?resolution=/u);
+    expect(pestanaBases.match(/<CargaTopologyDecision\b/gu)).toHaveLength(1);
     expect(source.match(/<CargaTopologyDecision\b/gu) ?? []).toHaveLength(0);
   });
 
-  it("declara las hermanas sugeridas por Acreditación sin materializarlas desde Plan", () => {
+  it("declara las hermanas sugeridas por Acreditación sin materializarlas desde Bases", () => {
     const resolverStart = modelo.indexOf(
       "const topologyResolution = resolveCargaTopology({",
     );

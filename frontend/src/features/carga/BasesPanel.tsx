@@ -368,7 +368,7 @@ export function BasesPanel({
             </button>
           )}
           <div className="pulso-multibase-study-note">
-            La estrategia se definió en Plan; aquí incorporas y mantienes sus fuentes.
+            La estrategia ya está definida; aquí incorporas y mantienes sus fuentes.
           </div>
         </div>
         <span className="pulso-multibase-study-count">
@@ -410,7 +410,7 @@ export function BasesPanel({
           {strategy === "integrated" ? <GitMerge size={15} /> : strategy === "independent" ? <Cloud size={15} /> : <Layers size={15} />}
         </span>
         <span className="pulso-multi-strategy-label">
-          <small>Estrategia fijada en Plan</small>
+          <small>Estrategia fijada</small>
           <strong>{MULTI_BASE_STRATEGY_COPY[strategy].label}</strong>
           <span>{MULTI_BASE_STRATEGY_COPY[strategy].detail}</span>
         </span>

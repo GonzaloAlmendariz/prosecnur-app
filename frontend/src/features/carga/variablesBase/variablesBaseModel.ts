@@ -43,18 +43,9 @@ export function searchConVariablesBase(search: string, base: string): string {
   return conNivel(conNivel(search, "panel", PANEL_VARIABLES_BASE.id), "foco", base || null);
 }
 
-/** Dónde se abre el panel desde fuera de Carga (Codificación). */
-export function hrefVariablesBase(base: string): string {
-  return `/carga${searchConVariablesBase("?pestana=fuentes", base)}`;
-}
-
-/**
- * Dónde se declara el motivo de las preguntas retiradas: el bloque de origen
- * externo de Carga › Revisión, con esa base como «Base revisada».
- */
-export function hrefDeclararRetiradas(base: string): string {
-  return `/carga${conNivel("?pestana=revision", "foco", base || null)}`;
-}
+// Los enlaces a Carga tienen un solo dueño (`direccionesDeCarga.ts`); se
+// reexportan aquí porque Codificación y Segmentos los importan de este módulo.
+export { hrefDeclararRetiradas, hrefVariablesBase } from "../direccionesDeCarga";
 
 export type CargaVariablesBase =
   | { tipo: "cargando" }

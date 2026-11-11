@@ -90,15 +90,21 @@ describe("catálogos canónicos de pestañas", () => {
 
   it("fija las 28 pestañas de Procesamiento con su orden y copy", () => {
     expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(32); // F6.4 «Estilo del cliente» 29 → 30; A10 W-E «Estilo del informe» 30 → 31; E4-E7 R4 «Comparativos» 31 → 32.
+    // ADR 0142 (2026-11-11): Plan y Fuentes pasan a Bases, Estructura a Formulario y Datos a Respuestas; entra
+    // Variables. Las claves viejas se leen como alias en `features/carga/pestanaCarga.ts`. Siguen siendo 6.
     expect(firma(PROCESAMIENTO_PESTANAS.carga)).toEqual([
-      "plan:Plan",
-      "fuentes:Fuentes",
+      "bases:Bases",
       "revision:Revisión",
-      "estructura:Estructura",
-      "datos:Datos",
+      "variables:Variables",
       // ADR 0062: condicional, sólo con bases separadas.
       "equivalencias:Equivalencias",
+      "formulario:Formulario",
+      "respuestas:Respuestas",
     ]);
+    // Formulario y Respuestas son de consulta: el riel las separa del resto.
+    expect(
+      PROCESAMIENTO_PESTANAS.carga.filter((tab) => "grupo" in tab && tab.grupo === "consulta").map((tab) => tab.key),
+    ).toEqual(["formulario", "respuestas"]);
     expect(firma(PROCESAMIENTO_PESTANAS.validacion)).toEqual([
       "explorar:Explorar respuestas",
       "instrumento:Reglas del formulario",

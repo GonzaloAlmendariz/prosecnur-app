@@ -34,7 +34,7 @@ describe("CargaWorkspaceNavigation", () => {
     expect(source).not.toContain('role="tab"');
   });
 
-  it("renders all five reachable tabs with a shared panel and active-tab ARIA", () => {
+  it("renders the five tabs without Equivalencias with a shared panel and active-tab ARIA", () => {
     const html = renderToStaticMarkup(
       <CargaWorkspaceNavigation
         active="revision"
@@ -50,15 +50,22 @@ describe("CargaWorkspaceNavigation", () => {
     expect(html).not.toContain('aria-disabled="true"');
     expect(html).not.toContain('disabled=""');
     expect(html).toContain('aria-label="Pestañas de carga"');
-    expect(html).toMatch(/aria-label="Plan\.[^"]+"/);
-    expect(html).toMatch(/aria-label="Datos\.[^"]+"/);
+    expect(html).toMatch(/aria-label="Bases\.[^"]+"/);
+    expect(html).toMatch(/aria-label="Respuestas\.[^"]+"/);
+    // ADR 0142: el orden del catálogo y el grupo Consulta antes de Formulario.
+    expect([...html.matchAll(/id="carga-workspace-tab-([a-z]+)"/g)].map((m) => m[1])).toEqual([
+      "bases", "revision", "variables", "formulario", "respuestas",
+    ]);
+    expect(html).toMatch(/data-rail-grupo="Consulta"><\/span><button id="carga-workspace-tab-formulario"/);
+    // Variables no afirma estado que no conoce.
+    expect(html).toContain('aria-label="Variables. Columnas fuera del formulario y variables calculadas"');
     expect(html).toMatch(/aria-label="Revisión\.[^"]*(Atención|Requiere atención)/);
   });
 
   it("keeps pending and ready state cues in the accessible tab descriptions", () => {
     const emptyHtml = renderToStaticMarkup(
       <CargaWorkspaceNavigation
-        active="plan"
+        active="bases"
         context={{
           hasInstrument: false,
           hasData: false,
@@ -72,13 +79,13 @@ describe("CargaWorkspaceNavigation", () => {
     );
     const readyHtml = renderToStaticMarkup(
       <CargaWorkspaceNavigation
-        active="datos"
+        active="respuestas"
         context={{ ...ATTENTION_CONTEXT, hasReviewIssues: false }}
         onChange={vi.fn()}
       />,
     );
 
-    expect(emptyHtml).toMatch(/aria-label="Fuentes\.[^"]*Pendiente/);
-    expect(readyHtml).toMatch(/aria-label="Datos\.[^"]*List[oa]/);
+    expect(emptyHtml).toMatch(/aria-label="Bases\.[^"]*Pendiente/);
+    expect(readyHtml).toMatch(/aria-label="Respuestas\.[^"]*List[oa]/);
   });
 });

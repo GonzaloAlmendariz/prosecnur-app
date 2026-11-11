@@ -31,7 +31,7 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { seccionLegible, type FilaEditor } from "./equivalenciasEditorModel";
 import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 import { etiquetaLegible } from "./preguntaEquivalenteModel";
-import { searchConVariablesBase } from "./variablesBase/variablesBaseModel";
+import { hrefVariablesBase } from "./direccionesDeCarga";
 import {
   PANEL_MAPA_BASES,
   filasDelMapa,
@@ -116,11 +116,11 @@ function PanelConDireccion({ cargando, bases, filas, variablesPorBase, onAnadir 
     );
   }, [location.pathname, location.search, navigate]);
 
-  // ADR 0106: lo que la base trae fuera del formulario se declara en su panel.
+  // ADR 0106: lo que la base trae fuera del formulario se declara en la
+  // pestaña Variables (ADR 0142), con esa base elegida.
   const abrirVariables = useCallback(
-    (base: string) =>
-      navigate({ pathname: location.pathname, search: searchConVariablesBase(location.search, base) }, { replace: true }),
-    [location.pathname, location.search, navigate],
+    (base: string) => navigate(hrefVariablesBase(base)),
+    [navigate],
   );
 
   const anadir = (base: string, variable: string) => {
@@ -294,7 +294,6 @@ function ResumenBases({
               <button
                 type="button"
                 className="pulso-mapa-resumen-ir"
-                aria-haspopup="dialog"
                 aria-label={`Variables de la base ${r.base}`}
                 data-plf-abrir={`variables-base:${r.base}`}
                 onClick={() => onVariables(r.base)}

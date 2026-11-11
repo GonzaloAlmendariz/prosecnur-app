@@ -49,13 +49,13 @@ describe("resolverHidratacionCarga — L4", () => {
 
 describe("marcaReadinessCarga — readiness solo con bases hidratadas", () => {
   test("mientras lee, la marca nunca es verdadera", () => {
-    expect(marcaReadinessCarga({ fase: "leyendo", motivo: "sesion" }, "fuentes")).toBe(false);
-    expect(marcaReadinessCarga({ fase: "leyendo", motivo: "estudio" }, "fuentes")).toBe(false);
+    expect(marcaReadinessCarga({ fase: "leyendo", motivo: "sesion" }, "bases")).toBe(false);
+    expect(marcaReadinessCarga({ fase: "leyendo", motivo: "estudio" }, "bases")).toBe(false);
   });
 
   test("hidratada publica la dirección de la pestaña", () => {
-    expect(marcaReadinessCarga({ fase: "lista" }, "fuentes")).toBe("carga-fuentes");
-    expect(marcaReadinessCarga({ fase: "error", motivo: "estudio" }, "fuentes")).toBe("carga-fuentes");
+    expect(marcaReadinessCarga({ fase: "lista" }, "bases")).toBe("carga-bases");
+    expect(marcaReadinessCarga({ fase: "error", motivo: "estudio" }, "bases")).toBe("carga-bases");
   });
 });
 
@@ -69,7 +69,7 @@ describe("formatoTranscurrido", () => {
   });
 });
 
-function render(pestana: "fuentes" | "datos", motivo: "sesion" | "estudio") {
+function render(pestana: "bases" | "respuestas", motivo: "sesion" | "estudio") {
   return renderToStaticMarkup(
     <CargaHidratando
       pestana={pestana}
@@ -81,11 +81,11 @@ function render(pestana: "fuentes" | "datos", motivo: "sesion" | "estudio") {
 }
 
 describe("CargaHidratando — sin estado falso", () => {
-  test.each([["sesion"], ["estudio"]] as const)('Fuentes leyendo (%s): silueta, sin cifras ni "Pendiente"', (motivo) => {
-    const html = render("fuentes", motivo);
-    expect(html).toContain('data-carga-silueta="fuentes"');
+  test.each([["sesion"], ["estudio"]] as const)('Bases leyendo (%s): silueta, sin cifras ni "Pendiente"', (motivo) => {
+    const html = render("bases", motivo);
+    expect(html).toContain('data-carga-silueta="bases"');
     expect(html).toContain("pulso-skeleton");
-    expect(html).toContain("<h2>Fuentes</h2>");
+    expect(html).toContain("<h2>Bases</h2>");
     expect(html).not.toMatch(/Pendiente/u);
     expect(html).not.toMatch(/\b0\/1\b/u);
     expect(html).not.toMatch(/\d+\s*base/u);
@@ -94,23 +94,23 @@ describe("CargaHidratando — sin estado falso", () => {
   });
 
   test("nunca escribe data-audit-ready", () => {
-    expect(render("fuentes", "estudio")).not.toContain("data-audit-ready");
-    expect(render("datos", "sesion")).not.toContain("data-audit-ready");
+    expect(render("bases", "estudio")).not.toContain("data-audit-ready");
+    expect(render("respuestas", "sesion")).not.toContain("data-audit-ready");
   });
 
   test("anuncia la espera y mantiene la relación tab/tabpanel", () => {
-    const html = render("fuentes", "estudio");
+    const html = render("bases", "estudio");
     expect(html).toContain('role="status"');
     expect(html).toContain("Leyendo las bases del estudio");
     expect(html).toContain('aria-busy="true"');
     expect(html).toContain('role="tabpanel"');
-    expect(html).toContain('aria-labelledby="carga-workspace-tab-fuentes"');
-    expect(html).toContain('id="carga-workspace-tab-fuentes"');
+    expect(html).toContain('aria-labelledby="carga-workspace-tab-bases"');
+    expect(html).toContain('id="carga-workspace-tab-bases"');
     expect(html).toContain("0:00");
   });
 
   test("otras pestañas usan la silueta genérica del kit", () => {
-    const html = render("datos", "sesion");
+    const html = render("respuestas", "sesion");
     expect(html).toContain('data-skeleton-variante="tabla"');
     expect(html).toContain("Abriendo el estudio");
     expect(html).not.toMatch(/Pendiente/u);
@@ -119,7 +119,7 @@ describe("CargaHidratando — sin estado falso", () => {
   test("el fallo del estudio se dice y ofrece releer", () => {
     const html = renderToStaticMarkup(
       <CargaHidratando
-        pestana="fuentes"
+        pestana="bases"
         hidratacion={{ fase: "error", motivo: "estudio" }}
         onCambiarPestana={() => undefined}
         onReintentar={() => undefined}
@@ -135,7 +135,7 @@ describe("CargaHidratando — sin estado falso", () => {
   test("el fallo de la sesión ofrece volver a abrir el estudio", () => {
     const html = renderToStaticMarkup(
       <CargaHidratando
-        pestana="fuentes"
+        pestana="bases"
         hidratacion={{ fase: "error", motivo: "sesion" }}
         onCambiarPestana={() => undefined}
         onReintentar={() => undefined}

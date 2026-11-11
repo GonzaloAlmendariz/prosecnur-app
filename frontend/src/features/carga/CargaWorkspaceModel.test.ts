@@ -16,16 +16,17 @@ const EMPTY_CONTEXT: CargaWorkspaceContext = {
   baseCount: 0,
 };
 
+// ADR 0142: sin Equivalencias (condicional) quedan cinco pestañas.
 const EXPECTED_DESTINATIONS = [
-  ["plan", "Plan"],
-  ["fuentes", "Fuentes"],
+  ["bases", "Bases"],
   ["revision", "Revisión"],
-  ["estructura", "Estructura"],
-  ["datos", "Datos"],
+  ["variables", "Variables"],
+  ["formulario", "Formulario"],
+  ["respuestas", "Respuestas"],
 ] as const;
 
 describe("Carga workspace model", () => {
-  it("keeps the five professional destinations stable across empty and multibase topologies", () => {
+  it("keeps the five destinations stable across empty and multibase topologies", () => {
     const contexts: CargaWorkspaceContext[] = [
       EMPTY_CONTEXT,
       {
@@ -99,16 +100,16 @@ describe("Carga workspace model", () => {
       dataBaseCount: 3,
     });
 
-    expect(partial.find(({ key }) => key === "fuentes")).toMatchObject({
+    expect(partial.find(({ key }) => key === "bases")).toMatchObject({
       state: "attention",
       description: "Formularios en 3 de 3; respuestas en 2 de 3 bases.",
     });
-    expect(partial.find(({ key }) => key === "datos")).toMatchObject({
+    expect(partial.find(({ key }) => key === "respuestas")).toMatchObject({
       state: "attention",
       description: "2 de 3 bases tienen respuestas listas para explorar.",
     });
-    expect(complete.find(({ key }) => key === "fuentes")?.state).toBe("ready");
-    expect(complete.find(({ key }) => key === "datos")?.state).toBe("ready");
+    expect(complete.find(({ key }) => key === "bases")?.state).toBe("ready");
+    expect(complete.find(({ key }) => key === "respuestas")?.state).toBe("ready");
 
     const oneBase = cargaWorkspaceItems({
       ...EMPTY_CONTEXT,
@@ -120,15 +121,30 @@ describe("Carga workspace model", () => {
       instrumentBaseCount: 1,
       dataBaseCount: 1,
     });
-    expect(oneBase.find(({ key }) => key === "fuentes")?.description).toBe(
+    expect(oneBase.find(({ key }) => key === "bases")?.description).toBe(
       "La base tiene formulario y respuestas.",
     );
-    expect(oneBase.find(({ key }) => key === "datos")?.description).toBe(
+    expect(oneBase.find(({ key }) => key === "respuestas")?.description).toBe(
       "La base tiene respuestas listas para explorar.",
     );
   });
 
-  it("resolves canonical query values and defaults missing, invalid or legacy ids to plan", () => {
+  it("Variables no afirma estado: no lo sabe sin leer cada base", () => {
+    for (const context of [EMPTY_CONTEXT, { ...EMPTY_CONTEXT, hasInstrument: true, hasData: true, hasBase: true }]) {
+      const variables = cargaWorkspaceItems(context).find(({ key }) => key === "variables");
+      expect(variables).toMatchObject({ state: "neutral", statusLabel: "" });
+    }
+  });
+
+  it("varias bases sin ninguna creada: Bases pendiente", () => {
+    const items = cargaWorkspaceItems({ ...EMPTY_CONTEXT, isMultiBase: true, baseCount: 0 });
+    expect(items.find(({ key }) => key === "bases")).toMatchObject({
+      state: "pending",
+      description: "El estudio es de varias bases; falta crear la primera.",
+    });
+  });
+
+  it("resolves canonical query values, reads legacy keys as aliases and defaults the rest to bases", () => {
     for (const tab of EXPECTED_DESTINATIONS.map(([key]) => key)) {
       expect(resolveCargaWorkspaceTab(tab, EMPTY_CONTEXT)).toBe(
         tab satisfies CargaWorkspaceTab,
@@ -144,11 +160,15 @@ describe("Carga workspace model", () => {
       baseCount: 3,
     };
 
-    expect(resolveCargaWorkspaceTab(null, advancedContext)).toBe("plan");
-    expect(resolveCargaWorkspaceTab(undefined, advancedContext)).toBe("plan");
-    expect(resolveCargaWorkspaceTab("", advancedContext)).toBe("plan");
-    expect(resolveCargaWorkspaceTab("insumos", advancedContext)).toBe("plan");
-    expect(resolveCargaWorkspaceTab("base", advancedContext)).toBe("plan");
+    expect(resolveCargaWorkspaceTab(null, advancedContext)).toBe("bases");
+    expect(resolveCargaWorkspaceTab(undefined, advancedContext)).toBe("bases");
+    expect(resolveCargaWorkspaceTab("", advancedContext)).toBe("bases");
+    expect(resolveCargaWorkspaceTab("insumos", advancedContext)).toBe("bases");
+    expect(resolveCargaWorkspaceTab("base", advancedContext)).toBe("bases");
+    expect(resolveCargaWorkspaceTab("plan", advancedContext)).toBe("bases");
+    expect(resolveCargaWorkspaceTab("fuentes", advancedContext)).toBe("bases");
+    expect(resolveCargaWorkspaceTab("estructura", advancedContext)).toBe("formulario");
+    expect(resolveCargaWorkspaceTab("datos", advancedContext)).toBe("respuestas");
   });
 });
 
@@ -161,10 +181,11 @@ describe("disponibilidad de Equivalencias", () => {
     expect(equivalenciasDisponibles({ topologiaDeclarada: null, modoProcesamiento: "multibase", basesPrimarias: 3 })).toBe(false);
   });
 
-  it("con la pestaña disponible, Equivalencias es la sexta y se ubica por su índice", () => {
+  it("con la pestaña disponible, Equivalencias es la cuarta, antes de las de consulta", () => {
     const items = cargaWorkspaceItems({ ...EMPTY_CONTEXT, isMultiBase: true, baseCount: 3, basesSeparadas: true });
     expect(items).toHaveLength(6);
-    expect(items.findIndex((item) => item.key === "equivalencias")).toBe(5);
+    expect(items.findIndex((item) => item.key === "equivalencias")).toBe(3);
+    expect(items.map((item) => item.key)).toEqual(["bases", "revision", "variables", "equivalencias", "formulario", "respuestas"]);
   });
 
   it('Equivalencias no dice "Pendiente" mientras lee: dice "Revisando" (P-A8)', () => {

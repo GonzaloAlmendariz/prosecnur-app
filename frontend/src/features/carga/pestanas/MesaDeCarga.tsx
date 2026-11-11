@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
-import { CARGA_WORKSPACE_TABS, type CargaWorkspaceContext, type CargaWorkspaceTab } from "../CargaWorkspaceModel";
+import type { CargaWorkspaceContext, CargaWorkspaceTab } from "../CargaWorkspaceModel";
 import { CargaWorkspaceHeader } from "../CargaWorkspaceHeader";
 import {
   CARGA_WORKSPACE_PANEL_ID,
@@ -26,10 +26,11 @@ export function MesaDeCarga({
   onCambiar: (pestana: CargaWorkspaceTab) => void;
   children: ReactNode;
 }) {
-  const planActivo = activa === CARGA_WORKSPACE_TABS[0].key;
   // Pestañas de lectura que crecen con su contenido en escritorio bajo
-  // (CargaWorkbenchBajo.css). Revisión lleva su propia regla.
-  const crece = activa === "fuentes" || activa === "equivalencias";
+  // (CargaWorkbenchBajo.css). Revisión lleva su propia regla. Bases ya no lleva
+  // la regla de Plan (`is-plan`), que cortaba el scroll: la pestaña es la de
+  // Fuentes con la decisión de organización arriba (ADR 0142).
+  const crece = activa === "bases" || activa === "variables" || activa === "equivalencias";
   return (
     <AdaptiveSplitView
       ariaLabel={varias ? "Mesa de trabajo de varias bases" : "Mesa de trabajo de carga"}
@@ -51,8 +52,8 @@ export function MesaDeCarga({
         aria-labelledby={cargaWorkspaceTabId(activa)}
         tabIndex={0}
         className={varias
-          ? `pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed${planActivo ? " is-plan" : ""}`
-          : `pulso-carga-content pulso-content-area${planActivo ? " is-plan" : ""}`}
+          ? "pulso-carga-content pulso-content-area pulso-carga-content--multi pulso-carga-content--framed"
+          : "pulso-carga-content pulso-content-area"}
       >
         <CargaWorkspaceHeader active={activa} context={contexto} />
         {varias ? <div className="pulso-carga-scrollarea">{children}</div> : children}

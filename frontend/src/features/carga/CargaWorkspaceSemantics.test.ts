@@ -8,7 +8,7 @@ const modeloSource = fs.readFileSync(path.join(__dirname, "pestanas", "useModelo
 const hojaSource = fs.readFileSync(path.join(__dirname, "pestanas", "HojaBaseCarga.tsx"), "utf8");
 
 describe("Carga workspace integration semantics", () => {
-  it("mounts the dedicated five-destination navigation instead of a local tablist", () => {
+  it("mounts the dedicated tab navigation instead of a local tablist", () => {
     // La mesa monta el riel y el panel; la página le entrega el cambio de pestaña.
     expect(mesaSource).toContain('from "../CargaWorkspaceNavigation"');
     expect(mesaSource).toContain("<CargaWorkspaceNavigation");
@@ -27,11 +27,14 @@ describe("Carga workspace integration semantics", () => {
       'import { useSeccion } from "../../lib/navegacion/useDireccion"',
     );
     expect(pageSource).toContain('useSeccion("procesamiento")');
+    // ADR 0142: la pestaña pedida pasa por los alias (`pestanaCarga.ts`) y Bases, la
+    // de omisión, no se escribe.
     expect(pageSource).toContain(
-      "resolveCargaWorkspaceTab(cargaDireccion.pestana, workspaceContext)",
+      "pestanaPedidaDeDireccion({ pestana: cargaDireccion.pestana, panel: cargaDireccion.panel })",
     );
+    expect(pageSource).toContain("resolverPestanaCarga(");
     expect(pageSource).toContain(
-      'cargaDireccion.irA("pestana", next === "plan" ? null : next, { replace })',
+      'cargaDireccion.irA("pestana", next === PESTANA_CARGA_POR_DEFECTO ? null : next, { replace })',
     );
   });
 
@@ -55,8 +58,9 @@ describe("Carga workspace integration semantics", () => {
     // Revisión además espera la lectura de la base elegida, la marca se escribe
     // "false" (omitirla dejaba que una marca descendiente dijera "true") y no hay
     // marca mientras la página se hidrata (L4).
+    // Variables tampoco se declara lista mientras lee su base (ADR 0142).
     expect(pageSource).toMatch(
-      /auditReady=\{\s*\(isMultiBase && !estudio\) \|\| \(activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\? "false"\s*: marcaReadinessCarga\(hidratacion, activeCargaTab\) \|\| "false"\s*\}/u,
+      /auditReady=\{\s*\(isMultiBase && !estudio\)\s*\|\| \(activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\|\| \(activeCargaTab === "variables" && variablesLeyendo\)\s*\? "false"\s*: marcaReadinessCarga\(hidratacion, activeCargaTab\) \|\| "false"\s*\}/u,
     );
     expect(modeloSource).toContain("hayEstadoSesion: state !== null");
     expect(pageSource).toContain('(!isMultiBase && hidratacion.fase === "lista")');

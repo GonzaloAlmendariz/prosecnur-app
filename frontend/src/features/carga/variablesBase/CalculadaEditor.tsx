@@ -44,6 +44,8 @@ export type CalculadaEditorProps = {
   /** `null` mientras llega el catálogo de la base. */
   preguntas: readonly VariableDeBase[] | null;
   catalogoError: boolean;
+  /** El estudio no tiene de dónde sacar la lista de preguntas por base. */
+  catalogoNoAplica?: boolean;
   ocupados: readonly string[];
   guardando: boolean;
   error: string;
@@ -56,6 +58,7 @@ export function CalculadaEditor({
   inicial,
   preguntas,
   catalogoError,
+  catalogoNoAplica = false,
   ocupados,
   guardando,
   error,
@@ -127,6 +130,9 @@ export function CalculadaEditor({
 
       {preguntas === null ? (
         <LoadingBlock variant="inline" label="Leyendo las preguntas de la base…" />
+      ) : catalogoNoAplica ? (
+        // Brecha declarada (C5): el motor todavía no da el catálogo por base sin equivalencias (M-C7).
+        <p className="pulso-armon-aviso" role="status">La lista de preguntas por base todavía no está disponible para estudios sin equivalencias.</p>
       ) : catalogoError ? (
         // C5 categoría 3: el catálogo no llegó.
         <p className="pulso-armon-aviso" role="alert">No se pudieron leer las preguntas de la base.</p>

@@ -3,7 +3,7 @@ import type { MultiBaseStrategy } from "./store";
 
 const STRATEGY_SUMMARY: Record<MultiBaseStrategy, string> = {
   separate: "Bases separadas: cada fuente conservará su formulario y sus respuestas.",
-  integrated: "Base integrada: Fuentes abrirá la preparación de una base común con trazabilidad de origen.",
+  integrated: "Base integrada: se preparará una base común con trazabilidad de origen.",
   independent: "Hermanas independientes: cada encuesta conservará sus datos y compartirá reglas de trabajo.",
 };
 
@@ -27,7 +27,7 @@ export function CargaTopologyPlanBanner({
         <p>
           {strategy
             ? STRATEGY_SUMMARY[strategy]
-            : "Elegiste varias bases, pero aún falta definir cómo se relacionan en Plan."}
+            : "Elegiste varias bases, pero aún falta definir cómo se relacionan."}
         </p>
         <small><Info size={12} aria-hidden="true" /> La activación prepara la mesa; no importa ni combina archivos.</small>
       </div>
@@ -39,7 +39,7 @@ export function CargaTopologyPlanBanner({
           if (strategy) void onEnableMultiBase(strategy);
         }}
       >
-        Activar plan en Fuentes <ArrowRight size={14} aria-hidden="true" />
+        Activar varias bases <ArrowRight size={14} aria-hidden="true" />
       </button>
     </section>
   );

@@ -888,7 +888,7 @@ function stubSessionState() {
 
 function routeUrl(base, route, project = "") {
   // `route` puede incluir los niveles direccionables de la app en query
-  // (`/carga?pestana=fuentes`). Asignarlo a `pathname` escapa el `?` como
+  // (`/carga?pestana=bases`). Asignarlo a `pathname` escapa el `?` como
   // `%3F` y termina visitando una ruta inexistente; resolverlo como URL
   // conserva pathname, search y hash por separado.
   const url = new URL(route, base);

@@ -596,8 +596,9 @@ describe("CargaReviewSummary, fuentes emparejadas por pregunta (ADR 0099)", () =
   });
 
   it("la readiness de Revisión espera a la lectura de la base elegida y se escribe en false", () => {
-    expect(pageSource).toMatch(/activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\?\s*"false"/u);
-    expect(pageSource).toMatch(/revisionLeyendo: cargaDireccion\.pestana === "revision" && !revisionEstado\.datosLeidos/u);
+    // Tras Revisión puede venir otra pestaña que también espera (Variables, ADR 0142).
+    expect(pageSource).toMatch(/activeCargaTab === "revision" && !revisionEstado\.completa\)(?:\s*\|\| \([^)]*\))*\s*\?\s*"false"/u);
+    expect(pageSource).toMatch(/revisionLeyendo: clavePedida === "revision" && !revisionEstado\.datosLeidos/u);
     expect(pageSource).toMatch(/leyendo=\{!revisionEstado\.datosLeidos\}/u);
   });
 });

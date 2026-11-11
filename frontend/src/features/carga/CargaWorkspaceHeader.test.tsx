@@ -21,7 +21,7 @@ const ATTENTION_CONTEXT: CargaWorkspaceContext = {
 };
 
 describe("CargaWorkspaceHeader", () => {
-  it("shows the active workspace name, status and contextual description", async () => {
+  it("muestra el nombre de la pestaña, su estado y el detalle del catálogo", async () => {
     const module = await vi.importActual("./CargaWorkspaceHeader") as {
       CargaWorkspaceHeader: ComponentType<HeaderProps>;
     };
@@ -34,8 +34,23 @@ describe("CargaWorkspaceHeader", () => {
 
     expect(html).toContain("Revisión");
     expect(html).toContain("Requiere atención");
-    expect(html).toContain("Hay incidencias de carga que requieren una decisión.");
+    // El detalle es el del catálogo (ADR 0142), el mismo que se ve mientras hidrata.
+    expect(html).toContain("Decisiones pendientes de la carga");
     // El rótulo superior es solo "Carga": sin "pestaña n de m".
     expect(html).not.toMatch(/pestaña\s+\d+\s+de\s+\d+/i);
+  });
+
+  it("Variables no declara estado: no sabe cuál es sin leer cada base", async () => {
+    const module = await vi.importActual("./CargaWorkspaceHeader") as {
+      CargaWorkspaceHeader: ComponentType<HeaderProps>;
+    };
+    const html = renderToStaticMarkup(
+      <module.CargaWorkspaceHeader active="variables" context={ATTENTION_CONTEXT} />,
+    );
+    expect(html).toContain("Variables");
+    expect(html).toContain("Columnas fuera del formulario y variables calculadas");
+    for (const palabra of ["Listo", "Pendiente", "Requiere atención", "Por definir"]) {
+      expect(html).not.toContain(palabra);
+    }
   });
 });

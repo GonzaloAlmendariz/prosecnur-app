@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { LucideIcon } from "../vendor/lucide-react";
 import { GlidingTabList } from "./GlidingTabList";
@@ -36,6 +36,13 @@ export type ContextTabRailItem<K extends string> = {
   estado?: ContextTabRailEstado;
   /** Etiqueta de dominio opcional para `estado` (por ejemplo, "Por definir"). */
   estadoLabel?: string;
+  /**
+   * Nombre del grupo al que pertenece la pestaña (por ejemplo, "Consulta"). Las
+   * pestañas de un grupo van seguidas; antes de la primera el riel pinta un
+   * separador, y en la variante etiquetada también el nombre. Sin `grupo` el
+   * riel no cambia.
+   */
+  grupo?: string;
 };
 
 const ETIQUETA_ESTADO_RAIL: Record<ContextTabRailEstado, string> = {
@@ -187,8 +194,11 @@ export function ContextTabRail<K extends string>({
         onRovingKeyChange={selectSerializedKey}
         onScroll={() => setTooltip(null)}
       >
-        {items.map((item) => {
+        {items.map((item, indice) => {
           const Icon = item.icon;
+          // El separador va antes de la primera pestaña de cada grupo. Es
+          // decorativo: no es una pestaña ni entra al recorrido del teclado.
+          const abreGrupo = Boolean(item.grupo) && items[indice - 1]?.grupo !== item.grupo;
           const selected = item.key === activeKey;
           const itemDisabled = disabled || Boolean(item.disabled);
           const descripcion = descripcionDeItem(item);
@@ -199,58 +209,64 @@ export function ContextTabRail<K extends string>({
             : item.label;
 
           return (
-            <button
-              key={item.key}
-              id={tabId(item.key)}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              aria-controls={resolvePanelId(panelId, item.key)}
-              aria-disabled={itemDisabled}
-              aria-label={descripcion ? `${item.label}. ${descripcion}` : item.label}
-              aria-describedby={tooltip?.key === item.key ? `${tabId(item.key)}-tooltip` : undefined}
-              disabled={itemDisabled}
-              className="pulso-context-tab-item"
-              data-gliding-key={item.key}
-              data-nav-item=""
-              data-nav-shape="row"
-              data-nav-state={selected ? "selected" : undefined}
-              data-rail-state={item.estado}
-              data-rail-tooltip={tooltipText}
-              onClick={() => {
-                setTooltip(null);
-                onChange(item.key);
-              }}
-              onMouseEnter={(event) => showTooltip(item, event.currentTarget)}
-              onMouseLeave={() => hideTooltip(item.key)}
-              onFocus={(event) => showTooltip(item, event.currentTarget)}
-              onBlur={() => hideTooltip(item.key)}
-            >
-              {/* El cuadrante de 40×40 lleva el ícono y nada más: es el estándar
-                  de rail de la casa y no admite badges ni puntos encima. El
-                  estado y el contador viajan por tooltip, `aria-label` y el
-                  encabezado del workbench, que es donde hay sitio para decirlo
-                  con palabras. */}
-              <Icon className="pulso-context-tab-icon" aria-hidden="true" focusable="false" />
-              {showLabels ? (
-                <span className="pulso-context-tab-copy">
-                  <span className="pulso-context-tab-label">{item.label}</span>
-                  {(estadoLabel || item.description) ? (
-                    <span className="pulso-context-tab-detail">
-                      {estadoLabel ? (
-                        <span className="pulso-context-tab-state">{estadoLabel}</span>
-                      ) : null}
-                      {estadoLabel && item.description ? (
-                        <span className="pulso-context-tab-separator">, </span>
-                      ) : null}
-                      {item.description ? (
-                        <span className="pulso-context-tab-description">{item.description}</span>
-                      ) : null}
-                    </span>
-                  ) : null}
+            <Fragment key={item.key}>
+              {abreGrupo ? (
+                <span className="pulso-context-tab-group" aria-hidden="true" data-rail-grupo={item.grupo}>
+                  {showLabels ? <span className="pulso-context-tab-group-label">{item.grupo}</span> : null}
                 </span>
               ) : null}
-            </button>
+              <button
+                id={tabId(item.key)}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls={resolvePanelId(panelId, item.key)}
+                aria-disabled={itemDisabled}
+                aria-label={descripcion ? `${item.label}. ${descripcion}` : item.label}
+                aria-describedby={tooltip?.key === item.key ? `${tabId(item.key)}-tooltip` : undefined}
+                disabled={itemDisabled}
+                className="pulso-context-tab-item"
+                data-gliding-key={item.key}
+                data-nav-item=""
+                data-nav-shape="row"
+                data-nav-state={selected ? "selected" : undefined}
+                data-rail-state={item.estado}
+                data-rail-tooltip={tooltipText}
+                onClick={() => {
+                  setTooltip(null);
+                  onChange(item.key);
+                }}
+                onMouseEnter={(event) => showTooltip(item, event.currentTarget)}
+                onMouseLeave={() => hideTooltip(item.key)}
+                onFocus={(event) => showTooltip(item, event.currentTarget)}
+                onBlur={() => hideTooltip(item.key)}
+              >
+                {/* El cuadrante de 40×40 lleva el ícono y nada más: es el estándar
+                    de rail de la casa y no admite badges ni puntos encima. El
+                    estado y el contador viajan por tooltip, `aria-label` y el
+                    encabezado del workbench, que es donde hay sitio para decirlo
+                    con palabras. */}
+                <Icon className="pulso-context-tab-icon" aria-hidden="true" focusable="false" />
+                {showLabels ? (
+                  <span className="pulso-context-tab-copy">
+                    <span className="pulso-context-tab-label">{item.label}</span>
+                    {(estadoLabel || item.description) ? (
+                      <span className="pulso-context-tab-detail">
+                        {estadoLabel ? (
+                          <span className="pulso-context-tab-state">{estadoLabel}</span>
+                        ) : null}
+                        {estadoLabel && item.description ? (
+                          <span className="pulso-context-tab-separator">, </span>
+                        ) : null}
+                        {item.description ? (
+                          <span className="pulso-context-tab-description">{item.description}</span>
+                        ) : null}
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
+              </button>
+            </Fragment>
           );
         })}
       </GlidingTabList>

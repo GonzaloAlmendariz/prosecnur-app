@@ -54,10 +54,14 @@ describe("panel y direcciones", () => {
   });
 
   it("abre con panel y foco, conservando el resto de la dirección", () => {
-    const search = searchConVariablesBase("?pestana=fuentes", "2026");
-    expect(search).toBe("?pestana=fuentes&panel=variables-base&foco=2026");
+    const search = searchConVariablesBase("?pestana=equivalencias", "2026");
+    expect(search).toBe("?pestana=equivalencias&panel=variables-base&foco=2026");
     expect(panelAbiertoEn(search, PANEL_VARIABLES_BASE)).toBe(true);
-    expect(hrefVariablesBase("Estudiantes 2026")).toBe("/carga?pestana=fuentes&panel=variables-base&foco=Estudiantes+2026");
+  });
+
+  it("desde fuera de Carga se llega a la pestaña Variables con la base en foco (ADR 0142)", () => {
+    expect(hrefVariablesBase("Estudiantes 2026")).toBe("/carga?pestana=variables&foco=Estudiantes+2026");
+    expect(hrefVariablesBase("")).toBe("/carga?pestana=variables");
   });
 
   it('"Declarar el motivo" lleva a Revisión con la base como base revisada', () => {

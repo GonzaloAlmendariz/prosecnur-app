@@ -7,7 +7,7 @@ export type PestanaDatosProps = {
   ocupado: string;
   error: string;
   /** Todas las bases del estudio, repeats incluidos. Con una base no se usa. */
-  bases: EstudioBase[];
+  bases: readonly EstudioBase[];
   baseElegida: string;
   onCambiarBase: (nombre: string) => void;
 };

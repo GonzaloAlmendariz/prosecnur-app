@@ -13,7 +13,7 @@ describe("Multibase strategy semantics", () => {
 
     expect(anchor).toBeGreaterThan(-1);
     expect(selector).toContain('role="status"');
-    expect(selector).toContain("Estrategia fijada en Plan");
+    expect(selector).toContain("Estrategia fijada");
     expect(selector).not.toContain("<button");
     expect(selector).not.toContain("requestStrategyChange(");
   });

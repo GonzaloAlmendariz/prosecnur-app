@@ -105,9 +105,9 @@ describe("paso 1, Bases", () => {
     expect(p.detalle).toBe("3 bases, orden sin declarar");
   });
 
-  it("sin matriz guardada el orden no se edita aún: lleva a Fuentes", () => {
+  it("sin matriz guardada el orden no se edita aún: lleva a Bases", () => {
     const p = paso(pasosDelRecorrido(completa({ ordenEditable: false })), "bases");
-    expect(p.enlace).toMatchObject({ tipo: "direccion", etiqueta: "Fuentes" });
+    expect(p.enlace).toMatchObject({ tipo: "direccion", etiqueta: "Bases", href: "/carga?pestana=bases" });
     const editable = paso(pasosDelRecorrido(completa()), "bases");
     expect(editable.enlace).toMatchObject({ tipo: "panel", panel: "orden-serie" });
   });
@@ -124,7 +124,7 @@ describe("paso 2, Variables de cada base", () => {
     })), "variables");
     expect(p.estado).toBe("falta");
     expect(p.detalle).toBe("2025: 1 retirada sin motivo, 2026: 3 columnas sin incorporar");
-    expect(p.enlace).toEqual({ tipo: "panel", panel: "variables-base", foco: "2025", etiqueta: "Variables de la base" });
+    expect(p.enlace).toEqual({ tipo: "direccion", href: "/carga?pestana=variables&foco=2025", etiqueta: "Variables de la base" });
   });
 
   it("mientras alguna base lee, el paso está leyendo; una lectura fallida no es un vacío", () => {

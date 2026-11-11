@@ -4,6 +4,7 @@ import {
   BookOpen,
   ClipboardCheck,
   ClipboardList,
+  Columns3,
   Compass,
   Database,
   FileText,
@@ -14,16 +15,13 @@ import {
   Layers,
   LayoutGrid,
   LayoutTemplate,
-  ListChecks,
   ListOrdered,
   ListTree,
   Network,
   Paintbrush,
   Palette,
   PieChart,
-  PlugZap,
   Scale,
-  ShieldAlert,
   Table2,
   Tags,
   Wand2,
@@ -38,6 +36,17 @@ export type ProcesamientoSeccionId =
   | "graficos";
 
 export type DisponibilidadPestanaProcesamiento = "siempre" | "condicional";
+
+/**
+ * Grupo del riel: las pestañas de un mismo grupo van juntas y el riel las
+ * separa de las anteriores. Hoy solo Carga lo usa (ADR 0142: Formulario y
+ * Respuestas son de consulta).
+ */
+export type GrupoPestanaProcesamiento = "consulta";
+
+export const ETIQUETAS_GRUPO_PESTANA: Readonly<Record<GrupoPestanaProcesamiento, string>> = {
+  consulta: "Consulta",
+};
 
 export type PestanaProcesamiento<Key extends string = string> = {
   readonly id: Key;
@@ -54,6 +63,7 @@ export type PestanaProcesamiento<Key extends string = string> = {
   readonly direccionPublicada: boolean;
   readonly disponibilidad: DisponibilidadPestanaProcesamiento;
   readonly readinessPropia?: true;
+  readonly grupo?: GrupoPestanaProcesamiento;
 };
 
 function pestana<const Key extends string>(
@@ -66,6 +76,7 @@ function pestana<const Key extends string>(
     direccionPublicada?: boolean;
     disponibilidad?: DisponibilidadPestanaProcesamiento;
     readinessPropia?: true;
+    grupo?: GrupoPestanaProcesamiento;
   } = {},
 ): PestanaProcesamiento<Key> {
   const direccionPublicada = opciones.direccionPublicada ?? true;
@@ -92,18 +103,21 @@ function pestana<const Key extends string>(
     direccionPublicada,
     disponibilidad: opciones.disponibilidad ?? "siempre",
     ...(opciones.readinessPropia ? { readinessPropia: true as const } : {}),
+    ...(opciones.grupo ? { grupo: opciones.grupo } : {}),
   };
 }
 
 /** Las pestañas actuales de Carga, Validación, Codificación, Analítica y Gráficos. */
 export const PROCESAMIENTO_PESTANAS = {
+  // ADR 0142 (aceptado el 2026-11-11): Plan y Fuentes se funden en Bases, Estructura pasa a Formulario y Datos a
+  // Respuestas. Las claves viejas se leen como alias en `features/carga/pestanaCarga.ts` y no se escriben.
   carga: [
-    pestana("carga", "plan", "Plan", "Organización de las bases", ClipboardCheck),
-    pestana("carga", "fuentes", "Fuentes", "Formulario y respuestas", PlugZap),
-    pestana("carga", "revision", "Revisión", "Incidencias de carga", ShieldAlert),
-    pestana("carga", "estructura", "Estructura", "Variables y códigos", ListChecks),
-    pestana("carga", "datos", "Datos", "Respuestas en tabla", Table2),
-    pestana("carga", "equivalencias", "Equivalencias", "La misma pregunta en cada público", GitCompare, { disponibilidad: "condicional" }),
+    pestana("carga", "bases", "Bases", "Bases y fuentes del estudio", Database),
+    pestana("carga", "revision", "Revisión", "Decisiones pendientes de la carga", ClipboardCheck),
+    pestana("carga", "variables", "Variables", "Columnas fuera del formulario y variables calculadas", Columns3),
+    pestana("carga", "equivalencias", "Equivalencias", "La misma pregunta en cada base", GitCompare, { disponibilidad: "condicional" }),
+    pestana("carga", "formulario", "Formulario", "Preguntas, opciones y lógica", ListTree, { grupo: "consulta" }),
+    pestana("carga", "respuestas", "Respuestas", "Respuestas en tabla", Table2, { grupo: "consulta" }),
   ],
   validacion: [
     pestana("validacion", "explorar", "Explorar respuestas", "Distribuciones y señales de revisión", Compass),

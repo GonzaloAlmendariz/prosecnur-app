@@ -1,7 +1,7 @@
 // Recorrido de la serie: lógica pura.
 //
 // Un estudio con varias mediciones se arma en seis pasos que viven en lugares
-// distintos (Fuentes, Variables de la base, Segmentos, Matriz, Ponderación,
+// distintos (Bases, Variables de la base, Segmentos, Matriz, Ponderación,
 // Comparativos). La banda responde de un vistazo «qué me falta y dónde se
 // hace»: cada paso trae su estado, un texto corto y concreto, y el enlace a
 // donde se resuelve. Todo sale de lecturas que la app ya hace; aquí sólo se
@@ -26,7 +26,7 @@ import {
 import { estadoArmonizacion, resumenOrdenSerie, PANEL_ORDEN_SERIE } from "../armonizacionModel";
 import { PANEL_MAPA_BASES, presenciaEnBase } from "../mapaBasesModel";
 import { PANEL_SEGMENTOS } from "../panelesCarga";
-import { PANEL_VARIABLES_BASE } from "../variablesBase/variablesBaseModel";
+import { DIRECCION_BASES_SERIE, hrefVariablesBase } from "../direccionesDeCarga";
 
 export type Lectura<T> =
   | { tipo: "cargando" }
@@ -84,11 +84,8 @@ export type EntradaRecorrido = {
   ponderacion: Lectura<readonly PonderacionEnSerie[]>;
 };
 
-export const DIRECCION_FUENTES_SERIE = serializarDireccion({
-  modulo: "procesamiento",
-  seccion: "carga",
-  pestana: "fuentes",
-});
+/** Bases del estudio. El dueño del enlace es `direccionesDeCarga.ts`. */
+export { DIRECCION_BASES_SERIE };
 
 export const DIRECCION_COMPARATIVOS_SERIE = serializarDireccion({
   modulo: "procesamiento",
@@ -122,7 +119,7 @@ function pasoBases(e: EntradaRecorrido): PasoRecorrido {
   const n = e.bases.length;
   const enlace: EnlacePaso = e.ordenEditable
     ? { tipo: "panel", panel: PANEL_ORDEN_SERIE.id, etiqueta: "Orden de la serie" }
-    : { tipo: "direccion", href: DIRECCION_FUENTES_SERIE, etiqueta: "Fuentes" };
+    : { tipo: "direccion", href: DIRECCION_BASES_SERIE, etiqueta: "Bases" };
   const base = { id: "bases" as const, numero: 1, titulo: "Bases", enlace };
   if (n < 2) {
     return { ...base, estado: n === 0 ? "no-empezado" : "falta", detalle: n === 0 ? "Sin bases cargadas" : "1 base: la serie necesita 2" };
@@ -171,7 +168,8 @@ function pasoVariables(e: EntradaRecorrido): PasoRecorrido {
 }
 
 function enlaceVariables(base: string): EnlacePaso {
-  return { tipo: "panel", panel: PANEL_VARIABLES_BASE.id, foco: base || undefined, etiqueta: "Variables de la base" };
+  // ADR 0142: el panel lateral pasó a ser la pestaña Variables.
+  return { tipo: "direccion", href: hrefVariablesBase(base), etiqueta: "Variables de la base" };
 }
 
 function pasoSegmentos(e: EntradaRecorrido): PasoRecorrido {

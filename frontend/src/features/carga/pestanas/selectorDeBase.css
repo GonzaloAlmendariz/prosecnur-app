@@ -1,0 +1,12 @@
+/* Selector de base de las pestañas de Carga (ADR 0142). No se estira al ancho
+ * de la pestaña: ocupa lo que pide el nombre de la base. */
+.pulso-carga-selector-base {
+  justify-self: start;
+  max-inline-size: 100%;
+}
+
+.pulso-carga-selector-base .pulso-select-trigger {
+  inline-size: auto;
+  min-inline-size: 16rem;
+  max-inline-size: 100%;
+}

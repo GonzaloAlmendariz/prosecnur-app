@@ -15,7 +15,10 @@ export type CargaWorkspaceHeaderProps = {
 /**
  * Carga usa la cabecera única de pestaña del kit (L14): el rótulo "Carga", el
  * estado como palabra fuera del h2 y el detalle de la pestaña. Neutral y
- * "Revisando" no llevan palabra de estado.
+ * "Revisando" no llevan palabra de estado. El detalle es el del catálogo, igual
+ * que en Validación, Codificación y Analítica, y el mismo que pinta la cabecera
+ * mientras la página se hidrata; la frase de estado de la pestaña la dice el
+ * riel en su estado anunciado.
  */
 export function estadoDeCabecera(estado: CargaWorkspaceState): TabHeadingEstado | undefined {
   if (estado === "ready") return "listo";
@@ -37,7 +40,7 @@ export function CargaWorkspaceHeader({
       titulo={activeItem.label}
       icono={ClipboardList}
       estado={estadoDeCabecera(activeItem.state)}
-      detalle={activeItem.description}
+      detalle={activeItem.summary}
     />
   );
 }

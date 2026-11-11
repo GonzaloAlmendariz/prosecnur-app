@@ -9,7 +9,6 @@ import {
   apiEstudioGet,
   apiEstudioInit,
   apiEstudioSetTopology,
-  apiInstrumentoEstructura,
   CargaMonitoreoHandoffStatus,
   CargaPlatformImportResult,
   ChoiceCodeMapReview,
@@ -17,12 +16,12 @@ import {
   CargaReviewSummaryPayload,
   EstudioPayload,
   EstudioProcessingSuggestions,
-  Pregunta,
   ReconciliacionInfo,
-  Seccion,
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { pestanasCargaDisponibles } from "../../lib/navegacion/catalogos/procesamiento";
+import { toast } from "../../components/toasterStore";
 import "./carga-v2.css";
 import "./carga-sources.css";
 import "./carga-scroll-corto.css";
@@ -30,14 +29,19 @@ import { PageFrame } from "../../components/PageFrame";
 import { ChoiceMappingReviewDialog } from "./ChoiceMappingReviewDialog";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
 import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
-import { defaultEsquemaBase } from "./esquemaBaseModel";
 import { useCargaStore, type CargaTopologyIntent, type MultiBaseStrategy } from "./store";
 import {
-  resolveCargaWorkspaceTab,
   equivalenciasDisponibles,
   type CargaWorkspaceContext,
   type CargaWorkspaceTab,
 } from "./CargaWorkspaceModel";
+import {
+  PESTANA_CARGA_POR_DEFECTO,
+  avisoPestanaNoDisponible,
+  clavePedidaCarga,
+  pestanaPedidaDeDireccion,
+  resolverPestanaCarga,
+} from "./pestanaCarga";
 import type { CargaMonitoringDiscoveryResult } from "./CargaMonitoringDiscovery";
 import type { ProcessingSourcesProfile } from "./CargaSourcesModel";
 import { CargaHidratando } from "./CargaHidratando";
@@ -66,12 +70,15 @@ import { traerTrabajoDeCampo } from "./pestanas/traerTrabajoDeCampo";
 import { MesaDeCarga } from "./pestanas/MesaDeCarga";
 import { useModeloCarga } from "./pestanas/useModeloCarga";
 import { usePlataformaCarga } from "./pestanas/usePlataformaCarga";
-import { PestanaDatos } from "./pestanas/PestanaDatos";
+import { PestanaBases } from "./pestanas/PestanaBases";
 import { PestanaEquivalencias } from "./pestanas/PestanaEquivalencias";
-import { PestanaEstructura } from "./pestanas/PestanaEstructura";
-import { PestanaFuentes } from "./pestanas/PestanaFuentes";
-import { PestanaPlan } from "./pestanas/PestanaPlan";
+import { PestanaFormulario } from "./pestanas/PestanaFormulario";
+import { PestanaRespuestas } from "./pestanas/PestanaRespuestas";
 import { PestanaRevision } from "./pestanas/PestanaRevision";
+import { PestanaVariables } from "./pestanas/PestanaVariables";
+import { baseDeVariables, type ContextoDeCarga } from "./pestanas/contextoDeCarga";
+import { useEstructuraDeBase, useLecturaDeEstructura } from "./pestanas/useEstructuraDeBase";
+import { useElegirBaseDeVariables } from "./pestanas/useElegirBaseDeVariables";
 
 // Fase 1 — Carga de insumos.
 //
@@ -89,6 +96,7 @@ export type { SourceMode };
 export default function CargaPage() {
   const { sessionId, state, refresh, error: errorSesion } = useSession();
   const cargaDireccion = useSeccion("procesamiento");
+  const elegirBaseDeVariables = useElegirBaseDeVariables();
   const topologyIntent = useCargaStore((store) => store.topologyIntent);
   const setTopologyIntent = useCargaStore((store) => store.setTopologyIntent);
   const multiBaseStrategy = useCargaStore((store) => store.strategy);
@@ -100,10 +108,8 @@ export default function CargaPage() {
   // Al reemplazar las respuestas: qué cambió y si hay que volver a adaptar.
   const [cambiosRespuestas, setCambiosRespuestas] = useState<CambiosDeRespuestas | null>(null);
   const [choiceMappingReview, setChoiceMappingReview] = useState<ChoiceCodeMapReview | null>(null);
-  const [estructura, setEstructura] = useState<{ secciones: Seccion[]; preguntas: Pregunta[] } | null>(null);
-  // Base cuyo esquema se muestra en la inspección multibase (madre↔hija). En
-  // single-base queda vacío y `estructura` viene del instrumento único.
-  const [esquemaBase, setEsquemaBase] = useState<string>("");
+  const estadoEstructura = useEstructuraDeBase();
+  const { estructura, setEstructura, esquemaBase, setEsquemaBase } = estadoEstructura;
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState<string>("");
   const feedbackRef = useRef<HTMLDivElement | null>(null);
@@ -266,6 +272,8 @@ export default function CargaPage() {
   // `null` hasta que Equivalencias la lee; así la pestaña dice "Revisando" y
   // no un "Pendiente" que todavía no sabe.
   const [equivalenciasFilas, setEquivalenciasFilas] = useState<number | "error" | null>(null);
+  // Variables lee la base elegida: mientras tanto la página no se declara lista.
+  const [variablesLeyendo, setVariablesLeyendo] = useState(false);
   const reviewHasIssues = Boolean(cargaReview && (
     !cargaReview.compatibility.ok
     || cargaReview.choice_mapping.pending
@@ -288,6 +296,10 @@ export default function CargaPage() {
   // `foco=<base>:<survey_id>` del panel de emparejamiento: la base que nombra
   // el enlace es la que Revisión debe mostrar.
   const baseDelEnlace = baseDeLaDireccion(cargaDireccion.panel, cargaDireccion.foco);
+  // ADR 0142: la pestaña pedida, con las claves viejas leídas como alias y el
+  // panel lateral de variables leído como la pestaña Variables.
+  const pestanaPedida = pestanaPedidaDeDireccion({ pestana: cargaDireccion.pestana, panel: cargaDireccion.panel });
+  const clavePedida = clavePedidaCarga(pestanaPedida);
   const workspaceContext: CargaWorkspaceContext = {
     hasInstrument: workspaceHasInstrument,
     hasData: workspaceHasData,
@@ -305,12 +317,30 @@ export default function CargaPage() {
       basesPrimarias: topologyBases.length,
     }),
     equivalenciasDeclaradas: equivalenciasFilas,
-    equivalenciasLeyendo: cargaDireccion.pestana === "equivalencias" && equivalenciasFilas === null,
+    equivalenciasLeyendo: clavePedida === "equivalencias" && equivalenciasFilas === null,
     // Solo mientras se mira Revisión: en otras pestañas no se lee y la marca
     // se quedaría en "Revisando" para siempre.
-    revisionLeyendo: cargaDireccion.pestana === "revision" && !revisionEstado.datosLeidos,
+    revisionLeyendo: clavePedida === "revision" && !revisionEstado.datosLeidos,
   };
-  const activeCargaTab = resolveCargaWorkspaceTab(cargaDireccion.pestana, workspaceContext);
+  // Lo que el estudio ofrece solo se sabe con la página hidratada: antes, la
+  // pestaña pedida se muestra tal cual en la silueta y no se corrige nada.
+  const resolucion = hidratacion.fase === "lista"
+    ? resolverPestanaCarga(
+      pestanaPedida,
+      pestanasCargaDisponibles({ basesSeparadas: Boolean(workspaceContext.basesSeparadas) }).map((tab) => tab.key),
+    )
+    : { pestana: clavePedida ?? PESTANA_CARGA_POR_DEFECTO, noDisponible: null };
+  const activeCargaTab = resolucion.pestana;
+
+  // Una dirección que pide una pestaña que este estudio no ofrece (Equivalencias
+  // con una sola base) no aterriza muda en Bases: se corrige la dirección y se
+  // dice por qué (mismo patrón que Analítica).
+  useEffect(() => {
+    if (!resolucion.noDisponible) return;
+    const aviso = avisoPestanaNoDisponible(resolucion.noDisponible);
+    cargaDireccion.irA("pestana", null, { replace: true });
+    toast.info(aviso.mensaje, aviso.detalle ? { detalle: aviso.detalle } : undefined);
+  }, [resolucion.noDisponible]);
 
   // Revisión solo opera sobre bases primarias. Datos conserva su selector
   // completo (incluidos repeats); la normalización ocurre únicamente al entrar
@@ -381,7 +411,7 @@ export default function CargaPage() {
   }, [activeCargaTab, cargaBaseSignature, isMultiBase]);
 
   function goCargaWorkspaceTab(next: CargaWorkspaceTab, replace = false) {
-    cargaDireccion.irA("pestana", next === "plan" ? null : next, { replace });
+    cargaDireccion.irA("pestana", next === PESTANA_CARGA_POR_DEFECTO ? null : next, { replace });
   }
   // Flag que le pide al BasesPanel abrir directamente su form "Agregar
   // base" al montar. Se activa tras convertir single → multi con el
@@ -455,33 +485,14 @@ export default function CargaPage() {
     feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [error]);
 
-  // Esquema single-base: instrumento único (comportamiento histórico intacto).
-  useEffect(() => {
-    if (isMultiBase) return;
-    if (state?.instrumento_parsed && !estructura) {
-      apiInstrumentoEstructura().then(setEstructura).catch((e) => setError((e as Error).message));
-    }
-  }, [isMultiBase, state?.instrumento_parsed, estructura]);
-
-  // Esquema multibase: elegir la base cuyo esquema se muestra. Por defecto la
-  // que mejor exhibe el begin_repeat (la madre de una base hija repeat) y
-  // mantenerla válida si cambia el set de bases.
-  useEffect(() => {
-    if (!isMultiBase || !estudio) return;
-    const names = new Set(Object.keys(estudio.bases));
-    setEsquemaBase((current) => (current && names.has(current) ? current : defaultEsquemaBase(estudio.bases, estudio.active_base)));
-  }, [isMultiBase, cargaBaseSignature, estudio?.active_base]);
-
-  // Esquema multibase: cargar la estructura de la base elegida y re-cargar
-  // cuando el usuario alterna madre↔hija en el selector.
-  useEffect(() => {
-    if (!isMultiBase || !esquemaBase) return;
-    let cancelled = false;
-    apiInstrumentoEstructura(esquemaBase)
-      .then((r) => { if (!cancelled) setEstructura(r); })
-      .catch((e) => { if (!cancelled) setError((e as Error).message); });
-    return () => { cancelled = true; };
-  }, [isMultiBase, esquemaBase]);
+  // La estructura del formulario de la base elegida (pestaña Formulario).
+  useLecturaDeEstructura(estadoEstructura, {
+    esVarias: isMultiBase,
+    instrumentoParseado: Boolean(state?.instrumento_parsed),
+    estudio,
+    firmaDeBases: cargaBaseSignature,
+    onError: setError,
+  });
 
   // Tras cambios al estudio (add/remove/rename base), refrescar
   // session state + estudio payload. En multibase, los effects de esquema
@@ -544,7 +555,7 @@ export default function CargaPage() {
       // cerrar el proyecto y volver a abrirlo lo devolvía a la carga simple.
       await apiEstudioSetTopology(strategy);
       await refresh();
-      goCargaWorkspaceTab("fuentes");
+      goCargaWorkspaceTab("bases");
     } catch (reason) {
       setError((reason as Error).message);
     } finally {
@@ -606,98 +617,121 @@ export default function CargaPage() {
       .catch((reason: Error) => setError(reason.message));
   }
 
-  const pestana = activeCargaTab === "plan" ? (
-    <PestanaPlan
-      topologia={topologyResolution}
-      bases={isMultiBase ? topologyBases : []}
-      tieneFormulario={isMultiBase ? workspaceHasInstrument : hasXlsform}
-      tieneRespuestas={workspaceHasData}
-      mapeoPendiente={pendingChoiceMapping}
-      todoListo={workspaceAllReady}
-      onAbrirFuentes={() => goCargaWorkspaceTab("fuentes")}
-      intencion={resolvedTopologyIntent}
-      ocupado={!!busy}
-      onCambiarIntencion={onTopologyIntentChange}
-    />
-  ) : activeCargaTab === "fuentes" ? (
-    <PestanaFuentes
-      varias={isMultiBase}
-      estudio={estudio}
-      estrategia={sourceStrategy}
-      unica={unica}
-      plannedInputCount={plannedInputCount}
-      materializedInputCount={materializedInputCount}
-      ocupado={!!busy}
-      onPlannedInputCountChange={setPlannedInputCount}
-      origen={{ modo: sourceMode, modos: sourceModes, onModo: setSourceMode }}
-      plataforma={plataforma}
-      monitoreo={{
-        sessionId,
-        etiquetaRevisar: monitoringReviewActionLabel,
-        onDescubierto: onMonitoringDiscovered,
-        revisado: monitoringReviewed,
-        perfil: monitoringProfile,
-        sugerencias: processingSuggestions?.groups,
-        tokenDeLectura: intakeRefreshToken,
-        onPlanGuardado: () => setIntakeRefreshToken((current) => current + 1),
-        onPromovido: async (payload) => {
-          await onEstudioChanged(payload);
-          goCargaWorkspaceTab("revision");
-        },
-        mostrarTraspaso: showFieldWorkHandoff,
-        traspaso: handoffStatus,
-        fuenteSeleccionada: selectedMonitoringSourceId,
+  // Lo que comparten Variables, Formulario y Respuestas (ADR 0142).
+  const basesPrimarias = topologyBases.map((base) => base.nombre);
+  const contextoDeCarga: ContextoDeCarga = {
+    estudio,
+    esVarias: isMultiBase,
+    basesPrimarias,
+    basesTodas: isMultiBase ? cargaBaseOptions : [],
+    baseElegida: isMultiBase ? selectedCargaBase : "",
+    onCambiarBase: setSelectedCargaBase,
+    ocupado: busy,
+    error,
+    todoListo: allReady,
+  };
+  const basesDeVariables = isMultiBase ? cargaBaseOptions.map((base) => base.nombre) : [];
+  const contextoDeVariables: ContextoDeCarga = {
+    ...contextoDeCarga,
+    baseElegida: baseDeVariables({
+      esVarias: isMultiBase,
+      hayRespuestas: hasData,
+      bases: basesDeVariables,
+      basesPrimarias,
+      foco: cargaDireccion.foco,
+      baseActiva: estudio?.active_base,
+    }),
+    // La base de Variables vive en la dirección (`foco`), para que el enlace la nombre.
+    onCambiarBase: elegirBaseDeVariables,
+  };
+
+  const pestana = activeCargaTab === "bases" ? (
+    <PestanaBases
+      relacion={{
+        topologia: topologyResolution,
+        intencion: resolvedTopologyIntent,
         ocupado: !!busy,
-        onTraer: () => void onBringFieldWorkToProcessing(),
-        onSubirFormulario: (file) => void onPick("xlsform", file),
+        onCambiarIntencion: onTopologyIntentChange,
       }}
-      variasBases={{
-        tieneFormulario: hasXlsform,
-        onEstudioCambiado: onEstudioChanged,
-        onOrigen: (o) => {
-          if (o === "surveymonkey" || o === "kobo") { setPlatformProvider(o); setSourceMode("platform"); }
-          else if (o === "archivos") setSourceMode("files");
-          else if (o === "monitoreo") setSourceMode("monitoring");
+      fuentes={{
+        varias: isMultiBase,
+        estudio,
+        estrategia: sourceStrategy,
+        unica,
+        plannedInputCount,
+        materializedInputCount,
+        ocupado: !!busy,
+        onPlannedInputCountChange: setPlannedInputCount,
+        origen: { modo: sourceMode, modos: sourceModes, onModo: setSourceMode },
+        plataforma,
+        monitoreo: {
+          sessionId,
+          etiquetaRevisar: monitoringReviewActionLabel,
+          onDescubierto: onMonitoringDiscovered,
+          revisado: monitoringReviewed,
+          perfil: monitoringProfile,
+          sugerencias: processingSuggestions?.groups,
+          tokenDeLectura: intakeRefreshToken,
+          onPlanGuardado: () => setIntakeRefreshToken((current) => current + 1),
+          onPromovido: async (payload) => {
+            await onEstudioChanged(payload);
+            goCargaWorkspaceTab("revision");
+          },
+          mostrarTraspaso: showFieldWorkHandoff,
+          traspaso: handoffStatus,
+          fuenteSeleccionada: selectedMonitoringSourceId,
+          ocupado: !!busy,
+          onTraer: () => void onBringFieldWorkToProcessing(),
+          onSubirFormulario: (file) => void onPick("xlsform", file),
         },
-        onDestinoFuente: (d) => {
-          setFuenteDestino(d);
-          setVistaPreviaFuente(null);
-          if (d) { setPlatformProvider("surveymonkey"); setSourceMode("platform"); }
+        variasBases: {
+          tieneFormulario: hasXlsform,
+          onEstudioCambiado: onEstudioChanged,
+          onOrigen: (o) => {
+            if (o === "surveymonkey" || o === "kobo") { setPlatformProvider(o); setSourceMode("platform"); }
+            else if (o === "archivos") setSourceMode("files");
+            else if (o === "monitoreo") setSourceMode("monitoring");
+          },
+          onDestinoFuente: (d) => {
+            setFuenteDestino(d);
+            setVistaPreviaFuente(null);
+            if (d) { setPlatformProvider("surveymonkey"); setSourceMode("platform"); }
+          },
+          vistaPreviaFuente: vistaPreviaFuente?.datos ?? null,
+          onConfirmarFuente: () => void onPlatformImport(),
+          onDescartarVistaPrevia: () => setVistaPreviaFuente(null),
+          abrirAgregarBase: autoOpenAddBase,
+          onAgregarBaseAbierto: () => setAutoOpenAddBase(false),
+          onDegradada: async () => {
+            setAutoOpenAddBase(false);
+            setEstudio(null);
+            setForceMultiBase(false);
+            setPreferredMultiStrategy(undefined);
+            setTopologyIntent("single");
+            goCargaWorkspaceTab("bases");
+            await refresh();
+          },
+          onBaseSavRegistrada,
         },
-        vistaPreviaFuente: vistaPreviaFuente?.datos ?? null,
-        onConfirmarFuente: () => void onPlatformImport(),
-        onDescartarVistaPrevia: () => setVistaPreviaFuente(null),
-        abrirAgregarBase: autoOpenAddBase,
-        onAgregarBaseAbierto: () => setAutoOpenAddBase(false),
-        onDegradada: async () => {
-          setAutoOpenAddBase(false);
-          setEstudio(null);
-          setForceMultiBase(false);
-          setPreferredMultiStrategy(undefined);
-          setTopologyIntent("single");
-          goCargaWorkspaceTab("plan");
-          await refresh();
+        unaBase: {
+          onUsarArchivos: () => setSourceMode("files"),
+          mostrarAvisoDelPlan: (resolvedTopologyIntent === "multi" || topologyIntentStrategy !== null) && !topologyHasStudy,
+          estrategiaDelPlan: topologyIntentStrategy,
+          onActivarVariasBases: onEnableMultiBase,
+          tieneFormulario: hasXlsform,
+          tieneRespuestas: hasData,
+          mapeoPendiente: pendingChoiceMapping,
+          formulario: instrumento,
+          vistaPrevia: dataPreview,
+          cambios: cambiosRespuestas,
+          detallesNormalizacion: normalizationDetails,
+          onCerrarCambios: () => setCambiosRespuestas(null),
+          onRevisarMapeo: setChoiceMappingReview,
+          onSubir: onPick,
+          onQuitar,
+          enlaceConRevision: state?.instrument_revision_binding,
+          baseUnica: estudio?.bases?.default,
         },
-        onBaseSavRegistrada,
-      }}
-      unaBase={{
-        onUsarArchivos: () => setSourceMode("files"),
-        mostrarAvisoDelPlan: (resolvedTopologyIntent === "multi" || topologyIntentStrategy !== null) && !topologyHasStudy,
-        estrategiaDelPlan: topologyIntentStrategy,
-        onActivarVariasBases: onEnableMultiBase,
-        tieneFormulario: hasXlsform,
-        tieneRespuestas: hasData,
-        mapeoPendiente: pendingChoiceMapping,
-        formulario: instrumento,
-        vistaPrevia: dataPreview,
-        cambios: cambiosRespuestas,
-        detallesNormalizacion: normalizationDetails,
-        onCerrarCambios: () => setCambiosRespuestas(null),
-        onRevisarMapeo: setChoiceMappingReview,
-        onSubir: onPick,
-        onQuitar,
-        enlaceConRevision: state?.instrument_revision_binding,
-        baseUnica: estudio?.bases?.default,
       }}
     />
   ) : activeCargaTab === "revision" ? (
@@ -724,27 +758,25 @@ export default function CargaPage() {
         ? Boolean(cargaReviewSummary?.all_ready && !busy && !error)
         : Boolean(cargaReview?.ready && allReady && !busy && !error)}
     />
+  ) : activeCargaTab === "variables" ? (
+    <PestanaVariables
+      contexto={contextoDeVariables}
+      bases={basesDeVariables}
+      conCatalogo={Boolean(workspaceContext.basesSeparadas)}
+      onLeyendo={setVariablesLeyendo}
+    />
   ) : activeCargaTab === "equivalencias" ? (
     <PestanaEquivalencias onDeclaradas={setEquivalenciasFilas} />
-  ) : activeCargaTab === "estructura" ? (
-    <PestanaEstructura
-      varias={isMultiBase}
+  ) : activeCargaTab === "formulario" ? (
+    <PestanaFormulario
+      contexto={contextoDeCarga}
       hayEstructura={showInspection}
       estructura={estructura}
-      bases={estudio?.bases ?? null}
       baseDelEsquema={esquemaBase}
       onCambiarBaseDelEsquema={setEsquemaBase}
     />
   ) : (
-    <PestanaDatos
-      varias={isMultiBase}
-      todoListo={allReady}
-      ocupado={busy}
-      error={error}
-      bases={cargaBaseOptions}
-      baseElegida={selectedCargaBase}
-      onCambiarBase={setSelectedCargaBase}
-    />
+    <PestanaRespuestas contexto={contextoDeCarga} />
   );
 
 
@@ -763,7 +795,9 @@ export default function CargaPage() {
       // "true") y daba Revisión por lista mientras todavía leía. Mientras la
       // página se hidrata tampoco hay marca (L4, `cargaHidratacion.ts`).
       auditReady={
-        (isMultiBase && !estudio) || (activeCargaTab === "revision" && !revisionEstado.completa)
+        (isMultiBase && !estudio)
+          || (activeCargaTab === "revision" && !revisionEstado.completa)
+          || (activeCargaTab === "variables" && variablesLeyendo)
           ? "false"
           : marcaReadinessCarga(hidratacion, activeCargaTab) || "false"
       }

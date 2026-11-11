@@ -1,6 +1,7 @@
 // Panel «Variables de la base» (ADR 0106). Direccionable:
-// `?panel=variables-base&foco=<base>`. Se abre desde la tarjeta de cada base en
-// Carga › Fuentes y desde el Mapa de bases de Equivalencias.
+// `?panel=variables-base&foco=<base>`. Desde el ADR 0142 nadie lo monta: esa
+// dirección abre la pestaña Variables, que pinta `VariablesBaseCuerpo`. El panel
+// queda hasta la rebanada de retiro.
 //
 // Cuatro piezas, en este orden: el aviso de preguntas retiradas sin motivo, las
 // columnas que la base trae fuera del formulario, las variables calculadas y la
@@ -100,7 +101,9 @@ export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase
   }
 
   const datos = carga.datos;
-  const preguntas = catalogo.tipo === "listo" ? catalogo.variables : catalogo.tipo === "error" ? [] : null;
+  const preguntas = catalogo.tipo === "listo"
+    ? catalogo.variables
+    : catalogo.tipo === "error" || catalogo.tipo === "no-aplica" ? [] : null;
   const ocupados = nombresOcupados(datos, catalogo.tipo === "listo" ? catalogo.variables : []);
   const pendientes = datos.retiradas_pendientes;
 
@@ -139,6 +142,7 @@ export function VariablesBaseCuerpo({ control }: { control: ControlVariablesBase
         resumenes={resumenes}
         preguntas={preguntas}
         catalogoError={catalogo.tipo === "error"}
+        catalogoNoAplica={catalogo.tipo === "no-aplica"}
         ocupados={ocupados}
         guardando={ocupado === "calculada"}
         quitando={ocupado === "quitar"}

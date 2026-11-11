@@ -57,14 +57,10 @@ describe("CargaPage truthfulness contracts", () => {
     );
   });
 
-  it("entrega solo bases primarias a los conteos de Plan y Revisión", () => {
-    const plan = sourceBetween(
-      'activeCargaTab === "plan" ? (',
-      ') : activeCargaTab === "fuentes" ? (',
-    );
-
-    expect.soft(plan).toMatch(
-      /<PestanaPlan[\s\S]*?bases=\{isMultiBase \? topologyBases : \[\]\}/,
+  it("entrega solo bases primarias a los conteos de Revisión y al contexto de las pestañas", () => {
+    // ADR 0142: Plan se fundió en Bases y su resumen de cobertura salió de la vista.
+    expect.soft(source).toMatch(
+      /const basesPrimarias = topologyBases\.map\(\(base\) => base\.nombre\);/,
     );
     expect.soft(source).toMatch(
       /<PestanaRevision[\s\S]*?basesPrimarias=\{topologyBases\.map\(/,

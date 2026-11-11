@@ -53,6 +53,46 @@ describe("ContextTabRail", () => {
     expect(html).not.toContain("badge");
   });
 
+  it("separa un grupo de pestañas sin crear pestañas nuevas ni romper el riel sin grupos", () => {
+    type ConGrupo = "bases" | "revision" | "formulario" | "respuestas";
+    const conGrupo: readonly ContextTabRailItem<ConGrupo>[] = [
+      { key: "bases", label: "Bases", icon: Upload },
+      { key: "revision", label: "Revisión", icon: Upload },
+      { key: "formulario", label: "Formulario", icon: Table2, grupo: "Consulta" },
+      { key: "respuestas", label: "Respuestas", icon: Table2, grupo: "Consulta" },
+    ];
+    const render = (showLabels: boolean) => renderToStaticMarkup(
+      <ContextTabRail
+        ariaLabel="Pestañas de carga"
+        activeKey="bases"
+        items={conGrupo}
+        panelId="carga-panel"
+        tabId={(key) => `carga-tab-${key}`}
+        onChange={vi.fn()}
+        showLabels={showLabels}
+      />,
+    );
+    const iconOnly = render(false);
+    // Un solo separador, justo antes de la primera pestaña del grupo, fuera del árbol accesible.
+    expect(iconOnly.match(/data-rail-grupo=/g)).toHaveLength(1);
+    expect(iconOnly).toMatch(/aria-hidden="true" data-rail-grupo="Consulta"><\/span><button id="carga-tab-formulario"/);
+    expect(iconOnly.match(/role="tab"/g)).toHaveLength(4);
+    expect(iconOnly).not.toContain("pulso-context-tab-group-label");
+    expect(render(true)).toContain('<span class="pulso-context-tab-group-label">Consulta</span>');
+
+    const sinGrupos = renderToStaticMarkup(
+      <ContextTabRail
+        ariaLabel="Pestañas de carga"
+        activeKey="preparar"
+        items={ITEMS}
+        panelId="carga-panel"
+        tabId={(key) => `carga-tab-${key}`}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(sinGrupos).not.toContain("pulso-context-tab-group");
+  });
+
   it("mantiene icon-only por defecto y muestra etiquetas solo con opt-in", () => {
     const iconOnlyHtml = renderToStaticMarkup(
       <ContextTabRail

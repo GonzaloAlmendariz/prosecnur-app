@@ -56,7 +56,6 @@ import {
 } from "./equivalenciasEditorModel";
 import { etiquetaDePregunta } from "./preguntaEquivalenteModel";
 import { MapaBasesBoton, MapaBasesPanel } from "./MapaBasesPanel";
-import { VariablesBasePanel } from "./variablesBase/VariablesBasePanel";
 import { EVENTO_VARIABLES_BASE } from "./variablesBase/variablesBaseModel";
 import { RecorridoSerie } from "./recorridoSerie/RecorridoSerie";
 import { EVENTO_SEGMENTOS } from "./panelesCarga";
@@ -348,7 +347,6 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
         variablesPorBase={variablesPorBase}
         onAnadir={onAnadirDesdeMapa}
       />
-      <VariablesBasePanel antetitulo="Carga › Equivalencias" />
       <SegmentosPanel ordenBases={basesDeSerie} />
       <ImportarBloquesDialog bases={bases} onAplicado={onBloquesAplicados} />
       <IndicadorCompuestoEditor

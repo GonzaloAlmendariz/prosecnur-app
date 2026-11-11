@@ -1,10 +1,14 @@
 // @vitest-environment happy-dom
-/** Caracterización de Carga: grupo "datos". Ver arnes.tsx. */
+/**
+ * Caracterización de Carga: grupo "respuestas" (antes "datos"). Ver arnes.tsx.
+ * Los escenarios que entraban por `pestana=datos` siguen como alias.
+ */
 import { describe } from "vitest";
 import {
   VARIAS_SEPARADAS,
   base,
   escenario,
+  escenariosDeAlias,
   escenariosDeMatriz,
   estado,
   estudio,
@@ -13,12 +17,13 @@ import {
   prepararGrupo,
 } from "./arnes";
 
-prepararGrupo("datos");
+prepararGrupo("respuestas");
 
-escenariosDeMatriz("datos");
+escenariosDeMatriz("respuestas");
+escenariosDeAlias("datos", "respuestas");
 
-describe("CargaPage, varias bases: Datos", () => {
-  escenario("varias_separadas_datos_base-sin-respuestas", "Datos con una base hija de un grupo repetido y una base sin respuestas", async () => {
+describe("CargaPage, varias bases: Respuestas", () => {
+  escenario("varias_separadas_respuestas_base-sin-respuestas", "Respuestas con una base hija de un grupo repetido y una base sin respuestas", async () => {
     const bases = [
       base("hogares"),
       base("miembros", { source_kind: "kobo_repeat", parent_base: "hogares", repeat_group: "miembros", n_filas: 900 }),
@@ -34,17 +39,17 @@ describe("CargaPage, varias bases: Datos", () => {
         active_base: "pendiente",
       }),
       estudio: estudio(bases, { active_base: "pendiente" }),
-      pestana: "datos",
+      pestana: "respuestas",
     });
-    fijar("varias_separadas_datos_base-sin-respuestas");
+    fijar("varias_separadas_respuestas_base-sin-respuestas");
   });
 
-  escenario("varias_separadas_datos_con-selector", "Datos con dos bases cargadas: selector de base y hoja", async () => {
-    await montar({ ...VARIAS_SEPARADAS, pestana: "datos" });
-    fijar("varias_separadas_datos_con-selector");
+  escenario("varias_separadas_respuestas_con-selector", "Respuestas con dos bases cargadas: selector de base y hoja", async () => {
+    await montar({ ...VARIAS_SEPARADAS, pestana: "respuestas" });
+    fijar("varias_separadas_respuestas_con-selector");
   });
 
-  escenario("varias_una-sola_datos", "una sola base declarada como separada: Datos sin selector", async () => {
+  escenario("varias_una-sola_respuestas", "una sola base declarada como separada: Respuestas sin selector", async () => {
     await montar({
       estado: estado({
         has_estudio: true,
@@ -55,8 +60,8 @@ describe("CargaPage, varias bases: Datos", () => {
         active_base: "docentes",
       }),
       estudio: estudio([base("docentes")]),
-      pestana: "datos",
+      pestana: "respuestas",
     });
-    fijar("varias_una-sola_datos");
+    fijar("varias_una-sola_respuestas");
   });
 });

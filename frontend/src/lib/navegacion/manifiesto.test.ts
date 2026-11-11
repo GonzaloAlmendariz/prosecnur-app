@@ -161,6 +161,14 @@ describe("manifiesto de navegación", () => {
     // Retiro del Editor anterior (2026-10-11): sale «clasico» y entra «Word» (y «PowerPoint» pasó a la tarjeta del gráfico). 31.
     // Contrato E4-E7, R4 (2026-10-13): Analítica gana «Comparativos» (`comparativos`). 31 → 32.
     expect(procesamiento).toHaveLength(32);
+    // ADR 0142 (2026-11-11): Carga pasa de 6 a 6 pestañas con claves nuevas; las viejas sólo se leen como alias. 32.
+    expect(nodoPorClave("procesamiento/carga/bases")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/carga/variables")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/carga/formulario")).not.toBeNull();
+    expect(nodoPorClave("procesamiento/carga/respuestas")).not.toBeNull();
+    for (const vieja of ["plan", "fuentes", "estructura", "datos"]) {
+      expect(nodoPorClave(`procesamiento/carga/${vieja}`)).toBeNull();
+    }
     expect(nodoPorClave("procesamiento/graficos/word")).not.toBeNull();
     expect(nodoPorClave("procesamiento/graficos/clasico")).toBeNull();
     // Rediseño N1 (2026-10-14): las claves pasan a `informe`, `identidad` y `reglas`; las viejas sólo se leen como alias. 32.

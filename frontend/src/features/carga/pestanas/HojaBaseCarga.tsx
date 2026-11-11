@@ -18,7 +18,7 @@ export function CargaBaseSheetPane({
   allReady: boolean;
   busy: string;
   error: string;
-  baseOptions: EstudioBase[];
+  baseOptions: readonly EstudioBase[];
   selectedBase: string;
   onSelectedBaseChange: (base: string) => void;
 }) {

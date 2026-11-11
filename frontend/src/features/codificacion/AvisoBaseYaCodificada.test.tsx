@@ -35,7 +35,7 @@ describe('Adaptar con la base "ya viene codificada" (ADR 0106)', () => {
     const html = vista("2026");
     expect(html).not.toContain('data-testid="codificacion-adaptar-boton"');
     expect(html).toContain("&quot;2026&quot; ya viene codificada: aquí no se vuelve a codificar.");
-    expect(html).toContain('href="/carga?pestana=fuentes&amp;panel=variables-base&amp;foco=2026"');
+    expect(html).toContain('href="/carga?pestana=variables&amp;foco=2026"');
   });
 
   it("sin la marca, el botón sigue", () => {

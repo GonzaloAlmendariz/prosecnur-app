@@ -1,7 +1,10 @@
 import {
   PROCESAMIENTO_PESTANAS,
   type CargaWorkspaceTab,
+  type GrupoPestanaProcesamiento,
 } from "../../lib/navegacion/catalogos/procesamiento";
+import type { LucideIcon } from "../../vendor/lucide-react";
+import { PESTANA_CARGA_POR_DEFECTO, clavePedidaCarga } from "./pestanaCarga";
 
 export type { CargaWorkspaceTab };
 
@@ -43,6 +46,8 @@ export type CargaWorkspaceMetadata = {
   key: CargaWorkspaceTab;
   label: string;
   summary: string;
+  icon: LucideIcon;
+  grupo?: GrupoPestanaProcesamiento;
 };
 
 export type CargaWorkspaceItem = CargaWorkspaceMetadata & {
@@ -116,53 +121,23 @@ function multibaseCoverage(context: CargaWorkspaceContext) {
   };
 }
 
-function planItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
-  const baseCount = normalizedBaseCount(context);
-  const hasBase = context.hasBase || baseCount > 0;
-
-  if (hasBase) {
-    if (context.isMultiBase) {
-      if (baseCount > 0) {
-        return item(
-          "plan",
-          "ready",
-          `${baseCount} base${baseCount === 1 ? " organizada" : "s organizadas"} para el estudio.`,
-        );
-      }
-      return item("plan", "ready", "El espacio multibase está organizado para el estudio.");
-    }
-    return item("plan", "ready", "La base de trabajo ya está definida.");
-  }
-
-  if (context.hasInstrument || context.hasData) {
-    return item(
-      "plan",
-      "attention",
-      "Hay insumos disponibles, pero todavía falta definir la base de trabajo.",
-    );
-  }
-
-  if (context.isMultiBase) {
-    return item(
-      "plan",
-      "pending",
-      "El modo multibase está definido; falta crear la primera base.",
-    );
-  }
-
-  return item(
-    "plan",
-    "neutral",
-    "Define si el procesamiento usará una base o varias bases.",
-  );
-}
-
-function sourcesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
+/**
+ * Bases (ADR 0142) reúne lo que eran Plan y Fuentes: cuántas bases tiene el
+ * estudio y si cada una trae formulario y respuestas.
+ */
+function basesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   if (context.isMultiBase) {
     const { baseCount, instrumentBaseCount, dataBaseCount } = multibaseCoverage(context);
+    if (baseCount === 0 && !context.hasBase) {
+      return item(
+        "bases",
+        "pending",
+        "El estudio es de varias bases; falta crear la primera.",
+      );
+    }
     if (baseCount > 0 && instrumentBaseCount === baseCount && dataBaseCount === baseCount) {
       return item(
-        "fuentes",
+        "bases",
         "ready",
         baseCount === 1
           ? "La base tiene formulario y respuestas."
@@ -171,7 +146,7 @@ function sourcesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
     }
     if (baseCount > 0 && (instrumentBaseCount > 0 || dataBaseCount > 0)) {
       return item(
-        "fuentes",
+        "bases",
         "attention",
         `Formularios en ${instrumentBaseCount} de ${baseCount}; respuestas en ${dataBaseCount} de ${baseCount} bases.`,
       );
@@ -179,12 +154,12 @@ function sourcesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   }
 
   if (context.hasInstrument && context.hasData) {
-    return item("fuentes", "ready", "El formulario y las respuestas están disponibles.");
+    return item("bases", "ready", "El formulario y las respuestas están disponibles.");
   }
 
   if (context.hasData) {
     return item(
-      "fuentes",
+      "bases",
       "attention",
       "Hay respuestas disponibles, pero falta asociar el formulario.",
     );
@@ -192,17 +167,28 @@ function sourcesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
 
   if (context.hasInstrument) {
     return item(
-      "fuentes",
+      "bases",
       "pending",
       "El formulario está disponible; falta cargar o conectar las respuestas.",
     );
   }
 
   return item(
-    "fuentes",
+    "bases",
     "pending",
     "Añade el formulario y carga o conecta las respuestas.",
   );
+}
+
+/**
+ * Variables no sabe su estado sin leer cada base, así que no dice ninguno: ni
+ * "Pendiente" ni "Listo". La palabra vacía la omite el riel y la cabecera.
+ */
+function variablesItem(): CargaWorkspaceItem {
+  return {
+    ...item("variables", "neutral", "Columnas fuera del formulario y variables calculadas de cada base."),
+    statusLabel: "",
+  };
 }
 
 export const CARGA_REVISION_LEYENDO = "Revisando";
@@ -244,12 +230,12 @@ function reviewItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   );
 }
 
-function structureItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
+function formularioItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   if (context.isMultiBase) {
     const { baseCount, instrumentBaseCount } = multibaseCoverage(context);
     if (instrumentBaseCount > 0) {
       return item(
-        "estructura",
+        "formulario",
         instrumentBaseCount === baseCount ? "ready" : "attention",
         baseCount === 1
           ? "La base tiene estructura disponible."
@@ -259,30 +245,30 @@ function structureItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   }
 
   if (context.hasInstrument) {
-    return item("estructura", "ready", "Las variables y sus códigos están disponibles.");
+    return item("formulario", "ready", "Las variables y sus códigos están disponibles.");
   }
 
   if (context.hasData) {
     return item(
-      "estructura",
+      "formulario",
       "attention",
       "Hay respuestas, pero falta un formulario para reconstruir la estructura.",
     );
   }
 
   return item(
-    "estructura",
+    "formulario",
     "pending",
     "Carga o conecta un formulario para revisar variables y códigos.",
   );
 }
 
-function dataItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
+function respuestasItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   if (context.isMultiBase) {
     const { baseCount, dataBaseCount } = multibaseCoverage(context);
     if (dataBaseCount > 0) {
       return item(
-        "datos",
+        "respuestas",
         dataBaseCount === baseCount ? "ready" : "attention",
         baseCount === 1
           ? "La base tiene respuestas listas para explorar."
@@ -292,14 +278,14 @@ function dataItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   }
 
   if (context.hasData) {
-    return item("datos", "ready", "Las respuestas están listas para explorar.");
+    return item("respuestas", "ready", "Las respuestas están listas para explorar.");
   }
 
   if (context.hasBase || normalizedBaseCount(context) > 0) {
-    return item("datos", "pending", "La base está creada, pero todavía no contiene respuestas.");
+    return item("respuestas", "pending", "La base está creada, pero todavía no contiene respuestas.");
   }
 
-  return item("datos", "pending", "Carga o conecta respuestas para abrir la vista tabular.");
+  return item("respuestas", "pending", "Carga o conecta respuestas para abrir la vista tabular.");
 }
 
 /**
@@ -368,17 +354,17 @@ export function equivalenciasDisponibles({
 export function cargaWorkspaceItems(
   context: CargaWorkspaceContext,
 ): readonly CargaWorkspaceItem[] {
-  const items = [
-    planItem(context),
-    sourcesItem(context),
+  // Orden del catálogo (ADR 0142). Espejo en el cliente del predicado del
+  // backend (ADR 0061/0062): sin bases separadas la equivalencia no significa
+  // nada y la pestaña no se ofrece.
+  return [
+    basesItem(context),
     reviewItem(context),
-    structureItem(context),
-    dataItem(context),
+    variablesItem(),
+    ...(context.basesSeparadas ? [equivalencesItem(context)] : []),
+    formularioItem(context),
+    respuestasItem(context),
   ];
-  // Espejo en el cliente del predicado del backend (ADR 0061/0062): sin bases
-  // separadas la equivalencia no significa nada y la pestaña no se ofrece.
-  if (context.basesSeparadas) items.push(equivalencesItem(context));
-  return items;
 }
 
 export function isCargaWorkspaceTab(value: unknown): value is CargaWorkspaceTab {
@@ -388,13 +374,13 @@ export function isCargaWorkspaceTab(value: unknown): value is CargaWorkspaceTab 
 
 /**
  * Conserva todos los destinos canónicos, aunque su contenido esté pendiente.
- * Una solicitud ausente o inválida vuelve siempre a Plan: el estado del
- * proyecto informa las pestañas, pero nunca provoca navegación implícita.
+ * Las claves viejas se leen como alias (`pestanaCarga.ts`); una solicitud
+ * ausente o inválida vuelve siempre a Bases. El estado del proyecto informa las
+ * pestañas, pero nunca provoca navegación implícita.
  */
 export function resolveCargaWorkspaceTab(
   requested: unknown,
   _context: CargaWorkspaceContext,
 ): CargaWorkspaceTab {
-  if (isCargaWorkspaceTab(requested)) return requested;
-  return "plan";
+  return clavePedidaCarga(typeof requested === "string" ? requested : null) ?? PESTANA_CARGA_POR_DEFECTO;
 }

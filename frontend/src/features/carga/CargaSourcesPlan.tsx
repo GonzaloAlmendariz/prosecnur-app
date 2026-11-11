@@ -51,25 +51,25 @@ export function CargaSourcesPlan({
   // segundo banner sobre el contenido.
   if (!single && strategy === "separate") {
     return (
-      <p className="pulso-carga-sources-plan-meta" aria-label="Plan operativo de Fuentes">
+      <p className="pulso-carga-sources-plan-meta" aria-label="Organización de las bases">
         <StrategyIcon size={13} aria-hidden="true" />
         <strong>{copy.label}</strong>
         <span>{copy.detail}</span>
         <span className="pulso-carga-sources-plan-meta-origen">
-          <Lock size={11} aria-hidden="true" /> Definido en Plan
+          <Lock size={11} aria-hidden="true" /> Según la organización elegida
         </span>
       </p>
     );
   }
 
   return (
-    <section className="pulso-carga-sources-plan" aria-label="Plan operativo de Fuentes">
+    <section className="pulso-carga-sources-plan" aria-label="Organización de las bases">
       <div className="pulso-carga-sources-plan-strategy" role="status">
         <span className="pulso-carga-sources-plan-icon" aria-hidden="true">
           <StrategyIcon size={16} />
         </span>
         <span>
-          <small><Lock size={11} aria-hidden="true" /> Definido en Plan</small>
+          <small><Lock size={11} aria-hidden="true" /> Según la organización elegida</small>
           <strong>{copy.label}</strong>
           <em>{copy.detail}</em>
         </span>

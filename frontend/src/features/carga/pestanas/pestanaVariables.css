@@ -1,0 +1,7 @@
+/* Variables (ADR 0142): el selector de base y las secciones de la base, una
+ * debajo de otra con el mismo aire que Bases. */
+.pulso-carga-variables {
+  display: grid;
+  align-content: start;
+  gap: var(--pulso-space-3);
+}

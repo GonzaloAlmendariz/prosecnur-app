@@ -46,9 +46,9 @@ describe("paneles direccionables", () => {
   });
 
   it("abrir escribe panel y foco preservando la dirección; cerrar limpia ambos", () => {
-    const base = "?seccion=carga&pestana=fuentes";
+    const base = "?seccion=carga&pestana=bases";
     const abierto = searchConArmonizacionBase(base, "sm");
-    expect(abierto).toBe("?seccion=carga&pestana=fuentes&panel=armonizacion-base&foco=sm");
+    expect(abierto).toBe("?seccion=carga&pestana=bases&panel=armonizacion-base&foco=sm");
     expect(panelAbiertoEn(abierto, PANEL_ARMONIZACION_BASE)).toBe(true);
     expect(searchSinPanelYFoco(abierto)).toBe(base);
     const comp = searchConComparacion(base, { a: "sm", b: "sav" });
