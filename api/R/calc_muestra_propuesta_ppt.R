@@ -298,25 +298,32 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   tablas <- calc_muestra_propuesta_tablas(propuesta)
   plantilla <- system.file("plantillas", "plantilla_16_9.pptx", package = "prosecnurapp")
   if (!nzchar(plantilla)) plantilla <- file.path("api", "inst", "plantillas", "plantilla_16_9.pptx")
-  plan <- list(
-    p_slide_portada(as.character(propuesta$titulo %||% "Diseño muestral")[1],
-                    subtitulo = as.character(propuesta$subtitulo %||% "Propuesta técnica: diseño muestral")[1],
-                    fecha = propuesta$fecha %||% NULL, subtexto = propuesta$solicitante %||% NULL),
-    p_slide_cierre())
+  # Portada, gráficos (motor de Procesamiento) y contraportada salen del motor de plan; las tablas se
+  # agregan después con officer y al final se ordena todo con `orden` (una clave por lámina).
+  graf <- if (isFALSE(propuesta$incluir_graficos)) list(data = list(), instrumento = list(), laminas = list()) else .cmg_laminas(tablas)
+  plan <- c(list(p_slide_portada(as.character(propuesta$titulo %||% "Diseño muestral")[1],
+                                 subtitulo = as.character(propuesta$subtitulo %||% "Propuesta técnica: diseño muestral")[1],
+                                 fecha = propuesta$fecha %||% NULL, subtexto = propuesta$solicitante %||% NULL)),
+            lapply(graf$laminas, `[[`, "slide"), list(p_slide_cierre()))
+  orden <- c("portada", vapply(graf$laminas, `[[`, "", "clave"), "cierre")
+  datos_plan <- if (length(graf$data)) graf$data else data.frame(x = 1)
+  inst_plan <- if (length(graf$instrumento)) graf$instrumento else list(survey = data.frame(type = "text", name = "x", label = "x"))
   base_tmp <- tempfile(fileext = ".pptx")
-  reporte_ppt_plan(data = data.frame(x = 1), instrumento = list(survey = data.frame(type = "text", name = "x", label = "x")),
+  reporte_ppt_plan(data = datos_plan, instrumento = inst_plan,
                    plan = plan, path_ppt = base_tmp, template_pptx = plantilla, mensajes_progreso = FALSE)
   doc <- officer::read_pptx(base_tmp)
 
   piso <- as.integer(propuesta$minimo_segmento %||% 30L)
   proc <- propuesta$procedimiento %||% .cmp_procedimiento_barrido(piso)
-  doc <- .cmp_lamina_tabla(doc, "Diseño muestral", proc, primera = 0.20, texto_largo = TRUE)
+  doc <- .cmp_lamina_tabla(doc, "Diseño muestral", proc, primera = 0.20, texto_largo = TRUE); orden <- c(orden, "diseno")
   doc <- .cmp_lamina_tabla(doc, "Población y segmentos de cruce", tablas$poblacion, primera = 0.22, total = TRUE,
                            nota = propuesta$nota_marco %||% NULL, llenar = TRUE, anchos = c(0.22, 0.60, 0.18), izquierda = 2L)
+  orden <- c(orden, "poblacion")
   nota_esc <- "El margen de error es referencial, por tratarse de una muestra no probabilística."
   if (length(tablas$agregados)) nota_esc <- paste0(
     sprintf("Las metas incluyen lo que agrega el mínimo de %d por segmento: %s. ", piso, paste(tablas$agregados, collapse = "; ")), nota_esc)
   doc <- .cmp_lamina_tabla(doc, "Escenarios de muestra", tablas$comparacion, primera = 0.40, nota = nota_esc)
+  orden <- c(orden, "escenarios")
   for (p in names(tablas$segmentos)) {
     tab <- tablas$segmentos[[p]]
     control <- identical(attr(tab, "uso"), "control")
@@ -330,14 +337,28 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
     if (!nzchar(nota)) nota <- NULL
     if (nzchar(crit)) names(tab)[1] <- crit
     doc <- .cmp_lamina_tabla(doc, titulo, tab, primera = 0.40, total = TRUE, nota = nota)
+    orden <- c(orden, paste0("metas_", p))
   }
   nota_v <- if (length(tablas$avisos)) paste0("Segmentos que exigen más respuesta de la esperada. ", paste(tablas$avisos, collapse = ". "), ".") else NULL
   # Lámina interna: una propuesta para el cliente no la lleva salvo que se pida ("Y esto para qué? Es una
   # propuesta para cliente", revisión 2026-11-11).
-  if (isTRUE(propuesta$incluir_viabilidad)) doc <- .cmp_lamina_tabla(doc, "Viabilidad de las metas", tablas$viabilidad, primera = 0.22, nota = nota_v)
+  if (isTRUE(propuesta$incluir_viabilidad)) {
+    doc <- .cmp_lamina_tabla(doc, "Viabilidad de las metas", tablas$viabilidad, primera = 0.22, nota = nota_v)
+    orden <- c(orden, "viabilidad")
+  }
 
-  # La contraportada (segunda del plan) pasa al final.
-  doc <- officer::move_slide(doc, index = 2L, to = length(doc))
+  # Orden final: portada, diseño, población (tabla y gráficos), escenarios, metas por público, viabilidad y
+  # contraportada.
+  deseado <- c("portada", "diseno", "poblacion", grep("^graf_", orden, value = TRUE), "escenarios",
+               paste0("metas_", tablas$publicos), "viabilidad", "cierre")
+  deseado <- deseado[deseado %in% orden]
+  for (pos in seq_along(deseado)) {
+    actual <- match(deseado[pos], orden)
+    if (actual != pos) {
+      doc <- officer::move_slide(doc, index = actual, to = pos)
+      orden <- append(orden[-actual], deseado[pos], after = pos - 1L)
+    }
+  }
   print(doc, target = path_ppt)
   invisible(list(path = path_ppt, laminas = length(doc), tablas = tablas))
 }

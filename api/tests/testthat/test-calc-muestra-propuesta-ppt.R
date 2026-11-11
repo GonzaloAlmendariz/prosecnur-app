@@ -60,7 +60,9 @@ test_that("sin pedirla, la propuesta para el cliente no lleva la lámina de viab
   skip_if_not_installed("officer"); skip_if_not_installed("flextable")
   p <- .prop_dci(); p$incluir_viabilidad <- NULL
   r <- calc_muestra_propuesta_ppt(p, tempfile(fileext = ".pptx"))
-  expect_identical(as.integer(r$laminas), 7L)
+  # Portada, diseño, población, gráficos de dos en dos (población y docentes; administrativos), escenarios,
+  # metas de docentes y de administrativos, contraportada.
+  expect_identical(as.integer(r$laminas), 9L)
   rx <- calc_muestra_propuesta_xlsx(p, tempfile(fileext = ".xlsx"))
   expect_false("Viabilidad" %in% rx$hojas)
 })
@@ -70,14 +72,27 @@ test_that("el PPT trae portada, cinco tipos de lámina y contraportada al final"
   out <- tempfile(fileext = ".pptx")
   r <- calc_muestra_propuesta_ppt(.prop_dci(), out)
   expect_true(file.exists(out))
-  # Portada, diseño, población, escenarios, metas de docentes y de administrativos, viabilidad, cierre.
-  expect_identical(as.integer(r$laminas), 8L)
+  # Las mismas nueve más la viabilidad.
+  expect_identical(as.integer(r$laminas), 10L)
   doc <- officer::read_pptx(out)
   # pptx_summary avisa coerción con las celdas combinadas de las filas de sección.
   textos <- suppressWarnings(officer::pptx_summary(doc))
   titulos <- unique(textos$text[grepl("^(DISEÑO|POBLACIÓN|ESCENARIOS|METAS|VIABILIDAD)", textos$text)])
-  expect_identical(titulos, c("DISEÑO MUESTRAL", "POBLACIÓN Y SEGMENTOS DE CRUCE", "ESCENARIOS DE MUESTRA",
-                              "METAS POR SEGMENTO: DOCENTES", "METAS POR SEGMENTO: ADMINISTRATIVOS", "VIABILIDAD DE LAS METAS"))
+  # pptx_summary no sigue el orden de las láminas tras move_slide: aquí se compara el conjunto; el orden se
+  # mira abajo, lámina por lámina.
+  expect_setequal(titulos, c("DISEÑO MUESTRAL", "POBLACIÓN Y SEGMENTOS DE CRUCE", "POBLACIÓN Y DOCENTES", "ESCENARIOS DE MUESTRA",
+                             "METAS POR SEGMENTO: DOCENTES", "METAS POR SEGMENTO: ADMINISTRATIVOS", "VIABILIDAD DE LAS METAS"))
+  # Gráficos del motor de Procesamiento, cada uno junto a su tabla.
+  orden <- vapply(seq_len(length(doc)), function(i) {
+    t <- officer::slide_summary(officer::on_slide(doc, i))$text
+    paste(t[!is.na(t)], collapse = " ")
+  }, "")
+  # Los gráficos van juntos tras la tabla de población, de dos en dos.
+  expect_match(orden[4], "POBLACIÓN Y DOCENTES", fixed = TRUE)
+  expect_match(orden[4], "Docentes por condición y categoría", fixed = TRUE)
+  expect_match(orden[5], "ADMINISTRATIVOS POR TIPO DE CONTRATO", fixed = TRUE)
+  expect_match(orden[6], "ESCENARIOS DE MUESTRA", fixed = TRUE)
+  expect_match(orden[7], "METAS POR SEGMENTO: DOCENTES", fixed = TRUE)
   # Un barrido no habla de sorteo salvo para decir que no lo hay.
   con_sorteo <- textos$text[grepl("sorteo", textos$text, ignore.case = TRUE)]
   expect_true(all(grepl("no hay sorteo", con_sorteo, fixed = TRUE)))
