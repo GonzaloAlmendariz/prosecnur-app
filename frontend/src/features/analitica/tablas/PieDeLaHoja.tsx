@@ -36,7 +36,7 @@ export function PieDeLaHoja({ recorte, lineas }: {
         </div>
       ) : null}
       {lineas.length > 0 ? (
-        <ul className="tablas-avisos" aria-label="Avisos de la vista previa">
+        <ul className="tablas-avisos" aria-label="Avisos de la vista previa" data-qa-geometry-group="analitica/tablas-avisos" data-qa-geometry-contract="intrinsic">
           {lineas.map((l) => (
             <li key={l.clave} className="tablas-aviso" data-alerta={l.alerta ? "" : undefined}>
               {l.alerta ? <AlertTriangle size={13} aria-hidden="true" /> : null}

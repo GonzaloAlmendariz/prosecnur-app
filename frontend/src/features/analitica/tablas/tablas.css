@@ -660,9 +660,12 @@
   }
 }
 
-/* Superficie angosta: una columna que mide lo que su contenido. Deja de haber
-   scroll dentro de los contenedores: se desplaza la pestaña entera (su dueño es
-   el área de contenido de Analítica) y el archivo se queda pegado al pie. */
+/* Superficie angosta: una columna. La vista previa conserva su scroll con un
+   alto que cabe en la ventana, y los ajustes van justo debajo con el alto de
+   su contenido: la pestaña se desplaza (su dueño es el área de contenido de
+   Analítica) para llegar a ellos sin recorrer todas las tablas. Mismo alto
+   acotado que las listas largas de Cálculo de muestra. El archivo se queda
+   pegado al pie. */
 @container tablas-superficie (max-width: 959px) {
   .tablas-marco {
     flex: none;
@@ -678,17 +681,18 @@
     flex: none;
   }
 
-  .tablas-panel-cuerpo {
+  .tablas-panel--tabla {
+    block-size: clamp(300px, calc(100vh - 290px), 640px);
+  }
+
+  /* A lo angosto la pestaña también desplaza: al llegar al final de la vista
+     previa, la rueda sigue en la pestaña en vez de quedar atrapada. */
+  .tablas-panel--tabla .tablas-panel-cuerpo {
+    overscroll-behavior: auto;
+  }
+
+  .tablas-panel--ajustes .tablas-panel-cuerpo {
     overflow: visible;
-  }
-
-  /* La cabecera de columnas va con su tabla: arriba queda pegada la de la pestaña. */
-  .tablas-hoja-cabecera {
-    position: static;
-  }
-
-  .tablas-grupo {
-    scroll-margin-top: 140px;
   }
 
   .tablas-superficie .pulso-panel.tablas-archivo {

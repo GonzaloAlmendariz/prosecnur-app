@@ -2914,3 +2914,22 @@ label.analitica-control-card > input[type="checkbox"] ~ .analitica-control-icon 
 .pulso-analitica-universo-banda:empty {
   display: none;
 }
+
+/* Frecuencias y Cruces (cabecera compacta): la línea de casos va en la fila de
+   la cabecera, junto al título, y la fuente queda a la derecha. El título no
+   cede ancho; si la línea es larga, parte dentro de su lugar. */
+.pulso-analitica-panel-head[data-compacta] .pulso-tab-heading-copy {
+  flex: 0 0 auto;
+}
+
+.pulso-analitica-panel-head[data-compacta] .pulso-tab-heading-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-tab-heading-control > .pulso-analitica-universo-banda {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0;
+  border-bottom: 0;
+}

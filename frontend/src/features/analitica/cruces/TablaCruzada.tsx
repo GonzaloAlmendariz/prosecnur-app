@@ -82,7 +82,17 @@ export const TablaCruzada = memo(function TablaCruzada({ tabla, cruces, ponderad
         // Base 0: el vacío de la tabla en lugar de una grilla de celdas vacías.
         <p className="cruces-fijo cruces-vacio-tabla">{TABLA_SIN_RESPUESTAS}</p>
       ) : (
-        <div className="cruces-rejilla" role="table" aria-label={tabla.etiqueta} style={estilo}>
+        // C1: la rejilla es una tabla. Se declara una vez aquí, nunca por fila o celda;
+        // sus filas son maquetado de tabla, que la gramática deja fuera de la inferencia.
+        <div
+          className="cruces-rejilla"
+          role="table"
+          aria-label={tabla.etiqueta}
+          style={estilo}
+          data-qa-geometry-group="analitica/cruces-tabla"
+          data-qa-geometry-contract="intrinsic"
+          data-qa-geometry-exento="filas y celdas de una tabla con roles"
+        >
           <div className="cruces-cabecera" role="rowgroup">
             <div className="cruces-fila cruces-fila--variables" role="row">
               <span className="cruces-primera" role="columnheader"><span className="pulso-sr-only">Variable de cruce</span></span>

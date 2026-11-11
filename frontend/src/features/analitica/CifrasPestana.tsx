@@ -11,7 +11,8 @@ import "./cifrasPestana.css";
 // pestaña: la de chips con etiqueta, que es la más compacta. Las tarjetas KPI
 // quedan para los homepages.
 //
-// Cada cifra es «ETIQUETA valor». El valor puede ser un enlace (p. ej. las
+// Cada cifra es "Etiqueta valor", con la etiqueta en castellano normal (sin
+// versalitas, 11 nov 2026). El valor puede ser un enlace (p. ej. las
 // excluidas abren su panel) y puede llevar tono semántico cuando la cifra es
 // un estado, no un conteo: `peligro` para lo que bloquea, `alerta` para lo
 // pendiente, `acento` para lo activo.

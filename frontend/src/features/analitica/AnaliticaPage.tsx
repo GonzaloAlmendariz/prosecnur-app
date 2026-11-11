@@ -45,6 +45,7 @@ import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
 import { PanelVariablesExcluidas } from "./PanelVariablesExcluidas";
 import { PanelUniverso } from "./PanelUniverso";
 import { useAnaliticaStore } from "./store";
+import { cabeceraCompacta } from "./tablas/cabeceraCompacta";
 import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
@@ -122,6 +123,9 @@ export default function AnaliticaPage() {
   const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? "datos";
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
   const ActiveIcon = activeMeta.icon;
+  // Frecuencias y Cruces: cabecera compacta, para que el alto sea de la vista previa.
+  const compacta = cabeceraCompacta(activeMeta.key);
+  const fuente = <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />;
 
   // Una dirección que pide una pestaña que este estudio no ofrece (p. ej.
   // Multibase con una sola base) no aterriza muda en Datos: se corrige la URL
@@ -259,7 +263,7 @@ export default function AnaliticaPage() {
                   interno— y cada pane
                   deja su docbar como banda de stats (su -icon/-copy se ocultan
                   vía CSS). El rail sigue siendo el 3er nivel de navegación. */}
-              <div className="pulso-analitica-panel-head">
+              <div className="pulso-analitica-panel-head" data-compacta={compacta ? "" : undefined}>
                 <TabHeading
                   eyebrow="Analítica"
                   titulo={activeMeta.label}
@@ -267,12 +271,23 @@ export default function AnaliticaPage() {
                   detalle={activeMeta.desc}
                   pestanaN={reportes.findIndex((r) => r.key === activeMeta.key) + 1 || undefined}
                   pestanaDe={reportes.length}
-                  control={<AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />}
+                  variante={compacta ? "compacta" : "estandar"}
+                  control={compacta ? (
+                    <>
+                      <div className="pulso-analitica-universo-banda">
+                        <UniversoAnalisis />
+                      </div>
+                      {fuente}
+                    </>
+                  ) : fuente}
                 />
-                {/* Cuántos casos cuentan si Validación declara «Qué caso cuenta». */}
-                <div className="pulso-analitica-universo-banda">
-                  <UniversoAnalisis />
-                </div>
+                {/* Cuántos casos cuentan si Validación declara "Qué caso cuenta". En las
+                    pestañas con vista previa va en la fila de la cabecera (arriba). */}
+                {compacta ? null : (
+                  <div className="pulso-analitica-universo-banda">
+                    <UniversoAnalisis />
+                  </div>
+                )}
               </div>
 
               {independentSiblings ? <ProcessingReleasePanel activeBase={state?.active_base} /> : null}

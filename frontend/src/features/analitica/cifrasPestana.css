@@ -31,12 +31,11 @@
   white-space: nowrap;
 }
 
+/* El rótulo en castellano normal, como lo escribe la pestaña: sin versalitas. */
 .analitica-cifra-etiqueta {
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.04em;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1;
-  text-transform: uppercase;
 }
 
 .analitica-cifra-valor {

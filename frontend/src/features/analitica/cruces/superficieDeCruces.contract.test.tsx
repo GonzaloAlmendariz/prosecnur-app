@@ -237,8 +237,8 @@ describe("la hoja", () => {
     tablas: respuestaSinPesos().tablas, ponderado, cruce, elegida: null,
   }));
 
-  it("mide la tabla más ancha con lo que se ve (el grupo C1 lo declara la vista que la contiene)", () => {
-    expect(hoja("M5_district")).not.toContain("data-qa-geometry-group");
+  it("mide la tabla más ancha con lo que se ve; la hoja declara sus secciones y tablas (C1), la vista que la contiene, la región", () => {
+    expect(hoja("M5_district")).toMatch(/^<div class="cruces-hoja" style="[^"]*" data-qa-geometry-group="analitica\/cruces-hoja" data-qa-geometry-contract="intrinsic">/);
     expect(hoja("M5_district")).toContain("--cruces-max:7");
     expect(hoja("E2_sex")).toContain("--cruces-max:4");
     expect(hoja(TODAS_LAS_VARIABLES)).toContain("--cruces-max:10");

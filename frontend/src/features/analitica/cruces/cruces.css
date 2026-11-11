@@ -463,18 +463,10 @@
   }
 }
 
-/* Superficie angosta: la pestaña entera se desplaza a lo alto (como Frecuencias)
-   y la vista es la dueña del desplazamiento a lo ancho. */
-@container tablas-superficie (max-width: 959px) {
-  .tablas-superficie[data-tablas="cruces"] .cruces-vista {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-  }
-
-  .cruces-cabecera {
-    position: static;
-  }
-}
+/* Superficie angosta: sin reglas propias. La vista previa conserva su alto
+   acotado (tablas.css) y su cuerpo sigue siendo el único dueño del scroll en
+   los dos ejes, con la cabecera de cada tabla pegada arriba, igual que a lo
+   ancho. */
 
 /* Ventana baja (1366x768 y menores): el alto es de las filas. Se recorta el
    aire de la sección, del título y de la cabecera; nada se quita. */

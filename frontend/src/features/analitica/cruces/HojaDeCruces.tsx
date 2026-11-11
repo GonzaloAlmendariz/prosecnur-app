@@ -38,6 +38,9 @@ export function HojaDeCruces({ tablas, ponderado, cruce, elegida, aparte, releye
     <div
       className="cruces-hoja"
       style={estilo}
+      // C1: secciones, tablas y leyenda, cada una con el alto de su contenido.
+      data-qa-geometry-group="analitica/cruces-hoja"
+      data-qa-geometry-contract="intrinsic"
       aria-busy={releyendo || undefined}
       data-releyendo={releyendo ? "" : undefined}
     >

@@ -41,7 +41,7 @@ export function CategoriasDeCruce({ variable, etiqueta, excluidas, etiquetas, on
   if (valores.datos.length === 0) return <p className="tablas-nota">Sin categorías en la base.</p>;
   return (
     <>
-    <div className="cruces-categorias" role="group" aria-label={`Categorías excluidas de ${etiqueta}`}>
+    <div className="cruces-categorias" data-qa-geometry-group="analitica/cruces-categorias" data-qa-geometry-contract="intrinsic" role="group" aria-label={`Categorías excluidas de ${etiqueta}`}>
       {valores.datos.map((v) => {
         // Se lee por su rótulo, emparejado por código; el código va en el title.
         const rotulo = v.label?.trim() || etiquetas?.get(v.value) || v.value;

@@ -33,6 +33,11 @@ export function HojaDeFrecuencias({ tablas, elegida, ponderado, aparte, releyend
       className="tablas-hoja"
       role="table"
       aria-label="Tablas de frecuencias del archivo"
+      // C1: la hoja es una tabla. Se declara una vez aquí, nunca por fila o celda;
+      // sus filas son maquetado de tabla, que la gramática deja fuera de la inferencia.
+      data-qa-geometry-group="analitica/frecuencias-hoja"
+      data-qa-geometry-contract="intrinsic"
+      data-qa-geometry-exento="filas y celdas de una tabla con roles"
       aria-busy={releyendo || undefined}
       data-releyendo={releyendo ? "" : undefined}
     >

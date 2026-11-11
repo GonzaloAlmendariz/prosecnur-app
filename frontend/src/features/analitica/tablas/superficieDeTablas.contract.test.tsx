@@ -293,7 +293,7 @@ describe("hoja de frecuencias", () => {
 
   it("es una tabla para quien la lee con lector de pantalla: tabla, grupos por variable, filas y celdas", () => {
     const html = hoja(tablas());
-    expect(html).toMatch(/^<div class="tablas-hoja" role="table" aria-label="Tablas de frecuencias del archivo">/);
+    expect(html).toMatch(/^<div class="tablas-hoja" role="table" aria-label="Tablas de frecuencias del archivo" data-qa-geometry-group="analitica\/frecuencias-hoja" data-qa-geometry-contract="intrinsic" data-qa-geometry-exento="[^"]+">/);
     expect(html).toContain('role="rowgroup" aria-label="¿Cuál describe mejor su situación laboral actual?" data-variable="M4_employment"');
     const fila = html.slice(html.indexOf('data-categoria="1"'), html.indexOf('data-categoria="2"'));
     expect(fila.match(/role="rowheader"/g)).toHaveLength(1);
