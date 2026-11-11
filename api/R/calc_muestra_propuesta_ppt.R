@@ -276,7 +276,9 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   if (texto_largo) {
     ft <- flextable::align(ft, j = 2:ncol(df), align = "left", part = "all")
   }
-  doc <- officer::ph_with(doc, ft, location = officer::ph_location(left = T$left, top = T$top, width = T$width, height = 1))
+  # La tabla va centrada en el alto que queda entre el título y el pie ("tablas centradas al medio", 2026-11-11).
+  top_tabla <- T$top + max(0, (disponible - sum(altos)) / 2)
+  doc <- officer::ph_with(doc, ft, location = officer::ph_location(left = T$left, top = top_tabla, width = T$width, height = 1))
   # La nota es una indicación al pie, abajo a la izquierda, como la base de los gráficos (revisión 2026-11-11:
   # "debería ser solo una indicación estilo base en la esquina inferior izquierda"); antes era un recuadro que
   # en PowerPoint se montaba sobre la tabla.
