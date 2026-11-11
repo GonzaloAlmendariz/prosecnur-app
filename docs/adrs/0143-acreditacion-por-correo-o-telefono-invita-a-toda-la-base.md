@@ -50,10 +50,15 @@ base, sin sorteo. El resultado declara:
   de marzo 2026 (60 % estudiantes y docentes, 80 % administrativos, 50 %
   egresados), igual que antes.
 - **Segmentos.** Si el marco trae estratos, la meta se reparte en proporción a
-  su tamaño con un mínimo por segmento (`n_minimo_estrato`, 30 por defecto).
-  Lo que el mínimo agrega se descuenta de los segmentos grandes (reparto de
-  `.cm_general_reparto`, mayor resto); el total no cambia. Cada segmento se
-  invita entero.
+  su tamaño (mayor resto, suma exacta) y un segmento que queda por debajo del
+  mínimo (`n_minimo_estrato`, 30 por defecto) sube a ese mínimo, o a todas sus
+  personas si son menos. Lo que agrega el mínimo se suma a la meta del
+  público; no se descuenta de los demás segmentos (decisión de Gonzalo del
+  2026-11-11, "Sumarlo encima": DCI pregrado 3,000 pasa a 3,018). El resultado
+  publica la meta declarada (`n_meta_base`) y lo agregado
+  (`n_agregado_minimo`). Cada segmento se invita entero. Un actor puede
+  declarar sus segmentos como cuotas de control que no se reportan
+  (`uso_segmentos = "control"`, en las propuestas).
 - **Viabilidad.** Con la tasa de respuesta esperada, el motor dice cuántas
   completas se esperan en el público y en cada segmento, y avisa en cuáles la
   meta pide más respuesta de la esperada. Ejemplo: 30 autoridades de 37 piden

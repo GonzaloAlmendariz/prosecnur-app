@@ -222,6 +222,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0140](0140-cobertura-por-categorias-frente-al-universo.md) | Aceptado | 2026-11-09 | Cobertura por categorías de una variable frente al universo |
 | [0141](0141-ranking-de-rotulos-cortos.md) | Aceptado | 2026-11-09 | Ranking de rótulos largos y rótulos cortos del mazo de Gráficos |
 | [0142](0142-mapa-de-pestanas-de-procesamiento.md) | Aceptado | 2026-11-10 | Mapa de pestañas de Procesamiento: de 27 a 21 |
-| [0143](0143-acreditacion-por-correo-o-telefono-invita-a-toda-la-base.md) | Aceptado | 2026-11-11 | En acreditación, por correo, teléfono o mixto se invita a toda la base (intención censal) en los cuatro públicos; la meta del usuario manda, se reparte por segmento con mínimo descontado de los grandes y se avisa qué segmento no alcanza con la respuesta esperada. Reemplaza al 0091 en esos canales; aulas sigue en el 0091 |
+| [0143](0143-acreditacion-por-correo-o-telefono-invita-a-toda-la-base.md) | Aceptado | 2026-11-11 | En acreditación, por correo, teléfono o mixto se invita a toda la base (intención censal) en los cuatro públicos; la meta del usuario manda, se reparte por segmento con un mínimo que se suma encima y se avisa qué segmento no alcanza con la respuesta esperada. Reemplaza al 0091 en esos canales; aulas sigue en el 0091 |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

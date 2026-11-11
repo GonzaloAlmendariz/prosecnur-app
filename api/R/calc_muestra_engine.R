@@ -1641,12 +1641,18 @@ calc_muestra_calcular_componente <- function(comp) {
   # Lo que vuelve abordando a todos es N · tasa (L18, 2026-09-27): con N = 2000,
   # cobertura .8 y respuesta .7 la meta pide 1600 y se esperan 1400. La tasa
   # no movía nada y el aviso llamaba «esperada» a la cobertura pedida.
-  esperadas <- N * tasa_respuesta_esperada
-  no_alcanza <- esperadas < n_objetivo - 1e-9
-  # ADR 0143: con segmentos, la meta se reparte con mínimo y se mide cada uno.
+  # ADR 0143: con segmentos, la meta se reparte en proporción y el mínimo se suma
+  # encima; la meta del público pasa a ser la suma de sus segmentos.
   estratos <- comp$marco$estratos %||% list()
   piso <- as.integer(par$n_minimo_estrato %||% 0L)
   seg <- if (length(estratos)) .cm_barrido_por_segmento(n_objetivo, estratos, piso, tasa_respuesta_esperada)
+  n_meta_base <- n_objetivo
+  if (!is.null(seg)) {
+    n_objetivo <- seg$n_total
+    if (N > 0L) cobertura_obj <- n_objetivo / N
+  }
+  esperadas <- N * tasa_respuesta_esperada
+  no_alcanza <- esperadas < n_objetivo - 1e-9
 
   out <- list(
     n_teorico                = NA_integer_,
@@ -1671,7 +1677,11 @@ calc_muestra_calcular_componente <- function(comp) {
               100 * min(tasa_respuesta_esperada, cobertura_obj))), collapse = " ")
   )
   if (no_alcanza) out$n_completas_esperadas <- esperadas
-  if (!is.null(seg)) out$distribucion_estratos <- seg$distribucion
+  if (!is.null(seg)) {
+    out$distribucion_estratos <- seg$distribucion
+    out$n_meta_base <- as.integer(n_meta_base)
+    out$n_agregado_minimo <- seg$agregado_minimo
+  }
   out
 }
 

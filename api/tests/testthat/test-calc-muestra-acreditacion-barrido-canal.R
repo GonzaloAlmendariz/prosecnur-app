@@ -52,7 +52,7 @@ test_that("la meta del usuario fija las encuestas de la intención censal", {
   expect_identical(as.integer(r1$n_objetivo), 100L)
 })
 
-test_that("con segmentos, el mínimo se descuenta de los grandes y el total no cambia", {
+test_that("con segmentos, el mínimo se suma encima y la meta del público es la suma de sus segmentos", {
   est <- .barrido_estratos(`Contratado a tiempo completo` = 114L, `Contratado a tiempo parcial` = 1751L,
                            `Ordinario auxiliar` = 269L, `Ordinario asociado` = 255L, `Ordinario principal` = 276L)
   r <- calc_muestra_calcular_componente(.barrido_comp(
@@ -61,10 +61,16 @@ test_that("con segmentos, el mínimo se descuenta de los grandes y el total no c
   d <- r$distribucion_estratos
   n <- vapply(d, function(x) as.integer(x$n), 1L)
   names(n) <- vapply(d, `[[`, "", "estrato")
-  expect_identical(sum(n), 600L)
-  # Proporcional daría 26 a tiempo completo: sube a 30.
+  # Proporcional daría 26 a tiempo completo: sube a 30 sin descontar a nadie (decisión 2026-11-11).
   expect_identical(n[["Contratado a tiempo completo"]], 30L)
-  expect_true(all(n >= 30L))
+  prop <- vapply(d, function(x) as.integer(x$n_proporcional), 1L)
+  expect_identical(sum(prop), 600L)
+  expect_identical(unname(n[-1]), prop[-1])
+  expect_identical(sum(n), 604L)
+  expect_identical(as.integer(r$n_objetivo), 604L)
+  expect_identical(as.integer(r$n_meta_base), 600L)
+  expect_identical(as.integer(r$n_agregado_minimo), 4L)
+  expect_match(r$advertencia, "agrega 4 encuestas", fixed = TRUE)
   # Cada segmento se invita entero.
   expect_identical(vapply(d, function(x) as.integer(x$n_campo), 1L), vapply(d, function(x) as.integer(x$N), 1L))
 })
@@ -77,6 +83,7 @@ test_that("se avisa el segmento cuya meta pide más respuesta de la esperada", {
   d <- r$distribucion_estratos
   aut <- d[[which(vapply(d, `[[`, "", "estrato") == "Autoridades (direcciones)")]]
   expect_identical(as.integer(aut$n), 30L)
+  expect_identical(as.integer(r$n_objetivo), 915L)
   expect_false(aut$alcanza)
   expect_equal(aut$completas_esperadas, 37 * 0.508)
   nom <- d[[which(vapply(d, `[[`, "", "estrato") == "Nombrado")]]
@@ -85,13 +92,19 @@ test_that("se avisa el segmento cuya meta pide más respuesta de la esperada", {
   expect_false(grepl("Nombrado", r$advertencia, fixed = TRUE))
 })
 
-test_that("si los mínimos no caben en la meta, no se aplican y se avisa", {
+test_that("los mínimos se suman aunque superen la meta declarada, y se dice cuánto agregan", {
   est <- .barrido_estratos(A = 200L, B = 200L, C = 200L)
   r <- calc_muestra_calcular_componente(.barrido_comp(
     "docentes", "online_email", 600, meta = list(valor = 60, origen = "usuario"), estratos = est,
     parametros = list(n_minimo_estrato = 30)))
-  expect_identical(sum(vapply(r$distribucion_estratos, function(x) as.integer(x$n), 1L)), 60L)
-  expect_match(r$advertencia, "mínimo", fixed = TRUE)
+  expect_identical(vapply(r$distribucion_estratos, function(x) as.integer(x$n), 1L), c(30L, 30L, 30L))
+  expect_identical(as.integer(r$n_objetivo), 90L)
+  expect_match(r$advertencia, "agrega 30 encuestas", fixed = TRUE)
+  # Un segmento más chico que el mínimo se invita entero.
+  r2 <- calc_muestra_calcular_componente(.barrido_comp(
+    "docentes", "online_email", 1020, meta = list(valor = 100, origen = "usuario"),
+    estratos = .barrido_estratos(Grande = 1000L, Chico = 20L), parametros = list(n_minimo_estrato = 30)))
+  expect_identical(vapply(r2$distribucion_estratos, function(x) as.integer(x$n), 1L), c(98L, 20L))
 })
 
 test_that("si el público entero no alcanza, el aviso no repite cada segmento proporcional", {

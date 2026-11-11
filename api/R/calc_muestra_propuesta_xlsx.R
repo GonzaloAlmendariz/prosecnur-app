@@ -65,9 +65,14 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
 
   # --- Resumen: por público, cada escenario con meta, respuesta necesaria y margen de referencia.
   titulo <- as.character(propuesta$titulo %||% "Diseño muestral")[1]
-  .cmx_hoja(wb, "Resumen", paste0(titulo, ": escenarios de muestra"),
-            "Margen de referencia: el de una muestra aleatoria simple del mismo tamaño, 95 % de confianza y p = 0.5; es una referencia de precisión, no un margen de error del diseño.")
-  res <- data.frame(`Público` = c(d$publicos, "Total"), `Segmentos que se reportan` = c(d$segmentacion, ""),
+  .cmx_hoja(wb, "Resumen", paste0(titulo, ": escenarios de muestra"), "")
+  # Las notas van bajo la tabla, en celdas combinadas con ajuste: una nota larga en la fila 2 corría
+  # a la derecha y la impresión a una página de ancho achicaba la hoja entera.
+  notas_res <- c(
+    if (length(t$agregados)) sprintf("Las metas incluyen lo que agrega el mínimo de %d por segmento: %s.",
+                                     as.integer(propuesta$minimo_segmento %||% 30L), paste(t$agregados, collapse = "; ")),
+    "Margen de referencia: el de una muestra aleatoria simple del mismo tamaño, 95 % de confianza y p = 0.5; es una referencia de precisión, no un margen de error del diseño.")
+  res <- data.frame(`Público` = c(d$publicos, "Total"), `Cómo se reparte la meta` = c(d$segmentacion, ""),
                     `Personas en la base` = c(d$N, sum(d$N)), check.names = FALSE)
   for (k in esc) {
     m <- d$metas[[k]]
@@ -92,7 +97,15 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
   names(res)[names(res) == "margen de referencia"] <- "Margen de referencia"
   col_n <- c(3L, 4L + 3L * (seq_along(esc) - 1L))
   col_p <- c(5L + 3L * (seq_along(esc) - 1L), 6L + 3L * (seq_along(esc) - 1L), nc)
-  .cmx_tabla(wb, "Resumen", res, 5, enteros = col_n, pcts = col_p, total = TRUE)
+  fin_res <- .cmx_tabla(wb, "Resumen", res, 5, enteros = col_n, pcts = col_p, total = TRUE)
+  for (j in seq_along(notas_res)) {
+    fila <- fin_res + 1L + j
+    openxlsx::writeData(wb, "Resumen", notas_res[j], startRow = fila, startCol = 1)
+    openxlsx::mergeCells(wb, "Resumen", cols = seq_len(nc), rows = fila)
+    openxlsx::addStyle(wb, "Resumen", openxlsx::createStyle(fontSize = 10, fontColour = .std_color("texto_suave"), wrapText = TRUE, valign = "top"),
+                       rows = fila, cols = 1)
+    openxlsx::setRowHeights(wb, "Resumen", rows = fila, heights = 28)
+  }
   openxlsx::setColWidths(wb, "Resumen", cols = 1:nc, widths = c(26, 32, 12, rep(13, nc - 4L), 17))
 
   # --- Una hoja por público con segmentos.
@@ -101,18 +114,24 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
     s <- d$segmentos[[p]]
     hoja <- substr(gsub("[\\[\\]\\*\\?/\\\\:]", "", p), 1, 31)
     hojas_pub <- c(hojas_pub, hoja)
-    .cmx_hoja(wb, hoja, paste0("Metas por segmento: ", p),
-              sprintf("Reparto proporcional al tamaño de cada segmento, con un mínimo de %d encuestas; lo que agrega el mínimo se descuenta de los segmentos grandes.",
-                      as.integer(propuesta$minimo_segmento %||% 30L)))
+    control <- identical(d$usos[match(p, d$publicos)], "control")
+    al_min <- attr(t$segmentos[[p]], "al_minimo")
+    .cmx_hoja(wb, hoja, paste0(if (control) "Metas por cuota de control: " else "Metas por segmento: ", p),
+              sprintf("%sReparto proporcional al tamaño de cada %s%s.",
+                      if (control) "Cuotas para controlar la composición de la muestra; no se reportan resultados por cuota. " else "",
+                      if (control) "cuota" else "segmento",
+                      if (length(al_min)) sprintf("; suben al mínimo de %d (o a todas sus personas): %s",
+                                                  as.integer(propuesta$minimo_segmento %||% 30L), paste(al_min, collapse = ", ")) else ""))
     tab <- data.frame(Segmento = c(s$segmento, "Total"), `Personas en la base` = c(s$N, sum(s$N)), check.names = FALSE)
     for (k in esc) {
       tab[[paste0("Meta ", k)]] <- c(s[[k]], sum(s[[k]]))
       tab[[paste0("Respuesta necesaria ", k)]] <- c(s[[k]] / s$N, sum(s[[k]]) / sum(s$N))
-      tab[[paste0("Margen de referencia ", k)]] <- c(.cmp_margen_ref(s[[k]], s$N), NA_real_)
+      # Las cuotas de control no se reportan: no llevan margen de referencia.
+      if (!control) tab[[paste0("Margen de referencia ", k)]] <- c(.cmp_margen_ref(s[[k]], s$N), NA_real_)
     }
-    n_esc <- length(esc)
-    .cmx_tabla(wb, hoja, tab, 4, enteros = c(2L, 3L + 3L * (seq_len(n_esc) - 1L)),
-               pcts = c(4L + 3L * (seq_len(n_esc) - 1L), 5L + 3L * (seq_len(n_esc) - 1L)), total = TRUE)
+    n_esc <- length(esc); paso <- if (control) 2L else 3L
+    .cmx_tabla(wb, hoja, tab, 4, enteros = c(2L, 3L + paso * (seq_len(n_esc) - 1L)),
+               pcts = c(4L + paso * (seq_len(n_esc) - 1L), if (!control) 5L + paso * (seq_len(n_esc) - 1L)), total = TRUE)
     openxlsx::setColWidths(wb, hoja, cols = seq_len(ncol(tab)), widths = c(36, rep(14, ncol(tab) - 1L)))
   }
 
