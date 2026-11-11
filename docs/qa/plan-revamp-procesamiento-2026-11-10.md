@@ -526,7 +526,41 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | 5 | La pestaña Matrices no se borra sin su confirmación | Borrar una página exige doble confirmación y un ADR aceptado |
 | 6 | En Carga no se añade el selector de base de la banda, aunque el prototipo lo dibuja | El código tiene una regla escrita: todas las secciones llevan selector de base menos Carga, que es donde se dan de alta |
 
-**Tablero de implementación.**
+**Tablero de implementación.** Primero el resumen por sección, en el orden del módulo; debajo, el detalle de cada etapa con sus commits. Estados: Hecho, En curso, Falta, Espera decisión (de Gonzalo) y Bloqueado (por algo ajeno).
+
+**Resumen por sección** (al 2026-11-11)
+
+| Sección | Qué | Estado | Qué falta |
+|---|---|---|---|
+| Carga | Una sola página para estudios de una base y de varias | Hecho | |
+| Carga | Red de pruebas por pestaña y textos de progreso | Hecho | |
+| Carga | Cambio a las seis pestañas nuevas (Bases, Revisión, Variables, Equivalencias, Formulario, Respuestas) | Espera decisión | Aceptar el ADR 0142 |
+| Carga | Bases, que absorbe Plan y Fuentes | Falta | |
+| Carga | Panel para actualizar una fuente | Falta | Necesita motor: vista previa de qué cambia |
+| Carga | Revisión | Falta | |
+| Carga | Variables | Falta | Necesita motor: roles de la base y lista de preguntas por base |
+| Carga | Formulario y Respuestas | Falta | |
+| Validación | Explorar, Reglas, Hallazgos y Cierre | Bloqueado | Otra sesión tiene archivos de Validación sin commitear |
+| Codificación | Preguntas | Hecho | |
+| Codificación | Codificar, vista de tabla | Hecho | |
+| Codificación | Codificar, vista de tarjetas | Hecho | Limpieza menor (hoja de estilos larga, diálogo "Cambiar texto") |
+| Codificación | Aplicar | Hecho | |
+| Analítica | Ponderación | Hecho | |
+| Analítica | Frecuencias | En curso | Verificación final y commit |
+| Analítica | Cruces | Falta | Necesita motor: vista previa de cruces |
+| Analítica | Las otras diez pestañas | Falta | |
+| Todo el módulo | Piezas compartidas, cabecera y selector de base | Hecho | |
+| Todo el módulo | Estado del estudio | Hecho | |
+| Todo el módulo | Estados de carga, trabajo en curso y error | Falta | |
+| Motor | Nombres "Base codificada" y "Formulario codificado" | Hecho | |
+| Motor | Avisos de ponderación | Hecho | |
+| Motor | Vista previa de frecuencias | Hecho | Ajuste de la base sin ponderar, en verificación |
+| Motor | Vista previa de cruces | Falta | |
+| Motor | Lo que pide el rediseño de Carga (nueve ítems) | Falta | |
+| Motor | Resto del plan original (M1 a M8 y M10) | Falta | M10 espera decisión |
+
+**Detalle por etapa**
+
 
 | Etapa | Alcance | Estado |
 |---|---|---|
