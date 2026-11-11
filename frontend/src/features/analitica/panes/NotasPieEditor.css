@@ -11,7 +11,7 @@
 }
 
 /* El plegable genérico recorta con overflow: hidden; aquí el selector de
-   «Añadir…» abre un desplegable absoluto que debe poder salir de la caja (C4).
+   "Añadir" abre un desplegable absoluto que debe poder salir de la caja (C4).
    Las esquinas las redondean el encabezado y el cuerpo. */
 .analitica-collapsible.analitica-notas-pie {
   overflow: visible;
@@ -175,4 +175,18 @@
   .analitica-notas-pie-row-var {
     grid-column: 1 / -1;
   }
+}
+
+/* Variante abierta (Ajustes de Frecuencias): sin plegable ni caja, solo el
+   interior. Los rótulos van en castellano normal, un grado por debajo del
+   título de la sección que lo contiene. */
+.analitica-notas-pie-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+}
+
+.analitica-notas-pie--abierta .analitica-notas-pie-fields {
+  grid-template-columns: minmax(0, 1fr);
 }

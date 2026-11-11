@@ -203,3 +203,22 @@ describe("coerción de listas_ordinales y orden de tablas", () => {
     expect(out.cruces.orden).toBe("original");
   });
 });
+
+describe("señal de error de guardado", () => {
+  beforeEach(() => useAnaliticaStore.setState({ errorGuardado: null, reintentosGuardado: 0 }));
+
+  test("se deja con su causa y reintentar la limpia y cuenta el pedido", () => {
+    useAnaliticaStore.getState().setErrorGuardado("Sin conexión con el backend.");
+    expect(useAnaliticaStore.getState().errorGuardado).toBe("Sin conexión con el backend.");
+    useAnaliticaStore.getState().reintentarGuardado();
+    expect(useAnaliticaStore.getState().errorGuardado).toBeNull();
+    expect(useAnaliticaStore.getState().reintentosGuardado).toBe(1);
+  });
+
+  test("rehidratar limpia el error: al cambiar de base no queda nada por guardar", () => {
+    useAnaliticaStore.getState().setErrorGuardado("Sin conexión con el backend.");
+    useAnaliticaStore.getState().hydrate(useAnaliticaStore.getState().config);
+    expect(useAnaliticaStore.getState().errorGuardado).toBeNull();
+    expect(useAnaliticaStore.getState().dirty).toBe(false);
+  });
+});

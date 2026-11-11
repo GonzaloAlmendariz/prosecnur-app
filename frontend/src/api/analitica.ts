@@ -307,6 +307,260 @@ export async function apiAnaliticaFrecuencias() {
   );
 }
 
+// ---------- Vista previa de Frecuencias ----------
+// POST /api/analitica/frecuencias/preview (api/R/analitica_frecuencias_preview.R):
+// las tablas que el archivo escribiría para la base activa con la config
+// GUARDADA, calculadas con las mismas funciones que escriben el archivo. El
+// frontend las pinta tal cual: no recalcula porcentajes, totales ni filas.
+
+export type FrecuenciasPreviewEntrada = {
+  /** Nombres de variable; sin ellos, todas las del archivo en su orden. */
+  variables?: string[];
+  /** Tope de tablas, de 1 a 500 (el servicio usa 50 por defecto). */
+  limite?: number;
+};
+
+export type FrecuenciasPreviewFila = {
+  /** Código del instrumento; `null` cuando el motor no lo pudo recuperar sin ambigüedad. */
+  codigo: string | null;
+  etiqueta: string;
+  /** Suma de pesos de la fila; sin ponderación es un conteo. */
+  n: number;
+  /** Proporción de 0 a 1 sobre el total de la tabla, sin redondear. */
+  pct: number | null;
+  especial: boolean;
+};
+
+export type FrecuenciasPreviewDenominador = "respondieron" | "marcaron_alguna_opcion" | "casos_validos";
+
+export type FrecuenciasPreviewTabla = {
+  variable: string;
+  variable_origen: string | null;
+  etiqueta: string;
+  tipo: "unica" | "multiple" | "numerica";
+  seccion: { nombre: string; rotulo: string | null };
+  orden: string | null;
+  lista_ordinal: boolean;
+  sin_datos: boolean;
+  filas: FrecuenciasPreviewFila[];
+  total: { n: number | null; pct: number | null };
+  /**
+   * La base, siempre en casos SIN PONDERAR (contrato v2, regla I1): `n` los que
+   * forman el denominador, `de` los casos del universo con peso mayor que cero.
+   * Lo ponderado son los porcentajes y los estadísticos.
+   */
+  base: { n: number | null; de: number | null; denominador: FrecuenciasPreviewDenominador | null };
+  resumen: { estadistico: string; valor: number | null }[];
+  notas: string[];
+};
+
+export type FrecuenciasPreviewSinTabla = {
+  variable: string;
+  motivo: "excluida" | "fuera_del_archivo" | "desconocida";
+};
+
+export type FrecuenciasPreviewAviso = { codigo: string; mensaje: string };
+
+export type FrecuenciasPreview = {
+  ok: true;
+  base: { nombre: string; bases_del_archivo: string[]; n_bases: number; independientes: boolean };
+  /** Valor interno de la fuente ("originales", "adaptados"): se rotula, no se muestra. */
+  fuente: string | null;
+  ponderado: boolean;
+  ponderacion: {
+    configurada: boolean;
+    estado: string | null;
+    modo: string | null;
+    peso_columna: string | null;
+    motivo: string | null;
+    n_efectivo: number | null;
+    deff: number | null;
+    /** "normalizada", "expansion" o `null` sin ponderación aplicada. */
+    escala: "normalizada" | "expansion" | null;
+  };
+  /** `con_peso`: filas con peso mayor que cero (igual a `base.de`). */
+  casos: { cuentan: number | null; suma_pesos: number | null; con_peso: number | null };
+  opciones: { orden: string | null; mostrar_todo: boolean; incluir_secciones: boolean; codigos_especiales: string[] };
+  limite: number;
+  total_variables: number;
+  devueltas: number;
+  recortado: boolean;
+  tablas: FrecuenciasPreviewTabla[];
+  sin_tabla: FrecuenciasPreviewSinTabla[];
+  avisos: FrecuenciasPreviewAviso[];
+};
+
+/** La respuesta de la vista previa no tiene la forma del contrato. */
+export class FrecuenciasPreviewInvalida extends Error {
+  constructor(campo: string) {
+    super(`La vista previa de Frecuencias llegó incompleta: falta o no se entiende "${campo}".`);
+    this.name = "FrecuenciasPreviewInvalida";
+  }
+}
+
+/**
+ * Normalizador defensivo de la vista previa (patrón `normalizeGraficosShareInspect`).
+ * R puede mandar un escalar como arreglo de un elemento, `null` donde va una
+ * lista o una lista vacía como objeto `{}`. Lo opcional cae a su vacío; lo que
+ * sostiene una cifra (las tablas, sus filas, el total de variables) falla con
+ * un error que nombra el campo en vez de pintar un cero.
+ */
+export function normalizarFrecuenciasPreview(raw: unknown): FrecuenciasPreview {
+  const desenvolver = (v: unknown): unknown => (Array.isArray(v) && v.length === 1 ? v[0] : v);
+  const esObjeto = (v: unknown): v is Record<string, unknown> =>
+    typeof v === "object" && v !== null && !Array.isArray(v);
+  const objeto = (v: unknown): Record<string, unknown> => {
+    const u = desenvolver(v);
+    return esObjeto(u) ? u : {};
+  };
+  const lista = (v: unknown): unknown[] => {
+    if (v == null) return [];
+    if (Array.isArray(v)) return v;
+    // `{}` es la lista vacía que serializa R.
+    if (esObjeto(v) && Object.keys(v).length === 0) return [];
+    return [v];
+  };
+  const texto = (v: unknown): string | null => {
+    const u = desenvolver(v);
+    if (typeof u === "string") return u === "NA" ? null : u;
+    if (typeof u === "number" && Number.isFinite(u)) return String(u);
+    return null;
+  };
+  const numero = (v: unknown): number | null => {
+    const u = desenvolver(v);
+    if (typeof u === "number") return Number.isFinite(u) ? u : null;
+    if (typeof u === "string" && u.trim() !== "" && u !== "NA") {
+      const n = Number(u);
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  };
+  const logico = (v: unknown): boolean => desenvolver(v) === true;
+  const exigido = <T,>(valor: T | null, campo: string): T => {
+    if (valor === null) throw new FrecuenciasPreviewInvalida(campo);
+    return valor;
+  };
+
+  const r = objeto(raw);
+  if (!esObjeto(desenvolver(raw))) throw new FrecuenciasPreviewInvalida("respuesta");
+  // Los porcentajes se leen como proporción de 0 a 1: otra escala no se adivina.
+  if (texto(r.escala_pct) !== "proporcion") throw new FrecuenciasPreviewInvalida("escala_pct");
+  const base = objeto(r.base);
+  const pond = objeto(r.ponderacion);
+  const casos = objeto(r.casos);
+  const opciones = objeto(r.opciones);
+  const tipos = ["unica", "multiple", "numerica"] as const;
+  const denominadores = ["respondieron", "marcaron_alguna_opcion", "casos_validos"] as const;
+  const motivos = ["excluida", "fuera_del_archivo", "desconocida"] as const;
+  const deLista = <T extends string>(valores: readonly T[], v: string | null): T | null =>
+    v !== null && (valores as readonly string[]).includes(v) ? (v as T) : null;
+
+  const tablas = lista(r.tablas).map((item, i): FrecuenciasPreviewTabla => {
+    const t = objeto(item);
+    const campo = (nombre: string) => `tablas[${i}].${nombre}`;
+    const variable = exigido(texto(t.variable), campo("variable"));
+    const tipo = exigido(deLista(tipos, texto(t.tipo)), campo("tipo"));
+    const seccion = objeto(t.seccion);
+    const total = objeto(t.total);
+    const baseTabla = objeto(t.base);
+    return {
+      variable,
+      variable_origen: texto(t.variable_origen),
+      etiqueta: texto(t.etiqueta) ?? variable,
+      tipo,
+      seccion: { nombre: texto(seccion.nombre) ?? "", rotulo: texto(seccion.rotulo) },
+      orden: texto(t.orden),
+      lista_ordinal: logico(t.lista_ordinal),
+      sin_datos: logico(t.sin_datos),
+      filas: lista(t.filas).map((f, k): FrecuenciasPreviewFila => {
+        const fila = objeto(f);
+        return {
+          codigo: texto(fila.codigo),
+          etiqueta: exigido(texto(fila.etiqueta), `${campo("filas")}[${k}].etiqueta`),
+          n: exigido(numero(fila.n), `${campo("filas")}[${k}].n`),
+          pct: numero(fila.pct),
+          especial: logico(fila.especial),
+        };
+      }),
+      total: { n: numero(total.n), pct: numero(total.pct) },
+      // `base.ponderado` lo retiró el contrato v2: si llega, se ignora.
+      base: {
+        n: numero(baseTabla.n),
+        de: numero(baseTabla.de),
+        denominador: deLista(denominadores, texto(baseTabla.denominador)),
+      },
+      resumen: lista(t.resumen).map((e, k) => {
+        const est = objeto(e);
+        return {
+          estadistico: exigido(texto(est.estadistico), `${campo("resumen")}[${k}].estadistico`),
+          valor: numero(est.valor),
+        };
+      }),
+      notas: lista(t.notas).map((n) => texto(n)).filter((n): n is string => Boolean(n)),
+    };
+  });
+
+  const sinTabla = lista(r.sin_tabla).flatMap((item): FrecuenciasPreviewSinTabla[] => {
+    const s = objeto(item);
+    const variable = texto(s.variable);
+    const motivo = deLista(motivos, texto(s.motivo)) ?? "desconocida";
+    return variable ? [{ variable, motivo }] : [];
+  });
+
+  const avisos = lista(r.avisos).flatMap((item): FrecuenciasPreviewAviso[] => {
+    const a = objeto(item);
+    const mensaje = texto(a.mensaje);
+    return mensaje ? [{ codigo: texto(a.codigo) ?? "motor", mensaje }] : [];
+  });
+
+  return {
+    ok: true,
+    base: {
+      nombre: texto(base.nombre) ?? "",
+      bases_del_archivo: lista(base.bases_del_archivo).map((b) => texto(b)).filter((b): b is string => Boolean(b)),
+      n_bases: numero(base.n_bases) ?? 1,
+      independientes: logico(base.independientes),
+    },
+    fuente: texto(r.fuente),
+    ponderado: logico(r.ponderado),
+    ponderacion: {
+      configurada: logico(pond.configurada),
+      estado: texto(pond.estado),
+      modo: texto(pond.modo),
+      peso_columna: texto(pond.peso_columna),
+      motivo: texto(pond.motivo),
+      n_efectivo: numero(pond.n_efectivo),
+      deff: numero(pond.deff),
+      escala: deLista(["normalizada", "expansion"] as const, texto(pond.escala)),
+    },
+    casos: { cuentan: numero(casos.cuentan), suma_pesos: numero(casos.suma_pesos), con_peso: numero(casos.con_peso) },
+    opciones: {
+      orden: texto(opciones.orden),
+      mostrar_todo: logico(opciones.mostrar_todo),
+      incluir_secciones: logico(opciones.incluir_secciones),
+      codigos_especiales: lista(opciones.codigos_especiales).map((c) => texto(c)).filter((c): c is string => Boolean(c)),
+    },
+    limite: numero(r.limite) ?? tablas.length,
+    total_variables: exigido(numero(r.total_variables), "total_variables"),
+    devueltas: numero(r.devueltas) ?? tablas.length,
+    recortado: logico(r.recortado),
+    tablas,
+    sin_tabla: sinTabla,
+    avisos,
+  };
+}
+
+export async function apiAnaliticaFrecuenciasPreview(entrada: FrecuenciasPreviewEntrada = {}) {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/analitica/frecuencias/preview", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(entrada),
+    }),
+  );
+  return normalizarFrecuenciasPreview(raw);
+}
+
 export type AnaliticaMultibaseKey = {
   value: string;
   label: string;

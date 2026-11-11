@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, FileText, Plus, X } from "lucide-react";
+import { ChevronDown, FileText, Plus, X } from "../../../vendor/lucide-react";
 import type { VariableInstrumento } from "../../../api/client";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { InterruptorOpcion } from "../InterruptorOpcion";
@@ -19,13 +19,16 @@ import {
 } from "./notasPieModel";
 import "./NotasPieEditor.css";
 
-// NotasPieEditor: sección plegable «Notas al pie», una sola para Analítica.
+// NotasPieEditor: sección plegable "Notas al pie", una sola para Analítica.
 // - Frecuencias y Cruces editan el bloque `config.notas` del store (contrato
 //   con el motor R `reporte_notas_pie.R`): fuente, bases y, en Cruces, notas
 //   por variable de cruce y aviso de base reducida.
 // - Comparativos edita sus propias notas (`notas_pregunta` / `notas_generales`
 //   del body del comparativo), que llegan por props: no tocan `config.notas`.
-// Las notas por pregunta siguen un único patrón: vacío propio y «Añadir…» con
+// - Con `abierta` (solo Frecuencias y Cruces) no hay plegable: se pinta el
+//   interior con los rótulos en castellano normal y el título lo pone quien
+//   lo contiene.
+// Las notas por pregunta siguen un único patrón: vacío propio y "Añadir" con
 // selector, nunca un campo por pregunta.
 
 type PropsDelReporte = {
@@ -36,6 +39,9 @@ type PropsDelReporte = {
   crucesVars?: readonly string[];
   // Plegada por defecto; abierta solo para pruebas o enlaces futuros.
   defaultOpen?: boolean;
+  // Sin plegable: solo el interior, con rótulos en castellano normal. El
+  // título lo pone la sección que lo contiene (Ajustes de Frecuencias).
+  abierta?: boolean;
 };
 
 type PropsDelComparativo = {
@@ -106,29 +112,48 @@ function NotasPiePlegable({
   );
 }
 
+// -- Sin plegable -------------------------------------------------------------
+
+/** La clase de los rótulos: versalitas en el plegable, castellano normal abierto. */
+const ROTULO_PLEGADO = "pulso-section-eyebrow";
+const ROTULO_ABIERTO = "analitica-notas-pie-rotulo";
+
+function NotasPieAbierta({ variante, children }: { variante: NotasPieEditorProps["variante"]; children: ReactNode }) {
+  return (
+    <div
+      className="analitica-notas-pie-body analitica-notas-pie--abierta"
+      data-qa-geometry-group={`analitica-notas-pie-${variante}`}
+      data-qa-geometry-contract="intrinsic"
+    >
+      {children}
+    </div>
+  );
+}
+
 // -- Frecuencias y Cruces (store) -------------------------------------------
 
-function NotasDelReporte({ variante, variables, crucesVars = [], defaultOpen = false }: PropsDelReporte) {
+function NotasDelReporte({ variante, variables, crucesVars = [], defaultOpen = false, abierta = false }: PropsDelReporte) {
   const notas = useAnaliticaStore((s) => s.config.notas);
   const setNotas = useAnaliticaStore((s) => s.setNotas);
   const conCruces = variante === "cruces";
   const opciones = useMemo(() => opcionesDeVariables(variables), [variables]);
+  const rotulo = abierta ? ROTULO_ABIERTO : ROTULO_PLEGADO;
 
-  return (
-    <NotasPiePlegable variante={variante} resumen={resumenNotasPie(notas, conCruces)} defaultOpen={defaultOpen}>
+  const interior = (
+    <>
       <div className="analitica-notas-pie-fields">
         <label className="analitica-notas-pie-field" data-qa-geometry-member="true">
-          <span className="pulso-section-eyebrow">Fuente</span>
+          <span className={rotulo}>Fuente</span>
           <input
             type="text"
             value={notas.fuente}
             placeholder="Nombre de la institución y año del estudio"
             onChange={(e) => setNotas({ fuente: e.target.value })}
           />
-          <small>Se imprime como "Fuente: …".</small>
+          <small>Se imprime con "Fuente:" delante.</small>
         </label>
         <label className="analitica-notas-pie-field" data-qa-geometry-member="true">
-          <span className="pulso-section-eyebrow">Base por defecto</span>
+          <span className={rotulo}>Base por defecto</span>
           <input
             type="text"
             value={notas.base_defecto}
@@ -144,6 +169,7 @@ function NotasDelReporte({ variante, variables, crucesVars = [], defaultOpen = f
         valores={notas.base_por_pregunta}
         onTexto={(clave, texto) => setNotas({ base_por_pregunta: setNotaTexto(notas.base_por_pregunta, clave, texto) })}
         textos={TEXTOS_BASE_POR_PREGUNTA}
+        claseRotulo={rotulo}
       />
 
       {conCruces && (
@@ -153,6 +179,7 @@ function NotasDelReporte({ variante, variables, crucesVars = [], defaultOpen = f
             variables={variables}
             valores={notas.por_cruce}
             onChange={(por_cruce) => setNotas({ por_cruce })}
+            claseRotulo={rotulo}
           />
           <BaseReducida
             activo={notas.base_reducida.activo}
@@ -161,6 +188,14 @@ function NotasDelReporte({ variante, variables, crucesVars = [], defaultOpen = f
           />
         </>
       )}
+    </>
+  );
+
+  return abierta ? (
+    <NotasPieAbierta variante={variante}>{interior}</NotasPieAbierta>
+  ) : (
+    <NotasPiePlegable variante={variante} resumen={resumenNotasPie(notas, conCruces)} defaultOpen={defaultOpen}>
+      {interior}
     </NotasPiePlegable>
   );
 }
@@ -254,12 +289,14 @@ function NotasPorPregunta({
   onTexto,
   textos,
   pie,
+  claseRotulo = ROTULO_PLEGADO,
 }: {
   opciones: readonly OpcionNota[];
   valores: Record<string, string>;
   onTexto: (clave: string, texto: string) => void;
   textos: TextosNotasPorPregunta;
   pie?: ReactNode;
+  claseRotulo?: string;
 }) {
   // Filas agregadas aún sin texto: viven solo en la UI hasta que se escriba
   // algo (sólo se guardan entradas no vacías).
@@ -293,7 +330,7 @@ function NotasPorPregunta({
   return (
     <div className="analitica-notas-pie-group" data-qa-geometry-member="true">
       <div className="analitica-notas-pie-group-head">
-        <span className="pulso-section-eyebrow">{textos.titulo}</span>
+        <span className={claseRotulo}>{textos.titulo}</span>
         <small>{textos.ayuda}</small>
       </div>
       {filas.length === 0 && !adding && (
@@ -359,11 +396,13 @@ function NotasPorCruce({
   variables,
   valores,
   onChange,
+  claseRotulo = ROTULO_PLEGADO,
 }: {
   crucesVars: readonly string[];
   variables: VariableInstrumento[];
   valores: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
+  claseRotulo?: string;
 }) {
   const filas = notasDeCruceVisibles(valores, crucesVars);
   const huerfanas = notasDeCruceHuerfanas(valores, crucesVars);
@@ -372,12 +411,12 @@ function NotasPorCruce({
   return (
     <div className="analitica-notas-pie-group" data-qa-geometry-member="true">
       <div className="analitica-notas-pie-group-head">
-        <span className="pulso-section-eyebrow">Nota por variable de cruce</span>
+        <span className={claseRotulo}>Nota por variable de cruce</span>
         <small>Va debajo de cada tabla, en el orden de las columnas.</small>
       </div>
       {filas.length === 0 ? (
-        // 6 nov 2026 (pulido de UI): una línea, no un segundo vacío. El selector de arriba ya dice «Sin
-        // variables de cruce»; repetirlo con el mismo título se leía como dos pantallas vacías en una.
+        // 6 nov 2026 (pulido de UI): una línea, no un segundo vacío. El selector de arriba ya dice "Sin
+        // variables de cruce"; repetirlo con el mismo título se leía como dos pantallas vacías en una.
         <p className="analitica-notas-pie-hint">Las notas aparecen aquí al agregar una variable de cruce.</p>
       ) : (
         <ul className="analitica-notas-pie-list">

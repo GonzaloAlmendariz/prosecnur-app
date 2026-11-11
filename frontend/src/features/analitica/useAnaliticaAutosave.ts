@@ -106,6 +106,8 @@ export function useAnaliticaAutosave() {
   const hydrated = useAnaliticaStore((s) => s.hydrated);
   const hydrate = useAnaliticaStore((s) => s.hydrate);
   const markClean = useAnaliticaStore((s) => s.markClean);
+  const setErrorGuardado = useAnaliticaStore((s) => s.setErrorGuardado);
+  const reintentos = useAnaliticaStore((s) => s.reintentosGuardado);
   const timer = useRef<number | null>(null);
 
   // 1) Hidratación inicial + re-hidratación al cambiar de sesión o base
@@ -155,17 +157,26 @@ export function useAnaliticaAutosave() {
     if (!sessionId || !hydrated || !dirty) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(async () => {
+      const enviada = config;
       try {
-        await apiAnaliticaConfigPut(config);
+        await apiAnaliticaConfigPut(enviada);
         window.dispatchEvent(new Event("pulso:project-status-changed"));
-        markClean();
-      } catch {
-        // Silencioso: el próximo cambio reintenta. Podemos mostrar un
-        // toast si hace falta en B4.
+        // Limpio solo si nada cambió mientras el guardado estaba en vuelo
+        // (patrón de useCalcMuestraAutosave). Antes era incondicional: un
+        // cambio hecho durante el POST quedaba marcado como guardado, el
+        // efecto perdía su temporizador y ese cambio no se guardaba nunca.
+        // Con la condición `dirty` sigue en verdadero y el temporizador que
+        // armó el cambio nuevo hace el guardado que falta.
+        if (useAnaliticaStore.getState().config === enviada) markClean();
+        setErrorGuardado(null);
+      } catch (e) {
+        // El fallo queda en el store para que la pantalla lo diga; el
+        // próximo cambio, o "Reintentar" (reintentarGuardado), vuelve a guardar.
+        setErrorGuardado(e instanceof Error ? e.message : String(e));
       }
     }, DEBOUNCE_MS);
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [config, dirty, hydrated, markClean, sessionId]);
+  }, [config, dirty, hydrated, markClean, setErrorGuardado, reintentos, sessionId]);
 }

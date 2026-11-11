@@ -575,11 +575,20 @@ type AnaliticaStore = {
   config: AnaliticaConfig;
   hydrated: boolean;
   dirty: boolean;
+  // El último autoguardado falló: su causa, o `null`. Lo deja useAnaliticaAutosave
+  // y se limpia con el siguiente guardado bueno. Sin esto, un guardado fallido
+  // dejaba `dirty` en verdadero sin que ninguna pantalla lo dijera.
+  errorGuardado: string | null;
+  // Cuántas veces se pidió reintentar el guardado: el autosave lo vigila.
+  reintentosGuardado: number;
 
   // Hidratación desde backend — marca el snapshot como no dirty.
   hydrate: (c: AnaliticaConfig) => void;
   // Marca explícitamente limpio (tras autosave exitoso).
   markClean: () => void;
+  setErrorGuardado: (causa: string | null) => void;
+  // Vuelve a intentar el guardado pendiente.
+  reintentarGuardado: () => void;
   // Reset completo a defaults (botón destructivo).
   reset: () => void;
 
@@ -668,9 +677,14 @@ export const useAnaliticaStore = create<AnaliticaStore>((set) => ({
   config: DEFAULT_CONFIG,
   hydrated: false,
   dirty: false,
+  errorGuardado: null,
+  reintentosGuardado: 0,
 
-  hydrate: (c) => set({ config: normalizeAnaliticaConfig(c), hydrated: true, dirty: false }),
+  // Al rehidratar (otra base, otra sesión, otro proyecto) no queda nada por guardar: el error anterior ya no aplica.
+  hydrate: (c) => set({ config: normalizeAnaliticaConfig(c), hydrated: true, dirty: false, errorGuardado: null }),
   markClean: () => set({ dirty: false }),
+  setErrorGuardado: (causa) => set({ errorGuardado: causa }),
+  reintentarGuardado: () => set((s) => ({ errorGuardado: null, reintentosGuardado: s.reintentosGuardado + 1 })),
   reset: () => set({ config: DEFAULT_CONFIG, dirty: true }),
 
   setFuente: (f) =>
