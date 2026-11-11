@@ -12,12 +12,13 @@
 #   barras_ordenadas   barras de mayor a menor (residuales al final)
 #   barras_verticales  columnas (p_barras_categoricas: el render fuerza las agrupadas al lienzo, que sólo es horizontal)
 #   torta              torta
+#   barra_100          una barra al 100 % con todas las opciones (p_barras_apiladas)
 #
 # Comprobados en render por la ruta de la plantilla ACNUR (2026-11-11); el perfil ACNUR les da sus azules
-# (presets `pie` y `barras_categoricas`). La barra al 100 % queda fuera: su color sale de la paleta de la lista y el
-# perfil ACNUR no tiene una paleta por defecto para cualquier lista, así que salía en el azul Pulso.
+# (presets `pie` y `barras_categoricas`). La barra al 100 % toma la paleta de la lista y, si la lista no tiene, la
+# paleta por defecto de la plantilla de cliente (lamina_plantilla_cliente.R).
 
-.GRAFICOS_POR_PREGUNTA <- c("barras", "barras_ordenadas", "barras_verticales", "torta")
+.GRAFICOS_POR_PREGUNTA <- c("barras", "barras_ordenadas", "barras_verticales", "torta", "barra_100")
 
 #' Mapa referencia -> gráfico elegido, leído de la config
 #' @keywords internal
@@ -47,6 +48,7 @@
     # Las columnas no salen de las barras agrupadas: el render las fuerza al lienzo, que sólo dibuja barras horizontales.
     barras_verticales = list(graficador = "p_barras_categoricas", args = list(var = ref, overrides = comunes)),
     torta = list(graficador = "p_pie", args = list(var = ref, overrides = c(comunes, list(tipo_pie = "pie")))),
+    barra_100 = list(graficador = "p_barras_apiladas", args = list(var = ref, overrides = comunes)),
     graf
   )
 }

@@ -13,7 +13,7 @@ Estados: **pendiente**, **en curso**, **resuelto** (test y vista revisada), **bl
 | 1 | La pestaña "Plantillas" es la primera de Gráficos y es enlazable (`/graficos?pestana=plantillas`) | `lib/navegacion/catalogos/procesamiento.ts`, `GraficosPage.tsx`, `features/graficos/plantillas/` | resuelto: contratos de navegación; vista en vivo con `acnur_pdm` a 1440x1000 y 1024x600 |
 | 2 | Menú de plantillas: cada una trae estructura, identidad y reglas | `plantillas/catalogoPlantillas.ts` | resuelto: ACNUR general, ACNUR territorial (deshabilitada con su motivo si no hay territorio), Informe Pulso y En blanco |
 | 3 | Secciones con interruptor, en el orden del cuestionario, con cuántas preguntas entran y cuántas láminas suman | `graficos_estructura_informe.R` + `POST /api/graficos/plan/estructura` + panel | resuelto: tests R y vitest; en vivo, apagar la sección "Acceso" (4 preguntas) bajó 76 a 70 láminas y 15 a 14 secciones |
-| 4 | Preguntas con interruptor, tipo y selector de gráfico | `scope_rules.grafico_por_pregunta` + `graficos_grafico_por_pregunta.R` | resuelto: Barras, Barras de mayor a menor, Columnas (hasta seis opciones) y Torta (sólo Sí / No; Gonzalo pidió torta en vez de dona), comprobados en render ACNUR con el RMS. La barra al 100 % queda pendiente (abajo) |
+| 4 | Preguntas con interruptor, tipo y selector de gráfico | `scope_rules.grafico_por_pregunta` + `graficos_grafico_por_pregunta.R` | resuelto: Barras, Barras de mayor a menor, Columnas (hasta seis opciones), Torta (sólo Sí / No; Gonzalo pidió torta en vez de dona) y Barra al 100 % (Sí / No y escalas), comprobados en render ACNUR con el RMS |
 | 5 | Lo que se deja fuera se guarda y se respeta al volver a crear las láminas | `scope_rules.coverage_exclusions` | resuelto: en vivo, "Reemplazar" creó 70 láminas, sin la sección "Acceso" ni "Salas de atención individual" |
 | 6 | "Crear láminas" arma el plan con la plantilla y la selección | panel + `aplicarPlanSugerido` | resuelto: reemplaza (o agrega al final si ya hay láminas) en un paso deshacible y pasa a Láminas |
 | 7 | "Guardar como plantilla": la selección se guarda en el proyecto y se reusa | `scope_rules.plantillas_guardadas` | resuelto: tests del modelo (guardar, reusar, reemplazar por nombre, borrar); sin prueba en vivo |
@@ -28,12 +28,14 @@ Estados: **pendiente**, **en curso**, **resuelto** (test y vista revisada), **bl
   ejecutivo", "Análisis poblacional", "Acreditación multi-base" de `.TEMPLATES_META`) quedan fuera hasta comprobarlas.
 - El selector de gráfico sólo ofrece los gráficos que el motor dibuja en la ruta de cada plantilla y que se comprobaron
   en render.
+- Paleta por defecto de la plantilla ACNUR (Gonzalo pidió definirla, 2026-11-11): una lista sin paleta propia toma el
+  azul ACNUR en la primera opción, azules más claros en las siguientes y grises para la no respuesta (no sabe, no
+  responde, otro), uno distinto por opción. Vive en `lamina_plantilla_cliente.R` y sólo rige con plantilla de cliente.
 
 ## Pendientes
 
 | # | Pendiente | Cómo se comprobó |
 |---|---|---|
-| P1 | Barra al 100 % en el selector de gráfico | Torta y columnas resueltas el 2026-11-11: las columnas van por `p_barras_categoricas` (el render fuerza las agrupadas al lienzo horizontal y salían "Sin datos") y la torta y las columnas toman los azules ACNUR de los presets del perfil. La barra al 100 % (`p_barras_apiladas`) toma su color de la paleta de la lista por nombre o firma; el perfil ACNUR sólo trae `yesno` y `likert`, así que una lista `yesnoDnPs` cae al azul Pulso. Falta decidir una paleta por defecto del perfil para cualquier lista |
 | P2 | Con "Barras de mayor a menor", una lista paginada ordena dentro de cada página y no en el total | HACC04 del RMS: la página 1 y la 2 se ordenan por separado |
 | P3 | La estructura tarda lo que el plan sugerido (unos 40 s en el RMS) cada vez que se cambia de plantilla | medido con `.graficos_estructura_informe` sobre el RMS |
 | P4 | Sin matriz automática de QA: `ui-quick-check` arranca la API con `launcher/launch.R`, que reinstala el paquete R; no se corrió para no tocar la librería con trabajo sin commitear de otras sesiones | revisión en vivo con una pila propia sin reinstalar |
@@ -47,3 +49,8 @@ Estados: **pendiente**, **en curso**, **resuelto** (test y vista revisada), **bl
   nombre y, sin `...`, el endpoint respondía `E_INTERNAL` "unused argument (config = ...)". Lo fija un test.
 - `scope_rules` viaja entero entre front y R (normalizador del front y `.graficos_normalize_config`), así que una clave
   nueva dentro de él no cruza las cuatro listas de campos de la config.
+- La barra al 100 % con plantilla ACNUR salía con la leyenda sobre el logo de Pulso y la base bajo el pie: el lienzo
+  ocupa el alto del marcador de la plantilla, que entra al pie. El preset ACNUR reserva la franja del pie y el
+  graficador dibuja la base encima de esa reserva (render del RMS, REF03 y SAF01, 2026-11-11).
+- "Prefiere no responder" no lo reconocía el detector de no respuesta del motor; la pestaña y la paleta usan ahora una
+  sola regla (`.graficos_rotulo_residual`).

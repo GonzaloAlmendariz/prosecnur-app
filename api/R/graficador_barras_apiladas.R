@@ -3100,7 +3100,8 @@ graficar_barras_apiladas <- function(
   # simplemente desaparecia y cualquier reserva era un no-op).
   reserva_pie_in <- suppressWarnings(as.numeric(canvas_h_reserva_pie_in)[1])
   if (!is.finite(reserva_pie_in) || reserva_pie_in < 0) reserva_pie_in <- 0
-  h_caption_in <- if (has_caption) canvas_h_caption_in else reserva_pie_in
+  # Con base propia y reserva (el pie de una plantilla de cliente), la base va encima de la franja reservada.
+  h_caption_in <- if (has_caption) canvas_h_caption_in + reserva_pie_in else reserva_pie_in
   if (isTRUE(needs_tall_label_slot) && has_legend && !legend_is_side) {
     h_legend_in <- max(h_legend_in, 0.40)
   }
@@ -4078,7 +4079,7 @@ graficar_barras_apiladas <- function(
     canvas <- canvas + cowplot::draw_text(
       text  = caption_text,
       x     = cap$x,
-      y     = y_caption0 + (caption_h * 0.35),
+      y     = y_caption0 + ((reserva_pie_in + (h_caption_in - reserva_pie_in) * 0.35) / h_total_in),
       hjust = hjust_caption,
       vjust = 0.5,
       size  = size_nota_pie,

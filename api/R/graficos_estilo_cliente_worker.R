@@ -20,7 +20,8 @@
 .graficos_estilo_cliente_previas <- function() {
   list(prosecnur.letra_desplazo = getOption("prosecnur.letra_desplazo"), prosecnur.logos_cliente = getOption("prosecnur.logos_cliente"),
        prosecnur.negrita = getOption("prosecnur.negrita"), prosecnur.leyenda = getOption("prosecnur.leyenda"),
-       prosecnur.word_rotulo = getOption("prosecnur.word_rotulo"), prosecnur.lam_antetitulo_seccion = getOption("prosecnur.lam_antetitulo_seccion"))
+       prosecnur.word_rotulo = getOption("prosecnur.word_rotulo"), prosecnur.lam_antetitulo_seccion = getOption("prosecnur.lam_antetitulo_seccion"),
+       prosecnur.paleta_defecto = getOption("prosecnur.paleta_defecto"))
 }
 
 #' Argumento `estilo_cliente` para el job: `list(estilo_cliente = .)` si hay algo que aplicar, `list()` si no
@@ -46,6 +47,7 @@
   medio <- match.arg(medio)
   previas <- .graficos_estilo_cliente_previas()
   if (identical(medio, "ppt")) .lam_logos_cliente_reiniciar()
+  if (identical(medio, "word")) options(prosecnur.paleta_defecto = NULL)   # la paleta de plantilla es del PPT (lamina_plantilla_cliente.R)
   if (!length(estilo_cliente)) return(list(previas = previas, logos = list()))
   for (aviso in estilo_cliente$avisos %||% character(0)) .pulso_aviso(.ec_con_base(base, aviso))
   .graficos_estilo_cliente_aplicar_letra(estilo_cliente$letra)

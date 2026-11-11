@@ -5061,12 +5061,16 @@ stopifnot(setequal(names(.GRAFICOS_SALIDA_EDITOR), names(.GRAFICADORES_META)))
         mostrar_valores = TRUE,
         color_texto_barras = "white",
         color_texto_barras_fuera = .ACNUR_PPT_COLORS$navy,
-        decimales = 0,
+        decimales = 1,   # ACNUR pide un decimal, como en las barras
         legend_key_cm = 0.35,
         legend_espaciado = 5,
         legend_n_por_fila = 5,
-        canvas_h_legend_in = 0.12,
-        canvas_h_caption_in = 0.12
+        # La leyenda y la base van dentro del gráfico y sobre el pie de la plantilla: con 0.12 la base caía bajo el
+        # logo y la leyenda bajaba hasta el pie (checklist-pestana-plantillas-2026-11-11, P1).
+        canvas_h_legend_in = 0.36,
+        canvas_h_caption_in = 0.42,
+        canvas_h_reserva_pie_in = 0.62,
+        size_nota_pie = 11
       ),
       multi_apiladas = list(
         mostrar_valores = TRUE,

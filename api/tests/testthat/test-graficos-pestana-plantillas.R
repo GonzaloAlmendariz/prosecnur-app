@@ -49,9 +49,11 @@ test_that("la estructura agrupa por sección, cuenta láminas y marca lo excluid
   expect_equal(q$motivo$laminas, 2L)                     # una lista paginada suma sus láminas
   expect_identical(q$motivo$grafico, "barras")           # la elección del analista
   expect_identical(q$seguridad$grafico, "barras")
-  expect_identical(unlist(q$seguridad$graficos_posibles), c("barras", "barras_verticales"))   # una escala no se ordena por frecuencia
+  expect_identical(unlist(q$seguridad$graficos_posibles), c("barras", "barra_100", "barras_verticales"))   # una escala no se ordena por frecuencia
   expect_true("torta" %in% unlist(q$consent$graficos_posibles))                                # la torta, sólo en Sí / No
+  expect_true("barra_100" %in% unlist(q$consent$graficos_posibles))
   expect_false("torta" %in% unlist(q$motivo$graficos_posibles))
+  expect_false("barra_100" %in% unlist(q$motivo$graficos_posibles))   # en opción múltiple las opciones no suman 100 %
   expect_true(q[["miembros$sexo"]]$por_registro)
   expect_false(q$motivo$por_registro)
 })
@@ -111,4 +113,34 @@ test_that("las columnas sólo se ofrecen hasta seis opciones", {
   expect_false("barras_verticales" %in% .graficos_opciones_de_grafico("Opción única", 8L))
   expect_true("barras_verticales" %in% .graficos_opciones_de_grafico("Escala", NA_integer_))
   expect_identical(.graficos_opciones_de_grafico("Opción múltiple", 3L), c("barras_ordenadas", "barras"))
+})
+
+test_that("la barra al 100 % va por las apiladas y conserva la base", {
+  slides <- .pp_plan()$plan$slides
+  out <- .graficos_aplicar_grafico_por_pregunta(slides, .graficos_grafico_por_pregunta(list(scope_rules = list(grafico_por_pregunta = list(seguridad = "barra_100")))))
+  g <- Filter(function(s) identical(s$payload$grafico$args$var, "seguridad"), out)[[1]]$payload$grafico
+  expect_identical(g$graficador, "p_barras_apiladas")
+  expect_identical(g$args$overrides$nota_pie, "Base")
+})
+
+# P1: una lista sin paleta propia salía en el azul Pulso dentro de un informe ACNUR.
+test_that("con plantilla de cliente la lista sin paleta toma los azules de la plantilla y el gris para la no respuesta", {
+  withr::local_options(prosecnur.paleta_defecto = NULL)
+  niveles <- c("Sí", "No", "No sabe", "Prefiere no responder")
+  pulso <- .reporte_plan_pulso_palette_for_levels(niveles)
+  expect_false(identical(unname(pulso[["Sí"]]), .ACNUR_PPT_COLORS$blue))   # sin plantilla de cliente, la del estándar
+
+  .lam_motor_de_plantilla(list(meta = list()), "x/plantilla_acnur_16_9.pptx", "acnur_16_9")
+  pal <- .reporte_plan_pulso_palette_for_levels(niveles)
+  expect_identical(unname(pal[1:3]), c(.ACNUR_PPT_COLORS$blue, .ACNUR_PPT_COLORS$light_blue, .ACNUR_PPT_COLORS$control))
+  expect_false(pal[[4]] %in% c(pal[[3]], .ACNUR_PPT_COLORS$gray))       # dos no respuestas, dos grises; ninguno el oscuro
+  escala <- .reporte_plan_pulso_palette_for_levels(c("Muy seguro/a", "Bastante seguro/a", "Un poco inseguro/a", "Muy inseguro/a", "No sé"))
+  expect_identical(unname(escala[[1]]), .ACNUR_PPT_COLORS$blue)
+  expect_length(unique(unname(escala[1:4])), 4L)                         # cuatro azules distintos
+  expect_identical(unname(escala[[5]]), .ACNUR_PPT_COLORS$control)
+
+  # Una plantilla que no es de cliente apaga la paleta para la lámina que viene.
+  .lam_motor_de_plantilla(list(meta = list()), "x/plantilla_pulso.pptx", "generic_16_9")
+  expect_null(getOption("prosecnur.paleta_defecto"))
+  expect_identical(.reporte_plan_pulso_palette_for_levels(niveles), pulso)
 })

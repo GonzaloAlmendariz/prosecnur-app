@@ -405,7 +405,9 @@
   levels <- .reporte_plan_clean_chr(levels)
   levels <- levels[nzchar(levels)]
   if (!length(levels)) return(NULL)
-
+  # Con plantilla de cliente, la lista sin paleta toma la de la plantilla (lamina_plantilla_cliente.R).
+  defecto <- getOption("prosecnur.paleta_defecto")
+  if (is.list(defecto) && length(defecto$secuencia)) return(.lam_paleta_defecto_colores(levels, defecto))
 
   low_high_words <- paste(
     "nada", "poco", "bajo", "desacuerdo", "insatis", "malo",

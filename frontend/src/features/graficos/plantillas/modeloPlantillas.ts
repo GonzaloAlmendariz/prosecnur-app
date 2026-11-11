@@ -26,6 +26,7 @@ export const ROTULO_GRAFICO: Record<GraficoPorPregunta, string> = {
   barras_ordenadas: "Barras de mayor a menor",
   barras_verticales: "Columnas",
   torta: "Torta",
+  barra_100: "Barra al 100 %",
 };
 
 const GRAFICOS_VALIDOS = new Set<string>(Object.keys(ROTULO_GRAFICO));

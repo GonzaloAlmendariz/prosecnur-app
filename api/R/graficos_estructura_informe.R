@@ -9,6 +9,15 @@
 # así cada pregunta aparece en la sección donde el plan la pondría (con los grupos repetibles ya ubicados en su
 # sección) y con sus láminas reales (una lista larga paginada suma más de una), también las que hoy están fuera.
 
+#' ¿La opción es residual (otro, no sabe, no responde, ninguno, no aplica)? El detector del motor más las fórmulas que
+#' no reconoce ("Prefiere no responder")
+#' @keywords internal
+.graficos_rotulo_residual <- function(etiquetas) {
+  et <- as.character(etiquetas %||% character(0))
+  propio <- grepl("^(otr[oa]s?\\b|no sab|no s[eé]\\b|ningun[oa]|prefier[eo] no|no respond|no aplica)", et, ignore.case = TRUE, perl = TRUE)
+  !is.na(et) & (propio | .graficos_no_sustantivos_rotulo(et))
+}
+
 #' Tipo de pregunta en palabras del analista
 #' @keywords internal
 .graficos_tipo_de_pregunta <- function(v) {
@@ -16,8 +25,7 @@
   if (identical(tipo, "select_multiple")) return("Opción múltiple")
   et <- vapply(v$choices %||% list(), function(x) .graficos_scalar_chr((x %||% list())$label %||% (x %||% list())$name, ""), "")
   # Las respuestas de no respuesta no cambian el tipo: "Sí, No, No sabe, Prefiere no responder" sigue siendo Sí / No.
-  residual <- "^(otr[oa]s?\\b|no sab|no s[eé]\\b|ningun[oa]|prefier[eo] no|no respond|no aplica)"
-  et <- et[nzchar(et) & !grepl(residual, et, ignore.case = TRUE, perl = TRUE)]
+  et <- et[nzchar(et) & !.graficos_rotulo_residual(et)]
   if (length(et) == 2L) return("Sí / No")
   if (length(et) >= 3L && length(et) <= 7L && .goc_pistas_orden(et) && !any(grepl("[0-9]", et))) return("Escala")
   if (tipo %in% c("integer", "decimal")) return("Numérica")
@@ -28,10 +36,12 @@
 #' @keywords internal
 .graficos_opciones_de_grafico <- function(tipo, n_opciones = NA_integer_) {
   # Una escala y una dicotomía conservan su orden: ordenarlas por frecuencia desarma la escala. La torta sólo para
-  # dos opciones (más la no respuesta) y las columnas hasta seis: con más, los rótulos del eje no se leen.
+  # dos opciones (más la no respuesta) y las columnas hasta seis: con más, los rótulos del eje no se leen. La barra al
+  # 100 % sólo para una escala o una dicotomía: en opción múltiple las opciones no suman 100 % y con una lista larga
+  # los segmentos no se leen.
   opciones <- switch(tipo,
-    "Sí / No" = c("barras", "torta", "barras_verticales"),
-    "Escala" = c("barras", "barras_verticales"),
+    "Sí / No" = c("barras", "torta", "barra_100", "barras_verticales"),
+    "Escala" = c("barras", "barra_100", "barras_verticales"),
     "Opción múltiple" = c("barras_ordenadas", "barras"),
     c("barras", "barras_ordenadas", "barras_verticales")
   )
