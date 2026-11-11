@@ -4336,116 +4336,24 @@ mount_analitica <- function(pr) {
       list(ok = TRUE, job_id = job_id, kind = "analitica.panel.export")
     })) |>
     plumber::pr_post("/api/analitica/cruces", wrap_endpoint(function(req, res, cruces = NULL, modo = "estandar") {
-      # Cruces lee del config del store: cruces_vars, modo, show_sig, alpha,
-      # incluir_total, brecha, semaforo. Mantiene backcompat con el antiguo
-      # `cruces=` query param para tests manuales; si viene en query, tiene
-      # prioridad sobre el config.
-	      sid <- session_header(req)
-	      ctx <- .load_rp_data(sid)
-	      cfg <- .analitica_cfg_with_effective_source(sid, .analitica_get_config(sid))
-	      reviewed_ctx <- .analitica_apply_data_review(ctx$rp_data, ctx$rp_inst, cfg)
-	      ctx$rp_data <- reviewed_ctx$data
-	      ctx$rp_inst <- reviewed_ctx$inst
-	      cc <- cfg$cruces %||% list()
-
-      # Resolver cruces_vars: query param > config. Schema v2 del config
-      # es [{name, excluidas?}]; v1 era string[]. `.cruces_vars_parse`
-      # acepta ambos y devuelve `list(name -> excluidas)`.
-      cruces_map <- if (!is.null(cruces) && nzchar(as.character(cruces[[1]] %||% ""))) {
-        raw_names <- if (length(cruces) == 1) as.character(cruces[[1]]) else as.character(cruces)
-        setNames(replicate(length(raw_names), character(0), simplify = FALSE), raw_names)
-      } else {
-        .cruces_vars_parse(cc$cruces_vars)
-      }
-      cruces_val <- names(cruces_map)
-      if (length(cruces_val) == 0L) {
+      # Cruces lee del config del store (cruces_vars, show_sig, alpha, brecha, semaforo...). El antiguo `cruces=`
+      # de la query, si viene, tiene prioridad sobre el config. La preparación es la de la vista previa
+      # (analitica_cruces_export.R).
+      sid <- session_header(req)
+      p <- .analitica_cruces_preparar(sid, cruces = cruces, modo = modo)
+      if (identical(p$vacio, "sin_configurar")) {
         stop_api(400, "E_NO_CRUCES",
           "Agrega al menos una variable en Cruces antes de generar.")
       }
-
-      modo_val <- as.character(modo %||% cc$modo %||% "estandar")
-      if (!modo_val %in% c("estandar","dimensiones")) modo_val <- "estandar"
-
-      secs <- .secciones_from_config(cfg)
-      excluidas <- .as_chr_vec(cfg$variables_excluidas)
-      numericas_arg <- .analitica_declared_numericas(cfg, override_frecuencias = FALSE)
-	      secs <- .analitica_filter_sections(secs, ctx$rp_inst, numericas_arg, excluidas)
-
-	      categoricas <- .analitica_categoricas(ctx$rp_inst)
-	      cruces_val <- setdiff(intersect(cruces_val, categoricas), excluidas)
-	      cruces_map <- cruces_map[names(cruces_map) %in% cruces_val]
-      if (length(cruces_val) == 0L) {
+      if (identical(p$vacio, "sin_categoricas")) {
         stop_api(400, "E_NO_CRUCES_ANALITICAS",
           "Agrega al menos una variable de selección única o múltiple para generar Cruces.")
       }
-
-      show_sig <- isTRUE(cc$show_sig %||% TRUE)
-      alpha <- suppressWarnings(as.numeric(cc$alpha %||% 0.05))
-      if (!is.finite(alpha)) alpha <- 0.05
-      significancia <- .cruces_significancia_normalizar(cc$significancia)
-      incluir_total <- isTRUE(cc$incluir_total %||% TRUE)
-      # Orden por frecuencia marginal de las filas nominales (las columnas /
-      # estratos nunca se reordenan). Ordinales conservan orden fijo.
-      orden_cruces <- as.character(cc$orden %||% "original")
-      if (!orden_cruces %in% c("desc","asc","original")) orden_cruces <- "original"
-      # Los títulos de variable/pregunta se conservan siempre. La opción UI
-      # solo controla los separadores de sección.
-      incluir_titulos <- TRUE
-      incluir_secciones <- isTRUE(cc$incluir_secciones %||% TRUE)
-
-      brecha <- cc$brecha %||% list()
-      brecha_filas <- isTRUE(brecha$filas)
-      brecha_cols <- isTRUE(brecha$cols)
-
-      sem <- cc$semaforo %||% list()
-      aplicar_sem <- isTRUE(sem$activo)
-      sem_modo <- as.character(sem$modo %||% "grupos")
-      if (!sem_modo %in% c("grupos", "degradado", "degradado_automatico", "degradado_manual")) sem_modo <- "grupos"
-      sem_cortes <- .as_int_vec(sem$cortes)
-      if (length(sem_cortes) == 0L) sem_cortes <- c(50L, 75L)
-      sem_colores <- sem$colores %||% list()
-
-      # Multi-base (v0.2+): filtramos cada base por `cruces_map` (las
-      # exclusiones de categorías aplican a todas) y serializamos la
-      # lista nombrada al RDS. El worker itera por base y empaqueta
-      # los N xlsx en un zip si hay más de una.
-	      sources <- .load_rp_sources(sid)
-	      data_sources <- sources$data_sources
-	      inst_sources <- sources$inst_sources
-	      # Las variables propias de una hija repeat también entran (analitica_repeats_grano.R).
-	      if (length(inst_sources) > 1L) {
-	        secs <- .analitica_filter_sections_bases(.secciones_from_config(cfg), inst_sources, numericas_arg, excluidas) %||% secs
-	      }
-	      for (nombre in names(data_sources)) {
-	        reviewed <- .analitica_apply_data_review(data_sources[[nombre]], inst_sources[[nombre]], cfg)
-	        data_sources[[nombre]] <- .excluir_cols(reviewed$data, excluidas)
-	        inst_sources[[nombre]] <- reviewed$inst
-	      }
-	      # La ponderacion vive en la persona: madres/bases normales se calibran
-	      # sobre sus filas y las hijas repeat heredan ese peso por la llave ODK.
-	      weighted <- .analitica_ponderacion_apply_sources(
-	        sid, data_sources, inst_sources, cfg
-	      )
-	      data_sources <- weighted$data_sources
-	      inst_sources <- weighted$inst_sources
-	      repeat_design_by_base <- weighted$repeat_design_by_base
-	      # Listas ordinales EFECTIVAS por base (override manual ∪ auto). Se
-	      # precomputan en el hilo principal (paquete cargado) y viajan como
-	      # dato plano al worker callr.
-	      ordinal_lists_by_base <- lapply(inst_sources, function(inst) .orden_categorias_ordinal_set(inst, cfg))
-	      data_sources_filt <- lapply(names(data_sources), function(nombre) {
-	        df <- .excluir_cruce_rows(data_sources[[nombre]], cruces_map)
-	        design <- repeat_design_by_base[[nombre]]
-	        if (!is.null(design)) attr(df, "repeat_design") <- design
-	        .cruces_adjuntar_madre(df, design, data_sources, cruces_map)   # ADR 0128 §4 ter
-	      })
-	      names(data_sources_filt) <- names(data_sources)
-	      # Una base que no trae ninguna de las variables de cruce no se cruza: antes
-	      # cortaba el job entero con «length(CRUZAR_CON) > 0 is not TRUE» (HSyVbG,
-	      # segmentos de cruce declarados sólo en 2026). reporte_cruces_bases.R.
-	      con_cruces <- .cruces_bases_con_variables(data_sources_filt, cruces_val)
-	      data_sources_filt <- data_sources_filt[con_cruces]
-	      inst_sources <- inst_sources[con_cruces]
+      data_sources_filt <- p$data_sources
+      inst_sources <- p$inst_sources
+      repeat_design_by_base <- p$repeat_design_by_base
+      notas <- p$notas
+      sig_estudio <- p$sig_estudio
 
       rp_data_path <- job_save_rds(sid, "rp_data_sources", data_sources_filt)
       rp_inst_path <- job_save_rds(sid, "rp_inst_sources", inst_sources)
@@ -4581,26 +4489,26 @@ mount_analitica <- function(pr) {
           rp_data_path = rp_data_path,
           rp_inst_path = rp_inst_path,
           repeat_design_path = repeat_design_path,
-          cruces_val = cruces_val,
-          modo = modo_val,
-          secs = secs,
-          numericas_arg = numericas_arg,
-          show_sig = show_sig,
-          alpha = alpha,
-          significancia = significancia,
-          incluir_total = incluir_total,
-          incluir_titulos = incluir_titulos,
-          incluir_secciones = incluir_secciones,
-          brecha_filas = brecha_filas,
-          brecha_cols = brecha_cols,
-          aplicar_sem = aplicar_sem,
-          sem_modo = sem_modo,
-          sem_cortes = sem_cortes,
-          sem_colores = sem_colores,
-          orden_cruces = orden_cruces,
-          ordinal_lists_by_base = ordinal_lists_by_base,
-          notas = .notas_pie_normalizar(cfg$notas),
-          sig_estudio = .sig_arg_job(sid, .graficos_config_get(sid))$significancia,   # ADR 0128: regla del estudio
+          cruces_val = p$cruces_val,
+          modo = p$modo,
+          secs = p$secs,
+          numericas_arg = p$numericas_arg,
+          show_sig = p$show_sig,
+          alpha = p$alpha,
+          significancia = p$significancia,
+          incluir_total = p$incluir_total,
+          incluir_titulos = p$incluir_titulos,
+          incluir_secciones = p$incluir_secciones,
+          brecha_filas = p$brecha_filas,
+          brecha_cols = p$brecha_cols,
+          aplicar_sem = p$aplicar_sem,
+          sem_modo = p$sem_modo,
+          sem_cortes = p$sem_cortes,
+          sem_colores = p$sem_colores,
+          orden_cruces = p$orden_cruces,
+          ordinal_lists_by_base = p$ordinal_lists_by_base,
+          notas = notas,
+          sig_estudio = sig_estudio,   # ADR 0128: regla del estudio
           api_path = api_path
         ),
         result_filename = if (length(data_sources_filt) > 1L) {

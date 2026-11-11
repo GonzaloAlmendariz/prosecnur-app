@@ -117,6 +117,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_analitica_codigos_especiales(pr)
     pr <- mount_analitica_universo(pr)
     pr <- mount_analitica_frecuencias_preview(pr)   # M12: las tablas de Frecuencias tal como salen en el archivo
+    pr <- mount_analitica_cruces_preview(pr)   # M13: las tablas de Cruces tal como salen en el archivo
     pr <- mount_label_overrides(pr)
     pr <- mount_hojas_ruta(pr)
     pr <- mount_hojas_ruta_geometria(pr)

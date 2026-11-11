@@ -1060,12 +1060,10 @@ exportar_cruces_multi <- function(data,
   orden <- as.character(orden %||% "original")
   if (!orden %in% c("desc", "asc", "original")) orden <- "original"
 
-  # Mantener en SECCIONES variables que existan como columna o tengan dummies
-  SECCIONES <- lapply(SECCIONES, function(v) {
-    v[vapply(v, function(x) .has_var_or_dummies(data, x), logical(1))]
-  })
-  # Variables de cruce: por simplicidad, solo columnas reales
-  CRUZAR_CON <- CRUZAR_CON[CRUZAR_CON %in% names(data)]
+  # Secciones y variables de cruce que entran al archivo (reporte_cruces_tabla.R)
+  plan_archivo <- .cruces_plan_archivo(data, SECCIONES, CRUZAR_CON)
+  SECCIONES <- plan_archivo$SECCIONES
+  CRUZAR_CON <- plan_archivo$CRUZAR_CON
   stopifnot(length(CRUZAR_CON) > 0)
 
   wb <- openxlsx::createWorkbook()
@@ -1198,63 +1196,21 @@ exportar_cruces_multi <- function(data,
       }
 
       # ==========================
-      # CATEGORICOS (tu flujo original)
+      # CATEGORICOS: el calculo sale de .cruces_tabla_archivo() (reporte_cruces_tabla.R),
+      # el mismo que devuelve la vista previa; aqui solo se escribe.
       # ==========================
-      tp <- tipo_pregunta(var, survey = survey, sm_vars_force = sm_vars_force, data = data)
-      cats_var <- get_categorias(
-        var              = var,
-        data             = data,
-        survey           = survey,
-        orders_list      = orders_list,
-        opciones_excluir = opciones_excluir
+      tb <- .cruces_tabla_archivo(
+        data = data, var = var, CRUZAR_CON = CRUZAR_CON, survey = survey, sm_vars_force = sm_vars_force,
+        orders_list = orders_list, opciones_excluir = opciones_excluir,
+        codigos_solo_si_presentes = codigos_solo_si_presentes, orden = orden, ordinal_lists = ordinal_lists,
+        weight_col = weight_col, dic_vars = dic_vars, labels_override = labels_override, notas = notas,
+        col_sin_peso = col_sin_peso, show_sig = show_sig, sig_spec = sig_spec, alpha = alpha,
+        repeat_design = repeat_design
       )
+      qlab <- tb$etiqueta
+      opciones <- tb$opciones
 
-      opciones  <- cats_var$labels
-      codes_row <- cats_var$codes
-
-      # ------------------------------------------------------------
-      # Parche robusto: eliminar "Total" como categoria (labels o codes)
-      # (case-insensitive + trim) + quitar vacios
-      # ------------------------------------------------------------
-      op_chr <- trimws(tolower(as.character(opciones)))
-      cd_chr <- trimws(tolower(as.character(codes_row)))
-
-      drop_total <- (op_chr == "total") | (cd_chr == "total") | is.na(op_chr) | (op_chr == "")
-
-      if (any(drop_total)) {
-        opciones  <- opciones[!drop_total]
-        codes_row <- codes_row[!drop_total]
-      }
-
-      # (opcional recomendado) evitar duplicados de labels tras mapeos
-      keep <- !duplicated(trimws(tolower(as.character(opciones))))
-      opciones  <- opciones[keep]
-      codes_row <- codes_row[keep]
-
-      qlab <- label_variable(var, dic_vars, labels_override, data)
-
-      # --- filtrar codigos condicionales sin casos ---
-      if (!is.null(codigos_solo_si_presentes) && length(codes_row)) {
-        cod_cond <- as.character(codigos_solo_si_presentes)
-
-        mask_total0 <- rep(TRUE, nrow(data))
-        n_total_all <- contar_por_opcion(
-          data       = data,
-          var        = var,
-          codes      = codes_row,
-          tp         = tp,
-          mask       = mask_total0,
-          weight_col = weight_col
-        )
-
-        to_drop <- codes_row %in% cod_cond & n_total_all == 0
-        if (any(to_drop)) {
-          codes_row <- codes_row[!to_drop]
-          opciones  <- opciones[!to_drop]
-        }
-      }
-
-      if (!length(opciones)) {
+      if (isTRUE(tb$sin_datos)) {
         if (isTRUE(incluir_titulos)) {
           openxlsx::writeData(wb, hoja, qlab, startRow = fila, startCol = 1)
           openxlsx::addStyle(wb, hoja, st$q_title, rows = fila, cols = 1, gridExpand = TRUE)
@@ -1269,175 +1225,10 @@ exportar_cruces_multi <- function(data,
         next
       }
 
-      # ---------- orden de las FILAS por frecuencia marginal ----------
-      # Solo para variables de fila NOMINALES (no ordinales) y cuando el
-      # usuario pidió desc/asc. Las ordinales (likert, acuerdo, sí/no) y el
-      # modo "original" conservan el orden fijo de get_categorias. Las columnas
-      # / estratos nunca se tocan (se ordenan más abajo con su get_categorias).
-      if (orden %in% c("desc", "asc") && length(codes_row) > 1L) {
-        ln_row <- tryCatch(get_list_name(var, survey), error = function(e) NA_character_)
-        es_ordinal <- !is.na(ln_row) && nzchar(ln_row) && ln_row %in% ordinal_lists
-        if (!es_ordinal) {
-          marg <- contar_por_opcion(
-            data       = data,
-            var        = var,
-            codes      = codes_row,
-            tp         = tp,
-            mask       = rep(TRUE, nrow(data)),
-            weight_col = weight_col
-          )
-          # order(-x)/order(x) via radix es estable: los empates conservan el
-          # orden original de get_categorias.
-          ord_idx <- if (identical(orden, "desc")) order(-marg) else order(marg)
-          codes_row <- codes_row[ord_idx]
-          opciones  <- opciones[ord_idx]
-        }
-      }
-
-      cuerpo <- tibble::tibble(Opciones = opciones)
-      denom_map        <- list()
-      estratos_totales <- list()
-
-      # ---------- TOTAL ----------
-      mask_total <- rep(TRUE, nrow(data))
-      N_total <- denominador_validos(
-        data       = data,
-        var        = var,
-        codes      = codes_row,
-        tp         = tp,
-        mask       = mask_total,
-        weight_col = weight_col
-      )
-      n_total <- contar_por_opcion(
-        data       = data,
-        var        = var,
-        codes      = codes_row,
-        tp         = tp,
-        mask       = mask_total,
-        weight_col = weight_col
-      )
-      pct_total <- if (N_total > 0) n_total / N_total else rep(NA_real_, length(n_total))
-
-      cuerpo <- dplyr::bind_cols(
-        cuerpo,
-        tibble::tibble(
-          Total__n   = as.numeric(n_total),
-          Total__pct = as.numeric(pct_total)
-        )
-      )
-      denom_map[["Total__n"]] <- N_total
-
-      # ---------- Cruces con cada variable de CRUZAR_CON ----------
-      for (s in CRUZAR_CON) {
-        if (!(s %in% names(data)) || identical(s, var)) next
-
-        cats_s <- get_categorias(
-          var              = s,
-          data             = data,
-          survey           = survey,
-          orders_list      = orders_list,
-          opciones_excluir = opciones_excluir
-        )
-        estr_codes  <- cats_s$codes
-        estr_labels <- cats_s$labels
-        if (!length(estr_codes)) next
-
-        # Etiqueta del estrato (ej. "Region")
-        s_lbl <- label_variable(s, dic_vars, labels_override, data)
-
-        # Parche: si viene como "Region: Callao", dejar solo "Callao"
-        estr_labels <- .strip_prefijo_subindice(estr_labels, s_lbl)
-
-        # Guardar ya limpio
-        estratos_totales[[s]] <- list(codes = estr_codes, labels = estr_labels, s_lbl = s_lbl)
-
-        # Valores reales en la data para el estrato
-        v_estr <- as.character(data[[s]])
-
-        # Detectar si la data usa codigos o labels
-        usa_codes  <- any(v_estr %in% estr_codes)
-        usa_labels <- any(v_estr %in% estr_labels)
-
-        keys_vec <- if (usa_codes || !usa_labels) estr_codes else estr_labels
-
-        bloques <- lapply(seq_along(keys_vec), function(j) {
-          key_j  <- keys_vec[j]
-          mask_s <- !is.na(v_estr) & v_estr == key_j
-
-          n_vec <- contar_por_opcion(
-            data       = data,
-            var        = var,
-            codes      = codes_row,
-            tp         = tp,
-            mask       = mask_s,
-            weight_col = weight_col
-          )
-
-          N <- denominador_validos(
-            data       = data,
-            var        = var,
-            codes      = codes_row,
-            tp         = tp,
-            mask       = mask_s,
-            weight_col = weight_col
-          )
-
-          N_sin_peso <- if (isTRUE(notas$base_reducida$activo)) {
-            denominador_validos(
-              data       = data,
-              var        = var,
-              codes      = codes_row,
-              tp         = tp,
-              mask       = mask_s,
-              weight_col = col_sin_peso
-            )
-          } else NA_real_
-
-          pct <- if (N > 0) n_vec / N else rep(NA_real_, length(n_vec))
-          nm_n   <- paste0(s, "__", make.names(estr_labels[j]), "__n")
-          nm_pct <- paste0(s, "__", make.names(estr_labels[j]), "__pct")
-
-          dfb <- tibble::tibble(
-            !!nm_n   := as.numeric(n_vec),
-            !!nm_pct := as.numeric(pct)
-          )
-          list(df = dfb, N = N, N_sin_peso = N_sin_peso)
-        })
-
-        cols_df    <- dplyr::bind_cols(lapply(bloques, `[[`, "df"))
-        idx_n_cols <- grep("__n$", names(cols_df))
-        Ns         <- vapply(bloques, `[[`, numeric(1), "N")
-
-        if (length(idx_n_cols) == length(Ns) && length(Ns) > 0) {
-          for (k in seq_along(idx_n_cols)) {
-            denom_map[[names(cols_df)[idx_n_cols[k]]]] <- Ns[k]
-          }
-        }
-        estratos_totales[[s]]$n_sin_peso <- vapply(bloques, `[[`, numeric(1), "N_sin_peso")
-
-        cuerpo <- dplyr::bind_cols(cuerpo, cols_df)
-      }
-
-      # ---------- fila Total ----------
-      total_row <- as.list(rep(NA, ncol(cuerpo)))
-      names(total_row) <- names(cuerpo)
-      total_row[["Opciones"]] <- "Total"
-
+      cuerpo <- tb$cuerpo
+      estratos_totales <- tb$estratos
       n_cols   <- grep("__n$",   names(cuerpo))
       pct_cols <- grep("__pct$", names(cuerpo))
-
-      for (j in n_cols) {
-        nm <- names(cuerpo)[j]
-        Nj <- denom_map[[nm]]
-        total_row[[j]] <- if (is.null(Nj)) NA_real_ else round(as.numeric(Nj), 0)
-      }
-      for (j in pct_cols) {
-        n_partner <- sub("__pct$", "__n", names(cuerpo)[j])
-        Nj <- suppressWarnings(as.numeric(total_row[[n_partner]]))
-        total_row[[j]] <- if (!is.na(Nj) && Nj > 0) 1.0 else NA_real_
-      }
-
-      cuerpo <- dplyr::bind_rows(cuerpo, tibble::as_tibble(total_row))
 
       # ---------- titulo de la pregunta ----------
       ncols_tbl <- ncol(cuerpo)
@@ -1553,60 +1344,19 @@ exportar_cruces_multi <- function(data,
       fila <- fila + nfil
 
       # ---------- pie de tabla ----------
-      # Primera línea «Fuente: X[. Base: Y. Porcentajes por columna.]»; debajo,
-      # las notas por variable de cruce y el aviso de bases reducidas.
-      fila <- .cruces_escribir_pie(
-        wb = wb, hoja = hoja, st = st, fila = fila, ncol_tbl = ncol_tbl,
-        lineas = .cruces_lineas_pie(notas, var, CRUZAR_CON, estratos_totales)
-      )
+      fila <- .cruces_escribir_pie(wb = wb, hoja = hoja, st = st, fila = fila, ncol_tbl = ncol_tbl, lineas = tb$pie)
 
       # ---------- tabla de significancia (letras) ----------
       if (isTRUE(show_sig) && length(estratos_totales)) {
 
-        letras_map_text <- c()
-        bloques_sig     <- list()
+        bloques_sig     <- tb$sig$bloques
         sig_h1          <- c("")
         sig_h2          <- c("")
-
         for (s in CRUZAR_CON) {
-          info_s <- estratos_totales[[s]]
-          if (is.null(info_s)) next
-          estr_labels <- info_s$labels
-          estr_codes  <- info_s$codes
-          if (!length(estr_labels)) next
-
-          s_lbl <- label_variable(s, dic_vars, labels_override, data)
-
-          sig_h1 <- c(sig_h1, rep(s_lbl, length(estr_labels)))
-          col_letters <- openxlsx::int2col(seq_along(estr_labels))
-          sig_h2 <- c(sig_h2, paste0(estr_labels, " (", col_letters, ")"))
-
-          letras_map_text <- c(
-            letras_map_text,
-            paste0(
-              s_lbl, ": ",
-              paste0("(", col_letters, ") ", estr_labels, collapse = ", ")
-            )
-          )
-
-          cmp <- .cruces_sig_comparar(
-            data = data, var = var, codes_row = codes_row,
-            estratos = estr_codes, var_estrato = s, tp = tp,
-            spec = sig_spec, alpha = alpha, weight_col = weight_col,
-            repeat_design = repeat_design, opciones = opciones   # ADR 0128: rótulos para «No sé» y afines
-          )
-
-          bloques_sig[[s]] <- list(
-            opciones    = opciones,
-            estr_codes  = estr_codes,
-            estr_labels = estr_labels,
-            letras      = cmp$letras,
-            sig         = cmp$sig,
-            method      = cmp$method %||% "z_simple",
-            reason      = cmp$reason %||% "",
-            solitario   = isTRUE(cmp$solitario),
-            regla       = cmp$regla
-          )
+          bl <- bloques_sig[[s]]
+          if (is.null(bl)) next
+          sig_h1 <- c(sig_h1, rep(estratos_totales[[s]]$s_lbl, length(bl$estr_labels)))
+          sig_h2 <- c(sig_h2, paste0(bl$estr_labels, " (", openxlsx::int2col(seq_along(bl$estr_labels)), ")"))
         }
 
         if (length(bloques_sig)) {
@@ -1701,20 +1451,7 @@ exportar_cruces_multi <- function(data,
             }
           }
 
-          metodos_sig <- vapply(bloques_sig, function(bl) as.character(bl$method %||% "descriptivo"), character(1))
-          razones_sig <- unique(Filter(nzchar, vapply(bloques_sig, function(bl) as.character(bl$reason %||% ""), character(1))))
-          pie_sig <- if (is.list(repeat_design) && all(metodos_sig == "descriptivo")) {
-            .repeat_nota_descriptiva(razones_sig)   # reporte_cruces_cluster.R
-          } else if (is.list(bloques_sig[[1]]$regla)) {
-            .cruces_nota_regla(bloques_sig[[1]]$regla, razones_sig)
-          } else {
-            .cruces_sig_nota(
-              sig_spec, alpha = alpha, metodos = metodos_sig, razones = razones_sig,
-              solitario = any(vapply(bloques_sig, function(bl) isTRUE(bl$solitario), logical(1))),
-              etiquetas = function(x) label_variable(x, dic_vars, labels_override, data),
-              ponderado = .cruces_sig_ponderado(data, weight_col)
-            )
-          }
+          pie_sig <- tb$sig$nota
 
           # Cierra el cuadro de la sub-tabla BAJO la ultima categoria (no bajo la nota),
           # con separadores entre grupos de cruce.
@@ -4023,30 +3760,11 @@ reporte_cruces <- function(
     )
   }
 
-  survey <- NULL
-  if (!is.null(instrumento) && "survey" %in% names(instrumento)) {
-    survey <- instrumento$survey
-  }
-
-  orders_list <- NULL
-  if (!is.null(instrumento) && "orders_list" %in% names(instrumento)) {
-    orders_list <- instrumento$orders_list
-  }
-  choices <- NULL
-  if (!is.null(instrumento) && "choices" %in% names(instrumento)) {
-    choices <- instrumento$choices
-  }
-  orders_list <- .augment_orders_list_from_choices(
-    orders_list = orders_list,
-    survey = survey,
-    choices = choices
-  )
-
-  dic_vars <- NULL
-  if (!is.null(survey) && all(c("name", "label") %in% names(survey))) {
-    dic_vars <- dplyr::select(survey, name, label)
-    dic_vars <- dplyr::filter(dic_vars, !is.na(name) & name != "")
-  }
+  # survey, orders_list completado y diccionario (reporte_cruces_tabla.R; la vista previa usa el mismo).
+  ctx_inst <- .cruces_contexto_instrumento(instrumento)
+  survey <- ctx_inst$survey
+  orders_list <- ctx_inst$orders_list
+  dic_vars <- ctx_inst$dic_vars
 
   if (identical(modo, "dimensiones")) {
     fila_dim <- if (!is.null(filas_dimensiones)) filas_dimensiones else cruces
