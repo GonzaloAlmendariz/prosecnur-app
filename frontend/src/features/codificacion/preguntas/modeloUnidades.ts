@@ -1,6 +1,7 @@
 // Codificación, Preguntas (etapa P3a del rediseño de Procesamiento): la lista se arma por UNIDADES.
 //
-// Una unidad es un par enlazado (la pregunta que se codifica y su texto abierto) o una pregunta suelta.
+// Una unidad es un par enlazado (la pregunta que recibe los códigos y la que aporta las respuestas) o una
+// pregunta suelta.
 // El backend entrega preguntas; aquí se juntan en unidades, se filtran y se dice en qué estado está cada
 // una. Sin React y sin red: lo que decide qué fila se ve, qué cuenta cada filtro y qué pasa al soltar una
 // pregunta sobre otra vive en este archivo y se prueba en `modeloUnidades.test.ts`.
@@ -19,13 +20,15 @@ export type Unidad = {
   /** El `parent` de la pregunta que gobierna la unidad: sobre ella actúan los controles. */
   id: string;
   clase: "pareja" | "suelta";
+  /** En una pareja, la pregunta que recibe los códigos (la que el motor guarda como dueña de la pareja). */
   principal: PreguntaAbierta;
   arquetipo: Arquetipo;
-  /** Lado izquierdo de la fila: la pregunta cerrada, o la que quedó como principal de una pareja. */
-  cerrada: PreguntaAbierta | null;
-  /** Lado derecho: la pregunta de texto. En una pareja puede faltar si su columna no está en la lista. */
-  texto: PreguntaAbierta | null;
-  /** Columna de texto de la pareja; vacía en una suelta. */
+  /**
+   * En una pareja, la pregunta que aporta las respuestas, del tipo que sea. Falta cuando la columna
+   * emparejada no es de ninguna pregunta de la lista.
+   */
+  aporta: PreguntaAbierta | null;
+  /** Columna que aporta las respuestas de la pareja; vacía en una suelta. */
   columnaTexto: string;
 };
 
@@ -53,47 +56,67 @@ export function esCerrada(p: PreguntaAbierta): boolean {
   return p.tipo === "select_one" || p.tipo === "select_multiple";
 }
 
-/** Columna de texto de cada pareja, con la pregunta que la tomó. */
-export function adoptadasPor(preguntas: readonly PreguntaAbierta[]): Map<string, PreguntaAbierta> {
-  const mapa = new Map<string, PreguntaAbierta>();
+/**
+ * De qué pregunta es cada columna. Una pregunta responde por su nombre, por su columna en la base y,
+ * mientras no esté emparejada, por la columna que el motor lee para ella. Emparejada no: entonces el
+ * motor le lee la columna de la OTRA pregunta (`col_efectiva` pasa a ser la de la pareja), y contarla
+ * como suya hacía que una pregunta de texto que recibe los códigos se tomara por texto de sí misma y
+ * desapareciera de la lista.
+ */
+function preguntaPorColumna(preguntas: readonly PreguntaAbierta[]): Map<string, PreguntaAbierta> {
+  const indice = new Map<string, PreguntaAbierta>();
+  // El nombre de la pregunta manda; las demás columnas solo cuentan si nadie se llama así.
+  for (const p of preguntas) indice.set(p.parent, p);
   for (const p of preguntas) {
-    const columna = columnaEmparejada(p);
-    if (columna) mapa.set(columna, p);
+    const propias = [p.parent_col, esEmparejada(p) ? "" : p.col_efectiva];
+    for (const columna of propias) {
+      if (columna && !indice.has(columna)) indice.set(columna, p);
+    }
   }
-  return mapa;
+  return indice;
 }
 
 /**
- * Las unidades en el orden del formulario. Un texto que ya es de una pareja no hace fila propia: va
- * dentro de la unidad de la pregunta que lo tomó.
+ * Las unidades en el orden del formulario. Toda pareja que guarda el motor es UNA unidad con sus dos
+ * preguntas, sea cual sea la que recibe los códigos: la que aporta las respuestas no hace fila propia,
+ * va dentro de la unidad de la que la tomó. Ninguna pregunta se queda sin unidad:
+ *
+ * - una pareja cuya columna no es de ninguna pregunta de la lista conserva la columna y va sin segunda pregunta;
+ * - una pregunta que apunta a su propia columna no es pareja de nadie y va suelta;
+ * - una pregunta que aporta a otra y además tiene su propia pareja conserva su fila.
  */
 export function armarUnidades(preguntas: readonly PreguntaAbierta[]): Unidad[] {
-  const adoptadas = adoptadasPor(preguntas);
-  const textoPorColumna = new Map<string, PreguntaAbierta>();
+  const porColumna = preguntaPorColumna(preguntas);
+  const aportaDe = new Map<PreguntaAbierta, PreguntaAbierta | null>();
   for (const p of preguntas) {
-    if (p.tipo === "text") textoPorColumna.set(p.col_efectiva || p.parent, p);
+    const columna = columnaEmparejada(p);
+    if (!columna) continue;
+    const otra = porColumna.get(columna) ?? null;
+    // Apunta a sí misma: no hay pareja que mostrar.
+    if (otra !== p) aportaDe.set(p, otra);
+  }
+  const absorbidas = new Set<PreguntaAbierta>();
+  for (const otra of aportaDe.values()) {
+    if (otra && !aportaDe.has(otra)) absorbidas.add(otra);
   }
   const ordenadas = [...preguntas].sort((a, b) => (a.q_order ?? SIN_ORDEN) - (b.q_order ?? SIN_ORDEN));
   const unidades: Unidad[] = [];
   for (const p of ordenadas) {
-    const arquetipo = arquetipoOf(p, adoptadas);
-    if (arquetipo === "adoptada") continue;
-    const columnaTexto = columnaEmparejada(p);
-    if (columnaTexto) {
-      const texto = textoPorColumna.get(columnaTexto) ?? null;
-      unidades.push({ id: p.parent, clase: "pareja", principal: p, arquetipo, cerrada: p, texto: texto === p ? null : texto, columnaTexto });
-    } else if (esCerrada(p)) {
-      unidades.push({ id: p.parent, clase: "suelta", principal: p, arquetipo, cerrada: p, texto: null, columnaTexto: "" });
+    if (absorbidas.has(p)) continue;
+    // Sin el mapa de adoptadas: quién va dentro de quién lo decide este modelo, por identidad.
+    const arquetipo = arquetipoOf(p);
+    if (aportaDe.has(p)) {
+      unidades.push({ id: p.parent, clase: "pareja", principal: p, arquetipo, aporta: aportaDe.get(p) ?? null, columnaTexto: columnaEmparejada(p) });
     } else {
-      unidades.push({ id: p.parent, clase: "suelta", principal: p, arquetipo, cerrada: null, texto: p, columnaTexto: "" });
+      unidades.push({ id: p.parent, clase: "suelta", principal: p, arquetipo, aporta: null, columnaTexto: "" });
     }
   }
   return unidades;
 }
 
-/** Las preguntas de la unidad: la principal y, en una pareja, su texto. */
+/** Las preguntas de la unidad: la principal y, en una pareja, la que aporta las respuestas. */
 export function preguntasDeUnidad(u: Unidad): PreguntaAbierta[] {
-  return u.clase === "pareja" && u.texto ? [u.principal, u.texto] : [u.principal];
+  return u.clase === "pareja" && u.aporta ? [u.principal, u.aporta] : [u.principal];
 }
 
 function sinDecidir(p: PreguntaAbierta): boolean {
@@ -118,12 +141,39 @@ export function filtroVigente(filtro: FiltroPreguntas, conteos: ConteosDeFiltro)
 }
 
 /**
- * Ejemplos del texto que se va a codificar: los de la pregunta abierta de la unidad. Una cerrada trae
- * códigos, no texto, así que una cerrada suelta o una pareja sin su pregunta de texto no tienen ejemplos.
+ * La pregunta de la que salen las respuestas que se codifican, que es de donde se toman las cifras, los
+ * ejemplos y lo que falta. Importa porque el motor, en la fila de una cerrada emparejada (múltiple, o
+ * única que codifica la pregunta original), cuenta `n_respuestas`, `n_unicas` y `preview` sobre la columna
+ * de la CERRADA, que trae códigos; el texto lo cuenta en la fila de la pregunta abierta.
+ *
+ * - Suelta: ella misma si es abierta; una cerrada no tiene texto.
+ * - Pareja: la pregunta que aporta, si es abierta. Si la columna emparejada no es de ninguna pregunta de
+ *   la lista, vale la principal solo cuando el motor le leyó justo esa columna.
  */
+export function fuenteDeRespuestas(u: Unidad): PreguntaAbierta | null {
+  if (u.clase === "suelta") return esCerrada(u.principal) ? null : u.principal;
+  if (u.aporta) return esCerrada(u.aporta) ? null : u.aporta;
+  return u.principal.col_efectiva === u.columnaTexto ? u.principal : null;
+}
+
+/** Ejemplos del texto que se va a codificar. Sin una pregunta abierta que los aporte no hay ejemplos. */
 export function ejemplosDeUnidad(u: Unidad, maximo = 5): string[] {
-  const abierta = u.clase === "pareja" ? u.texto : esCerrada(u.principal) ? null : u.principal;
-  return (abierta?.preview ?? []).filter((texto) => texto.trim() !== "").slice(0, maximo);
+  return (fuenteDeRespuestas(u)?.preview ?? []).filter((texto) => texto.trim() !== "").slice(0, maximo);
+}
+
+/**
+ * Lo que le falta a la pregunta `abierta` de la unidad, en respuestas únicas. En la principal de una
+ * pareja las únicas son las del texto (las mismas que usa el motor para decidir el estado), no las de la
+ * fila de la cerrada; si no se sabe cuáles son, no se da cifra.
+ */
+function restanteDeUnidad(u: Unidad, abierta: PreguntaAbierta): string | null {
+  if (u.clase !== "pareja" || abierta !== u.principal) return restanteDeDecision(abierta);
+  const fuente = fuenteDeRespuestas(u);
+  const decision = decisionDePregunta(abierta);
+  if (!fuente || (decision !== "pendiente" && decision !== "pendiente_parcial")) return null;
+  const faltan = Math.trunc(fuente.n_unicas ?? 0) - Math.trunc(abierta.n_codificadas ?? 0);
+  if (!Number.isFinite(faltan) || faltan <= 0) return null;
+  return decision === "pendiente" ? `${faltan} por agrupar` : `${faltan} sin asignar`;
 }
 
 /** Una pareja de opción única a la que todavía no se le dijo qué variable recibe los códigos. */
@@ -198,7 +248,7 @@ export type EstadoDeUnidad = {
   detalle: string;
 };
 
-/** Una pareja de opción múltiple todavía sin decir cuál de sus opciones es "Otros". */
+/** Una pareja en la que recibe una de opción múltiple, todavía sin decir cuál de sus opciones es "Otros". */
 export function faltaOpcionOtros(u: Unidad): boolean {
   return u.clase === "pareja" && u.principal.tipo === "select_multiple" && columnaOtros(u.principal) === "";
 }
@@ -219,7 +269,7 @@ export function estadoDeUnidad(u: Unidad): EstadoDeUnidad | null {
       clave: "sin-decidir",
       rotulo: "Sin decidir",
       tono: "warn",
-      nota: restanteDeDecision(abierta) ?? presentacion?.etiqueta ?? null,
+      nota: restanteDeUnidad(u, abierta) ?? presentacion?.etiqueta ?? null,
       detalle: presentacion?.detalle ?? "",
     };
   }
@@ -246,14 +296,11 @@ export function estadoDeUnidad(u: Unidad): EstadoDeUnidad | null {
   return null;
 }
 
-/**
- * "426 respuestas, 425 únicas", o nada si la pregunta no trae respuestas de texto. En una cerrada
- * suelta no se pinta: lo que el motor le cuenta son sus propios códigos.
- */
+/** "426 respuestas, 425 únicas" del texto que se codifica, o nada si la unidad no tiene de dónde contarlo. */
 export function cifrasDeUnidad(u: Unidad): string | null {
-  const p = u.principal;
-  if (!tieneTexto(u) || !(p.n_respuestas > 0)) return null;
-  return `${formatoConteoDe(p.n_respuestas, "respuesta")}, ${formatoConteoDe(p.n_unicas, "única")}`;
+  const fuente = fuenteDeRespuestas(u);
+  if (!fuente || !(fuente.n_respuestas > 0)) return null;
+  return `${formatoConteoDe(fuente.n_respuestas, "respuesta")}, ${formatoConteoDe(fuente.n_unicas, "única")}`;
 }
 
 // ---------- Tipo de pregunta ----------
@@ -329,9 +376,25 @@ export function modoSoOptionsForDisplay(parent: string, childCol: string): Array
   ];
 }
 
-/** Qué le toca a cada lado de una pareja según el modo. Sin modo (opción múltiple) no hay nada que decir. */
-export function papelesDePareja(modo: PreguntaAbierta["modo_so"]): { cerrada: string; texto: string } | null {
-  if (modo === "padre") return { cerrada: "Se recodifica con sus opciones", texto: "Aporta categorías nuevas" };
-  if (modo === "hijo") return { cerrada: "Queda como está", texto: "Se codifica como texto aparte" };
-  return null;
+/**
+ * Qué le toca a cada pregunta de una pareja. En una de opción única lo dice el modo; en las demás, cuál
+ * recibe los códigos y cuál aporta las respuestas.
+ */
+export function papelesDePareja(principal: PreguntaAbierta): { recibe: string; aporta: string } {
+  if (principal.tipo === "select_one" && principal.modo_so === "padre") return { recibe: "Se recodifica con sus opciones", aporta: "Aporta categorías nuevas" };
+  if (principal.tipo === "select_one" && principal.modo_so === "hijo") return { recibe: "Queda como está", aporta: "Se codifica como texto aparte" };
+  return { recibe: "Recibe los códigos", aporta: "Aporta las respuestas" };
+}
+
+/** Si la pareja admite cambiar su columna de texto con el selector de columna: solo cuando recibe una cerrada. */
+export function admiteCambiarTexto(u: Unidad): boolean {
+  return u.clase === "pareja" && esCerrada(u.principal);
+}
+
+/**
+ * Cuál de las dos recibe los códigos por defecto al emparejar `origen` con `destino`. Si exactamente
+ * una es cerrada, recibe la cerrada, se arrastre en el sentido que se arrastre; si no, la de destino.
+ */
+export function recibePorDefecto(origen: PreguntaAbierta, destino: PreguntaAbierta): "origen" | "destino" {
+  return esCerrada(origen) && !esCerrada(destino) ? "origen" : "destino";
 }

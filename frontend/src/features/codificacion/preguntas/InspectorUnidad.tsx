@@ -9,6 +9,7 @@ import { tipoEnPalabras } from "../../../components/procesamiento/BloquePregunta
 import { Check, Link2, Link2Off, MousePointer2 } from "../../../vendor/lucide-react";
 import { ModoSoControl } from "./ModoSoControl";
 import {
+  admiteCambiarTexto,
   columnaOtros,
   ejemplosDeUnidad,
   faltaModo,
@@ -37,16 +38,16 @@ type Identidad = { clave: string; tipo: string; codigo: string; etiqueta: string
 function identidades(unidad: Unidad): Identidad[] {
   const p = unidad.principal;
   if (unidad.clase === "pareja") {
-    const papeles = papelesDePareja(p.modo_so);
-    const texto = unidad.texto;
+    const papeles = papelesDePareja(p);
+    const aporta = unidad.aporta;
     return [
-      { clave: p.parent, tipo: p.tipo, codigo: p.parent, etiqueta: textoPlano(p.parent_label), notas: papeles ? [papeles.cerrada] : [] },
+      { clave: p.parent, tipo: p.tipo, codigo: p.parent, etiqueta: textoPlano(p.parent_label), notas: [papeles.recibe] },
       {
-        clave: unidad.columnaTexto,
-        tipo: texto?.tipo ?? "text",
-        codigo: texto?.parent ?? unidad.columnaTexto,
-        etiqueta: texto ? textoPlano(texto.parent_label) : "",
-        notas: papeles ? [papeles.texto] : [],
+        clave: `aporta:${unidad.columnaTexto}`,
+        tipo: aporta?.tipo ?? "text",
+        codigo: aporta?.parent ?? unidad.columnaTexto,
+        etiqueta: aporta ? textoPlano(aporta.parent_label) : "",
+        notas: [papeles.aporta],
       },
     ];
   }
@@ -180,9 +181,12 @@ export function InspectorUnidad({
 
       {esPareja ? (
         <footer className="pulso-preg-insp-pie">
-          <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={() => onCambiar(unidad)}>
-            Cambiar texto
-          </PulsoButton>
+          {/* El selector de columna de texto es de una pregunta cerrada: sin ella, la pareja solo se deshace. */}
+          {admiteCambiarTexto(unidad) ? (
+            <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={() => onCambiar(unidad)}>
+              Cambiar texto
+            </PulsoButton>
+          ) : null}
           <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={() => onDesemparejar(unidad)}>
             <Link2Off size={14} aria-hidden="true" />
             Desemparejar

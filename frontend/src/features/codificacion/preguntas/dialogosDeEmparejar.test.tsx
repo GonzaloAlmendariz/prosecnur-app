@@ -86,31 +86,52 @@ describe("diálogo de cuál recibe los códigos", () => {
     conDescripcion();
   });
 
-  test("pregunta una sola cosa: dos opciones excluyentes, con la pregunta de destino recibiendo por defecto", () => {
+  const radios = () => Array.from(document.body.querySelectorAll<HTMLInputElement>('[role="radiogroup"] input[type="radio"]'));
+  const primeraOpcion = () => document.body.querySelector('[role="radiogroup"] label')?.textContent ?? "";
+
+  test("pregunta una sola cosa: dos opciones excluyentes, sin más campos", () => {
     act(() => root.render(<RelationDialog source={cerrada} target={texto} onConfirm={() => undefined} onCancel={() => undefined} />));
-    const radios = Array.from(document.body.querySelectorAll<HTMLInputElement>('[role="radiogroup"] input[type="radio"]'));
-    expect(radios.map((r) => r.checked)).toEqual([true, false]);
+    expect(radios().map((r) => r.checked)).toEqual([true, false]);
     expect(document.body.querySelectorAll('[role="dialog"] input:not([type="radio"])').length).toBe(0);
   });
 
-  test("emparejar envía lo de siempre: quien recibe, la columna de quien aporta y el modo por defecto de una única", () => {
+  test("si solo una es cerrada, por defecto recibe la cerrada, se arrastre en el sentido que se arrastre", () => {
+    // La única arrastrada sobre su texto: es el caso en que antes recibía el texto y la pareja no se veía.
+    act(() => root.render(<RelationDialog source={cerrada} target={texto} onConfirm={() => undefined} onCancel={() => undefined} />));
+    expect(primeraOpcion()).toBe("Recibe los códigosp10Sector de la empresaAporta las respuestasp10_otroOtro sector, especifique");
+    act(() => root.unmount());
+    root = createRoot(host);
+    act(() => root.render(<RelationDialog source={texto} target={cerrada} onConfirm={() => undefined} onCancel={() => undefined} />));
+    expect(radios().map((r) => r.checked)).toEqual([true, false]);
+    expect(primeraOpcion()).toBe("Recibe los códigosp10Sector de la empresaAporta las respuestasp10_otroOtro sector, especifique");
+  });
+
+  test("entre dos del mismo tipo recibe por defecto la de destino", () => {
+    const otro = pregunta("p9", "text", { parent_label: "Ocupación principal", col_efectiva: "p9" });
+    const onConfirm = vi.fn();
+    act(() => root.render(<RelationDialog source={texto} target={otro} onConfirm={onConfirm} onCancel={() => undefined} />));
+    act(() => boton("Emparejar")?.click());
+    expect(onConfirm).toHaveBeenLastCalledWith({ parent: "p9", child_col: "p10_otro" });
+  });
+
+  test("emparejar envía quien recibe, la columna de quien aporta y, si recibe una de opción única, su modo por defecto", () => {
     const onConfirm = vi.fn();
     act(() => root.render(<RelationDialog source={cerrada} target={texto} onConfirm={onConfirm} onCancel={() => undefined} />));
     act(() => boton("Emparejar")?.click());
-    // Por defecto recibe el destino (el texto): no es de opción única, así que no lleva modo.
-    expect(onConfirm).toHaveBeenLastCalledWith({ parent: "p10_otro", child_col: "p10" });
-    const radios = Array.from(document.body.querySelectorAll<HTMLInputElement>('[role="radiogroup"] input[type="radio"]'));
-    act(() => radios[1].click());
-    act(() => boton("Emparejar")?.click());
     expect(onConfirm).toHaveBeenLastCalledWith({ parent: "p10", child_col: "p10_otro", modo_so: "padre" });
+    act(() => radios()[1].click());
+    act(() => boton("Emparejar")?.click());
+    // Recibe el texto: no es de opción única, así que no lleva modo.
+    expect(onConfirm).toHaveBeenLastCalledWith({ parent: "p10_otro", child_col: "p10" });
   });
 
-  test("si quien recibe no es una cerrada lo avisa en una frase, con su causa", () => {
+  test("si se elige que reciba el texto, avisa de la consecuencia: se codifica con las respuestas de la otra", () => {
     act(() => root.render(<RelationDialog source={cerrada} target={texto} onConfirm={() => undefined} onCancel={() => undefined} />));
-    expect(document.body.querySelector('[role="note"]')?.textContent).toContain("p10_otro no es una pregunta cerrada");
-    const radios = Array.from(document.body.querySelectorAll<HTMLInputElement>('[role="radiogroup"] input[type="radio"]'));
-    act(() => radios[1].click());
     expect(document.body.querySelector('[role="note"]')).toBeNull();
+    act(() => radios()[1].click());
+    expect(document.body.querySelector('[role="note"]')?.textContent).toBe(
+      "p10_otro es una pregunta de texto: si recibe los códigos, se codifica con las respuestas de p10 y deja de leerse su propio texto.",
+    );
   });
 });
 

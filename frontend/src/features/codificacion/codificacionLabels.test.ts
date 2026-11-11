@@ -69,6 +69,23 @@ describe("la cola en inglés de una etiqueta de opción", () => {
     expect(cleanCodificacionLabel("Apoyo a familiares")).toBe("Apoyo a familiares");
   });
 
+  test("limpia también una etiqueta corta", () => {
+    expect(cleanCodificacionLabel("Otros Other")).toBe("Otros");
+    expect(cleanCodificacionLabel("Otro Other")).toBe("Otro");
+    expect(cleanCodificacionLabel("Ninguno None")).toBe("Ninguno");
+    // Con menos de tres caracteres antes de la cola no se toca: no hay parte en castellano que conservar.
+    expect(cleanCodificacionLabel("Ir How")).toBe("Ir How");
+    // Una etiqueta corta en castellano, sin cola en inglés, queda igual.
+    expect(cleanCodificacionLabel("Otros")).toBe("Otros");
+    expect(cleanCodificacionLabel("Este Otro")).toBe("Este Otro");
+  });
+
+  test("una letra de categoría no se toma por el artículo inglés en una etiqueta corta", () => {
+    expect(cleanCodificacionLabel("Zona A norte")).toBe("Zona A norte");
+    expect(cleanCodificacionLabel("Grupo A y B")).toBe("Grupo A y B");
+    expect(cleanCodificacionLabel("Tipo A")).toBe("Tipo A");
+  });
+
   test("sigue quitando la cola cuando empieza en mayúscula", () => {
     expect(cleanCodificacionLabel("Un familiar o amigo A relative or friend")).toBe("Un familiar o amigo");
     expect(cleanCodificacionLabel("Ninguna de las anteriores None of the above")).toBe("Ninguna de las anteriores");

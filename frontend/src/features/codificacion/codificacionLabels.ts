@@ -57,7 +57,11 @@ function splitBilingualLabel(value: string): string {
   for (const token of ENGLISH_BOUNDARIES) {
     const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const match = value.match(new RegExp(`\\s+${escaped}\\b`));
-    if (match?.index && match.index >= 6) {
+    // La parte en castellano puede ser corta ("Otro Other", "Otros Other"): bastan tres caracteres antes de la
+    // cola. Los artículos "A" y "An" piden seis, como antes: con menos, "Zona A norte" o "Grupo A y B"
+    // quedarían en "Zona" y "Grupo".
+    const minimo = token === "A " || token === "An " ? 6 : 3;
+    if (match?.index && match.index >= minimo) {
       const left = normalizeSpaces(value.slice(0, match.index));
       if (left.length >= 3) return left;
     }

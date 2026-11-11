@@ -5,7 +5,7 @@ import { FichaPregunta } from "../../components/procesamiento/FichaPregunta";
 import { PulsoButton } from "../../components/PulsoButton";
 import { textoPlano } from "../../lib/textoPlano";
 import { Link2, X } from "../../vendor/lucide-react";
-import { esCerrada, tipoDeFicha } from "./preguntas/modeloUnidades";
+import { esCerrada, recibePorDefecto, tipoDeFicha } from "./preguntas/modeloUnidades";
 
 // Emparejar dos preguntas cuando no se sabe cuál recibe los códigos.
 //
@@ -39,8 +39,11 @@ export function RelationDialog({
   onConfirm: (result: RelationResult) => void;
   onCancel: () => void;
 }) {
-  // `target` es la pregunta sobre la que se soltó (o la que se eligió): por defecto recibe los códigos.
-  const [sentido, setSentido] = useState<Sentido>("recibe-destino");
+  // Por defecto recibe la cerrada si solo una lo es, se haya arrastrado en el sentido que sea; si no,
+  // la pregunta sobre la que se soltó (o la que se eligió). Que reciba una de texto es posible, pero
+  // entonces el motor le lee a esa pregunta la columna de la otra.
+  const porDefecto: Sentido = recibePorDefecto(source, target) === "origen" ? "recibe-origen" : "recibe-destino";
+  const [sentido, setSentido] = useState<Sentido>(porDefecto);
   const grupo = useId();
 
   const recibe = sentido === "recibe-destino" ? target : source;
@@ -55,10 +58,10 @@ export function RelationDialog({
     onConfirm(resultado);
   }
 
-  const opciones: Array<{ valor: Sentido; recibe: PreguntaAbierta; aporta: PreguntaAbierta }> = [
-    { valor: "recibe-destino", recibe: target, aporta: source },
-    { valor: "recibe-origen", recibe: source, aporta: target },
-  ];
+  const recibeDestino = { valor: "recibe-destino" as Sentido, recibe: target, aporta: source };
+  const recibeOrigen = { valor: "recibe-origen" as Sentido, recibe: source, aporta: target };
+  // La opción por defecto va primero.
+  const opciones = porDefecto === "recibe-origen" ? [recibeOrigen, recibeDestino] : [recibeDestino, recibeOrigen];
 
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) onCancel(); }}>
@@ -101,10 +104,16 @@ export function RelationDialog({
             ))}
           </div>
 
-          {esCerrada(recibe) ? null : (
+          {/* La consecuencia que no se ve: qué columna lee el motor para la pregunta que recibe. */}
+          {recibe.tipo === "text" ? (
             <p className="pulso-preg-sentido-nota" role="note">
-              {recibe.parent} no es una pregunta cerrada: la pareja se guarda y {recibe.parent} se sigue codificando
-              como pregunta abierta.
+              {recibe.parent} es una pregunta de texto: si recibe los códigos, se codifica con las respuestas de{" "}
+              {aporta.parent} y deja de leerse su propio texto.
+            </p>
+          ) : esCerrada(recibe) ? null : (
+            <p className="pulso-preg-sentido-nota" role="note">
+              {recibe.parent} no es una pregunta cerrada: la pareja se guarda, pero {recibe.parent} se sigue codificando
+              con sus propios valores.
             </p>
           )}
 

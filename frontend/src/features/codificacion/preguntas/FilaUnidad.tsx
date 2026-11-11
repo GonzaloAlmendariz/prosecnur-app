@@ -30,7 +30,8 @@ function bloqueDe(p: PreguntaAbierta) {
 }
 
 /**
- * Una unidad de la lista. Una pareja son dos bloques con el nodo de enlace en medio; una abierta sin
+ * Una unidad de la lista. Una pareja son dos bloques con el nodo de enlace en medio (a la izquierda la
+ * pregunta que recibe los códigos, a la derecha la que aporta las respuestas); una abierta sin
  * pareja, un bloque a todo el ancho con el nodo punteado al final; una cerrada sin texto, su bloque a
  * la izquierda y el nodo punteado a continuación. A la derecha, en su columna, el estado.
  *
@@ -77,8 +78,8 @@ export function FilaUnidad({ unidad, seleccionada, tabulable, ocupada, reciente,
               <BloquePregunta {...bloqueDe(unidad.principal)} />
               <span className="pulso-sr-only">emparejada con</span>
               <LazoUnidad forma="unido" reciente={reciente} />
-              {unidad.texto ? (
-                <BloquePregunta {...bloqueDe(unidad.texto)} detalle={cifras} />
+              {unidad.aporta ? (
+                <BloquePregunta {...bloqueDe(unidad.aporta)} detalle={cifras} />
               ) : (
                 <BloquePregunta tipo="texto" etiqueta={unidad.columnaTexto} detalle={cifras} />
               )}

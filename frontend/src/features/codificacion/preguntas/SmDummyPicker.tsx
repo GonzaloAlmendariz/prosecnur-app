@@ -9,6 +9,7 @@ import type { OpcionSM, PreguntaAbierta } from "../../../api/codificacion";
 import { EstadoChip } from "../../../components/EstadoChip";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Check } from "../../../vendor/lucide-react";
+import { cleanCodificacionLabel } from "../codificacionLabels";
 
 export function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: {
   padre: PreguntaAbierta;
@@ -62,7 +63,9 @@ export function SmDummyPicker({ padre, opciones, busy, selectedCol, onSelect }: 
                   {isSelected ? <Check size={11} /> : null}
                 </span>
                 <code className="pulso-preg-otros-codigo">{o.codigo}</code>
-                <span className="pulso-preg-otros-texto">{o.label}</span>
+                {/* El formulario puede traer el rótulo en dos idiomas ("Otros Other"): se lee limpio y el
+                    texto completo queda en el title. */}
+                <span className="pulso-preg-otros-texto" title={o.label}>{cleanCodificacionLabel(o.label) || o.label}</span>
                 {sugerida ? <EstadoChip label="Sugerida" tone="info" detail={'El formulario la rotula como "Otros".'} /> : null}
               </button>
             </li>

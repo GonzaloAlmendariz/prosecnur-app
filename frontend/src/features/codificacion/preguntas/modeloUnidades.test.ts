@@ -5,6 +5,7 @@ import {
   armarUnidades,
   cifrasDeUnidad,
   contarFiltros,
+  admiteCambiarTexto,
   destinoDeArrastre,
   ejemplosDeUnidad,
   estadoDeUnidad,
@@ -14,6 +15,8 @@ import {
   filtroVigente,
   formaDeUnidad,
   papelesDePareja,
+  preguntasDeUnidad,
+  recibePorDefecto,
   seccionesVisibles,
   selectorDeEmparejar,
   tieneTexto,
@@ -35,25 +38,132 @@ describe("armarUnidades", () => {
   it("un texto que ya es de una pareja no hace fila propia: va dentro de la unidad de su pregunta", () => {
     expect(unidades.map((u) => u.id)).toEqual(["p3", "D1", "p10", "p9", "p10_otro", "p11", "p30"]);
     expect(una("p3")).toMatchObject({ clase: "pareja", columnaTexto: "p3_otro" });
-    expect(una("p3").cerrada?.parent).toBe("p3");
-    expect(una("p3").texto?.parent).toBe("p3_otro");
+    expect(una("p3").principal.parent).toBe("p3");
+    expect(una("p3").aporta?.parent).toBe("p3_otro");
   });
 
   it("una pareja cuya columna de texto no está en la lista conserva la columna y queda sin pregunta de texto", () => {
-    expect(una("D1")).toMatchObject({ clase: "pareja", columnaTexto: "D1_otro", texto: null });
+    expect(una("D1")).toMatchObject({ clase: "pareja", columnaTexto: "D1_otro", aporta: null });
   });
 
-  it("una suelta ocupa un solo lado: las cerradas a la izquierda, el texto y la numérica a la derecha", () => {
-    expect(una("p10")).toMatchObject({ clase: "suelta", texto: null, columnaTexto: "" });
-    expect(una("p10").cerrada?.parent).toBe("p10");
-    expect(una("p9").cerrada).toBeNull();
-    expect(una("p9").texto?.parent).toBe("p9");
-    expect(una("p11").cerrada).toBeNull();
+  it("una suelta es una sola pregunta, sin columna emparejada ni pregunta que le aporte", () => {
+    for (const id of ["p10", "p9", "p11", "p30"]) {
+      expect(una(id), id).toMatchObject({ clase: "suelta", aporta: null, columnaTexto: "" });
+      expect(preguntasDeUnidad(una(id)).map((p) => p.parent)).toEqual([id]);
+    }
   });
 
   it("desemparejar devuelve el texto a su propia fila", () => {
     const sinPareja = FORMULARIO.map((p) => (p.parent === "p3" ? { ...p, pareja: null, marcada_auto: false } : p));
     expect(armarUnidades(sinPareja).map((u) => u.id)).toContain("p3_otro");
+  });
+});
+
+// Lo que devuelve el motor tras emparejar (api/R/router_codificacion.R, POST y GET de pareja): solo cambia
+// la fila de la pregunta que RECIBE los códigos. Esa fila pasa a traer `pareja.child_col`, queda incluida
+// de oficio y, si es de texto, el motor le lee la columna de la otra (`col_efectiva` es la de la pareja,
+// y sus cifras y ejemplos salen de ahí). La fila de la que aporta no cambia.
+describe("toda pareja guardada es una unidad y ninguna pregunta se pierde", () => {
+  const recibe = (p: ReturnType<typeof pregunta>, columna: string, extra: Parameters<typeof pregunta>[2] = {}) => ({
+    ...p,
+    ...extra,
+    marcada: true,
+    marcada_auto: true,
+    pareja: { child_col: columna, modo_so: p.modo_so, dummy_col: "" },
+  });
+  const unica = pregunta("transport", "select_one", { q_order: 1, parent_col: "transport" });
+  const textoSuyo = pregunta("transport_other", "text", { q_order: 2, col_efectiva: "transport_other", n_respuestas: 31, n_unicas: 20, preview: ["mototaxi"] });
+  const otroTexto = pregunta("improve", "text", { q_order: 3, col_efectiva: "improve", preview: ["más personal"] });
+  const numerica = pregunta("age", "integer", { q_order: 4, parent_col: "age", col_efectiva: "age" });
+  const suelta = pregunta("timing", "select_one", { q_order: 5 });
+
+  /** Las preguntas representadas en las unidades de "Todas". */
+  const representadas = (todas: ReturnType<typeof pregunta>[]) => {
+    const us = armarUnidades(todas);
+    return { unidades: us, vistas: [...new Set(us.flatMap((u) => preguntasDeUnidad(u).map((p) => p.parent)))].sort() };
+  };
+  const nombres = (todas: ReturnType<typeof pregunta>[]) => todas.map((p) => p.parent).sort();
+
+  it("un texto recibe a una cerrada (lo que pasaba al arrastrar la única sobre su texto): una unidad con las dos", () => {
+    // El motor guarda la pareja en la fila del texto y le lee la columna de la cerrada.
+    const todas = [unica, recibe(textoSuyo, "transport", { col_efectiva: "transport", preview: ["1", "2"] }), otroTexto, suelta];
+    const { unidades: us, vistas } = representadas(todas);
+    expect(vistas).toEqual(nombres(todas));
+    expect(us.map((u) => `${u.id}:${u.clase}`)).toEqual(["transport_other:pareja", "improve:suelta", "timing:suelta"]);
+    const pareja = us[0];
+    expect(pareja.principal.parent).toBe("transport_other");
+    expect(pareja.aporta?.parent).toBe("transport");
+    // La cerrada ya no aparece además como "Pregunta suelta".
+    expect(us.some((u) => u.id === "transport")).toBe(false);
+    // Lo que aporta una cerrada son códigos: ni cifra de respuestas ni ejemplos.
+    expect(cifrasDeUnidad(pareja)).toBeNull();
+    expect(ejemplosDeUnidad(pareja)).toEqual([]);
+    // Se puede desemparejar, pero no cambiar su texto con el selector de columna de una cerrada.
+    expect(unidadEnFiltro(pareja, "con-texto")).toBe(true);
+    expect(admiteCambiarTexto(pareja)).toBe(false);
+  });
+
+  it("una cerrada recibe a su texto: una unidad con las dos", () => {
+    const todas = [recibe(unica, "transport_other", { modo_so: "padre" }), textoSuyo, otroTexto, suelta];
+    const { unidades: us, vistas } = representadas(todas);
+    expect(vistas).toEqual(nombres(todas));
+    expect(us.map((u) => `${u.id}:${u.clase}`)).toEqual(["transport:pareja", "improve:suelta", "timing:suelta"]);
+    expect(us[0].aporta?.parent).toBe("transport_other");
+    expect(ejemplosDeUnidad(us[0])).toEqual(["mototaxi"]);
+    expect(admiteCambiarTexto(us[0])).toBe(true);
+  });
+
+  it("dos textos: la que aporta va dentro de la unidad de la que recibe", () => {
+    const todas = [unica, textoSuyo, recibe(otroTexto, "transport_other", { col_efectiva: "transport_other" }), suelta];
+    const { unidades: us, vistas } = representadas(todas);
+    expect(vistas).toEqual(nombres(todas));
+    expect(us.map((u) => `${u.id}:${u.clase}`)).toEqual(["transport:suelta", "improve:pareja", "timing:suelta"]);
+    expect(us[1].aporta?.parent).toBe("transport_other");
+  });
+
+  it("una numérica con una cerrada, en los dos sentidos", () => {
+    const cerradaRecibe = [recibe(unica, "age", { modo_so: "padre" }), textoSuyo, numerica];
+    expect(representadas(cerradaRecibe).vistas).toEqual(nombres(cerradaRecibe));
+    expect(armarUnidades(cerradaRecibe).map((u) => `${u.id}:${u.clase}:${u.aporta?.parent ?? ""}`)).toEqual(["transport:pareja:age", "transport_other:suelta:"]);
+    const numericaRecibe = [unica, textoSuyo, recibe(numerica, "transport")];
+    expect(representadas(numericaRecibe).vistas).toEqual(nombres(numericaRecibe));
+    expect(armarUnidades(numericaRecibe).map((u) => `${u.id}:${u.clase}:${u.aporta?.parent ?? ""}`)).toEqual(["transport_other:suelta:", "age:pareja:transport"]);
+  });
+
+  it("una pareja cuya columna no es de ninguna pregunta de la lista conserva la columna", () => {
+    const todas = [recibe(unica, "transport_txt_libre", { modo_so: "padre" }), textoSuyo];
+    const { unidades: us, vistas } = representadas(todas);
+    expect(vistas).toEqual(nombres(todas));
+    expect(us[0]).toMatchObject({ clase: "pareja", aporta: null, columnaTexto: "transport_txt_libre" });
+    expect(us[1]).toMatchObject({ id: "transport_other", clase: "suelta" });
+  });
+
+  it("casos límite: una pregunta que apunta a su propia columna va suelta, y una que aporta y además recibe conserva su fila", () => {
+    const aSiMisma = [recibe(textoSuyo, "transport_other"), unica];
+    expect(armarUnidades(aSiMisma).map((u) => `${u.id}:${u.clase}`)).toEqual(["transport:suelta", "transport_other:suelta"]);
+    expect(representadas(aSiMisma).vistas).toEqual(nombres(aSiMisma));
+    const cadena = [recibe(unica, "transport_other", { modo_so: "padre" }), recibe(textoSuyo, "improve", { col_efectiva: "improve" }), otroTexto];
+    expect(armarUnidades(cadena).map((u) => `${u.id}:${u.aporta?.parent ?? ""}`)).toEqual(["transport:transport_other", "transport_other:improve"]);
+    expect(representadas(cadena).vistas).toEqual(nombres(cadena));
+  });
+
+  it("el formulario de prueba completo también cumple el invariante", () => {
+    expect(representadas(FORMULARIO).vistas).toEqual(nombres(FORMULARIO));
+  });
+});
+
+describe("quién recibe los códigos por defecto", () => {
+  const unica = pregunta("transport", "select_one");
+  const texto = pregunta("transport_other", "text");
+  it("si exactamente una es cerrada, recibe la cerrada, se arrastre en el sentido que se arrastre", () => {
+    expect(recibePorDefecto(unica, texto)).toBe("origen");
+    expect(recibePorDefecto(texto, unica)).toBe("destino");
+    expect(recibePorDefecto(unica, pregunta("age", "integer"))).toBe("origen");
+  });
+
+  it("si las dos son cerradas o ninguna lo es, recibe la de destino", () => {
+    expect(recibePorDefecto(texto, pregunta("improve", "text"))).toBe("destino");
+    expect(recibePorDefecto(unica, pregunta("timing", "select_multiple"))).toBe("destino");
   });
 });
 
@@ -122,9 +232,34 @@ describe("estado de la unidad", () => {
     expect(estadoDeUnidad(una("p30"))).toMatchObject({ clave: "desactivada" });
   });
 
-  it("sin decidir dice cuánto falta", () => {
+  it("sin decidir dice cuánto falta, contado sobre el texto que se codifica", () => {
     expect(estadoDeUnidad(una("p9"))?.nota).toBe("27 sin asignar");
-    expect(estadoDeUnidad(una("D1"))?.nota).toBe("12 por agrupar");
+    // En la fila de una cerrada emparejada el motor cuenta las únicas de la CERRADA (códigos): lo que
+    // falta se cuenta con las únicas de su texto.
+    const pareja = armarUnidades([
+      pregunta("reason_edp", "select_multiple", {
+        col_efectiva: "reason_edp", n_respuestas: 426, n_unicas: 28, n_codificadas: 40, marcada: true, marcada_auto: true, status: "en-curso",
+        pareja: { child_col: "reason_edp_other", modo_so: "", dummy_col: "reason_edp/96" },
+      }),
+      pregunta("reason_edp_other", "text", { col_efectiva: "reason_edp_other", n_respuestas: 72, n_unicas: 67 }),
+    ])[0];
+    expect(estadoDeUnidad(pareja)?.nota).toBe("27 sin asignar");
+    expect(cifrasDeUnidad(pareja)).toBe("72 respuestas, 67 únicas");
+  });
+
+  it("si la columna emparejada no es de ninguna pregunta y la cerrada no la lee, no se da cifra", () => {
+    // D1 es múltiple: el motor le cuenta su propia columna, no D1_otro, que no está en la lista.
+    expect(estadoDeUnidad(una("D1"))?.nota).toBe("Sin categorías");
+    expect(cifrasDeUnidad(una("D1"))).toBeNull();
+    // Una única que codifica el texto aparte sí lee esa columna: sus cifras valen.
+    const aparte = armarUnidades([
+      pregunta("p5", "select_one", {
+        modo_so: "hijo", col_efectiva: "p5_otro", n_respuestas: 9, n_unicas: 7, n_codificadas: 2, marcada: true, marcada_auto: true, status: "en-curso",
+        pareja: { child_col: "p5_otro", modo_so: "hijo", dummy_col: "" },
+      }),
+    ])[0];
+    expect(cifrasDeUnidad(aparte)).toBe("9 respuestas, 7 únicas");
+    expect(estadoDeUnidad(aparte)?.nota).toBe("5 sin asignar");
   });
 
   it("una suelta que nadie pidió codificar no tiene estado que mostrar", () => {
@@ -241,9 +376,10 @@ describe("presentación", () => {
     expect(larga.endsWith("…")).toBe(true);
   });
 
-  it("los papeles de la pareja dependen del modo, y sin modo no se dice nada", () => {
-    expect(papelesDePareja("padre")).toEqual({ cerrada: "Se recodifica con sus opciones", texto: "Aporta categorías nuevas" });
-    expect(papelesDePareja("hijo")).toEqual({ cerrada: "Queda como está", texto: "Se codifica como texto aparte" });
-    expect(papelesDePareja("")).toBeNull();
+  it("los papeles de la pareja: en una de opción única los dice el modo; en las demás, quién recibe y quién aporta", () => {
+    expect(papelesDePareja(pregunta("p3", "select_one", { modo_so: "padre" }))).toEqual({ recibe: "Se recodifica con sus opciones", aporta: "Aporta categorías nuevas" });
+    expect(papelesDePareja(pregunta("p3", "select_one", { modo_so: "hijo" }))).toEqual({ recibe: "Queda como está", aporta: "Se codifica como texto aparte" });
+    expect(papelesDePareja(pregunta("D1", "select_multiple"))).toEqual({ recibe: "Recibe los códigos", aporta: "Aporta las respuestas" });
+    expect(papelesDePareja(pregunta("p9", "text"))).toEqual({ recibe: "Recibe los códigos", aporta: "Aporta las respuestas" });
   });
 });

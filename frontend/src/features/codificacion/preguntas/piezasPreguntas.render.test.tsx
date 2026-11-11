@@ -300,9 +300,45 @@ describe("inspector de la unidad", () => {
       expect(html).not.toContain("<li>2 96</li>");
     });
 
+    it("el rótulo de una opción en dos idiomas se lee limpio, con el texto completo en el title", () => {
+      const bilingue = inspector(
+        armarUnidades([
+          pregunta("D1", "select_multiple", {
+            pareja: { child_col: "D1_otro", modo_so: "", dummy_col: "" },
+            opciones_sm: [{ codigo: "96", label: "Otro motivo Other reason", col_dummy: "D1/96", existe_en_data: true, es_otros_sugerido: true }],
+          }),
+        ])[0],
+      );
+      expect(bilingue).toContain('<span class="pulso-preg-otros-texto" title="Otro motivo Other reason">Otro motivo</span>');
+    });
+
     it("una opción sin columna en la base no se puede elegir", () => {
       expect(con("")).toMatch(/<button[^>]*disabled=""[^>]*title="Esta opción no puede marcarse con la base actual"[^>]*>(?:(?!<\/button>).)*Sin columna/s);
     });
+  });
+
+  it("una pareja en la que recibe un texto se ve entera y se puede desemparejar, sin el selector de columna de una cerrada", () => {
+    // Lo que devuelve el motor cuando el texto recibe a la cerrada: la pareja va en la fila del texto.
+    const recibeTexto = armarUnidades([
+      pregunta("transport", "select_one", { parent_label: "Medio de transporte" }),
+      pregunta("transport_other", "text", {
+        parent_label: "Otro medio", col_efectiva: "transport", marcada: true, marcada_auto: true, preview: ["1", "2"],
+        pareja: { child_col: "transport", modo_so: "", dummy_col: "" },
+      }),
+    ]);
+    expect(recibeTexto.map((u) => u.id)).toEqual(["transport_other"]);
+    const html = inspector(recibeTexto[0]);
+    expect(html).toContain("Pregunta emparejada");
+    expect(html).toContain("<span>Texto</span><span>Recibe los códigos</span>");
+    expect(html).toContain("<span>Única</span><span>Aporta las respuestas</span>");
+    expect(html).toContain("Desemparejar");
+    expect(html).not.toContain("Cambiar texto");
+    expect(html).not.toContain("Ejemplos de respuestas");
+    const filaHtml = fila(lista({ secciones: seccionesVisibles(recibeTexto, "todas", "") }), "transport_other");
+    expect(filaHtml).toContain('data-forma="pareja"');
+    expect(bloques(filaHtml)).toBe(2);
+    expect(filaHtml).toMatch(/data-tipo="texto".*data-tipo="unica"/s);
+    expect(filaHtml).not.toContain("pulso-bloque-pregunta-detalle");
   });
 
   it("una pareja de opción única sin modo lo pide antes de los ejemplos y sin ninguna opción marcada", () => {
