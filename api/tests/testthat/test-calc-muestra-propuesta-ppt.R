@@ -87,6 +87,8 @@ test_that("el PPT trae portada, cinco tipos de lámina y contraportada al final"
     t <- officer::slide_summary(officer::on_slide(doc, i))$text
     paste(t[!is.na(t)], collapse = " ")
   }, "")
+  # Es población, no respuestas: ningún gráfico dice "N respuestas" (revisión 2026-11-11).
+  expect_false(any(grepl("respuestas", orden, fixed = TRUE)))
   # Los gráficos van juntos tras la tabla de población, de dos en dos.
   expect_match(orden[4], "POBLACIÓN Y DOCENTES", fixed = TRUE)
   expect_match(orden[4], "Docentes por condición y categoría", fixed = TRUE)

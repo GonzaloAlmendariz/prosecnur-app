@@ -28,7 +28,15 @@
 
 .cmg_grafico <- function(fuente, n_categorias) {
   var <- paste0(fuente, "$segmento")
-  if (n_categorias > .CMG_MAX_VERTICALES) p_barras_agrupadas(var) else p_barras_categoricas(var, formato_valor = "porcentaje_n")
+  # Sin la pista gris hasta el 100 % detrás de cada barra (revisión de Gonzalo, 2026-11-11: "quita la barra extra").
+  el <- if (n_categorias > .CMG_MAX_VERTICALES) p_barras_agrupadas(var, overrides = list(pista_barras = "nunca"))
+        else p_barras_categoricas(var, formato_valor = "porcentaje_n", overrides = list(pista_barras = "nunca"))
+  # La nota propia del gráfico diría "Base: N respuestas", y aquí no hay respuestas: es la población. La lámina
+  # declara su pie ("Población: ...") y el gráfico no lleva nota.
+  el$overrides$nota_pie <- ""
+  # Ni el "N respuestas" bajo el título de cada panel (lamina_mixtas.R, D3): la población va en el pie.
+  el$overrides$mostrar_publico <- FALSE
+  el
 }
 
 #' Láminas de gráfico de la propuesta: la población por público y la de cada público por sus segmentos de cruce,
