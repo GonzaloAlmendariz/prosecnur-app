@@ -126,6 +126,10 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
       df[[paste0("Meta ", nombres[k])]] <- .cmp_fmt_n(c(n, sum(n)))
       num[[nombres[k]]] <- n
     }
+    # De mayor a menor población, como el gráfico del público (pedido de Gonzalo, 2026-11-11); el total al final.
+    ord <- order(-N_seg)
+    df <- df[c(ord, nrow(df)), , drop = FALSE]; rownames(df) <- NULL
+    num <- num[ord, , drop = FALSE]; rownames(num) <- NULL
     segmentos[[publicos[i]]] <- df
     segmentos_num[[publicos[i]]] <- num
     # Qué segmentos subieron al mínimo, para decirlo en la lámina del actor.
