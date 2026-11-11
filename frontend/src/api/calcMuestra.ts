@@ -5168,6 +5168,32 @@ export async function apiCalcMuestraSolicitudDtiExportar(payload: {
   return normalizeCalcMuestraArchivoExportado(raw, "la solicitud para DTI");
 }
 
+/** Un escenario de la propuesta: su nombre y la meta de cada actor (por id de componente). */
+export type CalcMuestraPropuestaEscenario = { nombre: string; metas: Record<string, number> };
+
+export type CalcMuestraPropuestaPayload = {
+  formato: "pptx" | "xlsx";
+  escenarios: CalcMuestraPropuestaEscenario[];
+  incluir_portada: boolean;
+  incluir_diseno: boolean;
+  solicitante?: string;
+};
+
+/**
+ * PPT o Excel de escenarios de la propuesta, armado por el motor con los actores del estudio
+ * (`/api/calc-muestra/propuesta/exportar`); mismo patrón de descarga que /solicitud-dti.
+ */
+export async function apiCalcMuestraPropuestaExportar(payload: CalcMuestraPropuestaPayload): Promise<CalcMuestraArchivoExportado> {
+  const raw = await handle<unknown>(
+    await apiFetch("/api/calc-muestra/propuesta/exportar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  return normalizeCalcMuestraArchivoExportado(raw, payload.formato === "pptx" ? "la propuesta en PPT" : "los escenarios en Excel");
+}
+
 // ----------------------------------------------------------------------------
 // Inicialización por tipo de estudio (reemplaza los antiguos presets).
 //

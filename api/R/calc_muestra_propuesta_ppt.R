@@ -315,7 +315,9 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   # Portada y diseño muestral son opcionales: cuando las láminas se insertan en una propuesta completa, sobran
   # (Gonzalo las quitó en su revisión del 2026-11-11).
   con_portada <- !isFALSE(propuesta$incluir_portada)
-  plan <- c(if (con_portada) list(p_slide_portada(as.character(propuesta$titulo %||% "Diseño muestral")[1],
+  titulo_portada <- as.character(propuesta$titulo %||% "")[1]
+  if (is.na(titulo_portada) || !nzchar(trimws(titulo_portada))) titulo_portada <- "Diseño muestral"
+  plan <- c(if (con_portada) list(p_slide_portada(titulo_portada,
                                  subtitulo = as.character(propuesta$subtitulo %||% "Propuesta técnica: diseño muestral")[1],
                                  fecha = propuesta$fecha %||% NULL, subtexto = propuesta$solicitante %||% NULL)),
             lapply(graf$laminas, `[[`, "slide"), list(p_slide_cierre()))

@@ -1,0 +1,38 @@
+/* Acreditación › Resultados › Propuesta (PropuestaEscenarios.tsx). Solo tokens del tema. */
+.cmg-propuesta {
+  display: grid;
+  gap: 14px;
+}
+.cmg-propuesta-titulo {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.cmg-propuesta-vacio {
+  margin: 0;
+  color: var(--pulso-text-muted);
+}
+.cmg-propuesta-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+.cmg-propuesta-solicitante {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+.cmg-propuesta-solicitante > span {
+  white-space: nowrap;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+}
+.cmg-propuesta-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

@@ -43,7 +43,8 @@ calc_muestra_propuesta_desde_estudio <- function(estudio, marcos, body) {
     }))
   }
   list(
-    titulo = calc_str(estudio$titulo, "Diseño muestral"),
+    # Un estudio sin nombre en la Ficha llega con titulo "": la portada no admite título vacío.
+    titulo = if (nzchar(calc_str(estudio$titulo, ""))) calc_str(estudio$titulo, "") else "Diseño muestral",
     subtitulo = "Propuesta técnica: diseño muestral",
     fecha = calc_str(body$fecha, format(Sys.Date(), "%d/%m/%Y")),
     solicitante = if (nzchar(calc_str(body$solicitante, ""))) calc_str(body$solicitante, "") else NULL,

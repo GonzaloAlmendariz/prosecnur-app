@@ -8,6 +8,7 @@ import { ContextoReporte } from "./ContextoReporte";
 import { EncabezadoSeccion } from "./EncabezadoSeccion";
 import { FichaEstudio } from "./FichaEstudio";
 import { pestanaPorDefectoActor } from "./modeloPestanas";
+import { PropuestaEscenarios } from "./PropuestaEscenarios";
 import { ResultadosComponentes } from "./ResultadosComponentes";
 import { hayResultado } from "./secciones";
 import { SalidaReporte, type ReporteEstudio } from "./SalidaReporte";
@@ -128,6 +129,7 @@ export function MesaAcreditacion({
             data-qa-geometry-contract="intrinsic"
           >
             <ResultadosComponentes modo="acreditacion" componentes={estudio.componentes} calculando={calculando} onCalcular={calcular} />
+            <PropuestaEscenarios componentes={estudio.componentes} />
             <Panel className="cmg-salida-acreditacion" aria-label="Reporte del diseño" data-qa-geometry-member>
               <SalidaReporte reporte={reporte} />
             </Panel>

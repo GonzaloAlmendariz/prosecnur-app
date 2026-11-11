@@ -43,6 +43,14 @@ test_that("flujo HTTP: la propuesta sale en PPT y en Excel con las metas de cada
   expect_match(textos[1], "Condición y categoría: Contratado TPA", fixed = TRUE)
   expect_true(any(grepl("METAS POR SEGMENTO: DOCENTES", textos, fixed = TRUE)))
 
+  # Con portada y un estudio sin nombre en la Ficha: la portada usa "Diseño muestral" (antes fallaba con
+  # E_REPORTE_PLAN_SPEC, visto en la app el 2026-11-11).
+  con_portada <- cuerpo("pptx"); con_portada$incluir_portada <- TRUE
+  pp <- http_post_json(srv, "/api/calc-muestra/propuesta/exportar", body = con_portada, sid = sid)
+  expect_identical(pp$status, 200L)
+  portada <- officer::slide_summary(officer::on_slide(officer::read_pptx(bajar(pp, ".pptx")), 1))$text
+  expect_true(any(grepl("Diseño muestral", portada, fixed = TRUE)))
+
   xl <- http_post_json(srv, "/api/calc-muestra/propuesta/exportar", body = cuerpo("xlsx"), sid = sid)
   expect_identical(xl$status, 200L)
   res <- openxlsx::read.xlsx(bajar(xl, ".xlsx"), sheet = "Resumen", rows = 5:8)
