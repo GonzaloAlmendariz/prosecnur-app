@@ -3,17 +3,22 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const pageSource = fs.readFileSync(path.join(__dirname, "CargaPage.tsx"), "utf8");
+const mesaSource = fs.readFileSync(path.join(__dirname, "pestanas", "MesaDeCarga.tsx"), "utf8");
+const modeloSource = fs.readFileSync(path.join(__dirname, "pestanas", "useModeloCarga.ts"), "utf8");
+const hojaSource = fs.readFileSync(path.join(__dirname, "pestanas", "HojaBaseCarga.tsx"), "utf8");
 
 describe("Carga workspace integration semantics", () => {
   it("mounts the dedicated five-destination navigation instead of a local tablist", () => {
-    expect(pageSource).toContain('from "./CargaWorkspaceNavigation"');
-    expect(pageSource).toContain("<CargaWorkspaceNavigation");
-    expect(pageSource).toContain("onChange={goCargaWorkspaceTab}");
+    // La mesa monta el riel y el panel; la página le entrega el cambio de pestaña.
+    expect(mesaSource).toContain('from "../CargaWorkspaceNavigation"');
+    expect(mesaSource).toContain("<CargaWorkspaceNavigation");
+    expect(mesaSource).toContain("onChange={onCambiar}");
+    expect(pageSource).toContain("onCambiar={goCargaWorkspaceTab}");
     expect(pageSource).not.toContain("function CargaWorkspaceSidebar");
     expect(pageSource).not.toContain('type CargaWorkspaceTab = "insumos" | "base"');
-    expect(pageSource).toContain('role="tabpanel"');
-    expect(pageSource).toContain(
-      "aria-labelledby={cargaWorkspaceTabId(activeCargaTab)}",
+    expect(mesaSource).toContain('role="tabpanel"');
+    expect(mesaSource).toContain(
+      "aria-labelledby={cargaWorkspaceTabId(activa)}",
     );
   });
 
@@ -36,14 +41,14 @@ describe("Carga workspace integration semantics", () => {
   });
 
   it("does not claim readiness from files owned by another module", () => {
-    expect(pageSource).toContain(
+    expect(modeloSource).toContain(
       "const hasXlsform = !!state?.xlsform && !!state.instrumento_parsed",
     );
-    expect(pageSource).toContain(
+    expect(modeloSource).toContain(
       "const hasData = !!state?.data && !!state.data_previewed",
     );
     expect(pageSource).toContain("if (!state?.instrumento_parsed || !state?.data_previewed)");
-    expect(pageSource).toContain('titulo="Aún no hay datos de Carga para explorar"');
+    expect(hojaSource).toContain('titulo="Aún no hay datos de Carga para explorar"');
   });
 
   it("publishes a stable QA readiness marker only after the session, bases and Revisión load", () => {
@@ -53,7 +58,7 @@ describe("Carga workspace integration semantics", () => {
     expect(pageSource).toMatch(
       /auditReady=\{\s*\(isMultiBase && !estudio\) \|\| \(activeCargaTab === "revision" && !revisionEstado\.completa\)\s*\? "false"\s*: marcaReadinessCarga\(hidratacion, activeCargaTab\) \|\| "false"\s*\}/u,
     );
-    expect(pageSource).toContain("hayEstadoSesion: state !== null");
-    expect(pageSource).toContain('{!isMultiBase && hidratacion.fase === "lista" && (');
+    expect(modeloSource).toContain("hayEstadoSesion: state !== null");
+    expect(pageSource).toContain('(!isMultiBase && hidratacion.fase === "lista")');
   });
 });

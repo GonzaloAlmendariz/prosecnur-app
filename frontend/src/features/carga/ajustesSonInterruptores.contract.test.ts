@@ -27,7 +27,7 @@ const CASILLAS_PERMITIDAS: Record<string, number> = {
 // Ajustes que quedan puestos: cada rótulo vive junto a un `<Switch`.
 const INTERRUPTORES: Array<[string, string]> = [
   ["./CargaUniverseFilter.tsx", "Usar una variable real/prueba"],
-  ["./CargaPage.tsx", "Incluir respuestas parciales"],
+  ["./pestanas/PanelPlataforma.tsx", "Incluir respuestas parciales"],
   ["./independiente/SmDecisionSuite.tsx", "Mostrar solo casos observados"],
   ["./independiente/SmDecisionSuite.tsx", "Mostrar solo respuestas casi completas"],
   ["./independiente/SmDecisionSuite.tsx", "Rescatar parciales con avance suficiente"],
@@ -39,6 +39,15 @@ const INTERRUPTORES: Array<[string, string]> = [
 describe("Carga: ajustes con interruptor, selección con casilla", () => {
   it.each(Object.entries(CASILLAS_PERMITIDAS))("%s no suma casillas fuera de la selección", (archivo, n) => {
     expect(casillas(leer(archivo))).toBe(n);
+  });
+
+  it("lo que salió de CargaPage a pestanas/ tampoco suma casillas", () => {
+    const dir = fileURLToPath(new URL("./pestanas/", import.meta.url));
+    const archivos = fs.readdirSync(dir).filter((f) => /\.tsx?$/u.test(f) && !/\.test\./u.test(f));
+    expect(archivos.length).toBeGreaterThan(10);
+    for (const f of archivos) {
+      expect(casillas(fs.readFileSync(dir + f, "utf8")), f).toBe(0);
+    }
   });
 
   it.each(INTERRUPTORES)('%s: "%s" es un interruptor', (archivo, rotulo) => {

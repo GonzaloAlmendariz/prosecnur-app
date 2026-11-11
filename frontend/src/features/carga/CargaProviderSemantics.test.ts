@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 describe("Carga provider selector semantics", () => {
   it("exposes SurveyMonkey and Kobo as a keyboard-operable radio group", () => {
     const source = fs.readFileSync(
-      path.join(__dirname, "CargaPage.tsx"),
+      path.join(__dirname, "pestanas", "PanelPlataforma.tsx"),
       "utf8",
     );
     const anchor = source.indexOf('aria-label="Proveedor"');

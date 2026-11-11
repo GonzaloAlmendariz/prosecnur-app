@@ -2,10 +2,17 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const source = fs.readFileSync(
-  fileURLToPath(new URL("./CargaPage.tsx", import.meta.url)),
-  "utf8",
-);
+const leer = (rel: string) => fs.readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+const pageSource = leer("./CargaPage.tsx");
+const panelSource = leer("./pestanas/PanelMonitoreoCarga.tsx");
+// La página y todo lo que sacó a pestanas/: ningún efecto de montaje consulta Monitoreo.
+const pestanasDir = fileURLToPath(new URL("./pestanas/", import.meta.url));
+const source = [
+  pageSource,
+  ...fs.readdirSync(pestanasDir)
+    .filter((f) => /\.tsx?$/u.test(f) && !/\.test\./u.test(f))
+    .map((f) => leer(`./pestanas/${f}`)),
+].join("\n");
 const componentSource = fs.readFileSync(
   fileURLToPath(new URL("./CargaMonitoringDiscovery.tsx", import.meta.url)),
   "utf8",
@@ -30,9 +37,12 @@ describe("descubrimiento consentido de Monitoreo", () => {
   });
 
   it("expone una acción explícita antes de montar el intake de Monitoreo", () => {
-    const consent = source.indexOf("Revisar Monitoreo");
-    const intake = source.indexOf("<ProcessingIntakePanel");
-    const batch = source.indexOf("<AcreditacionBatchPanel");
+    // La página fija el rótulo de la acción; el panel monta el descubrimiento
+    // antes que el intake y el corte de acreditación.
+    expect(pageSource).toContain('monitoringReviewActionLabel = "Revisar Monitoreo"');
+    const consent = panelSource.indexOf("<CargaMonitoringDiscovery");
+    const intake = panelSource.indexOf("<ProcessingIntakePanel");
+    const batch = panelSource.indexOf("<AcreditacionBatchPanel");
 
     expect(consent).toBeGreaterThan(-1);
     expect(intake).toBeGreaterThan(consent);

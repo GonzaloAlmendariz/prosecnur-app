@@ -10,17 +10,33 @@ const pageSource = fs.readFileSync(
   fileURLToPath(new URL("./CargaPage.tsx", import.meta.url)),
   "utf8",
 );
+const modeloSource = fs.readFileSync(
+  fileURLToPath(new URL("./pestanas/useModeloCarga.ts", import.meta.url)),
+  "utf8",
+);
+const variasSource = fs.readFileSync(
+  fileURLToPath(new URL("./pestanas/FuentesVariasBases.tsx", import.meta.url)),
+  "utf8",
+);
+const unaSource = fs.readFileSync(
+  fileURLToPath(new URL("./pestanas/FuentesUnaBase.tsx", import.meta.url)),
+  "utf8",
+);
+const importSource = fs.readFileSync(
+  fileURLToPath(new URL("./pestanas/usePlataformaCarga.tsx", import.meta.url)),
+  "utf8",
+);
 const platformSource = fs.readFileSync(
   fileURLToPath(new URL("./CargaPlatformImportPanel.tsx", import.meta.url)),
   "utf8",
 );
 
-function componentOpeningTag(component: string): string {
-  const start = pageSource.indexOf(`<${component}`);
-  const end = pageSource.indexOf(">", start);
+function componentOpeningTag(fuente: string, component: string): string {
+  const start = fuente.indexOf(`<${component}`);
+  const end = fuente.indexOf(">", start);
   expect(start).toBeGreaterThan(-1);
   expect(end).toBeGreaterThan(start);
-  return pageSource.slice(start, end);
+  return fuente.slice(start, end);
 }
 
 describe("estrategia de Plan dentro de Fuentes", () => {
@@ -36,12 +52,12 @@ describe("estrategia de Plan dentro de Fuentes", () => {
   });
 
   it("no cuenta archivos legacy sueltos como entradas de un plan multibase", () => {
-    const start = pageSource.indexOf("const materializedInputCount");
-    const end = pageSource.indexOf("const reviewHasIssues", start);
+    const start = modeloSource.indexOf("const materializedInputCount");
+    const end = modeloSource.indexOf("return {", start);
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    const countContract = pageSource.slice(start, end);
+    const countContract = modeloSource.slice(start, end);
     expect(countContract).toContain('topologyResolution.mode === "multi"');
     expect(countContract).toMatch(/topologyResolution\.mode\s*===\s*"multi"\s*\?\s*0/u);
   });
@@ -59,10 +75,10 @@ describe("estrategia de Plan dentro de Fuentes", () => {
   });
 
   it("propaga plannedInputCount a las superficies multibase y de plataforma", () => {
-    expect(componentOpeningTag("BasesPanel")).toContain(
+    expect(componentOpeningTag(variasSource, "BasesPanel")).toContain(
       "plannedInputCount={plannedInputCount}",
     );
-    expect(componentOpeningTag("CargaPlatformImportPanel")).toContain(
+    expect(componentOpeningTag(unaSource, "CargaPlatformImportPanel")).toContain(
       "plannedInputCount={plannedInputCount}",
     );
     expect(platformSource).toContain("plannedInputCount");
@@ -89,15 +105,14 @@ describe("estrategia de Plan dentro de Fuentes", () => {
     // Antes Plataforma bloqueaba este caso y mandaba a Manual (sólo archivos): no había cómo traer las encuestas de
     // SurveyMonkey de un estudio de acreditación (Arte y Diseño, 2026-10-11). Ahora el catálogo se muestra y el import
     // va por `import-separate` con un nombre corto por actor.
-    const start = pageSource.indexOf('{sourceMode === "platform" && sourceStrategy === "separate"');
-    const end = pageSource.indexOf('{(sourceMode === "files"', start);
-    expect(start).toBeGreaterThan(-1);
-    const separatePlatform = pageSource.slice(start, end);
-    expect(separatePlatform).toContain("plannedInputCount");
-    expect(separatePlatform).toContain("{platformPanel}");
+    // Con "Bases separadas" Fuentes es la lista de bases del estudio: el catálogo
+    // de plataforma entra como origen de "Agregar base" y como catálogo de la
+    // fuente que se suma a una base.
+    expect(variasSource).toContain("renderCatalogo={() => panelPlataforma}");
+    expect(variasSource).toMatch(/renderOrigen=\{\(o\) => \(o === "surveymonkey" \|\| o === "kobo" \? panelPlataforma/u);
     // L5b: el import va por el importador único (job en el store, cancelable).
-    expect(pageSource).toContain('importsPlataforma.lanzar("surveymonkey", "separada"');
-    expect(pageSource).toContain('importsPlataforma.lanzar("kobo", "separada"');
-    expect(pageSource).toMatch(/sourceStrategy === "separate"\) \{\s*const baseName = nombreLibreDeBase\(nombreCortoDeEncuesta/);
+    expect(importSource).toContain('importsPlataforma.lanzar("surveymonkey", "separada"');
+    expect(importSource).toContain('importsPlataforma.lanzar("kobo", "separada"');
+    expect(importSource).toMatch(/estrategia === "separate"\) \{\s*const baseName = nombreLibreDeBase\(nombreCortoDeEncuesta/);
   });
 });

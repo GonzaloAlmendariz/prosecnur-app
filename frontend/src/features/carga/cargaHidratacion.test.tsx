@@ -147,12 +147,15 @@ describe("CargaHidratando — sin estado falso", () => {
 });
 
 describe("Fuentes — Contrato de Superficie", () => {
-  test("C1: ambas ramas declaran el grupo intrínseco y C4 trae su CSS de scroll único", async () => {
+  test("C1: Fuentes declara el grupo intrínseco una sola vez y C4 trae su CSS de scroll único", async () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
     const page = fs.readFileSync(path.join(__dirname, "CargaPage.tsx"), "utf8");
+    const fuentes = fs.readFileSync(path.join(__dirname, "pestanas", "PestanaFuentes.tsx"), "utf8");
     const css = fs.readFileSync(path.join(__dirname, "carga-scroll-corto.css"), "utf8");
-    expect(page.match(/data-qa-geometry-group="carga\/fuentes" data-qa-geometry-contract="intrinsic"/g)).toHaveLength(2);
+    // Una sola pestaña Fuentes para una base y para varias: el grupo se declara en ella.
+    expect(fuentes.match(/data-qa-geometry-group="carga\/fuentes" data-qa-geometry-contract="intrinsic"/g)).toHaveLength(1);
+    expect(page.match(/data-qa-geometry-group="carga\/fuentes"/g) ?? []).toHaveLength(0);
     expect(page).toContain('import "./carga-scroll-corto.css";');
     expect(css).toMatch(/\.pulso-page-frame-body > \.pulso-carga-workbench--multibase \{\s*flex: 0 0 auto;\s*height: auto;/u);
   });

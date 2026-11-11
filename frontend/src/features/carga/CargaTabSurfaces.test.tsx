@@ -10,7 +10,10 @@ function readSibling(name: string) {
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
 }
 
-const pageSource = readSibling("./CargaPage.tsx");
+const planPestana = readSibling("./pestanas/PestanaPlan.tsx");
+const revisionPestana = readSibling("./pestanas/PestanaRevision.tsx");
+const estructuraPestana = readSibling("./pestanas/PestanaEstructura.tsx");
+const hojaBase = readSibling("./pestanas/HojaBaseCarga.tsx");
 const planSource = readSibling("./CargaPlanOverview.tsx");
 const reviewSource = readSibling("./CargaReviewSummary.tsx");
 const structureSource = readSibling("./CargaStructureWorkbench.tsx");
@@ -27,8 +30,8 @@ const emptyTopology = resolveCargaTopology({
 
 describe("superficies conceptuales de Carga", () => {
   it("separa en Plan la decisión de topología de la cobertura de bases", () => {
-    expect(pageSource.includes('from "./CargaPlanOverview"')).toBe(true);
-    expect(pageSource.includes("<CargaPlanOverview")).toBe(true);
+    expect(planPestana.includes('from "../CargaPlanOverview"')).toBe(true);
+    expect(planPestana.includes("<CargaPlanOverview")).toBe(true);
     expect(planSource.includes('data-carga-surface="plan"')).toBe(true);
     expect(planSource.includes('data-carga-plan-region="topology"')).toBe(true);
     expect(planSource.includes('data-carga-plan-region="coverage"')).toBe(true);
@@ -98,15 +101,15 @@ describe("superficies conceptuales de Carga", () => {
   });
 
   it("usa en Revisión un resumen compacto en lugar del tablero completo de Plan", () => {
-    expect(pageSource.includes('from "./CargaReviewSummary"')).toBe(true);
-    expect(pageSource.includes("<CargaReviewSummary")).toBe(true);
+    expect(revisionPestana.includes('from "../CargaReviewSummary"')).toBe(true);
+    expect(revisionPestana.includes("<CargaReviewSummary")).toBe(true);
     expect(reviewSource.includes('data-carga-surface="review"')).toBe(true);
     expect(reviewSource.includes("CargaReadinessBoard")).toBe(false);
   });
 
   it("presenta Secciones y Preguntas como vistas excluyentes y accesibles", () => {
-    expect(pageSource.includes('from "./CargaStructureWorkbench"')).toBe(true);
-    expect(pageSource.includes("<CargaStructureWorkbench")).toBe(true);
+    expect(estructuraPestana.includes('from "../CargaStructureWorkbench"')).toBe(true);
+    expect(estructuraPestana.includes("<CargaStructureWorkbench")).toBe(true);
     expect(structureSource.includes('data-carga-surface="structure"')).toBe(true);
     expect(structureSource.includes('role="tablist"')).toBe(true);
     expect(structureSource.includes('aria-label="Vista del instrumento"')).toBe(true);
@@ -120,7 +123,7 @@ describe("superficies conceptuales de Carga", () => {
   it("omite el selector redundante con una base y lo conserva con varias", () => {
     expect(
       /baseOptions\.length\s*>\s*1\s*&&\s*\([\s\S]{0,500}?pulso-carga-base-picker/u.test(
-        pageSource,
+        hojaBase,
       ),
     ).toBe(true);
   });

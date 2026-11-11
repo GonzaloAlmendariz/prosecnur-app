@@ -3,25 +3,37 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = fs.readFileSync(path.join(__dirname, "CargaPage.tsx"), "utf8");
+const leer = (archivo: string) => fs.readFileSync(path.join(__dirname, "pestanas", archivo), "utf8");
+const modelo = leer("useModeloCarga.ts");
+const revisionPestana = leer("PestanaRevision.tsx");
+const datosPestana = leer("HojaBaseCarga.tsx");
+const pestanasTodas = fs.readdirSync(path.join(__dirname, "pestanas"))
+  .filter((archivo) => /\.tsx?$/u.test(archivo) && !/\.test\./u.test(archivo))
+  .map(leer)
+  .join("\n");
 
-function sourceBetween(start: string, end: string): string {
-  const startIndex = source.indexOf(start);
-  const endIndex = source.indexOf(end, startIndex + start.length);
+function sourceBetween(start: string, end: string, desde: string = source): string {
+  const startIndex = desde.indexOf(start);
+  const endIndex = desde.indexOf(end, startIndex + start.length);
 
   expect(startIndex, `No se encontró el inicio del contrato: ${start}`).toBeGreaterThanOrEqual(0);
   expect(endIndex, `No se encontró el fin del contrato: ${end}`).toBeGreaterThan(startIndex);
-  return source.slice(startIndex, endIndex);
+  return desde.slice(startIndex, endIndex);
 }
 
 describe("CargaPage truthfulness contracts", () => {
   it("calcula la cobertura del rail con bases primarias y no con repeats derivados", () => {
+    // El modelo (conteos y cobertura) vive en useModeloCarga; el contexto del
+    // rail, en la página.
     const coverage = sourceBetween(
       "const cargaBaseOptions",
       "const cargaBaseSignature",
+      modelo,
     );
     const readiness = sourceBetween(
       "const workspaceAllReady",
       "const topologyHasStudy",
+      modelo,
     );
     const workspaceContext = sourceBetween(
       "const workspaceContext",
@@ -50,24 +62,20 @@ describe("CargaPage truthfulness contracts", () => {
       'activeCargaTab === "plan" ? (',
       ') : activeCargaTab === "fuentes" ? (',
     );
-    const review = sourceBetween(
-      ') : activeCargaTab === "revision" ? (',
-      ') : activeCargaTab === "estructura" ? (',
-    );
 
     expect.soft(plan).toMatch(
-      /<CargaPlanOverview[\s\S]*?bases=\{topologyBases\}/,
+      /<PestanaPlan[\s\S]*?bases=\{isMultiBase \? topologyBases : \[\]\}/,
     );
-    expect.soft(review).toMatch(
-      /<CargaReviewSummary[\s\S]*?bases=\{topologyBases\.length\}/,
+    expect.soft(source).toMatch(
+      /<PestanaRevision[\s\S]*?basesPrimarias=\{topologyBases\.map\(/,
+    );
+    expect.soft(revisionPestana).toMatch(
+      /<CargaReviewSummary[\s\S]*?bases=\{basesPrimarias\.length\}/,
     );
   });
 
   it("no habilita Datos si la base multibase seleccionada carece de respuestas", () => {
-    const dataPane = sourceBetween(
-      "function CargaBaseSheetPane",
-      "function cargaBaseLabel",
-    );
+    const dataPane = datosPestana;
 
     expect.soft(dataPane).toMatch(
       /const activeBaseHasData = Boolean\(activeBase\?\.data_file_id\)/,
@@ -78,6 +86,6 @@ describe("CargaPage truthfulness contracts", () => {
   });
 
   it("no renderiza la franja CargaSuiteBar en ningún branch de Carga", () => {
-    expect(source.match(/<CargaSuiteBar\b/g) ?? []).toHaveLength(0);
+    expect((source + pestanasTodas).match(/<CargaSuiteBar\b/g) ?? []).toHaveLength(0);
   });
 });

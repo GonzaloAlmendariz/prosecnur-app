@@ -2,10 +2,10 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const source = fs.readFileSync(
-  fileURLToPath(new URL("./CargaPage.tsx", import.meta.url)),
-  "utf8",
-);
+const leer = (rel: string) => fs.readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+const source = leer("./CargaPage.tsx");
+const pestanaPlan = leer("./pestanas/PestanaPlan.tsx");
+const modelo = leer("./pestanas/useModeloCarga.ts");
 
 /**
  * El medidor de preparación ya no existe.
@@ -32,23 +32,21 @@ describe("medidor de preparación de Carga", () => {
     expect(source).not.toContain("<MultiBaseToggle");
     expect(source).not.toContain("function MultiBaseToggle(");
 
-    const planBranches = source.split('activeCargaTab === "plan"').slice(1);
-    expect(planBranches).toHaveLength(2);
-    for (const branch of planBranches) {
-      expect(branch).toContain("<CargaPlanOverview");
-      expect(branch).toMatch(/<CargaPlanOverview[\s\S]{0,500}?topology=/u);
-      expect(branch).toMatch(/<CargaTopologyDecision[\s\S]{0,500}?resolution=/u);
-    }
-
-    expect(source.match(/<CargaTopologyDecision\b/gu)).toHaveLength(2);
+    // Una sola pestaña Plan para las dos organizaciones (una base y varias).
+    expect(source.split('activeCargaTab === "plan"')).toHaveLength(2);
+    expect(source).toContain("<PestanaPlan");
+    expect(pestanaPlan).toMatch(/<CargaPlanOverview[\s\S]{0,500}?topology=/u);
+    expect(pestanaPlan).toMatch(/<CargaTopologyDecision[\s\S]{0,500}?resolution=/u);
+    expect(pestanaPlan.match(/<CargaTopologyDecision\b/gu)).toHaveLength(1);
+    expect(source.match(/<CargaTopologyDecision\b/gu) ?? []).toHaveLength(0);
   });
 
   it("declara las hermanas sugeridas por Acreditación sin materializarlas desde Plan", () => {
-    const resolverStart = source.indexOf(
+    const resolverStart = modelo.indexOf(
       "const topologyResolution = resolveCargaTopology({",
     );
-    const resolverEnd = source.indexOf("});", resolverStart);
-    const wiring = source.slice(Math.max(0, resolverStart - 1_600), resolverEnd + 3);
+    const resolverEnd = modelo.indexOf("});", resolverStart);
+    const wiring = modelo.slice(Math.max(0, resolverStart - 1_600), resolverEnd + 3);
 
     expect(resolverStart).toBeGreaterThan(-1);
     expect(wiring).toContain("declaredStrategy:");

@@ -1,0 +1,294 @@
+{
+  "hidratando_error-de-estudio": {
+    "marcado": "1ce069029b3a1aee1fc4b64ee30b03850db58e54794b65b5654d055d176d733f",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "hidratando_error-de-sesion": {
+    "marcado": "ee005b52c7069576a29064ee1d692413c9c21782b8973d71514ebb7d93e9a093",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "hidratando_estudio-en-vuelo_plan": {
+    "marcado": "7846229aa14fd9c9fc9fdd3cb3daa1c76a3e5047232b802a1d35eef8600ce6f4",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "hidratando_estudio-en-vuelo_revision": {
+    "marcado": "ce0826669291c266726457a40c4de81983cc49040c650eb6c426d093101ceb1e",
+    "pedidos": "d6c7987f7904e9dc37c115d29436bda92a53f1f2bc5d90f743d0f9279431a62e"
+  },
+  "hidratando_sin-sesion_fuentes": {
+    "marcado": "2232c384bf8c47cac081e513f7778d4b26f0cb249b808ce1314915f01be76d1e",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "hidratando_sin-sesion_plan": {
+    "marcado": "b4ed35db4a891f550448cb85f1526f00e135f119397a4d60d4bd93be6077963d",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "navegacion_una-base_ida-y-vuelta": {
+    "marcado": "f192b510b68c10d4e27641bc9c61d5c0218c836032f78297a3aef39bf61d2085",
+    "pedidos": "e20a61432db9d4d6b49a6b290e6e83019d6fb957f75fa2b99eaf1ec3a5a5490b"
+  },
+  "navegacion_varias_recorrido": {
+    "marcado": "098ec3f4ceecb136e8809c4b880b947a19bb97c0ac23c351d47b321cdd83b8a6",
+    "pedidos": "6cd90dffd966c7133f5f67a8f3732a318e11f4bece596700cd4369ef5e48e62d"
+  },
+  "una-base_con-insumos_datos": {
+    "marcado": "13b7f7df5ea06bbe0e0f4d74fb384b8de60707381d3c2ea5830b1310ed792269",
+    "pedidos": "939a3f771ad723c31252c0f32b1394eca2f1a5e559999b7e5f1901c65ea1f250"
+  },
+  "una-base_con-insumos_equivalencias": {
+    "marcado": "2bd06e5e92da04a8a556819cd4b4893f02a3850c159720b4a1876397a2d0b85e",
+    "pedidos": "d3fc042df1b05936739430839319c8af3a9ac67e0f9a5ba7ef6ac9e2d11332c3"
+  },
+  "una-base_con-insumos_estructura": {
+    "marcado": "4a220cc789d7d79bc90b621e61b014a505789e3a4ab28140790119b50a0a42d9",
+    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+  },
+  "una-base_con-insumos_fuentes": {
+    "marcado": "381ff16fcf2040e8baa00d1b95e2bb29d08dc1f81aeaa78053966d06341487db",
+    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+  },
+  "una-base_con-insumos_plan": {
+    "marcado": "2a3bc71ce3fce3b6ee74742b97422f64ea1e62cc425479ca350cef5a3b934971",
+    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+  },
+  "una-base_con-insumos_revision": {
+    "marcado": "d51c74f775f9f1095d7a671f850215103236055a3b4f752eab84419ffeae0bd6",
+    "pedidos": "dcfff690f09f91dffe5bedf03c93e611c3b798e113158cf5de308c45663e0b41"
+  },
+  "una-base_fuentes_formulario-subido": {
+    "marcado": "d4dd3568b8dad9d9df7fcb25d752597b36aa374c7cb851adf85a25f428576814",
+    "pedidos": "ca245a5cc8261f4065306aec1839a1fb9978f966d22b0dee7bcac4894f7ed14b"
+  },
+  "una-base_fuentes_monitoreo": {
+    "marcado": "005465891e69ddced8bda8d11ae086941162ecb216456c279270209db643b598",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_fuentes_monitoreo-acreditacion": {
+    "marcado": "1f2545c56c6cf999061b1eed17879534fca34e840491c96e9569ceb40318e55b",
+    "pedidos": "c5664a0b4101dfd4a8bafd6f1b5ee5a2992ad351b84a5842703402c2fa218383"
+  },
+  "una-base_fuentes_monitoreo-telefonico-sin-formulario": {
+    "marcado": "c9282acc8adf463296bf378f406cbac5d5146ad93607914fd6a8c88bae0350a4",
+    "pedidos": "4823e35533ef4bf7087c2cc336687e2ce51a22aa2e1bd1fbea9ac52dfd380c78"
+  },
+  "una-base_fuentes_monitoreo-territorial-listo": {
+    "marcado": "079c134db4cc6e620e0d40ddee47c30fe62fd314da8738c1d92f6e64f8b32107",
+    "pedidos": "9600bcdcfca1bb4cd620501b46699f34edef2ae3d94fd8909d180c0e0baaeefd"
+  },
+  "una-base_fuentes_monitoreo-territorial-trayendo": {
+    "marcado": "6c13ddba529ce89b7f09766b77b45c6a2a5eabdd3c3888ecdfad07461748a973",
+    "pedidos": "99af83328211f764a264370f702a275c45308c8224fc4e208b88470e707945eb"
+  },
+  "una-base_fuentes_plan-de-varias-bases": {
+    "marcado": "70831509ca232a7e6b9915f5e5aefb12e04a4aca59ddb4c0ce9be0bac4f9214c",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_fuentes_plataforma": {
+    "marcado": "4ed3804d41ba2d2ebc35aa76b627892e03a84310686311f8cf7b11abd54c9a8e",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_fuentes_plataforma-catalogo-kobo": {
+    "marcado": "59af3e5488ecbe154a1c5b5950410314e7af0cfd0a26ddef841b2dde78421a5e",
+    "pedidos": "c8e84157e8368340a5c6d1915c71de092b5c2d1240bd66fa048c2f4ce023f59b"
+  },
+  "una-base_fuentes_plataforma-catalogo-sm": {
+    "marcado": "8bf9714854125bfdee7f50ce6441f73e7d6838b4a19b258481f723c194075f28",
+    "pedidos": "abdcfe73b042a2611541c5369432e88138c60998c3046f520fcac6f213547f3d"
+  },
+  "una-base_fuentes_plataforma-importando": {
+    "marcado": "68810bb916188c18582186d47bcc141dc80e6a6f4e9cf63e5c5fe97598f6a187",
+    "pedidos": "76335000be078d6a138fb5e4b60b85053be1f5201b0e47eb6e0178513ecc46a4"
+  },
+  "una-base_fuentes_plataforma-sin-conexion": {
+    "marcado": "21a4dc06cc5cc3df52ee184a7c016cdba63a0c68e0ccd8ea74e9f24dd498018c",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_fuentes_respuestas-sin-formulario": {
+    "marcado": "e2e361bd83118c3e341f191611fe9ebae13e09bdbf99188cc2432fc2435f0935",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_fuentes_respuestas-subidas": {
+    "marcado": "5b430463c7e55dad7f4a7759158c26542646f9455f0085427b40c2295f362d1d",
+    "pedidos": "b25966d32574f79eff0be9f537c3e33ea111550631582e51700b0f81305eb36b"
+  },
+  "una-base_fuentes_subiendo-formulario": {
+    "marcado": "2ef9936806a0d19ca0bbe112047fab8c9ca4c4dd990b780e87514624491a5fc6",
+    "pedidos": "8bf56cc546911335a888b2dddf1894f1d0709a653a3dfd484687be39bcf17b63"
+  },
+  "una-base_plan_plan-de-varias-bases": {
+    "marcado": "b74c3163306bc1c2fdb6693287dc745eb70ced9a68c9994a24692ee12101291e",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_revision_con-pendientes": {
+    "marcado": "04e7427cd7a86d804c8e75db4c65bbac78e08906c97bc676defad42767d3db8c",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_revision_dialogo-de-extras": {
+    "marcado": "fab6fe1a3b690572edb0847aaf4098fe8b41e739c157e69fa7815222fc761c90",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_revision_dialogo-de-mapeo": {
+    "marcado": "fab6fe1a3b690572edb0847aaf4098fe8b41e739c157e69fa7815222fc761c90",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_revision_lista": {
+    "marcado": "4b0df02e7f0ef25db0c27b36d382d148e67d015a0ab258256e8e30d585315549",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_sin-archivos_datos": {
+    "marcado": "20b7db2f14fdac07b87f8599b10b31fb85592cf67d11f82b38cf70ac576c8b41",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_sin-archivos_equivalencias": {
+    "marcado": "4ba96e16f840dd966aaa0cd27bcb85f51446008ac6a494ab1b8891b52e39aff6",
+    "pedidos": "3276d059ab88ce7a3e2cd354f7b8f1c4dc6e5b105544cb03f5d942fd9b34fe72"
+  },
+  "una-base_sin-archivos_estructura": {
+    "marcado": "cf58f79a09db20adc2de18aaac4a69c57843a2f7eab2634092c427f1543416e5",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_sin-archivos_fuentes": {
+    "marcado": "c690352f5feb663ea30d12e9063886c2d262f5e02a91898779c18abbb6d9d0ab",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_sin-archivos_plan": {
+    "marcado": "10dd30949b00746839dd2a12dad45e46c1888e42a0467789c5e8ba0b7456818c",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_sin-archivos_revision": {
+    "marcado": "76af16fdbd7dd581ce48212c60dafaa451d1e7bf7b6189908eaf7b4fd0ef0099",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "varias_independientes_fuentes": {
+    "marcado": "e47839aa23523f48668bf89750ec95ba33136c6920cecd231a36303703e0f5cc",
+    "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
+  },
+  "varias_integradas_datos": {
+    "marcado": "206d59fa9b66196a8710539c30aea5e86adaad41e11c7d6808e6fbe31adcf185",
+    "pedidos": "8ecf30efd419753e09ac7da66d2ea9148a4debf9d61584af978128c03518a0a7"
+  },
+  "varias_integradas_equivalencias": {
+    "marcado": "6b06f09b2f0373d27190bd141885f4944874cdd561698d99e72f6f816dff84e6",
+    "pedidos": "9f7e304beee6c6f6bd5b82b136826d2ac6d0102755780e193e695b95c9766f3a"
+  },
+  "varias_integradas_estructura": {
+    "marcado": "c7b0eefdce9d263c250641eab1c6eac49cd35634d022b99f085fb57a5da9e905",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_integradas_fuentes": {
+    "marcado": "6530eb75bebdd0421b476bb65f4c879655b3a1937656608bb94334352588c520",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_integradas_fuentes_monitoreo": {
+    "marcado": "e4694d5798fc3781552e75fab58e11cc4824b44ae86f2420d452aa3563009711",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_integradas_fuentes_monitoreo-acreditacion": {
+    "marcado": "79375fb7650d9adcd1008e8c6ed1d20a9bac5a5ecde83823258fc098b8555483",
+    "pedidos": "554373f946f00ea2685b48aab79ccc1da693cc1419048a2a85b4979f2ee5a8f8"
+  },
+  "varias_integradas_fuentes_plataforma": {
+    "marcado": "608a154ddb90a53b27aff8757d0609f1564c124afb4c24bc83b6f5c2bd78b79b",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_integradas_plan": {
+    "marcado": "6df8f38e2f80a1100b5a7cf2f1c41f04cd5f782657c89e2a6c51ff0eb64eb396",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_integradas_revision": {
+    "marcado": "e88789d5a18d77dae438d18aade94430bae769656d71460415b3eaf3f2963a8d",
+    "pedidos": "7d5ff1f31a097521bafe4b7b7dfa39547784f10a47a43005a03b88faa790c508"
+  },
+  "varias_separadas_datos": {
+    "marcado": "7f32820a8334a0153bd3f8df7df682166912f11466322adf3b4299f79943b350",
+    "pedidos": "fb829e998bb75f5835f9c9a8b2a23062a32f81fba9c11c65336e6ccacb8cca3e"
+  },
+  "varias_separadas_datos_base-sin-respuestas": {
+    "marcado": "c5dea12426211cad5a3be8202c2d1d31cd417336893e3ec353cd4f9a0b92f19c",
+    "pedidos": "ce5dccb47d6adc4c8d1e30d26bebd8adab0fb3be39f4f3f5d283db32d359024b"
+  },
+  "varias_separadas_datos_con-selector": {
+    "marcado": "7f32820a8334a0153bd3f8df7df682166912f11466322adf3b4299f79943b350",
+    "pedidos": "fb829e998bb75f5835f9c9a8b2a23062a32f81fba9c11c65336e6ccacb8cca3e"
+  },
+  "varias_separadas_equivalencias": {
+    "marcado": "0bcc6e84fc03c61621b07a021afc197fc715046c2e311200a64c794c51d4b991",
+    "pedidos": "7fa0652c05e6b66496db76d34094e4888a7168db2124ffe68f1d3a75322b8943"
+  },
+  "varias_separadas_estructura": {
+    "marcado": "662f625aa6467665b0c05f9e6e6494535c1526a9b1bb14b4e4c22f82fb87bbd2",
+    "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
+  },
+  "varias_separadas_fuentes": {
+    "marcado": "feeca355a355c7250a0ab717278d502f3c64b7f43055896bc808c59f5fe3645a",
+    "pedidos": "a55638e5ce44a9abd3764bb1db6b8936686a4bc55f8bc505e969606ee00f5753"
+  },
+  "varias_separadas_fuentes_agregar-archivos": {
+    "marcado": "ee0a57dd490943bd453dc405ac6378b09a12d49d89ae60230c827c1c9c6f9e72",
+    "pedidos": "a55638e5ce44a9abd3764bb1db6b8936686a4bc55f8bc505e969606ee00f5753"
+  },
+  "varias_separadas_fuentes_agregar-kobo": {
+    "marcado": "515ccab8bb6ad59649a507a8fc42774d6758f7ffb621c40a15df0e165b2fa600",
+    "pedidos": "a55638e5ce44a9abd3764bb1db6b8936686a4bc55f8bc505e969606ee00f5753"
+  },
+  "varias_separadas_fuentes_agregar-monitoreo": {
+    "marcado": "7b077a8b30ec6effbe6c9372caf5417ab70acdd9e9748ea44c8f3fd8cfd34c1a",
+    "pedidos": "a55638e5ce44a9abd3764bb1db6b8936686a4bc55f8bc505e969606ee00f5753"
+  },
+  "varias_separadas_fuentes_agregar-sav": {
+    "marcado": "014ca71cf5b55a73843cf3c1a178f59f1e1ff2bd2685b0e94438df2c18dd2613",
+    "pedidos": "a55638e5ce44a9abd3764bb1db6b8936686a4bc55f8bc505e969606ee00f5753"
+  },
+  "varias_separadas_fuentes_agregar-surveymonkey": {
+    "marcado": "4bbfb940019c674dcdfb6fc633239a9f2e106ee1afcf0a7fb1daf8490f4d007c",
+    "pedidos": "a55638e5ce44a9abd3764bb1db6b8936686a4bc55f8bc505e969606ee00f5753"
+  },
+  "varias_separadas_fuentes_importando": {
+    "marcado": "48357c2cac4e8202380a9b6ccfbbfb80cc229251393c16c0d30b895c9946ab68",
+    "pedidos": "b786ea07321335d56b93669f62f157ba32792101f9bef76c230a6093eed4f8cb"
+  },
+  "varias_separadas_plan": {
+    "marcado": "033d3eccad083250e86964c0a9179c0a36cf9c7a244e3a6289f2cf2de1dbcbc6",
+    "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
+  },
+  "varias_separadas_revision": {
+    "marcado": "296360554c26a3b191a431025c309ca0be80fad93fe150199d0e7de876a84d16",
+    "pedidos": "67350f9f68c9932bd9c60583b3e0c5a085e224e92a71573c2d343ff16040f1c6"
+  },
+  "varias_separadas_revision_con-pendientes": {
+    "marcado": "effbf6f72aea850b67e41ea8201fa8ff3a6f92ac106a2d5f31d923b50519456f",
+    "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
+  },
+  "varias_separadas_revision_lista": {
+    "marcado": "56a5dd1aacc61971bd1eaf345107f3b9fc6672bd221b76e9ee5d20a80b6486a7",
+    "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
+  },
+  "varias_sin-bases_datos": {
+    "marcado": "0503bbbf0160aa67beb8051e722a5fbd05310c4bad64793fe6f68763d2c7c6b4",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "varias_sin-bases_equivalencias": {
+    "marcado": "0ef1a510ed709256c5d9c87bcfa53ec435b84137c99fdf51541c574a9d462047",
+    "pedidos": "bb6b2c8f7a4b618c938b24c0fdf70c21c41a2f1aa6a120616191c5becd517d0e"
+  },
+  "varias_sin-bases_estructura": {
+    "marcado": "ad232302e1372876c667c15cf609de2412fba8e9f2e54da55739b55c41cec06c",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "varias_sin-bases_fuentes": {
+    "marcado": "8a1b1dfec922792a315a4f639c8ff8d6b5c0683a2b230ff50fc673df81a0454d",
+    "pedidos": "d92802ba9f6daf921766b07ca9eccb3261f67407f234f19af77c7fc60f2da85f"
+  },
+  "varias_sin-bases_plan": {
+    "marcado": "2b52fac4625e251ccb4fac919fca9aa8481daf0530543c8694432316e5f4a4b8",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "varias_sin-bases_revision": {
+    "marcado": "2962cb858f8327ec1c9f1f228d8061f234b67bf0e381bde9c384b240555d9a26",
+    "pedidos": "d6c7987f7904e9dc37c115d29436bda92a53f1f2bc5d90f743d0f9279431a62e"
+  },
+  "varias_una-sola_datos": {
+    "marcado": "460fe4086289a7e6663ba6cfd0f22f049fa97410b2555a032149e61446be7564",
+    "pedidos": "fb829e998bb75f5835f9c9a8b2a23062a32f81fba9c11c65336e6ccacb8cca3e"
+  }
+}

@@ -49,7 +49,7 @@ function cssRule(styles: string, selector: string): string {
 describe("cargaSourceModes", () => {
   it("mantiene el selector como radiogroup y delega el teclado al roving compartido", () => {
     const source = fs.readFileSync(
-      path.join(__dirname, "CargaPage.tsx"),
+      path.join(__dirname, "pestanas", "OrigenesDeCarga.tsx"),
       "utf8",
     );
     const anchor = source.indexOf('aria-label="Origen de carga"');
@@ -86,16 +86,16 @@ describe("cargaSourceModes", () => {
 
   it("solo ofrece el handoff general para perfiles telefónico o territorial", () => {
     const source = fs.readFileSync(
-      path.join(__dirname, "CargaPage.tsx"),
+      path.join(__dirname, "pestanas", "PanelMonitoreoCarga.tsx"),
       "utf8",
     );
     const callout = source.indexOf("<FieldWorkHandoffCallout");
     expect(callout).toBeGreaterThan(-1);
     const guard = source.slice(Math.max(0, callout - 360), callout);
 
-    expect(guard).toMatch(/monitoringProfile\s*===\s*"telefonico"/u);
-    expect(guard).toMatch(/monitoringProfile\s*===\s*"territorial"/u);
-    expect(guard).not.toMatch(/monitoringProfile\s*!==\s*"multi_actor"/u);
+    expect(guard).toMatch(/perfil\s*===\s*"telefonico"/u);
+    expect(guard).toMatch(/perfil\s*===\s*"territorial"/u);
+    expect(guard).not.toMatch(/perfil\s*!==\s*"multi_actor"/u);
   });
 
   it("preserva las etiquetas de origen y la estrategia bloqueada sin estirarlas", () => {
