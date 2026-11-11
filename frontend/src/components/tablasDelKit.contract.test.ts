@@ -97,7 +97,7 @@ const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/recopiladores/correos/contactos/CruceDeVariables.tsx": 1,
   "features/recopiladores/correos/contactos/ListaDeContactos.tsx": 1,
   "features/validacion/components/DrilldownTable.tsx": 1,
-  "features/validacion/tabs/LimpiezaTab.tsx": 1,
+  "features/validacion/limpieza/TablaDeCasos.tsx": 1,
   "features/xlsformEditor/choiceFilters/MatrizCascada.tsx": 1,
   "features/xlsformEditor/choiceFilters/MatrizPorOpcion.tsx": 1,
   "features/xlsformEditor/listas/OpcionesChips.tsx": 1,

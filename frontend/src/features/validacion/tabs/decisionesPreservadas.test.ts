@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describirDecisionesPreservadas } from "./LimpiezaTab";
+import { describirDecisionesPreservadas } from "../limpieza/modeloLimpieza";
 import type { DecisionesPreservadas } from "../types";
 
 const VACIO: DecisionesPreservadas = {

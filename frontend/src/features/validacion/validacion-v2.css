@@ -1603,31 +1603,9 @@
   line-height: 1.2;
 }
 
-.pulso-regla-design-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.pulso-regla-design-copy p,
-.pulso-regla-design-step p,
 .pulso-regla-settings-group-head p {
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.pulso-regla-design-copy p {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.45;
-}
-
-.pulso-regla-design-step p {
-  margin-top: 3px;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  line-height: 1.35;
 }
 
 .pulso-regla-settings-list {
