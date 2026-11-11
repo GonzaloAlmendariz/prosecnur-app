@@ -1,0 +1,655 @@
+/* Analítica › Ponderación (etapa P5a del ADR 0142).
+ *
+ * Composición: una banda con las cifras de lo declarado y, debajo, dos columnas
+ * que llegan al borde inferior. A la izquierda lo que se declara; a la derecha
+ * lo que resulta y los ajustes. Cada columna es dueña de su scroll (C4) y el
+ * vacío queda dentro de un contenedor (C3): el último panel de la derecha se
+ * estira y el cuerpo del panel izquierdo ocupa el alto libre.
+ *
+ * Los marcos son el `Panel` del kit. Aquí solo hay filas separadas por una
+ * línea: ninguna regla dibuja una caja propia, y `cajasPropias` lo vigila.
+ */
+
+.pond-superficie {
+  container: pond-superficie / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------- Banda ---------- */
+
+.pond-banda {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2) var(--pulso-space-5);
+  min-width: 0;
+}
+
+.pond-banda-interruptor {
+  align-items: center;
+  min-width: 0;
+}
+
+/* ---------- Mesa de dos columnas ---------- */
+
+.pond-mesa {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--pulso-space-5);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pond-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* El Panel suelto trae margen inferior y sombra: aquí separa la rejilla, y una
+   sombra se cortaría contra el borde de la columna que se desplaza. */
+.pond-superficie .pulso-panel.pond-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+.pond-lateral > .pond-panel {
+  flex: none;
+}
+
+/* Entrada escalonada (`data-entra` de app/movimiento.css): izquierda, y luego los de la derecha. */
+.pond-lateral > .pond-panel:nth-child(1) { --i: 1; }
+.pond-lateral > .pond-panel:nth-child(2) { --i: 2; }
+
+/* El último panel de la derecha se queda con el alto libre. */
+.pond-lateral > .pond-panel:last-child {
+  flex: 1 0 auto;
+}
+
+.pond-panel > .pulso-panel-header {
+  box-sizing: border-box;
+  flex: none;
+  align-items: center;
+  /* El alto lo fija el mínimo, no la acción: con o sin botón la cabecera mide lo mismo (C2). */
+  min-height: var(--pulso-panel-head-h);
+  margin-bottom: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* La columna derecha se desplaza entera, con un solo dueño de scroll. La
+   cabecera de cada panel se queda arriba mientras su panel está a la vista, en
+   vez de cortarse contra el borde al desplazar. */
+.pond-lateral > .pond-panel > .pulso-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-radius: calc(var(--pulso-radius-card) - 1px) calc(var(--pulso-radius-card) - 1px) 0 0;
+  background: var(--pulso-surface);
+}
+
+.pond-panel .pulso-panel-title > svg {
+  flex: none;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Cuerpo de un panel: posee el alto libre y, en el izquierdo, el scroll. */
+.pond-panel-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  padding: var(--pulso-space-5);
+}
+
+.pond-panel-declarado > .pond-panel-cuerpo {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.pond-texto {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+}
+
+.pond-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+/* ---------- Secciones de lo declarado ---------- */
+
+.pond-secciones {
+  gap: 0;
+  padding: 0;
+}
+
+.pond-seccion {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  padding: var(--pulso-space-5);
+}
+
+.pond-seccion + .pond-seccion {
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* Las metas del censo cerradas siguen montadas, para no perder la consulta ni
+   la selección: `display: flex` de la sección taparía al atributo `hidden`. */
+.pond-seccion[hidden] {
+  display: none;
+}
+
+/* La tabla de metas empieza en la línea de su sección: su cabecera hace de tope. */
+.pond-seccion-metas {
+  padding-top: 0;
+}
+
+/* La tabla del estrato va entre controles: su cabecera necesita su propia
+   línea, y al pie de la sección su última fila deja la línea a la sección. */
+.pond-controles .pond-metas-cabecera {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pond-controles > .pond-metas:last-child {
+  margin-bottom: calc(-1 * var(--pulso-space-4));
+}
+
+.pond-controles > .pond-metas:last-child .pond-metas-grupo > :last-child {
+  border-bottom: 0;
+}
+
+/* Los controles previos a las metas (origen del peso, población y peso base)
+   comparten una columna de rótulos, para que la tabla quede a la vista sin
+   desplazar el panel en una ventana baja. */
+.pond-controles {
+  --pond-rotulo: 152px;
+  gap: var(--pulso-space-3);
+  padding-block: var(--pulso-space-4);
+}
+
+.pond-controles .pond-ajuste {
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pond-controles .pond-ajuste-rotulo {
+  flex: 0 0 var(--pond-rotulo);
+  min-width: 0;
+}
+
+.pond-controles .pond-peso-base > .pond-ajuste-campo,
+.pond-controles .pond-peso-base > .pond-copy {
+  margin-inline-start: calc(var(--pond-rotulo) + var(--pulso-space-3));
+}
+
+/* "De dónde sale el peso" trae su propia caja y su título encima. Dentro del
+   panel es una fila más: el título a la columna de rótulos, el segmentado a su
+   lado y la nota de la base debajo. Su cabecera es una subrejilla, así el
+   título y la nota caen en las pistas de la fila sin tocar el componente. */
+.pond-superficie .pulso-peso-columna {
+  display: grid;
+  grid-template-columns: var(--pond-rotulo, 152px) minmax(0, 1fr);
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.pond-superficie .pulso-peso-columna-head {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 1 / span 2;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
+  /* `normal` hereda la separación de la rejilla madre; la suya (2 px) desalinea la nota. */
+  gap: normal;
+  align-items: center;
+}
+
+.pond-superficie .pulso-peso-columna-head strong {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: var(--pulso-type-body-size);
+}
+
+.pond-superficie .pulso-peso-columna-head small {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pond-superficie .pulso-peso-columna > .analitica-segmented {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  align-self: center;
+}
+
+.pond-superficie .pulso-peso-columna-cuerpo {
+  grid-column: 2;
+  grid-row: 3;
+  margin-top: var(--pulso-space-2);
+}
+
+.pond-superficie .analitica-segmented {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+/* El grupo es el del kit (GlidingRadioGroup), con la piel del segmentado de
+   Analítica: la opción elegida pinta su propio relleno (`.is-on`), así que el
+   indicador deslizante del kit sobra, como en sus rieles verticales. */
+.pond-superficie .analitica-segmented > .pulso-gliding-tab-indicator {
+  display: none;
+}
+
+/* ---------- Tabla de metas ---------- */
+
+/* La leyenda de las barras es la cabecera de su columna. */
+.pond-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--pulso-space-3);
+}
+
+.pond-leyenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.pond-leyenda .pond-barra {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* La tabla va de borde a borde del panel: su texto cae sobre el riel de 20 px. */
+.pond-metas {
+  --pond-metas-columnas: minmax(96px, 1.5fr) minmax(132px, 1fr) 64px 88px 80px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-inline: calc(-1 * var(--pulso-space-5));
+}
+
+.pond-metas[data-modo="estrato"] {
+  --pond-metas-columnas: minmax(0, 1fr) 120px;
+}
+
+.pond-metas-cabecera,
+.pond-metas-fila {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--pond-metas-columnas);
+  column-gap: var(--pulso-space-4);
+  align-items: center;
+  padding-inline: var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pond-metas-cabecera {
+  min-height: 36px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+.pond-metas-fila {
+  padding-block: var(--pulso-space-2);
+}
+
+.pond-metas-titulo {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+}
+
+.pond-metas-variable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+}
+
+.pond-metas-variable strong {
+  overflow-wrap: anywhere;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pond-metas-variable small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pond-metas-fuente {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pond-metas-acciones {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.pond-metas-categoria {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* El código de la categoría va delante de su etiqueta, como dato secundario. */
+.pond-metas-codigo {
+  margin-inline-end: var(--pulso-space-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pond-metas-cifra {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pond-metas-fila .pond-metas-cifra {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pond-metas-fila .pond-metas-cifra.is-resultado {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* Mientras se recalcula, lo que el motor devolvió (barras, muestra y ponderado)
+   es del resultado anterior: se atenúa igual que el panel del efecto. Las metas
+   que se teclean no, porque son las vigentes. */
+.pond-metas-barras,
+.pond-metas-fila .pond-metas-cifra {
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pond-metas[data-recalculando] :is(.pond-metas-barras, .pond-metas-fila .pond-metas-cifra) {
+  opacity: 0.55;
+}
+
+.pond-metas-campo {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.pond-metas-campo .pulso-input.is-numeric {
+  width: 100%;
+}
+
+.pond-metas-nota {
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pond-metas-nota.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pond-metas-vacio {
+  padding: var(--pulso-space-4) var(--pulso-space-5) 0;
+}
+
+/* Las barras: muestra arriba, meta debajo, en la secuencia de datos. */
+.pond-barras {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pond-barra {
+  display: block;
+  width: var(--pond-barra, 0%);
+  height: 6px;
+  border-radius: 3px;
+}
+
+.pond-barra.is-muestra {
+  background: var(--pulso-data-seq-2);
+}
+
+.pond-barra.is-meta {
+  background: var(--pulso-data-seq-5);
+}
+
+/* Agregar: el punteado es solo de lo que se agrega. */
+.pond-superficie .pulso-button.pond-agregar {
+  align-self: stretch;
+  justify-content: center;
+  border-style: dashed;
+}
+
+.pond-agregar-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
+}
+
+/* ---------- Efecto de ponderar ---------- */
+
+.pond-efecto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition: opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Mientras se recalcula, lo que había sigue a la vista, atenuado. */
+.pond-efecto[data-recalculando] {
+  opacity: 0.55;
+}
+
+.pond-efecto-cifras {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Una fila de dos celdas. Sus cuatro pistas (valor, rótulo, base y valor antes
+   del recorte) las comparten las dos celdas por subrejilla: un rótulo de dos
+   líneas no desalinea la base de su vecina. Cada fila mide lo suyo. */
+.pond-efecto-fila {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(4, auto);
+  row-gap: 2px;
+}
+
+.pond-efecto-cifra {
+  display: grid;
+  grid-row: 1 / -1;
+  grid-template-rows: subgrid;
+  align-content: start;
+  min-width: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+/* Líneas entre celdas, no alrededor: el borde exterior es el del Panel. */
+.pond-efecto-cifra:first-child {
+  border-right: 1px solid var(--pulso-border);
+}
+
+.pond-efecto-fila + .pond-efecto-fila {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pond-efecto-valor {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-kpi-size);
+  font-weight: var(--pulso-type-kpi-weight);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.pond-efecto-cifra[data-tono="aviso"] .pond-efecto-valor {
+  color: var(--pulso-warn-fg);
+}
+
+/* "Efecto de diseño por ponderación" no cabe en una línea de la celda: parte
+   en dos líneas parejas y la base de su vecina baja con ella (subrejilla). */
+.pond-efecto-rotulo {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+/* El valor anterior al recorte ("tamaño efectivo 250 antes del recorte") tampoco
+   cabe en una línea de la celda: parte parejo, sin puntos suspensivos. */
+.pond-efecto-base {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.pond-efecto-detalle {
+  margin: 0;
+}
+
+.pond-efecto-detalle > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pond-efecto-detalle dt {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pond-efecto-detalle dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pond-efecto-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* ---------- Criterios para ponderar ---------- */
+
+.pond-criterios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+.pond-criterio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pond-criterio-rotulo {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* ---------- Tamaños ---------- */
+
+/* Columna derecha más angosta cuando la superficie aprieta. */
+@container pond-superficie (max-width: 1149px) {
+  .pond-mesa {
+    grid-template-columns: minmax(0, 1fr) 330px;
+  }
+}
+
+/* Superficie angosta: una columna. La mesa pasa a ser la única dueña del
+   scroll y el último panel se queda con el alto libre. */
+@container pond-superficie (max-width: 959px) {
+  .pond-mesa {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .pond-mesa > .pond-panel {
+    flex: none;
+  }
+
+  .pond-panel-declarado > .pond-panel-cuerpo,
+  .pond-lateral {
+    overflow: visible;
+  }
+
+  .pond-lateral {
+    flex: 1 0 auto;
+  }
+
+  /* Aquí se desplaza la mesa entera: las cabeceras van con su panel. */
+  .pond-lateral > .pond-panel > .pulso-panel-header {
+    position: static;
+  }
+}

@@ -1,27 +1,29 @@
-/* Metas del CPV 2025: disclosure dentro del panel de Ponderación. Cerrado,
- * sólo participa el summary; abierto, cada fila mide lo que su contenido
- * necesita y la lista de distritos es dueña de su propio scroll. */
+/* Metas del CPV 2025: sección del panel "Muestra frente a población". Cada fila
+ * mide lo que su contenido necesita y no hay scroll propio: el dueño es el
+ * cuerpo del panel (C4). */
 
-.pond-cpv-summary {
+.pond-cpv {
+  display: grid;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pond-cpv-cabeza {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  cursor: pointer;
-  list-style: none;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
 }
 
-.pond-cpv-summary::-webkit-details-marker {
-  display: none;
-}
-
-.pond-cpv-summary small {
+.pond-cpv-cabeza small {
   font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
-.pond-cpv[open] .pond-cpv-summary {
-  margin-bottom: var(--pulso-space-3);
+.pond-cpv-titulo {
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
 }
 
 .pond-cpv-cuerpo,
@@ -193,10 +195,6 @@
 
 .pond-cpv-mapeo-base {
   overflow-wrap: anywhere;
-}
-
-.pond-cpv .pond-aviso {
-  margin-top: 0;
 }
 
 .pond-cpv-campo .pulso-select-trigger,

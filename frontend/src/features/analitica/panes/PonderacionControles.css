@@ -1,24 +1,7 @@
-/* Peso base, ajustes (escala, NA/98/99, recorte) y efecto de la ponderación.
- * Mismas tarjetas que el resto del panel; filas de control con alto propio. */
+/* Controles de Ponderación: la fila de rótulo y control (población, peso base)
+ * y las filas del panel "Ajustes" (escala, casos sin dato y recorte). */
 
-.pond-peso-base,
-.pond-ajustes {
-  display: grid;
-  gap: var(--pulso-space-3);
-}
-
-.pond-ajuste-bloque {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2) var(--pulso-space-4);
-}
-
-.pond-ajuste-bloque + .pond-ajuste-bloque {
-  padding-top: var(--pulso-space-3);
-  border-top: 1px solid var(--pulso-border);
-}
-
+/* Rótulo y control en una fila, como "Población" y "Peso base". */
 .pond-ajuste {
   display: flex;
   flex-wrap: wrap;
@@ -34,61 +17,19 @@
   color: var(--pulso-text);
 }
 
-.pond-ajuste-campo {
-  flex-wrap: nowrap;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-soft);
-}
-
 .pond-ajuste-nota {
   font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-soft);
 }
 
-.pond-diagnostico-cabeza {
-  display: flex;
-  flex-wrap: wrap;
+.pond-ajuste-campo {
+  display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--pulso-space-2);
-}
-
-.pond-recorte-resumen {
-  margin: 0;
-}
-
-.pond-imputados {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--pulso-space-2);
-  margin-top: var(--pulso-space-3);
-}
-
-.pond-imputado {
-  padding: 4px var(--pulso-space-2);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
+  min-width: 0;
   font-size: var(--pulso-type-body-size);
   color: var(--pulso-text-soft);
-}
-
-.pond-imputado strong {
-  color: var(--pulso-text);
-}
-
-.pond-categorias-fuente {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px var(--pulso-space-2);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-primary-soft);
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-primary);
 }
 
 /* El kit estira campo y select al 100 %: aquí van en línea con su rótulo. */
@@ -105,20 +46,68 @@
   width: 72px;
 }
 
-/* Recorte: cada control en su fila; el tope (slider + valor) no se parte. */
-.pond-ajuste-bloque.is-columna {
+/* Panel "Ajustes": un bloque por ajuste, separados por una línea. */
+.pond-ajustes {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pond-ajuste-bloque {
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
 }
 
-.pond-ajuste .pond-recorte-rango {
-  flex: 0 0 160px;
-  width: 160px;
+.pond-ajuste-bloque + .pond-ajuste-bloque {
+  border-top: 1px solid var(--pulso-border);
 }
 
-.pond-ajuste-tope {
-  display: inline-flex;
+/* Un interruptor: el texto a la izquierda y el control al extremo derecho. */
+.pond-ajuste-interruptor {
+  display: flex;
   align-items: center;
-  gap: var(--pulso-space-2);
+  justify-content: space-between;
+  gap: var(--pulso-space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.pond-ajuste-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pond-ajuste-texto small {
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+
+/* Tope del recorte: el deslizador ocupa el ancho libre; su rótulo y su valor no se parten. */
+.pond-ajuste-tope {
+  width: 100%;
+}
+
+.pond-ajuste-tope > span {
+  flex: none;
   white-space: nowrap;
+}
+
+.pond-recorte-rango {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pond-recorte-valor {
+  flex: none;
+  min-width: 56px;
+  text-align: right;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
 }

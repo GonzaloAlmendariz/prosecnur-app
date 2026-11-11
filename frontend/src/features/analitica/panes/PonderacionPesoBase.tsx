@@ -1,23 +1,26 @@
-// Peso base que el raking calibra (ADR 0131 §6): ninguno (peso 1), una
-// columna de la base (1/π por caso) o el reequilibrio por estrato. El editor
-// del estrato lo monta el panel debajo cuando corresponde.
+// Peso base que la calibración ajusta (ADR 0131 §6): ninguno (peso 1), una
+// columna de la base (1/π por caso) o el reequilibrio por estrato. La tabla del
+// estrato la monta el panel debajo cuando corresponde.
 
 import type { VariableInstrumento } from "../../../api/client";
 import { PulsoSelect } from "../../../components/PulsoSelect";
+import { Segmentado, type OpcionDeSegmentado } from "../ponderacion/Segmentado";
 import type { OrigenPesoBase } from "../ponderacionConfigModel";
 import { columnasCandidatasAPeso } from "./PesoPorColumna";
 import "./PonderacionControles.css";
 
-const OPCIONES: { valor: OrigenPesoBase; rotulo: string; ayuda: string }[] = [
+const OPCIONES: OpcionDeSegmentado<OrigenPesoBase>[] = [
   { valor: "ninguno", rotulo: "Ninguno", ayuda: "Cada caso parte con peso 1." },
-  { valor: "columna", rotulo: "Columna de la base", ayuda: "El peso de diseño de cada caso (1/π), p. ej. el de la muestra de manzanas." },
-  { valor: "estrato", rotulo: "Reequilibrio por estrato", ayuda: "Cuando muestreaste distinto de la población (n igual por distrito con distritos de tamaño distinto)." },
+  { valor: "columna", rotulo: "Columna de la base", ayuda: "El peso de diseño de cada caso (1/π), por ejemplo el de la muestra de manzanas." },
+  { valor: "estrato", rotulo: "Reequilibrio por estrato", ayuda: "Cuando la muestra se repartió distinto de la población (igual número de casos por distrito con distritos de tamaño distinto)." },
 ];
 
-export function PonderacionPesoBase({ origen, columna, variables, onOrigen, onColumna }: {
+export function PonderacionPesoBase({ origen, columna, variables, variablesLeidas = true, onOrigen, onColumna }: {
   origen: OrigenPesoBase;
   columna: string;
   variables: readonly VariableInstrumento[];
+  /** Falso mientras la lista de variables se lee o si su lectura falló: no se afirma que no hay columnas. */
+  variablesLeidas?: boolean;
   onOrigen: (o: OrigenPesoBase) => void;
   onColumna: (c: string) => void;
 }) {
@@ -25,15 +28,11 @@ export function PonderacionPesoBase({ origen, columna, variables, onOrigen, onCo
   const fuera = !!columna && !candidatas.some((v) => v.name === columna);
   return (
     <div className="pond-card pond-peso-base">
-      <div className="analitica-segmented" role="radiogroup" aria-label="Peso base">
-        {OPCIONES.map((o) => (
-          <button key={o.valor} type="button" role="radio" aria-checked={origen === o.valor}
-            className={origen === o.valor ? "is-on" : ""} title={o.ayuda} onClick={() => onOrigen(o.valor)}>
-            {o.rotulo}
-          </button>
-        ))}
+      <div className="pond-ajuste">
+        <span className="pond-ajuste-rotulo" id="pond-peso-base-rotulo">Peso base</span>
+        <Segmentado etiquetadoPor="pond-peso-base-rotulo" valor={origen} opciones={OPCIONES} onCambio={onOrigen} />
       </div>
-      {origen === "columna" && (candidatas.length > 0 || fuera) && (
+      {origen === "columna" && (candidatas.length > 0 || fuera) ? (
         <span className="pond-ajuste-campo"
           title="Numérica y mayor que 0 en todos los casos; si no, el cálculo se detiene y dice cuántos fallan.">
           <span>Columna</span>
@@ -44,10 +43,10 @@ export function PonderacionPesoBase({ origen, columna, variables, onOrigen, onCo
               ...candidatas.map((v) => ({ value: v.name, label: v.name })),
             ]} />
         </span>
-      )}
-      {origen === "columna" && !candidatas.length && (
+      ) : null}
+      {origen === "columna" && variablesLeidas && !candidatas.length ? (
         <p className="pond-copy">Esta base no tiene columnas numéricas.</p>
-      )}
+      ) : null}
     </div>
   );
 }

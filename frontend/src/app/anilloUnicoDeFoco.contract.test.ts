@@ -197,7 +197,6 @@ function anillosPorAtributo(reglas: ReglaDeFoco[], fuentes: Array<[string, strin
 const HALOS_SOLOS_HEREDADOS: Record<string, number> = {
   "app/theme.css": 2,
   "features/analitica/panes/ComparativosPane.css": 4,
-  "features/analitica/panes/PonderacionPane.css": 1,
   "features/calcMuestra/calcMuestra.css": 11,
   "features/calcMuestra/didactica/didactica.css": 3,
   "features/calcMuestra/universidad/aulas/classroomSelectionMap.css": 1,

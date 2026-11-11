@@ -7,25 +7,28 @@
 // mapear se avisa. Universo: población censada, sin la omisión censal.
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Info, Landmark, Plus, X } from "../../../vendor/lucide-react";
+import { Plus, X } from "../../../vendor/lucide-react";
 import type { ValorColumna, VariableInstrumento } from "../../../api/client";
 import {
   getCpv2025Catalogo, postCpv2025Metas,
   type CpvCatalogo, type CpvMargen, type CpvMetas, type CpvMetasPedido,
 } from "../../../api/ponderacionCpv2025";
+import { Alert } from "../../../components/Alert";
 import { Panel } from "../../../components/Panel";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
+import { ErrorBlock, LoadingBlock } from "../../../components/States";
 import { formatoConteo } from "../../../lib/formatoNumero";
+import { MargenCpv } from "../ponderacion/MargenCpv";
+import { Segmentado } from "../ponderacion/Segmentado";
 import type { MetasCpvConfig, PonderMargin } from "../store";
 import {
-  avisosDelMapeo, metasDesdeMapeo, rotuloGrupoEdad, sugerirMapeo, validarGruposEdad, type Mapeo,
+  metasDesdeMapeo, rotuloGrupoEdad, sugerirMapeo, validarGruposEdad, type Mapeo,
 } from "./metasCpvModel";
 import "./MetasCpv2025.css";
 
 type Ambito = "conjunto" | "provincias" | "distritos";
-const SIN_META = "__sin_meta__";
 
 // Variable de la base que probablemente corresponde a cada margen del censo.
 const PATRON_VARIABLE: Record<string, RegExp> = {
@@ -49,7 +52,6 @@ export type MetasCpv2025Props = {
 export function MetasCpv2025({
   categoricas, catCache, ensureCats, margenes, guardado, onAplicar, onGuardarPedido,
 }: MetasCpv2025Props) {
-  const [abierto, setAbierto] = useState(false);
   const [catalogo, setCatalogo] = useState<CpvCatalogo | null>(null);
   const [errorCatalogo, setErrorCatalogo] = useState<string | null>(null);
   const [pedido, setPedido] = useState<MetasCpvConfig>(() => guardado ?? {
@@ -59,15 +61,16 @@ export function MetasCpv2025({
   const [consulta, setConsulta] = useState<{ estado: "inactiva" | "cargando" | "error"; error?: string; metas?: CpvMetas }>({ estado: "inactiva" });
   const [asignacion, setAsignacion] = useState<Record<string, { var: string; mapeo: Mapeo }>>({});
 
+  // El bloque ya no se pliega: se monta cuando hace falta y lee el catálogo al montarse.
   useEffect(() => {
-    if (!abierto || catalogo) return;
+    if (catalogo) return;
     getCpv2025Catalogo()
       .then((c) => {
         setCatalogo(c);
         setPedido((p) => (p.grupos_edad.length ? p : { ...p, grupos_edad: c.gruposEdadDefault }));
       })
       .catch((e: unknown) => setErrorCatalogo(e instanceof Error ? e.message : String(e)));
-  }, [abierto, catalogo]);
+  }, [catalogo]);
 
   const ambito: Ambito = pedido.distritos.length ? "distritos" : pedido.provincias.length ? "provincias" : "conjunto";
   const [ambitoUi, setAmbitoUi] = useState<Ambito>(ambito);
@@ -156,35 +159,31 @@ export function MetasCpv2025({
   };
 
   return (
-    <details
-      className="pond-card pond-cpv"
-      open={abierto}
-      onToggle={(e) => setAbierto((e.currentTarget as HTMLDetailsElement).open)}
-    >
-      <summary className="pond-cpv-summary">
-        <Landmark size={15} aria-hidden="true" />
-        <span className="pond-title">Cargar metas del CPV 2025</span>
+    <section className="pond-cpv" aria-labelledby="pond-cpv-titulo">
+      <div className="pond-cpv-cabeza">
+        <strong className="pond-cpv-titulo" id="pond-cpv-titulo">Metas del CPV 2025</strong>
         <small title="Población censada por el INEI en 2025 (REDATAM). No incluye la omisión censal estimada.">
-          población censada, sin omisión
+          Población censada, sin omisión
         </small>
-      </summary>
+      </div>
 
-      {errorCatalogo && <p className="pond-aviso is-warn" role="alert"><AlertTriangle size={15} aria-hidden="true" />{errorCatalogo}</p>}
-      {!catalogo && !errorCatalogo && abierto && <p className="pond-copy">Cargando los distritos del censo…</p>}
+      {errorCatalogo ? <ErrorBlock label="No se pudo leer el catálogo del censo" detail={errorCatalogo} /> : null}
+      {!catalogo && !errorCatalogo ? <LoadingBlock variant="inline" label="Leyendo los distritos del censo" /> : null}
 
       {catalogo && (
         <div className="pond-cpv-cuerpo" data-qa-geometry-group="analitica/ponderacion-cpv" data-qa-geometry-contract="intrinsic">
           <div className="pond-cpv-fila">
-            <span className="pond-cpv-rotulo">Ámbito</span>
-            <div className="analitica-segmented" role="radiogroup" aria-label="Ámbito de las metas">
-              {(["conjunto", "provincias", "distritos"] as Ambito[]).map((a) => (
-                <button key={a} type="button" role="radio" aria-checked={ambitoUi === a}
-                  className={ambitoUi === a ? "is-on" : ""} onClick={() => elegirAmbito(a)}
-                  title={a === "conjunto" ? `Los ${catalogo.distritos.length} distritos del archivo` : undefined}>
-                  {a === "conjunto" ? "Todo el conjunto" : a === "provincias" ? "Provincias" : "Distritos"}
-                </button>
-              ))}
-            </div>
+            <span className="pond-cpv-rotulo" id="pond-cpv-ambito">Ámbito</span>
+            <Segmentado<Ambito>
+              etiquetadoPor="pond-cpv-ambito"
+              valor={ambitoUi}
+              onCambio={elegirAmbito}
+              opciones={[
+                { valor: "conjunto", rotulo: "Todo el conjunto", ayuda: `Los ${formatoConteo(catalogo.distritos.length)} distritos del archivo` },
+                { valor: "provincias", rotulo: "Provincias" },
+                { valor: "distritos", rotulo: "Distritos" },
+              ]}
+            />
           </div>
 
           {ambitoUi !== "conjunto" && (
@@ -209,9 +208,11 @@ export function MetasCpv2025({
                     {ambitoUi === "distritos" && !buscar.trim() ? "Busca un distrito por su nombre o el de su provincia." : "Sin coincidencias."}
                   </p>
                 )}
-                {ocultos > 0 && <p className="pond-cpv-nota">{ocultos} más; afina la búsqueda.</p>}
+                {ocultos > 0 && <p className="pond-cpv-nota">{formatoConteo(ocultos)} más; afina la búsqueda.</p>}
               </Panel>
-              <small className="pond-cpv-nota">{seleccion.length ? `${seleccion.length} elegidos` : "Elige al menos uno"}</small>
+              <small className="pond-cpv-nota">
+                {seleccion.length ? `${formatoConteo(seleccion.length)} ${seleccion.length === 1 ? "elegido" : "elegidos"}` : "Elige al menos uno"}
+              </small>
             </div>
           )}
 
@@ -241,7 +242,7 @@ export function MetasCpv2025({
               </PulsoButton>
             </div>
           </div>
-          {errorGrupos && <p className="pond-aviso is-warn" role="alert"><AlertTriangle size={15} aria-hidden="true" />{errorGrupos}</p>}
+          {errorGrupos ? <div role="alert"><Alert kind="warn">{errorGrupos}</Alert></div> : null}
 
           <div className="pond-cpv-fila">
             <span className="pond-cpv-campo" title="Agrupación de los 13 niveles del censo (18 años a más)">
@@ -262,25 +263,22 @@ export function MetasCpv2025({
             </span>
             <PulsoButton variant="primary" size="sm" onClick={consultar}
               disabled={!!errorGrupos || consulta.estado === "cargando" || (ambitoUi !== "conjunto" && !seleccion.length)}>
-              {consulta.estado === "cargando" ? "Consultando…" : "Consultar"}
+              {consulta.estado === "cargando" ? "Consultando" : "Consultar"}
             </PulsoButton>
           </div>
 
-          {consulta.estado === "error" && (
-            <p className="pond-aviso is-warn" role="alert"><AlertTriangle size={15} aria-hidden="true" />{consulta.error}</p>
-          )}
+          {consulta.estado === "error" ? (
+            <ErrorBlock label="No se pudieron consultar las metas del censo" detail={consulta.error} />
+          ) : null}
 
           {metas && (
             <div className="pond-cpv-resultado" data-qa-geometry-group="analitica/ponderacion-cpv-margenes" data-qa-geometry-contract="intrinsic">
               <p className="pond-cpv-fuente" title={`${metas.fuente}. Consultado el ${metas.consultado}.`}>
-                <strong>{formatoConteo(metas.total)}</strong> personas en {metas.ambito.nDistritos} distritos.{" "}
-                {metas.universo}.
+                Población censada: <strong>{formatoConteo(metas.total)}</strong> personas en {formatoConteo(metas.ambito.nDistritos)}{" "}
+                {metas.ambito.nDistritos === 1 ? "distrito" : "distritos"}. {metas.universo}.
               </p>
               {metas.avisos.map((a, i) => (
-                <p key={i} className={`pond-aviso ${a.level === "warn" ? "is-warn" : "is-info"}`}>
-                  {a.level === "warn" ? <AlertTriangle size={15} aria-hidden="true" /> : <Info size={15} aria-hidden="true" />}
-                  {a.message}
-                </p>
+                <Alert key={i} kind={a.level === "warn" ? "warn" : "info"}>{a.message}</Alert>
               ))}
               {metas.margenes.map((m) => (
                 <MargenCpv
@@ -298,62 +296,6 @@ export function MetasCpv2025({
           )}
         </div>
       )}
-    </details>
+    </section>
   );
 }
-
-function MargenCpv({ margen, categoricas, asignado, categoriasBase, enUso, onAsignar, onAplicar }: {
-  margen: CpvMargen;
-  categoricas: VariableInstrumento[];
-  asignado: { var: string; mapeo: Mapeo };
-  categoriasBase: ValorColumna[];
-  enUso: boolean;
-  onAsignar: (a: { var: string; mapeo: Mapeo }) => void;
-  onAplicar: () => void;
-}) {
-  const base = categoriasBase.map((c) => ({ value: c.value, label: c.label || c.value }));
-  // Sin mapeo guardado se propone el de rótulos iguales; editarlo lo fija.
-  const mapeo = Object.keys(asignado.mapeo).length ? asignado.mapeo : sugerirMapeo(base, margen);
-  const r = asignado.var && base.length ? metasDesdeMapeo(base, margen, mapeo) : null;
-  const avisos = r ? avisosDelMapeo(r, base, margen) : [];
-  const elegir = (valor: string, cpv: string) => {
-    const next = { ...mapeo };
-    if (cpv) next[valor] = [cpv]; else delete next[valor];
-    onAsignar({ var: asignado.var, mapeo: next });
-  };
-  return (
-    <Panel variant="subtle" className="pond-cpv-margen" aria-label={`Margen ${margen.etiqueta}`}>
-      <div className="pond-cpv-margen-head">
-        <span className="pond-title">{margen.etiqueta}</span>
-        <small>{margen.categorias.length} categorías</small>
-        <PulsoSelect size="sm" value={asignado.var || undefined} placeholder="Variable de la base…"
-          onValueChange={(v) => onAsignar({ var: v, mapeo: {} })}
-          ariaLabel={`Variable de la base para ${margen.etiqueta}`}
-          options={categoricas.map((v) => ({ value: v.name, label: v.name }))} />
-        <PulsoButton variant={enUso ? "secondary" : "primary"} size="sm" disabled={!r || !Object.keys(r.targets).length} onClick={onAplicar}
-          title="Las metas pasan al margen como población censada">
-          {enUso ? "Actualizar metas" : "Usar como metas"}
-        </PulsoButton>
-      </div>
-      {asignado.var && !base.length && <p className="pond-copy">Cargando categorías…</p>}
-      {r && (
-        <div className="pond-cpv-mapeo">
-          {base.map((c) => (
-            <div key={c.value} className="pond-cpv-mapeo-fila">
-              <span className="pond-cpv-mapeo-base">{c.label}</span>
-              <PulsoSelect size="sm" value={mapeo[c.value]?.[0] ?? SIN_META}
-                onValueChange={(v) => elegir(c.value, v === SIN_META ? "" : v)}
-                ariaLabel={`Categoría del censo para ${c.label}`}
-                options={[{ value: SIN_META, label: "Sin meta" }, ...margen.categorias.map((k) => ({ value: k.codigo, label: k.etiqueta }))]} />
-              <span className="pond-num">{r.targets[c.value] != null ? formatoConteo(r.targets[c.value]) : "—"}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {avisos.map((a, i) => (
-        <p key={i} className="pond-aviso is-warn"><AlertTriangle size={15} aria-hidden="true" />{a.message}</p>
-      ))}
-    </Panel>
-  );
-}
-
