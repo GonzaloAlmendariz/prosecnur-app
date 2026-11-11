@@ -535,17 +535,17 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | Carga | Una sola página para estudios de una base y de varias | Hecho | |
 | Carga | Red de pruebas por pestaña y textos de progreso | Hecho | |
 | Carga | Cambio a las seis pestañas nuevas (Bases, Revisión, Variables, Equivalencias, Formulario, Respuestas) | Hecho | |
-| Carga | Bases, que absorbe Plan y Fuentes | En curso | A 1024x600 la lista de bases no se ve sin desplazar |
+| Carga | Bases, que absorbe Plan y Fuentes | Hecho | Mostrar la etiqueta de la base y no su identificador; íconos distintos para "Nueva versión" y "Reemplazar archivos"; declarar el marco de las secciones del inspector; confirmar el borrado de los componentes viejos de Fuentes. Sin probar en la app con una base integrada (ningún proyecto de referencia la tiene) |
 | Carga | Panel para actualizar una fuente | Falta | Necesita motor: vista previa de qué cambia |
 | Carga | Revisión | Falta | |
 | Carga | Variables | Falta | Necesita motor: roles de la base y lista de preguntas por base |
 | Carga | Formulario y Respuestas | Falta | |
 | Validación | Trabajo recuperado del 4 de noviembre: editar un criterio propio ya no responde 500, y el editor clasifica el hallazgo | Hecho | |
 | Validación | Red de pruebas y partición de los archivos grandes, sin cambio visible | Hecho | |
-| Validación | Cambio a las cuatro pestañas (Explorar, Reglas, Hallazgos, Cierre) | Falta | Es lo siguiente |
+| Validación | Cambio a las cuatro pestañas (Explorar, Reglas, Hallazgos, Cierre) | En curso | |
 | Validación | Motor de Reglas: auditoría única, conteo previo de una regla y condiciones combinadas | Hecho | Decidir cómo trata un vacío la coherencia entre dos preguntas |
 | Validación | Reglas con su panel | Falta | Espera el cambio a las cuatro pestañas |
-| Validación | Hallazgos por tipo | Falta | Motor de Hallazgos, en curso |
+| Validación | Hallazgos por tipo | Falta | Motor de Hallazgos en curso: la identidad del caso por columna declarada fue rechazada dos veces en verificación (una exclusión guardada podía sacar a otro encuestado); si no cierra, pasa a etapa propia |
 | Validación | Cierre y retiro de los archivos viejos | Falta | Confirmar los borrados |
 | Validación | Script de limpieza replicable en `.qmd`, que piden estudios como los de ACNUR | Falta | Diseñar cómo sale de las reglas y decisiones guardadas; anotado el 2026-11-11 |
 | Codificación | Preguntas | Hecho | |
@@ -555,7 +555,8 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | Codificación | Aplicar | Hecho | |
 | Analítica | Ponderación | Hecho | |
 | Analítica | Frecuencias | Hecho | Buscar por tecleo en "Ir a una pregunta" (necesita una pieza nueva del kit) y más alto útil en ventanas bajas |
-| Analítica | Cruces | En curso | Pantalla con la vista previa del motor |
+| Analítica | Cruces | Hecho | Ver en la app el selector de variable nuevo y el N ponderado con un proyecto ponderado. Decisiones tomadas con criterio conservador, por confirmar: columnas de base chica sin atenuar, N ponderado en enteros con nota, selección múltiple disponible como variable de cruce, base antes que N ponderado, fila de base solo en la vista previa |
+| Analítica | Marco compartido de Frecuencias y Cruces: banda sin mayúsculas, cabecera compacta, ajustes alcanzables a 1024x600, "registros" en bases hijas | En curso | |
 | Analítica | Las otras diez pestañas | Falta | |
 | Todo el módulo | Piezas compartidas, cabecera y selector de base | Hecho | |
 | Todo el módulo | Estado del estudio | Hecho | |
@@ -566,6 +567,8 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | Motor | Cabecera "N ponderado" en el Excel de frecuencias cuando hay pesos | Falta | |
 | Motor | Vista previa de cruces | Hecho | |
 | Motor | Defectos del Excel de cruces de hoy: variable de cruce guardada como rótulo (letras vacías, casos perdidos), rótulo de fila repetido, modo dimensiones que no llega al archivo | Falta | |
+| Motor | Defectos de la prueba de diferencias hallados el 2026-11-11: una categoría cuyo nombre empieza con "Otro" queda fuera de la prueba aunque sea sustantiva; la columna excluida y vacía cuenta para el tope de seis; la nota de muestreo aleatorio simple sale en tablas con prueba por conglomerado; la nota no explica las flechas; la base de una tabla hija se informa antes de la exclusión | Falta | |
+| Motor | El anonimizador y el detector de datos personales no recorren los casos guardados en las decisiones de limpieza | Falta | Hace falta antes de anonimizar un estudio con columna de identidad declarada |
 | Motor | Lo que pide el rediseño de Carga (nueve ítems) | Falta | |
 | Motor | Resto del plan original (M1 a M8 y M10) | Falta | M10 espera decisión |
 
