@@ -15,7 +15,7 @@ function IrAAdaptacion() {
   const navigate = useNavigate();
   return (
     <PulsoButton variant="secondary" size="sm" onClick={() => navigate(ADAPTACION)}>
-      Ir a Adaptación
+      Ir a Aplicar
     </PulsoButton>
   );
 }

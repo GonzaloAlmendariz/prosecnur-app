@@ -75,12 +75,12 @@ export default function CodificacionPage() {
       resetScrollKey={step}
       lead={
         step === "organizar"
-          ? "Organiza las preguntas abiertas y marca las que quieres codificar."
+          ? "Empareja las preguntas abiertas y decide cuáles se codifican."
           : step === "codificar"
           ? "Agrupa respuestas similares y asigna códigos pregunta por pregunta."
           : step === "matrices"
           ? "Prepara el mapeo Excel de textos abiertos con control por base, variable e ID caso."
-          : "Confirma todos los mapeos manuales y de matriz antes de adaptar las respuestas."
+          : "Revisa las preguntas y sus códigos antes de aplicarlos a la base."
       }
       notices={
         !prereqOk ? (

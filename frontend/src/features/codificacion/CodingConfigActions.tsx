@@ -361,8 +361,8 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
           <h3>{hasActiveMatrix ? "Mapeo Excel activo" : "Crear matriz de textos abiertos"}</h3>
           <p>
             {hasActiveMatrix
-              ? "Esta base tiene un mapa importado con texto original, código final, categoría y comentarios; Adaptación lo confirmará junto con los grupos codificados en Prosecnur."
-              : "Selecciona variables de texto abierto para generar una matriz editable por ID caso; al importarla quedará lista para confirmar en Adaptación."}
+              ? "Esta base tiene un mapa importado con texto original, código final, categoría y comentarios; se aplica en la pestaña Aplicar junto con los códigos asignados en Prosecnur."
+              : "Selecciona variables de texto abierto para generar una matriz editable por ID caso; al importarla quedará lista para aplicarse en la pestaña Aplicar."}
           </p>
         </div>
         <div className="pulso-codificacion-matrix-hero-stats" aria-label="Resumen del mapa actual">
@@ -395,7 +395,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
               setDialogOpen(true);
             }}
             disabled={disabled || barraOcupada}
-            title="Importa una matriz Excel o JSON; queda como mapeo listo para confirmar en Adaptación."
+            title="Importa una matriz Excel o JSON; queda como mapeo listo para aplicarse en la pestaña Aplicar."
           >
             <Upload size={13} />
             {hasActiveMatrix ? "Actualizar mapeo..." : "Importar matriz..."}
@@ -670,7 +670,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
             ) : !activeMapBase ? (
               <EstadoVacio icono={<Network size={18} />} titulo="Selecciona una base" descripcion="El mapa mostrará variables y categorías de una base a la vez." />
             ) : activeMapBase.variables.length === 0 ? (
-              <EstadoVacio icono={<Network size={18} />} titulo={<>Sin mapeo de matriz en {activeBaseLabel}</>} descripcion="Esta vista muestra solo mapeos de matriz por base; los grupos codificados en Prosecnur se confirman junto con este mapa en Adaptación." />
+              <EstadoVacio icono={<Network size={18} />} titulo={<>Sin mapeo de matriz en {activeBaseLabel}</>} descripcion="Esta vista muestra solo mapeos de matriz por base; los códigos asignados en Prosecnur se aplican junto con este mapa en la pestaña Aplicar." />
             ) : (
               visibleMapVariables.map((variable) => (
                 <article key={`${activeMapBase.base}:${variable.variable}`} className={`pulso-codificacion-matrix-base-card${focusedVariable === variable.variable ? " is-focused" : ""}`}>
@@ -732,7 +732,7 @@ export function CodingConfigActions({ disabled = false, onImported }: Props) {
       <section className="pulso-codificacion-matrix-standard">
         <span>Mapa previo a adaptación</span>
         <strong>ID caso, texto original, código, categoría y observaciones</strong>
-        <small>{hasActiveMatrix ? `Diccionario activo en ${activeBaseLabel}; Adaptación aplicará este mapa junto con la codificación manual.` : `La matriz editable se genera para ${activeBaseLabel} y se confirma después en Adaptación.`}</small>
+        <small>{hasActiveMatrix ? `Diccionario activo en ${activeBaseLabel}; se aplica en la pestaña Aplicar junto con la codificación manual.` : `La matriz editable se genera para ${activeBaseLabel} y se aplica después en la pestaña Aplicar.`}</small>
       </section>
       {importDialog}
     </div>

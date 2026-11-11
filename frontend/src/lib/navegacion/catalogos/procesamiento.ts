@@ -112,10 +112,10 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("validacion", "limpieza", "Cierre de base", "Limpieza y normalización", Activity),
   ],
   codificacion: [
-    pestana("codificacion", "organizar", "Preparar", "Emparejar y marcar", Layers),
+    pestana("codificacion", "organizar", "Preguntas", "Emparejar y decidir qué se codifica", Layers),
     pestana("codificacion", "codificar", "Codificar", "Agrupar respuestas", Tags),
     pestana("codificacion", "matrices", "Matrices", "Mapear textos abiertos", Network),
-    pestana("codificacion", "adaptar", "Adaptación", "Confirmar y aplicar", Wand2),
+    pestana("codificacion", "adaptar", "Aplicar", "Llevar los códigos a la base", Wand2),
   ],
   analitica: [
     pestana("analitica", "datos", "Datos", "Etiquetas y variables", ClipboardList),

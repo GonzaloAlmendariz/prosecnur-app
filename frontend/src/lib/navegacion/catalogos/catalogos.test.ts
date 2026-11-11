@@ -106,10 +106,10 @@ describe("catálogos canónicos de pestañas", () => {
       "limpieza:Cierre de base",
     ]);
     expect(firma(PROCESAMIENTO_PESTANAS.codificacion)).toEqual([
-      "organizar:Preparar",
+      "organizar:Preguntas",
       "codificar:Codificar",
       "matrices:Matrices",
-      "adaptar:Adaptación",
+      "adaptar:Aplicar",
     ]);
     expect(firma(PROCESAMIENTO_PESTANAS.analitica)).toEqual([
       "datos:Datos",
