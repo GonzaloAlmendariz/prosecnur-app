@@ -18,10 +18,21 @@ import { buildRelationalMetaMap, normalizeRelationalSummary, resolveRelationalIn
 import { defaultOperationalConfig, hasOperationalConfigChanges, isOperationalConfigValid, normalizeOperationalConfig, validateOperationalConfig } from "../operationalControlsModel";
 import { type CompactRuleRow, buildDisplayRuleName, getTargetVariableKey, isPullDataRow, normalizeCompactRuleRow, normalizeSearchText, relationalSignalsFromRow, uniqueStrings } from "./modeloInstrumento";
 
-export function useInstrumento() {
+/**
+ * `conAuditoria: false` (Reglas) no pide el resultado de la auditoría ni las
+ * variables fuera de auditoría: esa pestaña no los dibuja (revisión de V2, B3).
+ * `alTerminarAuditoria` avisa a quien comparte pestaña con la auditoría (la
+ * mesa de Hallazgos) para que vuelva a leer lo que depende de ella.
+ */
+export function useInstrumento({
+  conAuditoria = true,
+  alTerminarAuditoria,
+}: { conAuditoria?: boolean; alTerminarAuditoria?: () => void } = {}) {
+  const alTerminarAuditoriaRef = useRef(alTerminarAuditoria);
+  alTerminarAuditoriaRef.current = alTerminarAuditoria;
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
-  const prefillInstr = useValidacionStore((s) => s.prefill.instrumento);
+  const prefillInstr = useValidacionStore((s) => s.prefill.hallazgos);
   const clearPrefill = useValidacionStore((s) => s.clearPrefill);
   const setRelationalPlan = useValidacionStore((s) => s.setRelationalPlan);
   const relationalCapture = useValidacionStore(
@@ -50,9 +61,11 @@ export function useInstrumento() {
   const { detailRuleId, abrirRegla, cerrarRegla } = useReglaDireccionable();
   const [variablesExcluidas, setVariablesExcluidas] = useState<InstrumentoVariablesExcluidas | null>(null);
   const [variableQuery, setVariableQuery] = useState("");
-  const [operationalConfig, setOperationalConfig] = useState<InstrumentoOperationalConfig>(
-    () => defaultOperationalConfig(),
-  );
+  // Lo aplicado viene del backend; lo editado sin aplicar vive en el store por
+  // base, para que sobreviva al cambio de pestaña (Reglas edita, Hallazgos
+  // audita y necesita saber que hay cambios sin aplicar).
+  const borrador = useValidacionStore((s) => s.controlesSinAplicar[relationalBaseKey(s.baseNombre)]);
+  const setControlesSinAplicar = useValidacionStore((s) => s.setControlesSinAplicar);
   const [appliedOperationalConfig, setAppliedOperationalConfig] = useState<InstrumentoOperationalConfig>(
     () => defaultOperationalConfig(),
   );
@@ -67,9 +80,11 @@ export function useInstrumento() {
       const e = await apiV2InstrumentoEstado(baseNombre);
       if (requestId !== refetchSequence.current) return;
       setEstado(e);
-      const nextOperationalConfig = normalizeOperationalConfig(e.operational_config);
-      setOperationalConfig(nextOperationalConfig);
-      setAppliedOperationalConfig(nextOperationalConfig);
+      setAppliedOperationalConfig(normalizeOperationalConfig(e.operational_config));
+      if (!conAuditoria) {
+        setResultado(null);
+        return;
+      }
       const vars = await apiV2InstrumentoVariablesExcluidas(baseNombre);
       if (requestId !== refetchSequence.current) return;
       setVariablesExcluidas(vars);
@@ -85,7 +100,13 @@ export function useInstrumento() {
     } finally {
       if (requestId === refetchSequence.current) setLoading(false);
     }
-  }, [baseNombre]);
+  }, [baseNombre, conAuditoria]);
+
+  const operationalConfig = borrador ?? appliedOperationalConfig;
+  const setOperationalConfig = useCallback(
+    (next: InstrumentoOperationalConfig) => setControlesSinAplicar(baseNombre, next),
+    [baseNombre, setControlesSinAplicar],
+  );
 
   // La regla abierta vive en la URL: se cierra sólo si la base cambió de
   // verdad, no al montar (borraba el enlace directo) ni al refrescar.
@@ -100,7 +121,6 @@ export function useInstrumento() {
     baseAnteriorRef.current = baseNombre;
     setJobId(null);
     setVariableQuery("");
-    setOperationalConfig(defaultOperationalConfig());
     setAppliedOperationalConfig(defaultOperationalConfig());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseNombre, version]);
@@ -109,7 +129,7 @@ export function useInstrumento() {
   useEffect(() => {
     if (prefillInstr?.id_regla && resultado) {
       onSelectRule(prefillInstr.id_regla);
-      clearPrefill("instrumento");
+      clearPrefill("hallazgos");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillInstr, resultado]);
@@ -147,6 +167,8 @@ export function useInstrumento() {
         summary: normalizeRelationalSummary(plan.relational_summary),
         metaById: Object.fromEntries(buildRelationalMetaMap(plan.plan_preview)),
       });
+      // Aplicado: lo editado pasa a ser lo del backend.
+      setControlesSinAplicar(baseNombre, null);
       await refetchAll();
     } catch (e) {
       setError((e as Error).message);
@@ -194,6 +216,7 @@ export function useInstrumento() {
   async function onAuditDone() {
     setJobId(null);
     await refetchAll();
+    alTerminarAuditoriaRef.current?.();
   }
 
   async function onToggleVariableExcluida(variable: string, checked: boolean, motivo?: string) {

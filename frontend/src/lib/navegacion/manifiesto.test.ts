@@ -193,7 +193,11 @@ describe("manifiesto de navegación", () => {
     // Y el recorrido del QA visual, que sólo pisa lo publicado, ahora las ve.
     const clavesQA = new Set(recorridoCompleto().map((nodo) => nodo.clave));
     expect(clavesQA.has("dashboard/dashboard/relaciones")).toBe(true);
-    expect(clavesQA.has("procesamiento/validacion/limpieza")).toBe(true);
+    expect(clavesQA.has("procesamiento/validacion/cierre")).toBe(true);
+    // ADR 0142, rebanada V2 de P6: las claves viejas de Validación solo se leen como alias.
+    for (const vieja of ["instrumento", "reglas_custom", "limpieza"]) {
+      expect(nodoPorClave(`procesamiento/validacion/${vieja}`)).toBeNull();
+    }
   });
 
   it("permite que runtime sustituya una sección por un subconjunto declarado", () => {

@@ -12,7 +12,6 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  apiV2ExplorarVariables,
   apiV2ReglasCustomCreate,
   apiV2ReglasCustomDelete,
   apiV2ReglasCustomEjecutar,
@@ -28,8 +27,10 @@ import type {
   ReglasCustomList,
 } from "../types";
 import { useValidacionStore } from "../store";
+import { pedirInventario } from "../inventarioDeBase";
 import { usePestanaValidacion } from "../pestanaDireccionable";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { JobProgress } from "../../../components/JobProgress";
 import ReglaEditor from "../components/ReglaEditor";
 import SemillasPanel from "../components/SemillasPanel";
@@ -46,7 +47,7 @@ import { Panel } from "../../../components/Panel";
 // =============================================================================
 // Lista de reglas custom con toggle activa, editar, eliminar y botón
 // "Ejecutar reglas activas" que corre un job async. El resultado queda
-// guardado como `evaluacion` en el scope — el usuario puede ir a Instrumento
+// guardado como `evaluacion` en el scope: el usuario puede ir a Hallazgos
 // para ver KPIs / heatmap con las reglas custom mezcladas.
 
 export default function ReglasCustomTab() {
@@ -76,7 +77,7 @@ export default function ReglasCustomTab() {
     try {
       const [l, i, sem] = await Promise.all([
         apiV2ReglasCustomList(baseNombre),
-        apiV2ExplorarVariables(baseNombre),
+        pedirInventario(baseNombre),
         // El sembrado es una ayuda, no un requisito: si falla, la pestaña
         // sigue funcionando sin propuestas.
         apiV2ReglasCustomSemillas(baseNombre).catch(() => null),
@@ -182,7 +183,9 @@ export default function ReglasCustomTab() {
     }
   }
 
-  if (loading) return <LoadingBlock label="Cargando reglas…" />;
+  // Montada dentro de Reglas (rebanada V2 de P6), junto al plan del formulario:
+  // mientras carga, la carga de bloque del kit impide que la pestaña se dé por lista.
+  if (loading) return <CargaDeBloque label="Cargando reglas propias" />;
   // **Tres cosas distintas que caian en el mismo cartel de averia.**
   //
   // La condicion era `!list || !inv` con el mensaje del error o «Estado
@@ -193,11 +196,11 @@ export default function ReglasCustomTab() {
   // «No se pudo cargar · No hay data o instrumento cargado para esta base. ·
   // E_NO_DATA_INST», con el codigo tecnico a la vista.
   if (esEstadoInicial(errorCode)) {
-    return <VacioListo marca="validacion-reglas_custom"><EmptyState icon={<AlertTriangle size={20} />} {...vacioSinDatos("para revisar")} /></VacioListo>;
+    return <VacioListo marca="validacion-reglas"><EmptyState icon={<AlertTriangle size={20} />} {...vacioSinDatos("para revisar")} /></VacioListo>;
   }
   if (!list || !inv) {
     return (
-      <VacioListo marca="validacion-reglas_custom">
+      <VacioListo marca="validacion-reglas">
         <EmptyState
           icon={<AlertTriangle size={20} />}
           title="No se pudo cargar"
@@ -228,7 +231,7 @@ export default function ReglasCustomTab() {
             )}
           </span>
         }
-        hint="Configura señales adicionales sobre la base y envía los registros detectados a Limpieza y transformación."
+        hint="Configura señales adicionales sobre la base y envía los registros detectados a Hallazgos."
         actions={
           <>
             <button
@@ -285,15 +288,15 @@ export default function ReglasCustomTab() {
             <span>
               {runSummary.total == null
                 ? "La revisión terminó y actualizó los hallazgos disponibles."
-                : `${runSummary.total} hallazgo${runSummary.total === 1 ? "" : "s"} disponible${runSummary.total === 1 ? "" : "s"} para revisar en Limpieza y normalización.`}
+                : `${runSummary.total} hallazgo${runSummary.total === 1 ? "" : "s"} disponible${runSummary.total === 1 ? "" : "s"} para revisar en Hallazgos.`}
             </span>
           </div>
           <button
             type="button"
             className="pulso-secondary pulso-criterios-summary-action"
-            onClick={() => irAPestana("limpieza", { source: "reglas_custom", at: Date.now() })}
+            onClick={() => irAPestana("hallazgos", { source: "reglas_custom", at: Date.now() })}
           >
-            Ver en limpieza <ArrowRight size={13} />
+            Ver en Hallazgos <ArrowRight size={13} />
           </button>
         </div>
       )}
@@ -348,7 +351,7 @@ export default function ReglasCustomTab() {
   }
 
   return (
-    <div className={rootClassName} data-audit-ready="validacion-reglas_custom">
+    <div className={rootClassName} data-audit-ready="validacion-reglas">
       {panelContent}
     </div>
   );

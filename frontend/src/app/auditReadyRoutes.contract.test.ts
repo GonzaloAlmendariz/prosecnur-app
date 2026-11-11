@@ -287,11 +287,14 @@ describe("audit-ready route root contract", () => {
         "features/codificacion/CodingConfigActions.tsx",
         "features/codificacion/AdaptarPane.tsx",
       ], "codificacion-"),
+      // ADR 0142, rebanada V2 de P6: cuatro pestañas (Explorar, Reglas, Hallazgos, Cierre). Explorar publica su
+      // marca dentro de `ExplorarTab`; Reglas la publica en la pestaña y en las reglas propias que monta.
       validacion: terminalReadinessKeys([
         "features/validacion/tabs/ExplorarTab.tsx",
-        "features/validacion/tabs/InstrumentoTab.tsx",
+        "features/validacion/pestanas/PestanaReglas.tsx",
         "features/validacion/tabs/ReglasCustomTab.tsx",
-        "features/validacion/tabs/LimpiezaTab.tsx",
+        "features/validacion/pestanas/PestanaHallazgos.tsx",
+        "features/validacion/pestanas/PestanaCierre.tsx",
       ], "validacion-"),
     }, "Loaded terminal panels must own the semantic readiness keys").toEqual({
       codificacion: [
@@ -301,10 +304,10 @@ describe("audit-ready route root contract", () => {
         "codificacion-organizar",
       ],
       validacion: [
+        "validacion-cierre",
         "validacion-explorar",
-        "validacion-instrumento",
-        "validacion-limpieza",
-        "validacion-reglas_custom",
+        "validacion-hallazgos",
+        "validacion-reglas",
       ],
     });
 
@@ -337,17 +340,21 @@ describe("audit-ready route root contract", () => {
         "features/validacion/tabs/ExplorarTab.tsx",
         "validacion-explorar",
       ),
-      instrumento: terminalReadinessCount(
-        "features/validacion/tabs/InstrumentoTab.tsx",
-        "validacion-instrumento",
+      reglas: terminalReadinessCount(
+        "features/validacion/pestanas/PestanaReglas.tsx",
+        "validacion-reglas",
       ),
-      reglasCustom: terminalReadinessCount(
+      reglasPropias: terminalReadinessCount(
         "features/validacion/tabs/ReglasCustomTab.tsx",
-        "validacion-reglas_custom",
+        "validacion-reglas",
       ),
-      limpieza: terminalReadinessCount(
-        "features/validacion/tabs/LimpiezaTab.tsx",
-        "validacion-limpieza",
+      hallazgos: terminalReadinessCount(
+        "features/validacion/pestanas/PestanaHallazgos.tsx",
+        "validacion-hallazgos",
+      ),
+      cierre: terminalReadinessCount(
+        "features/validacion/pestanas/PestanaCierre.tsx",
+        "validacion-cierre",
       ),
     }, "Terminal marker counts reject duplicates in loading/error branches").toEqual({
       preguntas: 1,
@@ -357,9 +364,10 @@ describe("audit-ready route root contract", () => {
       matrices: 1,
       adaptar: 1,
       explorar: 2,
-      instrumento: 1,
-      reglasCustom: 1,
-      limpieza: 1,
+      reglas: 1,
+      reglasPropias: 1,
+      hallazgos: 1,
+      cierre: 1,
     });
   });
 

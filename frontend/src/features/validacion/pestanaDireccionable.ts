@@ -1,35 +1,35 @@
 // =============================================================================
 // La pestaña de Validación vive en la URL
 // =============================================================================
-// Las cuatro pestañas de Validación eran las únicas de Procesamiento sin
-// dirección publicada: el tab activo vivía en un `activeTab` del store zustand
-// y `/validacion?pestana=limpieza` aterrizaba en Explorar. Eso rompe el
-// contrato v3 —toda vista es enlazable— y además dejaba a `__pulsoNav.ir()`
-// sin poder entrar (`runtime.ts` se niega a navegar a un nodo no publicado),
-// que es la puerta por la que el QA visual recorre la app.
+// Las pestañas de Validación eran las únicas de Procesamiento sin dirección
+// publicada: el tab activo vivía en un `activeTab` del store zustand. Eso
+// rompe el contrato v3 (toda vista es enlazable) y además dejaba a
+// `__pulsoNav.ir()` sin poder entrar (`runtime.ts` se niega a navegar a un
+// nodo no publicado), que es la puerta por la que el QA visual recorre la app.
 //
 // Se usa `useSeccion`, el lector canónico, y no un séptimo `useSearchParams`.
-// La única costura: `parsearDireccion` normaliza el token (minúsculas, `_` a
-// `-`), así que `reglas_custom` vuelve como `reglas-custom` y la comparación
-// tiene que normalizar los dos lados.
+// Las claves viejas (`instrumento`, `reglas_custom`, `limpieza`) las resuelve
+// `pestanaValidacion.ts`, que también normaliza el token como la dirección
+// (minúsculas, `_` a `-`).
 // =============================================================================
 
 import { useCallback, useMemo } from "react";
 
-import { PROCESAMIENTO_PESTANAS } from "../../lib/navegacion/catalogos/procesamiento";
-import { normalizarToken } from "../../lib/navegacion/direccion";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { resolverPestanaValidacion } from "./pestanaValidacion";
 import { useValidacionStore } from "./store";
 import type { ValidacionTabId } from "./types";
 
-const TABS = PROCESAMIENTO_PESTANAS.validacion;
-const PESTANA_POR_DEFECTO: ValidacionTabId = TABS[0].key;
-
-/** La pestaña que nombra la URL, o la primera si no nombra ninguna válida. */
-export function resolverPestana(pedida: string | null | undefined): ValidacionTabId {
-  if (!pedida) return PESTANA_POR_DEFECTO;
-  const buscada = normalizarToken(pedida);
-  return TABS.find((tab) => normalizarToken(tab.key) === buscada)?.key ?? PESTANA_POR_DEFECTO;
+/**
+ * La pestaña que nombra la URL, con las claves viejas resueltas, o la primera
+ * si no nombra ninguna válida. `panel` decide el alias de
+ * `pestana=instrumento&panel=regla`, que abre Hallazgos.
+ */
+export function resolverPestana(
+  pedida: string | null | undefined,
+  panel: string | null | undefined = null,
+): ValidacionTabId {
+  return resolverPestanaValidacion(pedida, panel);
 }
 
 export type PestanaDireccionable = {
@@ -43,10 +43,10 @@ export type PestanaDireccionable = {
 };
 
 export function usePestanaValidacion(): PestanaDireccionable {
-  const { pestana, irA } = useSeccion("procesamiento");
+  const { pestana, panel, irA } = useSeccion("procesamiento");
   const setPrefill = useValidacionStore((s) => s.setPrefill);
 
-  const activa = useMemo(() => resolverPestana(pestana), [pestana]);
+  const activa = useMemo(() => resolverPestana(pestana, panel), [pestana, panel]);
 
   const irAPestana = useCallback(
     (tab: ValidacionTabId, prefill?: Record<string, unknown>) => {

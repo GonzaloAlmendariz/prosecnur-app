@@ -31,16 +31,18 @@ describe("Validación, navegación entre pestañas", () => {
   escenario("navegacion_recorrido", "recorre las cuatro pestañas desde el riel; la dirección las nombra", async () => {
     await montar({ ...UNA_BASE, pestana: "explorar", rutas: RUTAS });
     const pasos = [mesa()];
-    for (const pestana of ["instrumento", "reglas_custom", "limpieza", "explorar"]) {
+    for (const pestana of ["reglas", "hallazgos", "cierre", "explorar"]) {
       await pulsar(`#validacion-tab-${pestana}`);
       expect(document.querySelector(`#validacion-tab-${pestana}`)?.getAttribute("aria-selected")).toBe("true");
+      expect(direccionActual()).toBe(`/validacion?pestana=${pestana}`);
       pasos.push(`<!-- dirección: ${direccionActual()} -->\n${mesa()}`);
     }
     fijarMesa("navegacion_recorrido", pasos);
   });
 
-  escenario("navegacion_clave-con-guion", "reglas-custom con guion abre Criterios de revisión", async () => {
+  escenario("navegacion_clave-con-guion", "la clave vieja reglas-custom, con guion, abre Reglas", async () => {
     await montar({ ...UNA_BASE, pestana: "reglas-custom", rutas: RUTAS });
+    expect(document.querySelector("#validacion-tab-reglas")?.getAttribute("aria-selected")).toBe("true");
     fijarMesa("navegacion_clave-con-guion", [`<!-- dirección: ${direccionActual()} -->\n${mesa()}`]);
   });
 
@@ -48,4 +50,23 @@ describe("Validación, navegación entre pestañas", () => {
     await montar({ ...UNA_BASE, pestana: "no-existe", rutas: RUTAS });
     fijarMesa("navegacion_clave-desconocida", [`<!-- dirección: ${direccionActual()} -->\n${mesa()}`]);
   });
+});
+
+// ADR 0142, rebanada V2 de P6: un enlace guardado con una clave vieja abre la
+// pestaña donde quedó su contenido y la dirección no se reescribe al abrir.
+describe("Validación, claves viejas que se leen como alias", () => {
+  const casos = [
+    ["navegacion_alias-instrumento", "/validacion?pestana=instrumento", "reglas"],
+    ["navegacion_alias-reglas-custom", "/validacion?pestana=reglas_custom", "reglas"],
+    ["navegacion_alias-limpieza", "/validacion?pestana=limpieza", "hallazgos"],
+    ["navegacion_alias-panel-regla", "/validacion?pestana=instrumento&panel=regla&foco=R_REQ_EDAD", "hallazgos"],
+  ] as const;
+  for (const [nombre, entrada, destino] of casos) {
+    escenario(nombre, `${entrada} abre ${destino} sin reescribir la dirección`, async () => {
+      await montar({ ...UNA_BASE, entrada, rutas: RUTAS });
+      expect(document.querySelector(`#validacion-tab-${destino}`)?.getAttribute("aria-selected")).toBe("true");
+      expect(direccionActual()).toBe(entrada);
+      fijarMesa(nombre, [`<!-- dirección: ${direccionActual()} -->\n${mesa()}`]);
+    });
+  }
 });

@@ -7,10 +7,13 @@ export function InlineMessage({
   tone,
   icon,
   text,
+  accion,
 }: {
   tone: "success" | "warn" | "danger";
   icon: ReactNode;
   text: string;
+  /** Un control que resuelve el aviso (p. ej. ir a la pestaña donde se hace). */
+  accion?: ReactNode;
 }) {
   const colors =
     tone === "success"
@@ -34,7 +37,8 @@ export function InlineMessage({
       }}
     >
       <span style={{ marginTop: 1 }}>{icon}</span>
-      <span>{text}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>{text}</span>
+      {accion}
     </div>
   );
 }

@@ -8,10 +8,12 @@ import type { Instrumento } from "./useInstrumento";
 export default function ResultadosDelFormulario({ inst, resultado }: { inst: Instrumento; resultado: InstrumentoResultado }) {
   const { selectedRuleId, onSelectRule, rulesByGroup, relationalRows, relationalSummary } = inst;
   return (
-    <PasoDeValidacion paso={3} de={3} titulo="Resultados" listo className="pulso-validacion-paso--resultados">
+    <PasoDeValidacion titulo="Resultados" listo className="pulso-validacion-paso--resultados">
 
       {/* KPIs */}
       <div
+        data-qa-geometry-group="validacion/hallazgos-indicadores"
+        data-qa-geometry-contract="equal"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",

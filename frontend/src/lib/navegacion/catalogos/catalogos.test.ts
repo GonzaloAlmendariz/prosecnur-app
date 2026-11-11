@@ -105,11 +105,13 @@ describe("catálogos canónicos de pestañas", () => {
     expect(
       PROCESAMIENTO_PESTANAS.carga.filter((tab) => "grupo" in tab && tab.grupo === "consulta").map((tab) => tab.key),
     ).toEqual(["formulario", "respuestas"]);
+    // ADR 0142, rebanada V2 de P6 (2026-11-11): Instrumento y Criterios pasan a Reglas, Cierre de base se parte en
+    // Hallazgos y Cierre. Las claves viejas se leen como alias en `features/validacion/pestanaValidacion.ts`. Siguen 4.
     expect(firma(PROCESAMIENTO_PESTANAS.validacion)).toEqual([
-      "explorar:Explorar respuestas",
-      "instrumento:Reglas del formulario",
-      "reglas_custom:Criterios de revisión",
-      "limpieza:Cierre de base",
+      "explorar:Explorar",
+      "reglas:Reglas",
+      "hallazgos:Hallazgos",
+      "cierre:Cierre",
     ]);
     expect(firma(PROCESAMIENTO_PESTANAS.codificacion)).toEqual([
       "organizar:Preguntas",

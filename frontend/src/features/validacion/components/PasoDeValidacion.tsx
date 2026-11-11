@@ -21,8 +21,9 @@ export function PasoDeValidacion({
   children,
   ...rest
 }: {
-  paso: number;
-  de: number;
+  /** Número de paso y total: solo cuando el paso es parte de una secuencia visible en la misma pestaña. */
+  paso?: number;
+  de?: number;
   titulo: string;
   detalle?: ReactNode;
   listo: boolean;
@@ -41,7 +42,7 @@ export function PasoDeValidacion({
     <Panel
       {...rest}
       className={["pulso-validacion-paso", className].filter(Boolean).join(" ")}
-      eyebrow={`Paso ${paso} de ${de}`}
+      eyebrow={paso != null && de != null ? `Paso ${paso} de ${de}` : undefined}
       aria-labelledby={id}
       title={<span id={id}>{titulo}</span>}
       hint={detalle}

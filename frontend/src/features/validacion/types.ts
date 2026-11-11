@@ -41,7 +41,12 @@ export type ViewAction = {
   id: string;
   label: string;
   payload?: Record<string, unknown>;
-  target_tab?: ValidacionTabId;
+  /**
+   * La pestaña que nombra el motor. Puede venir con una clave vieja
+   * (`instrumento`): se resuelve con `resolverPestanaValidacion`, que la lee
+   * como alias.
+   */
+  target_tab?: string;
 };
 
 /**

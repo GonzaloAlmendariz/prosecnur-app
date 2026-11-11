@@ -70,7 +70,7 @@ export function RuleGroupsSection({
       {groups.desalineadas.length > 0 && (
         <RuleSubGroup
           title="Reglas desalineadas con los datos"
-          hint="Estas reglas comparan una variable contra un valor que no existe en tu base (p.ej. consent='OK' cuando los datos usan 1/0). Es la firma de un desfase entre la versión del instrumento con la que se armó el plan y la versión con la que se levantaron los datos. No se contabilizan como inconsistencias para evitar falsos positivos masivos: revisa que el instrumento de validación coincida con el desplegado."
+          hint="Estas reglas comparan una variable contra un valor que no existe en tu base (por ejemplo, consent='OK' cuando los datos usan 1/0). Es la firma de un desfase entre la versión del instrumento con la que se armó el plan y la versión con la que se levantaron los datos. No se contabilizan como inconsistencias para evitar falsos positivos masivos: revisa que el instrumento de validación coincida con el desplegado."
           countLabel={(n) => `${n} ${n === 1 ? "regla" : "reglas"}`}
           rows={groups.desalineadas}
           selectedRuleId={selectedRuleId}
@@ -81,7 +81,7 @@ export function RuleGroupsSection({
       )}
       <RuleSubGroup
         title="Reglas con inconsistencias"
-        hint="Casos detectados — click en una tarjeta para abrir los detalles."
+        hint="Cada tarjeta abre la regla con sus casos."
         countLabel={(n) => `${n} ${n === 1 ? "regla" : "reglas"}`}
         rows={groups.conCasos}
         selectedRuleId={selectedRuleId}
@@ -128,7 +128,7 @@ export function RuleGroupsSection({
       {groups.okSinCasos.length > 0 && (
         <RuleSubGroup
           title="Validaciones que pasaron sin inconsistencias"
-          hint="Corrieron sobre la base y no encontraron casos (p.ej. los cálculos p_space). Despliega para abrir el diagrama de cualquiera."
+          hint="Corrieron sobre la base y no encontraron casos. Despliega para abrir el diagrama de cualquiera."
           countLabel={(n) => `${n} ${n === 1 ? "regla" : "reglas"}`}
           rows={groups.okSinCasos}
           selectedRuleId={selectedRuleId}
@@ -267,17 +267,19 @@ export function RuleSubGroup({
             paddingRight: 4,
           }}
         >
-          {rows.map((row) =>
+          {/* El motor puede repetir un `id_regla` en el resumen (p. ej. `VR_skip_[documento]` en un
+              estudio real): la clave suma el número de aparición para que cada tarjeta sea única. */}
+          {clavesUnicas(rows).map(([clave, row]) =>
             clickable ? (
               <NarrativeRuleCard
-                key={row.id}
+                key={clave}
                 row={row}
                 selected={row.id === selectedRuleId}
                 onClick={() => onSelect(row.id)}
               />
             ) : (
               <UnevaluableRuleCard
-                key={row.id}
+                key={clave}
                 row={row}
                 tone={tone === "warn" ? "warn" : "muted"}
                 selected={row.id === selectedRuleId}
@@ -289,6 +291,16 @@ export function RuleSubGroup({
       )}
     </div>
   );
+}
+
+/** Cada fila con una clave única: el id, y desde la segunda aparición del mismo id, su número. */
+export function clavesUnicas<T extends { id: string }>(rows: readonly T[]): Array<[string, T]> {
+  const vistas = new Map<string, number>();
+  return rows.map((row) => {
+    const n = (vistas.get(row.id) ?? 0) + 1;
+    vistas.set(row.id, n);
+    return [n === 1 ? row.id : `${row.id}#${n}`, row];
+  });
 }
 
 export function UnevaluableRuleCard({

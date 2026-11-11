@@ -1,11 +1,23 @@
 {
+  "navegacion_alias-instrumento": {
+    "marcado": "6e6a59cc9bc32b65080ecd65c0abd5930263845a72f17bba85771d1ba321e4ce"
+  },
+  "navegacion_alias-limpieza": {
+    "marcado": "06f68ebf59fc7a3f3de32cd7ee1185b1946c5fff21fb80b98b5b5af1a0af78b6"
+  },
+  "navegacion_alias-panel-regla": {
+    "marcado": "5be7c7bf52ae8fa8e4dcc546fdfd70960fe27aa49023e58636aa4ecf62aa793e"
+  },
+  "navegacion_alias-reglas-custom": {
+    "marcado": "7bbb8517af898702274c1b187aa0c676c19e9055c53f05112cc9e6f59bf71508"
+  },
   "navegacion_clave-con-guion": {
-    "marcado": "c75de8e3e07b62b5b8ae5e0b18dc50382d1f220c51ac3c3a473624f68081bd1a"
+    "marcado": "6553551a8a60b8a3d866b58dc709fcc4041cb1d49439d02e996ca01b79e8a276"
   },
   "navegacion_clave-desconocida": {
-    "marcado": "3b16fc6cf7cffcc83f0b1673ca8148a21d87774a483c9a751d5f875803eed2f2"
+    "marcado": "13aecbfbeda217f281d9110b04527f1ab664b2b917cd2bfdc917c68088bea6e1"
   },
   "navegacion_recorrido": {
-    "marcado": "90a3bbf233d8841e2cfc1ad7d081e9fedddcbd88982538557597f99c77609c0a"
+    "marcado": "035a24ee49404128ca3e11594dd5ba3c029e5671e25676eed8722791d492e9ec"
   }
 }

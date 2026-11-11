@@ -217,7 +217,7 @@ export function VariableExclusionsPanel({
                       {option.variable}
                     </strong>
                     <span style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", whiteSpace: "nowrap" }}>
-                      {option.n_reglas} reglas
+                      {formatoConteo(option.n_reglas)} {option.n_reglas === 1 ? "regla" : "reglas"}
                     </span>
                   </span>
                   <span
@@ -281,8 +281,13 @@ export function VariableExclusionsPanel({
                       color: "var(--pulso-text-soft)",
                     }}
                   >
-                    <span>{formatCompactNumber(option.n_inconsistencias ?? 0)} inconsistencias</span>
-                    {option.n_reglas_con_casos > 0 && <span>{option.n_reglas_con_casos} con casos</span>}
+                    <span>
+                      {formatCompactNumber(option.n_inconsistencias ?? 0)}{" "}
+                      {(option.n_inconsistencias ?? 0) === 1 ? "inconsistencia" : "inconsistencias"}
+                      {option.n_reglas_con_casos > 0
+                        ? ` (${formatoConteo(option.n_reglas_con_casos)} ${option.n_reglas_con_casos === 1 ? "regla" : "reglas"} con casos)`
+                        : ""}
+                    </span>
                   </span>
                 </span>
               </label>

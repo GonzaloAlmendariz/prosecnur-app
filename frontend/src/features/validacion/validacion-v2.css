@@ -1024,6 +1024,9 @@
   font-weight: var(--pulso-weight-bold);
   line-height: 1;
   letter-spacing: .02em;
+  /* El id es un dato operativo: nunca se parte (con el chip "Sugerido" caía en la columna del ícono,
+     de 24 px, y se leía en vertical; revisión de V2, B5). */
+  white-space: nowrap;
 }
 
 .pulso-criterio-state {
@@ -1039,6 +1042,11 @@
   border-radius: 10px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
+}
+
+/* Con el chip "Sugerido" la tarjeta tiene cuatro piezas: una columna más, para que el id no salte de fila. */
+.pulso-criterio-state:has(> .pulso-criterio-origen) {
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
 }
 
 .pulso-criterio-state.is-active {
@@ -2463,4 +2471,40 @@ span.pulso-validacion-base-current {
 .pulso-limpieza-editor {
   gap: 12px;
   overflow-y: auto;
+}
+
+/* En Hallazgos la banda no se pega: tapaba el encabezado del editor del hallazgo abierto. */
+.pulso-panel.pulso-limpieza-estado[data-pegajosa="no"] {
+  position: static;
+}
+
+.pulso-limpieza-cola-lista {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  overflow-y: auto;
+  padding-right: var(--pulso-space-1);
+}
+
+/* Revisión de V2 (B2): con poco alto útil (1366x768, 1280x720, 1024x600) la banda de estado deja de
+   ser pegajosa, porque tapaba un tercio del editor, y la cola y el editor dejan de tener scroll propio:
+   con un tope de 780 px eran más altos que lo visible y quedaba una cadena de scroll anidada. Ahí el
+   único dueño del scroll es el cuerpo de la pestaña. Con alto de sobra (1440x1000 en adelante) cada
+   panel conserva su scroll dentro de su tope. */
+@media (max-height: 900px) {
+  .pulso-panel.pulso-limpieza-estado {
+    position: static;
+  }
+
+  .pulso-panel.pulso-limpieza-cola,
+  .pulso-limpieza-editor {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pulso-limpieza-cola-lista {
+    overflow: visible;
+    padding-right: 0;
+  }
 }

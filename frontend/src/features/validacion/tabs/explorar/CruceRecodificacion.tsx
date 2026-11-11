@@ -53,7 +53,7 @@ export default function CruceRecodificacion({ datos }: { datos: Recodificacion }
         return (
           <div key={c.etiqueta}>
             <span className="vx-eyebrow">Adónde fueron los {fmtN(c.n)} casos de "{c.etiqueta}"</span>
-            <div className="vx-barras">
+            <div className="vx-barras" data-qa-geometry-group="validacion/explorar-recodificacion" data-qa-geometry-contract="intrinsic">
               {filas.map((f, k) => (
                 <div key={f.etiqueta} className={`vx-barra-fila${k === 0 && !f.sigue ? " is-primera" : ""}${f.sigue ? " is-residual" : ""}`}>
                   <span className="vx-barra-etq">{f.etiqueta}</span>

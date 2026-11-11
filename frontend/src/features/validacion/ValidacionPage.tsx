@@ -2,48 +2,43 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Compass, Database } from "../../vendor/lucide-react";
 import { TabHeading } from "../../components/TabHeading";
-import {
-  apiEstudioActiveBaseSet,
-  apiEstudioGet,
-  EstudioPayload,
-} from "../../api/client";
+import { apiEstudioGet, EstudioPayload } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { repeatContextFromBase } from "../../lib/rosterExplorer";
 import { Alert } from "../../components/Alert";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
+import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { EmptyState, ErrorBlock } from "../../components/States";
 import { ContextTabRail } from "../../components/ContextTabRail";
 import { PROCESAMIENTO_PESTANAS } from "../../lib/navegacion/catalogos/procesamiento";
-import BaseSelector from "./BaseSelector";
-import LimpiezaTab from "./tabs/LimpiezaTab";
-import InstrumentoTab from "./tabs/InstrumentoTab";
-import ExplorarTab from "./tabs/ExplorarTab";
-import ReglasCustomTab from "./tabs/ReglasCustomTab";
+import PestanaExplorar from "./pestanas/PestanaExplorar";
+import PestanaReglas from "./pestanas/PestanaReglas";
+import PestanaHallazgos from "./pestanas/PestanaHallazgos";
+import PestanaCierre from "./pestanas/PestanaCierre";
 import { useValidacionStore } from "./store";
 import { usePestanaValidacion } from "./pestanaDireccionable";
 import type { ValidacionTabId } from "./types";
 import "./validacion-v2.css";
 
 // =============================================================================
-// Fase 2 — Validación v2 (shell)
+// Validación (shell)
 // =============================================================================
-// La Fase 2 es la "bisagra": antes de avanzar a Codificación, acá se
-// revisa que la data cumple lo que el XLSForm promete, se definen reglas
-// más finas y se explora cómo viene distribuida cada variable.
+// Antes de avanzar a Codificación, acá se revisa que la data cumple lo que el
+// formulario promete, se definen reglas propias, se decide cada hallazgo y se
+// cierra la base.
 //
-// Estructura:
-//   - PageFrame compacto con toolbar y scroll interno.
-//   - BaseSelector (solo visible cuando el estudio tiene ≥2 bases).
-//   - TabStrip con 4 pestañas; el contenido de cada una vive en un
-//     componente aparte (ver ./tabs/*).
+// Estructura (ADR 0142, rebanada V2 de P6):
+//   - PageFrame compacto con scroll interno.
+//   - Selector de base común de Procesamiento (`ChromeBaseSelector`) en la
+//     zona de contexto de la banda; solo se ve con dos bases o más.
+//   - Riel con cuatro pestañas: Explorar, Reglas, Hallazgos y Cierre. Cada una
+//     vive en `./pestanas/*` y por ahora monta las piezas de V1 sin rehacerlas.
 //
 // Estado "pesado" (plan, evaluación, reglas custom) vive en el backend
-// scoped por base. Acá sólo manejamos el selector y el tab activo vía
-// zustand (ver ./store.ts).
-//
-// Sprint 1: shell + stubs. Sprints 2-5 llenan cada tab.
+// scoped por base. Acá sólo manejamos la base vía zustand (ver ./store.ts);
+// la pestaña la dice la URL (ver ./pestanaDireccionable.ts).
 
 const TABS = PROCESAMIENTO_PESTANAS.validacion;
 
@@ -115,25 +110,22 @@ export default function ValidacionPage() {
   const displayBaseName = selectedBase?.source_alias || selectedBase?.source_title || (baseNombre && baseNombre !== "default" ? baseNombre : "Base única");
   const activePanelScope = { activeTab, baseNombre, version } as const;
 
-  async function handleBaseChange(next: string) {
-    setEstudio(null);
-    setBaseNombre(next);
-    try {
-      const r = await apiEstudioActiveBaseSet(next);
-      window.dispatchEvent(new CustomEvent("pulso:active-base-changed", {
-        detail: { active: r.active, processing_mode: r.processing_mode },
-      }));
-      window.dispatchEvent(new CustomEvent("pulso:codif-source-changed", {
-        detail: { source: r.active },
-      }));
-    } catch (e) {
-      setLoadError((e as Error).message);
-    }
-  }
+  // El selector común cambia la base por la API y avisa con
+  // `pulso:active-base-changed`; aquí solo se mueve la base del store, que
+  // remonta la pestaña activa con la base nueva.
+  useEffect(() => {
+    const alCambiar = (evento: Event) => {
+      const activa = (evento as CustomEvent<{ active?: unknown }>).detail?.active;
+      if (typeof activa !== "string" || !activa) return;
+      if (activa !== useValidacionStore.getState().baseNombre) setBaseNombre(activa);
+    };
+    window.addEventListener("pulso:active-base-changed", alCambiar);
+    return () => window.removeEventListener("pulso:active-base-changed", alCambiar);
+  }, [setBaseNombre]);
 
   return (
     <PageFrame
-      title="Fase 2 - Validación"
+      title="Validación"
       lead="Explora las respuestas, valida contra el formulario, afina criterios y cierra la limpieza."
       className="pulso-validacion-frame"
       density="compact"
@@ -162,13 +154,7 @@ export default function ValidacionPage() {
           lo que el rail de secciones ya marca como completado. Queda el selector de
           base, que sí se opera. */}
       <ChromeSlotPortal zona="contexto">
-        {showBaseSelector && (
-          <BaseSelector
-            estudio={estudio}
-            selected={baseNombre}
-            onChange={(next) => void handleBaseChange(next)}
-          />
-        )}
+        {showBaseSelector && <ChromeBaseSelector />}
       </ChromeSlotPortal>
 
       <AdaptiveSplitView
@@ -186,7 +172,7 @@ export default function ValidacionPage() {
         <main
           key={`${activePanelScope.activeTab}:${activePanelScope.baseNombre ?? ""}:${activePanelScope.version}`}
           id="validacion-panel"
-          className={`pulso-validacion-content pulso-content-area${activeTab === "reglas_custom" ? " is-contained-scroll" : ""}`}
+          className="pulso-validacion-content pulso-content-area"
           role="tabpanel"
           aria-labelledby={`validacion-tab-${activeTab}`}
           data-audit-ready={!prereqsOk && estudio !== null && !loadError ? `validacion-${activeTab}` : undefined}
@@ -210,8 +196,6 @@ export default function ValidacionPage() {
                 titulo={activeMeta.label}
                 icono={ActiveIcon}
                 detalle={activeMeta.description}
-                pestanaN={TABS.findIndex((tab) => tab.key === activeMeta.key) + 1}
-                pestanaDe={TABS.length}
                 control={(
                   <span className="pulso-validacion-base-current">
                     <Database size={12} aria-hidden="true" />
@@ -221,10 +205,10 @@ export default function ValidacionPage() {
               />
               </div>
               <div className="pulso-validacion-panel-body">
-                {activeTab === "limpieza" && <LimpiezaTab />}
-                {activeTab === "instrumento" && <InstrumentoTab />}
-                {activeTab === "explorar" && <ExplorarTab repeat={repeatContextFromBase(selectedBase)} />}
-                {activeTab === "reglas_custom" && <ReglasCustomTab />}
+                {activeTab === "explorar" && <PestanaExplorar repeat={repeatContextFromBase(selectedBase)} />}
+                {activeTab === "reglas" && <PestanaReglas />}
+                {activeTab === "hallazgos" && <PestanaHallazgos />}
+                {activeTab === "cierre" && <PestanaCierre />}
               </div>
             </>
           )}

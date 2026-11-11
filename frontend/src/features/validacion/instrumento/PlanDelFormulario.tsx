@@ -1,5 +1,9 @@
-/** Paso 1, plan de reglas del formulario: controles del operativo, roles y acciones del plan. Salió de `tabs/InstrumentoTab.tsx` (rebanada V1 de P6). */
-import { Download, FileText, ListTree, RefreshCcw, Upload } from "../../../vendor/lucide-react";
+/**
+ * Paso 1, plan de reglas del formulario: controles del operativo, roles y acciones del plan. Salió de
+ * `tabs/InstrumentoTab.tsx` (rebanada V1 de P6). Desde V2 se monta en Reglas, y el paquete metodológico pasó a
+ * Cierre (`limpieza/PaqueteMetodologico.tsx`).
+ */
+import { Download, ListTree, RefreshCcw, Upload } from "../../../vendor/lucide-react";
 import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
 import InstrumentoOperationalControls from "../components/InstrumentoOperationalControls";
 import RolesDeclarados from "../components/RolesDeclarados";
@@ -8,12 +12,10 @@ import type { InstrumentoEstado } from "../types";
 import type { Instrumento } from "./useInstrumento";
 
 export default function PlanDelFormulario({ inst, estado }: { inst: Instrumento; estado: InstrumentoEstado }) {
-  const { baseNombre, busy, jobId, entregaPlan, entregaPaquete, cerrarPlan, cerrarPaquete, exportando, drill, operationalConfig, setOperationalConfig, operationalDirty, operationalValid, onBuildPlan, onExport, onMethodologyPackage, onImport } = inst;
+  const { baseNombre, busy, jobId, entregaPlan, cerrarPlan, exportando, operationalConfig, setOperationalConfig, operationalDirty, operationalValid, onBuildPlan, onExport, onImport } = inst;
   return (
     <PasoDeValidacion
       className={`pulso-instrumento-step--plan${estado.plan_construido ? "" : " is-setup"}`}
-      paso={1}
-      de={3}
       titulo="Plan de reglas"
       detalle={
         <>
@@ -85,14 +87,6 @@ export default function PlanDelFormulario({ inst, estado }: { inst: Instrumento;
             >
               <Download size={12} /> Exportar a Excel
             </button>
-            <button
-              type="button"
-              onClick={onMethodologyPackage}
-              disabled={!!busy || !!jobId || exportando}
-              className="pulso-instrumento-action"
-            >
-              <FileText size={12} /> Paquete metodológico PDF + R
-            </button>
             <label
               className={`pulso-instrumento-action pulso-instrumento-file-action${busy ? " is-busy" : ""}`}
             >
@@ -111,9 +105,8 @@ export default function PlanDelFormulario({ inst, estado }: { inst: Instrumento;
           </>
         )}
       </div>
-      {/* El plan y el paquete: cada uno en su contenedor, en bloque bajo la fila de acciones. */}
+      {/* El plan en Excel, en su contenedor en bloque bajo la fila de acciones. */}
       <ContenedorEntregable estado={entregaPlan.estado} forma="bloque" onCerrar={cerrarPlan} />
-      <ContenedorEntregable estado={entregaPaquete.estado} forma="bloque" onCerrar={cerrarPaquete} />
     </PasoDeValidacion>
   );
 }

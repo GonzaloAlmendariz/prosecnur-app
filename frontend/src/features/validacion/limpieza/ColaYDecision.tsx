@@ -153,7 +153,7 @@ export function Workbench({
         ) : filteredQueue.length === 0 ? (
           <EstadoVacio icono={<Search size={16} />} titulo={`No hay hallazgos en "${filterCat}".`} />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", paddingRight: 4 }}>
+          <div className="pulso-limpieza-cola-lista">
             {filteredQueue.map((item, idx) => {
               // Insertar un separador "Ya decididas" justo antes del primer
               // item no-pending (cuando hay al menos uno pendiente antes).

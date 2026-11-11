@@ -6,12 +6,19 @@ import { VariableExclusionsPanel } from "./VariablesFueraDeAuditoria";
 import type { InstrumentoEstado } from "../types";
 import type { Instrumento } from "./useInstrumento";
 
-export default function AuditoriaDelFormulario({ inst, estado }: { inst: Instrumento; estado: InstrumentoEstado }) {
+export default function AuditoriaDelFormulario({
+  inst,
+  estado,
+  onIrAReglas,
+}: {
+  inst: Instrumento;
+  estado: InstrumentoEstado;
+  /** Los controles del operativo se editan en Reglas: el aviso de cambios sin aplicar lleva allí. */
+  onIrAReglas?: () => void;
+}) {
   const { setError, busy, jobId, setJobId, variableQuery, setVariableQuery, operationalDirty, onAudit, onAuditDone, onToggleVariableExcluida, excludedVariableSet, variableExclusionOptions } = inst;
   return (
     <PasoDeValidacion
-      paso={2}
-      de={3}
       titulo="Auditoría"
       detalle="Corre el plan contra la data y encuentra casos inconsistentes."
       listo={estado.auditoria_corrida}
@@ -43,7 +50,17 @@ export default function AuditoriaDelFormulario({ inst, estado }: { inst: Instrum
         </button>
         {operationalDirty && (
           <div className="pulso-operational-inline-note" style={{ marginTop: 7 }}>
-            Aplica y reconstruye el plan antes de ejecutar la auditoría con estos controles.
+            {onIrAReglas
+              ? "Los controles del operativo tienen cambios sin aplicar: aplícalos y reconstruye el plan en Reglas antes de ejecutar la auditoría."
+              : "Aplica y reconstruye el plan antes de ejecutar la auditoría con estos controles."}
+            {onIrAReglas && (
+              <>
+                {" "}
+                <button type="button" className="pulso-secondary" onClick={onIrAReglas}>
+                  Ir a Reglas
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

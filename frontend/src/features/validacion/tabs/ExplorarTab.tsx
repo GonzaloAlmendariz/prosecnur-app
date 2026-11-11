@@ -470,7 +470,7 @@ export default function ExplorarTab({
   const esRecodificacion = !!(cruce?.tabla && cruce.tipo_x === "sm" && cruce.tipo_y === "sm" && recodificacion(cruce.tabla));
   const lateral =
     crossVar && modelo && !esRecodificacion ? (
-      <aside className="vx-lateral" aria-label="Lectura del cruce">
+      <aside className="vx-lateral" aria-label="Lectura del cruce" data-qa-geometry-group="validacion/explorar-lectura-cruce" data-qa-geometry-contract="intrinsic">
         <PanelApartaTotal modelo={modelo} />
       </aside>
     ) : !crossVar && uniVigente && (ficha || !fichaVigente) ? (
@@ -478,7 +478,7 @@ export default function ExplorarTab({
       // ancho entero para encogerse un instante después (C2). Si la ficha
       // falló, no hay columna.
       <aside className="vx-lateral" aria-label="Ficha de la pregunta" aria-busy={!ficha}>
-        <div className="vx-tarjeta vx-ficha">
+        <div className="vx-tarjeta vx-ficha" data-qa-geometry-group="validacion/explorar-ficha" data-qa-geometry-contract="intrinsic">
           {ficha ? (
             <>
               <PanelFormulario ficha={ficha} />

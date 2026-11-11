@@ -72,7 +72,25 @@ const VIEJAS: readonly Vieja[] = [
     patron: /seccion=carga&(?:.*&)?pestana=(?:plan|fuentes|estructura|datos)(?:&|$)/,
     lectores: [],
   },
+  // ADR 0142, rebanada V2 de P6 (2026-11-11): las pestañas de Validación
+  // `instrumento`, `reglas_custom` y `limpieza` pasaron a `reglas` y
+  // `hallazgos`. Las lee como alias `features/validacion/pestanaValidacion.ts`.
+  // Acotados a Validación porque `instrumento` y `limpieza` existen en otros
+  // módulos.
+  {
+    marcador: "/validacion?",
+    patron: /^\/validacion\?(?:.*&)?pestana=(?:instrumento|reglas_custom|reglas-custom|limpieza)(?:&|$)/,
+    lectores: [],
+  },
+  {
+    marcador: "seccion=validacion",
+    patron: /seccion=validacion&(?:.*&)?pestana=(?:instrumento|reglas_custom|reglas-custom|limpieza)(?:&|$)/,
+    lectores: [],
+  },
 ];
+
+/** Claves viejas de Validación (ADR 0142, rebanada V2 de P6). */
+const CLAVES_VIEJAS_VALIDACION = new Set(["instrumento", "reglas_custom", "reglas-custom", "limpieza"]);
 
 /** Claves viejas de Carga (ADR 0142). */
 const CLAVES_VIEJAS_CARGA = new Set(["plan", "fuentes", "estructura", "datos"]);
@@ -110,10 +128,41 @@ function textoLiteral(nodo: ts.Node | undefined): string | null {
  * (`irA("pestana", "fuentes")`, `conNivel(search, "pestana", "datos")`).
  */
 function escritoresDeCargaPorNivel(): string[] {
+  return escritoresPorNivel("carga", "features/carga/", CLAVES_VIEJAS_CARGA);
+}
+
+/**
+ * Lo mismo para Validación, más la tercera forma que solo existe allí:
+ * `irAPestana("limpieza", …)` (`features/validacion/pestanaDireccionable.ts`).
+ */
+function escritoresDeValidacionPorNivel(): string[] {
+  const hallazgos = escritoresPorNivel("validacion", "features/validacion/", CLAVES_VIEJAS_VALIDACION);
+  for (const source of parseSourcesContaining("irAPestana", [".ts", ".tsx"])) {
+    const relativo = source.relative.split("\\").join("/");
+    if (!relativo.startsWith("features/validacion/")) continue;
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node)
+        && ts.isIdentifier(node.expression)
+        && node.expression.text === "irAPestana"
+      ) {
+        const primera = textoLiteral(node.arguments[0]);
+        if (primera && CLAVES_VIEJAS_VALIDACION.has(primera)) {
+          hallazgos.push(`${lineLabel(source, node)} → irAPestana("${primera}")`);
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source.sourceFile);
+  }
+  return hallazgos;
+}
+
+function escritoresPorNivel(seccion: string, carpeta: string, viejas: ReadonlySet<string>): string[] {
   const hallazgos: string[] = [];
   for (const source of parseSourcesContaining("pestana", [".ts", ".tsx"])) {
     const relativo = source.relative.split("\\").join("/");
-    const enCarga = relativo.startsWith("features/carga/");
+    const enCarpeta = relativo.startsWith(carpeta);
     const visit = (node: ts.Node) => {
       if (esPendiente(relativo, node)) return;
       if (ts.isObjectLiteralExpression(node)) {
@@ -124,15 +173,15 @@ function escritoresDeCargaPorNivel(): string[] {
           return textoLiteral(prop?.initializer);
         };
         const pestana = valor("pestana");
-        if (valor("seccion") === "carga" && pestana && CLAVES_VIEJAS_CARGA.has(pestana)) {
-          hallazgos.push(`${lineLabel(source, node)} → { seccion: "carga", pestana: "${pestana}" }`);
+        if (valor("seccion") === seccion && pestana && viejas.has(pestana)) {
+          hallazgos.push(`${lineLabel(source, node)} → { seccion: "${seccion}", pestana: "${pestana}" }`);
         }
       }
-      if (enCarga && ts.isCallExpression(node)) {
+      if (enCarpeta && ts.isCallExpression(node)) {
         const args = node.arguments;
         args.forEach((arg, i) => {
           const siguiente = textoLiteral(args[i + 1]);
-          if (textoLiteral(arg) === "pestana" && siguiente && CLAVES_VIEJAS_CARGA.has(siguiente)) {
+          if (textoLiteral(arg) === "pestana" && siguiente && viejas.has(siguiente)) {
             hallazgos.push(`${lineLabel(source, node)} → (..., "pestana", "${siguiente}")`);
           }
         });
@@ -188,6 +237,15 @@ describe("pestañas de Carga renombradas por el ADR 0142", () => {
       expect(declaracion, `${archivo} ya no declara ${constante}`).not.toBe("");
       expect(declaracion).toMatch(/seccion: "carga",\s*pestana: "(?:plan|fuentes|estructura|datos)"/);
     }
+  });
+});
+
+describe("pestañas de Validación renombradas por el ADR 0142 (rebanada V2 de P6)", () => {
+  test("ningún objeto de dirección, escritura de nivel ni irAPestana usa una clave vieja de Validación", () => {
+    expect(
+      escritoresDeValidacionPorNivel(),
+      "clave de solo lectura; escribe `reglas`, `hallazgos` o `cierre`",
+    ).toEqual([]);
   });
 });
 

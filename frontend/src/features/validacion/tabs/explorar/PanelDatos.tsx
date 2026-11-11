@@ -16,7 +16,7 @@ export default function PanelDatos({ ficha, filtrado }: { ficha: ExploradorFicha
         <h4>En los datos</h4>
         {filtrado && <span>toda la base, sin filtros</span>}
       </div>
-      <dl className="vx-dl is-cifras">
+      <dl className="vx-dl is-cifras" data-qa-geometry-group="validacion/explorar-ficha-datos" data-qa-geometry-contract="intrinsic">
         <dt>Sin respuesta</dt>
         <dd>
           {fmtN(d.n_sin_respuesta)}

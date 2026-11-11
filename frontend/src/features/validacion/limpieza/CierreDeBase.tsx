@@ -3,6 +3,7 @@
  * generar base", seguida de los archivos del cierre, el efecto de las
  * decisiones y la promoción de la base. Salió de `tabs/LimpiezaTab.tsx`.
  */
+import type { ReactNode } from "react";
 import { Check, Loader2, RefreshCcw } from "../../../vendor/lucide-react";
 import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
 import PromocionBase from "../components/PromocionBase";
@@ -15,9 +16,17 @@ import { formatDateTime } from "./modeloLimpieza";
 import { primaryButtonStyle, secondaryButtonStyle } from "./estilosLimpieza";
 
 // =============================================================================
-// Zona 1 — StatusBar (sticky, compacto)
+// Zona 1: StatusBar (sticky, compacto)
 // =============================================================================
+// Montaje de transición (rebanada V2 de P6): la misma banda va en Hallazgos y
+// en Cierre. En Hallazgos filtra la cola por tipo de decisión y no cierra; en
+// Cierre cierra la base y la barra solo informa, porque la cola no está ahí.
+// Sin `onFilterKind` la barra no se pulsa; sin `onFinalize` no hay botón de cierre.
 export function StatusBar({
+  titulo = "Decisiones",
+  pistaSinCierre = null,
+  accionListo,
+  pegajosa = true,
   auditReady,
   canFinalize,
   finalizedAt,
@@ -29,6 +38,17 @@ export function StatusBar({
   onRefresh,
   onFinalize,
 }: {
+  titulo?: string;
+  /** La pista cuando todavía no hubo cierre; `null` la quita (el título ya lo dice). */
+  pistaSinCierre?: string | null;
+  /** Se muestra junto al estado cuando la base está lista para cerrar (en Hallazgos, "Ir a Cierre"). */
+  accionListo?: ReactNode;
+  /**
+   * En Cierre la banda se pega bajo el encabezado porque lleva "Cerrar y generar base". En Hallazgos
+   * no: casi siempre hay un hallazgo abierto y la banda pegada tapaba el encabezado del editor
+   * (176 px a 1440x1000, QA dentro de la app de V2).
+   */
+  pegajosa?: boolean;
   auditReady: boolean;
   canFinalize: boolean;
   finalizedAt?: string;
@@ -36,9 +56,9 @@ export function StatusBar({
   finalizeBusy: boolean;
   decisionCounts: DecisionCounts;
   activeFilterKind: DecisionKind | null;
-  onFilterKind: (k: DecisionKind | null) => void;
+  onFilterKind?: (k: DecisionKind | null) => void;
   onRefresh: () => void;
-  onFinalize: () => void;
+  onFinalize?: () => void;
 }) {
   const total =
     decisionCounts.ignore +
@@ -63,12 +83,14 @@ export function StatusBar({
   return (
     <Panel
       className="pulso-limpieza-estado"
+      data-pegajosa={pegajosa ? undefined : "no"}
       aria-labelledby="pulso-limpieza-estado-titulo"
-      title={<span id="pulso-limpieza-estado-titulo">Limpieza y transformación</span>}
-      hint={finalizedAt ? `Último cierre: ${formatDateTime(finalizedAt)}` : "Decisiones sobre los hallazgos detectados"}
+      title={<span id="pulso-limpieza-estado-titulo">{titulo}</span>}
+      hint={finalizedAt ? `Último cierre: ${formatDateTime(finalizedAt)}` : pistaSinCierre ?? undefined}
       actions={
         <>
           <EstadoChip tone={statusTone} label={statusLabel} />
+          {auditReady && canFinalize && accionListo}
           <button
             type="button"
             onClick={onRefresh}
@@ -78,16 +100,18 @@ export function StatusBar({
             {refreshBusy ? <Loader2 size={13} className="pulso-spin" /> : <RefreshCcw size={13} />}
             Recalcular
           </button>
-          <button
-            type="button"
-            onClick={onFinalize}
-            disabled={!canFinalize || finalizeBusy}
-            className="pulso-primary"
-            style={primaryButtonStyle}
-          >
-            <Check size={13} />
-            Cerrar y generar base
-          </button>
+          {onFinalize && (
+            <button
+              type="button"
+              onClick={onFinalize}
+              disabled={!canFinalize || finalizeBusy}
+              className="pulso-primary"
+              style={primaryButtonStyle}
+            >
+              <Check size={13} />
+              Cerrar y generar base
+            </button>
+          )}
         </>
       }
     >
@@ -96,9 +120,9 @@ export function StatusBar({
         <DecisionStorageBar
           counts={decisionCounts}
           activeKind={activeFilterKind}
-          onSelectKind={(k) =>
-            activeFilterKind === k ? onFilterKind(null) : onFilterKind(k)
-          }
+          onSelectKind={onFilterKind
+            ? (k) => (activeFilterKind === k ? onFilterKind(null) : onFilterKind(k))
+            : undefined}
           showLegend
           showTotals
           height={14}
@@ -108,7 +132,11 @@ export function StatusBar({
   );
 }
 
-/** La banda de cierre y, debajo, lo que produjo el cierre: archivos, efecto de las decisiones y promoción. */
+/**
+ * La banda de cierre y, debajo, lo que produjo el cierre: archivos, efecto de
+ * las decisiones y promoción. Va en la pestaña Cierre; la barra de decisiones
+ * no filtra porque la cola vive en Hallazgos.
+ */
 export default function CierreDeBase({ mesa, auditReady }: { mesa: MesaDeLimpieza; auditReady: boolean }) {
   const { artifacts, cierre } = mesa;
   return (
@@ -120,8 +148,7 @@ export default function CierreDeBase({ mesa, auditReady }: { mesa: MesaDeLimpiez
         refreshBusy={mesa.refreshBusy}
         finalizeBusy={mesa.finalizeBusy}
         decisionCounts={mesa.decisionCounts}
-        activeFilterKind={mesa.activeFilterKind}
-        onFilterKind={mesa.setActiveFilterKind}
+        activeFilterKind={null}
         onRefresh={() => void mesa.loadLimpieza({ quiet: true })}
         onFinalize={() => void mesa.handleFinalize()}
       />

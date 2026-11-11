@@ -44,7 +44,7 @@ export default function DistribucionBarras({
   if (div) return <BarraDivergente div={div} aparte={filas.filter((f) => esResidual(f.etiqueta) || fuera(f))} />;
 
   return (
-    <div className="vx-barras">
+    <div className="vx-barras" data-qa-geometry-group="validacion/explorar-barras" data-qa-geometry-contract="intrinsic">
       {visibles.map((f) => (
         <div
           key={`${f.codigo}-${f.etiqueta}`}

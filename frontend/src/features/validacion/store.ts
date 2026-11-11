@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ValidacionTabId } from "./types";
+import type { ExploradorVariablesList, InstrumentoOperationalConfig, ValidacionTabId } from "./types";
 import type { RelationalRuleMeta, RelationalSummary } from "./relationalPlan";
 
 // =============================================================================
@@ -9,21 +9,23 @@ import type { RelationalRuleMeta, RelationalSummary } from "./relationalPlan";
 // scoped por base. Acá guardamos solo el estado UI efímero:
 //   - Base seleccionada arriba del todo (único selector de la página).
 //   - Payloads de deep-link (prefill cuando se salta de un tab a otro
-//     desde Limpieza y normalización: ej. "abrir la variable X en Explorar").
+//     desde Hallazgos: ej. "abrir la variable X en Explorar").
 //   - Flag de loading genérico por pestaña.
 //
 // Lo importante: cambiar `baseNombre` debe invalidar cualquier caché
 // local y forzar a las pestañas a refetch. Usamos un contador `version`
 // para que los `useEffect([version])` de los tabs se disparen.
 
+// Las claves son las pestañas de hoy (rebanada V2 de P6): el drill de una
+// regla, que antes iba a "instrumento", va a "hallazgos", donde vive su panel.
 export type ValidacionPrefill = {
-  limpieza?: Record<string, unknown>;
-  // Para tab "instrumento": prefill de drill-down a una regla.
-  instrumento?: { id_regla?: string };
-  // Para tab "explorar": prefill de variable seleccionada (y opcional cruce).
+  // Para "hallazgos": abrir el panel de una regla (y de dónde se llegó).
+  hallazgos?: { id_regla?: string } & Record<string, unknown>;
+  // Para "explorar": prefill de variable seleccionada (y opcional cruce).
   explorar?: { var?: string; cruzar_con?: string };
-  // Para tab "reglas_custom": prefill del editor al crear/editar una regla.
-  reglas_custom?: { tipo?: string; variables?: string[] };
+  // Para "reglas": prefill del editor al crear/editar una regla.
+  reglas?: { tipo?: string; variables?: string[] };
+  cierre?: Record<string, unknown>;
 };
 
 // Captura del surfacing relacional del plan (Fase 4). El plan se anota con los
@@ -52,11 +54,25 @@ type ValidacionState = {
   version: number; // bump al cambiar base — fuerza refetch en tabs
   prefill: ValidacionPrefill;
   relationalPlan: Record<string, RelationalPlanCapture>;
+  /**
+   * Controles del operativo editados y todavía sin aplicar, por base. Se
+   * editan en Reglas y bloquean la auditoría en Hallazgos (rebanada V2 de P6):
+   * por eso viven aquí y no en el estado del hook, que se desmonta al cambiar
+   * de pestaña. Se borran al aplicar (reconstruir el plan).
+   */
+  controlesSinAplicar: Record<string, InstrumentoOperationalConfig>;
+  /**
+   * El inventario de variables de la base, pedido una vez por base y versión
+   * y compartido por los controles del operativo y las reglas propias.
+   */
+  inventario: { clave: string; promesa: Promise<ExploradorVariablesList> } | null;
 
   setBaseNombre: (nombre: string | null) => void;
   setPrefill: (tab: ValidacionTabId, payload: Record<string, unknown>) => void;
   clearPrefill: (tab: ValidacionTabId) => void;
   setRelationalPlan: (base: string | null, capture: RelationalPlanCapture) => void;
+  setControlesSinAplicar: (base: string | null, config: InstrumentoOperationalConfig | null) => void;
+  setInventario: (inventario: ValidacionState["inventario"]) => void;
   bumpVersion: () => void;
   resetForSession: () => void;
 };
@@ -66,6 +82,8 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
   version: 0,
   prefill: {},
   relationalPlan: {},
+  controlesSinAplicar: {},
+  inventario: null,
 
   setBaseNombre: (nombre) =>
     set((s) => ({
@@ -90,6 +108,14 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
     set((s) => ({
       relationalPlan: { ...s.relationalPlan, [relationalBaseKey(base)]: capture },
     })),
+  setControlesSinAplicar: (base, config) =>
+    set((s) => {
+      const copia = { ...s.controlesSinAplicar };
+      if (config) copia[relationalBaseKey(base)] = config;
+      else delete copia[relationalBaseKey(base)];
+      return { controlesSinAplicar: copia };
+    }),
+  setInventario: (inventario) => set({ inventario }),
   bumpVersion: () =>
     set((s) => ({
       version: s.version + 1,
@@ -100,5 +126,7 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
       version: s.version + 1,
       prefill: {},
       relationalPlan: {},
+      controlesSinAplicar: {},
+      inventario: null,
     })),
 }));

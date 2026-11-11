@@ -30,7 +30,7 @@ export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
         <span>{ficha.label}</span>
         {ficha.hint && <span>Ayuda: "{ficha.hint}"</span>}
       </div>
-      <dl className="vx-dl">
+      <dl className="vx-dl" data-qa-geometry-group="validacion/explorar-ficha-formulario" data-qa-geometry-contract="intrinsic">
         <dt>Tipo</dt>
         <Valor texto={tipo || null} vacio="sin declarar" mono />
         <dt>Grupo</dt>

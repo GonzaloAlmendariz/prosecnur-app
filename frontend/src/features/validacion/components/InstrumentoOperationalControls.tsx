@@ -8,7 +8,7 @@ import {
   Settings2,
   X,
 } from "../../../vendor/lucide-react";
-import { apiV2ExplorarVariables } from "../../../api/client";
+import { pedirInventario } from "../inventarioDeBase";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import type {
   ExploradorVariable,
@@ -57,7 +57,7 @@ export default function InstrumentoOperationalControls({
     setVariables([]);
     setLoadingVariables(true);
     setLoadError("");
-    void apiV2ExplorarVariables(baseNombre)
+    void pedirInventario(baseNombre)
       .then((inventory) => {
         if (cancelled) return;
         setVariables(inventory.secciones.flatMap((section) => section.variables));

@@ -15,7 +15,7 @@ export default function BarraLectura({
   cruce: ReactNode;
 }) {
   return (
-    <section className="vx-tarjeta vx-barra" aria-label="Lente de lectura">
+    <section className="vx-tarjeta vx-barra" aria-label="Lente de lectura" data-qa-geometry-group="validacion/explorar-lente" data-qa-geometry-contract="intrinsic">
       <div className="vx-barra-grupo">
         <span className="vx-eyebrow">Momento</span>
         {momento}
