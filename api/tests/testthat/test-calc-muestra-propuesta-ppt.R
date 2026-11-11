@@ -38,6 +38,9 @@ test_that("las tablas comparan los escenarios con las metas del motor", {
   expect_identical(tail(d[["Meta Propuesta B"]], 1), "604")
   expect_identical(d[["Meta Propuesta B"]][1], "30")
   expect_identical(attr(d, "al_minimo"), "Contratado a tiempo completo")
+  # El % de la población se escribe como en el gráfico ("66%", "4.3%"), porque explica las metas.
+  expect_identical(d[["% de la población"]][1:2], c("4.3%", "65.7%"))
+  expect_identical(tail(d[["% de la población"]], 1), "100%")
   expect_false("Egresados" %in% names(t$segmentos))
   # Para cada actor queda dicho cómo se reparte su meta.
   # Revisión 2026-11-11: se nombran los segmentos de cruce; un actor sin cruce no lleva nada.
@@ -118,7 +121,8 @@ test_that("el Excel de escenarios trae las mismas cifras que el PPT, como númer
   expect_equal(res[[5]][1], 900 / 2665)
   expect_equal(res[[6]][1], 1.96 * sqrt(0.25 / 900 * (2665 - 900) / 2664))
   doc <- openxlsx::read.xlsx(out, sheet = "Docentes", startRow = 3)
-  expect_identical(as.integer(doc[[3]]), c(39L, 591L, 91L, 86L, 93L, 900L))
+  expect_identical(as.integer(doc[[4]]), c(39L, 591L, 91L, 86L, 93L, 900L))
+  expect_equal(doc[[3]][1], 114 / 2665)
   v <- openxlsx::read.xlsx(out, sheet = "Viabilidad", startRow = 4, colNames = TRUE)
   expect_identical(v$Lectura[1:3], c("Exige más respuesta en Propuesta A", "Alcanzable", "Alcanzable"))
   # Cuotas de control: un actor declarado como control se rotula así en su hoja.

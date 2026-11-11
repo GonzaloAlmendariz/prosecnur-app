@@ -26,10 +26,11 @@
   list(data = reporte_data(normalize_data_for_xlsform(df, inst), instrumento = inst), inst = inst)
 }
 
-.cmg_grafico <- function(fuente, n_categorias) {
+.cmg_grafico <- function(fuente, n_categorias, en_pareja = FALSE) {
   var <- paste0(fuente, "$segmento")
   # Sin la pista gris hasta el 100 % detrás de cada barra (revisión de Gonzalo, 2026-11-11: "quita la barra extra").
-  el <- if (n_categorias > .CMG_MAX_VERTICALES) p_barras_agrupadas(var, overrides = list(pista_barras = "nunca"))
+  # Eje libre: sin pista, una escala fija al 100 % dejaba la barra mayor (19 %) en un quinto del ancho.
+  el <- if (n_categorias > .CMG_MAX_VERTICALES) p_barras_agrupadas(var, overrides = list(pista_barras = "nunca", usar_eje_libre = TRUE))
         else p_barras_categoricas(var, formato_valor = "porcentaje_n", overrides = list(pista_barras = "nunca"))
   # La nota propia del gráfico diría "Base: N respuestas", y aquí no hay respuestas: es la población. La lámina
   # declara su pie ("Población: ...") y el gráfico no lleva nota.
@@ -53,8 +54,7 @@
   agregar <- function(fuente, etiquetas, N, pregunta, titulo, tema) {
     f <- .cmg_fuente(fuente, etiquetas, N, pregunta)
     data[[fuente]] <<- f$data; inst[[fuente]] <<- f$inst
-    el <- .cmg_grafico(fuente, length(etiquetas))
-    graficos[[length(graficos) + 1L]] <<- list(el = el, titulo = titulo, tema = tema, N = sum(N), fuente = fuente,
+    graficos[[length(graficos) + 1L]] <<- list(titulo = titulo, tema = tema, N = sum(N), fuente = fuente,
                                                n_cat = length(etiquetas))
   }
   if (length(d$publicos) > 1L) {
@@ -94,7 +94,11 @@
     titulo <- toupper(.y(vapply(gr, `[[`, "", "tema")))
     base <- paste0("Población: ", paste(vapply(gr, function(x) sprintf("%s %s", .cmp_fmt_n(x$N), x$fuente), ""), collapse = "; "))
     # Con dos o tres gráficos, cada uno lleva su título; con uno, va de subtítulo de la lámina.
-    els <- lapply(gr, function(x) { e <- x$el; if (length(gr) > 1L) e$title_slide <- x$titulo; e })
+    els <- lapply(gr, function(x) {
+      e <- .cmg_grafico(x$fuente, x$n_cat, en_pareja = length(gr) > 1L)
+      if (length(gr) > 1L) e$title_slide <- x$titulo
+      e
+    })
     slide <- switch(as.character(length(gr)),
       "1" = p_slide_1_grafico(els[[1]], titulo = toupper(gr[[1]]$titulo), base = base),
       "2" = p_slide_2_graficos(els[[1]], els[[2]], titulo = titulo, base = base),

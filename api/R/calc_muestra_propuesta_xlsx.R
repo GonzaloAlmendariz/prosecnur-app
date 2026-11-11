@@ -121,7 +121,8 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
       if (length(al_min)) sprintf("Suben al mínimo de %d (o a todas sus personas): %s.",
                                   as.integer(propuesta$minimo_segmento %||% 30L), paste(al_min, collapse = ", "))), collapse = " ")
     .cmx_hoja(wb, hoja, paste0(if (control) "Metas por cuota de control: " else "Metas por segmento: ", p), sub_h)
-    tab <- data.frame(Segmento = c(s$segmento, "Total"), `Población` = c(s$N, sum(s$N)), check.names = FALSE)
+    tab <- data.frame(Segmento = c(s$segmento, "Total"), `Población` = c(s$N, sum(s$N)),
+                      `% de la población` = c(s$N / sum(s$N), 1), check.names = FALSE)
     for (k in esc) {
       tab[[paste0("Meta ", k)]] <- c(s[[k]], sum(s[[k]]))
       tab[[paste0("Respuesta necesaria ", k)]] <- c(s[[k]] / s$N, sum(s[[k]]) / sum(s$N))
@@ -129,8 +130,8 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
       if (!control) tab[[paste0("Margen de referencia ", k)]] <- c(.cmp_margen_ref(s[[k]], s$N), NA_real_)
     }
     n_esc <- length(esc); paso <- if (control) 2L else 3L
-    .cmx_tabla(wb, hoja, tab, 4, enteros = c(2L, 3L + paso * (seq_len(n_esc) - 1L)),
-               pcts = c(4L + paso * (seq_len(n_esc) - 1L), if (!control) 5L + paso * (seq_len(n_esc) - 1L)), total = TRUE)
+    .cmx_tabla(wb, hoja, tab, 4, enteros = c(2L, 4L + paso * (seq_len(n_esc) - 1L)),
+               pcts = c(3L, 5L + paso * (seq_len(n_esc) - 1L), if (!control) 6L + paso * (seq_len(n_esc) - 1L)), total = TRUE)
     openxlsx::setColWidths(wb, hoja, cols = seq_len(ncol(tab)), widths = c(36, rep(14, ncol(tab) - 1L)))
   }
 

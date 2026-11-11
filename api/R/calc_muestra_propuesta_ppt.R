@@ -17,6 +17,9 @@
                    letra = 12, letra_densa = 10.5, max_filas_comodas = 13L, nota_alto = 0.55)
 
 .cmp_fmt_n <- function(x) formatC(as.numeric(x), format = "d", big.mark = ",")
+# El mismo formato que escribe el motor de gráficos sobre la barra ("19%", "18.7%"): la tabla de metas y el
+# gráfico del público se leen juntos.
+.cmp_fmt_pct_grafico <- function(x) ifelse(is.finite(x), paste0(sub("\\.0$", "", formatC(round(100 * x, 1), format = "f", digits = 1)), "%"), "")
 .cmp_fmt_pct <- function(x, dec = 1) ifelse(is.finite(x), paste0(formatC(100 * x, format = "f", digits = dec), " %"), "")
 .cmp_margen_ref <- function(n, N) {
   ok <- n > 0 & N > 1 & n <= N
@@ -102,8 +105,12 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   for (i in seq_along(base)) {
     est <- base[[i]]$marco$estratos %||% list()
     if (!length(est)) next
+    N_seg <- vapply(est, function(e) as.integer(e$N), 1L)
+    # El porcentaje es el mismo que dibuja el gráfico del público y explica la meta de cada segmento
+    # (revisión 2026-11-11): las metas son proporcionales a él.
     df <- data.frame(Segmento = c(vapply(est, `[[`, "", "label"), "Total"),
-                     `Población` = .cmp_fmt_n(c(vapply(est, function(e) as.integer(e$N), 1L), N[i])),
+                     `Población` = .cmp_fmt_n(c(N_seg, N[i])),
+                     `% de la población` = c(.cmp_fmt_pct_grafico(N_seg / sum(N_seg)), "100%"),
                      check.names = FALSE)
     num <- data.frame(segmento = vapply(est, `[[`, "", "label"), N = vapply(est, function(e) as.integer(e$N), 1L))
     for (k in seq_along(calc)) {
@@ -245,11 +252,12 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   T <- .CMP_TABLA
   densa <- nrow(df) > T$max_filas_comodas
   altos <- .cmp_altos(df, primera, densa, anchos)
+  # El alto cabe hasta el pie (la nota ya no ocupa recuadro); si no, filas densas y, si aún no, se aprietan.
+  disponible <- 7.5 - T$top - 0.75
+  if (sum(altos) > disponible && !densa) { densa <- TRUE; altos <- .cmp_altos(df, primera, densa, anchos) }
+  if (sum(altos) > disponible) altos <- pmax(0.24, altos * disponible / sum(altos))
   # `llenar`: la tabla ocupa el alto disponible de la lámina ("el alto no se aprovecha", revisión 2026-11-11).
-  if (llenar) {
-    disponible <- 7.5 - T$top - 0.55 - if (!is.null(nota) && nzchar(nota)) T$nota_alto + 0.3 else 0
-    if (sum(altos) < disponible) altos <- altos * min(disponible / sum(altos), 1.9)
-  }
+  if (llenar && sum(altos) < disponible) altos <- altos * min(disponible / sum(altos), 1.9)
   doc <- officer::add_slide(doc, layout = "Title and Content", master = "Office Theme")
   titulo_fp <- officer::fp_text(color = .std_color("coral"), font.size = 22, bold = TRUE, font.family = "Arial")
   doc <- officer::ph_with(doc, officer::fpar(officer::ftext(toupper(titulo), titulo_fp)),
@@ -262,23 +270,13 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
     ft <- flextable::align(ft, j = 2:ncol(df), align = "left", part = "all")
   }
   doc <- officer::ph_with(doc, ft, location = officer::ph_location(left = T$left, top = T$top, width = T$width, height = 1))
+  # La nota es una indicación al pie, abajo a la izquierda, como la base de los gráficos (revisión 2026-11-11:
+  # "debería ser solo una indicación estilo base en la esquina inferior izquierda"); antes era un recuadro que
+  # en PowerPoint se montaba sobre la tabla.
   if (!is.null(nota) && nzchar(nota)) {
-    top <- min(T$top + sum(altos) + 0.30, 7.5 - T$nota_alto - 0.35)
-    # Recuadro de una celda: el texto queda centrado en los dos ejes, con borde fino.
-    nf <- flextable::flextable(data.frame(nota = nota))
-    nf <- flextable::delete_part(nf, part = "header")
-    nf <- flextable::width(nf, j = 1, width = T$width)
-    nf <- flextable::font(nf, fontname = "Arial", part = "all")
-    nf <- flextable::fontsize(nf, size = 11, part = "all")
-    nf <- flextable::color(nf, color = .std_color("azul"), part = "all")
-    nf <- flextable::bg(nf, bg = .std_color("cebra"), part = "all")
-    nf <- flextable::align(nf, align = "center", part = "all")
-    nf <- flextable::valign(nf, valign = "center", part = "all")
-    nf <- flextable::padding(nf, padding.left = 14, padding.right = 14, padding.top = 6, padding.bottom = 6, part = "all")
-    nf <- flextable::height(nf, height = T$nota_alto, part = "body")
-    nf <- flextable::hrule(nf, rule = "atleast", part = "body")
-    nf <- flextable::border_outer(nf, border = officer::fp_border(color = .std_color("azul_medio"), width = 0.75))
-    doc <- officer::ph_with(doc, nf, location = officer::ph_location(left = T$left, top = top, width = T$width, height = T$nota_alto))
+    nota_fp <- officer::fp_text(color = .std_color("azul"), font.size = 9, bold = TRUE, font.family = "Arial")
+    doc <- officer::ph_with(doc, officer::fpar(officer::ftext(nota, nota_fp)),
+                            location = officer::ph_location(left = 0.45, top = 7.02, width = 11.2, height = 0.3))
   }
   doc
 }
