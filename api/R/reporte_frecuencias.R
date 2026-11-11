@@ -1001,6 +1001,37 @@ mk_styles_spss <- function() {
 # freq_table_spss
 # =============================================================================
 
+#' Madre, dummies y tipo con que `freq_table_spss()` tabula una variable
+#'
+#' `tipo` es `"sm"` cuando la variable se cuenta como respuesta múltiple (por el
+#' `survey`, por `sm_vars_force`, por tener dummies `var/cod` o `var.cod`, o por
+#' una madre pegada cuyos tokens calzan con el instrumento); cualquier otro valor
+#' es respuesta única. Queda `NA` si la variable no está en `data`.
+#' @noRd
+.freq_deteccion_variable <- function(data, var, survey = NULL, sm_vars_force = NULL,
+                                     orders_list = NULL) {
+  has_main <- var %in% names(data)
+
+  var_escaped   <- gsub("([\\W])", "\\\\\\1", var)
+  subvars_slash <- names(data)[grepl(paste0("^", var_escaped, "/"), names(data))]
+  subvars_dot   <- names(data)[grepl(paste0("^", var_escaped, "\\.[^.]+$"), names(data))]
+
+  subvars_all <- c(subvars_slash, subvars_dot)
+  has_dummies <- length(subvars_all) > 0L
+
+  tipo <- NA_character_
+  if (has_main || has_dummies) {
+    tipo <- tipo_pregunta_spss(var, survey, sm_vars_force)
+    if (tipo != "sm" && has_dummies) tipo <- "sm"
+    if (tipo != "sm" && .looks_like_select_multiple_main(data, var, orders_list)) {
+      tipo <- "sm"
+    }
+  }
+
+  list(has_main = has_main, has_dummies = has_dummies, var_escaped = var_escaped,
+       subvars_all = subvars_all, tipo = tipo)
+}
+
 #' Tabla de frecuencias ponderadas para una variable
 #'
 #' Calcula una tabla de frecuencias (n y porcentaje) para una variable de la
@@ -1054,26 +1085,19 @@ freq_table_spss <- function(data, var, survey = NULL, sm_vars_force = NULL,
     stop("`data` debe ser un data.frame o tibble.", call. = FALSE)
   }
 
-  # Detectar presencia de madre y dummies
-  has_main <- var %in% names(data)
-
-  var_escaped   <- gsub("([\\W])", "\\\\\\1", var)
-  subvars_slash <- names(data)[grepl(paste0("^", var_escaped, "/"), names(data))]
-  subvars_dot   <- names(data)[grepl(paste0("^", var_escaped, "\\.[^.]+$"), names(data))]
-
-  subvars_all <- c(subvars_slash, subvars_dot)
-  has_dummies <- length(subvars_all) > 0L
+  # Detectar presencia de madre y dummies, y el tipo con que se tabula
+  det <- .freq_deteccion_variable(data, var, survey, sm_vars_force, orders_list)
+  has_main    <- det$has_main
+  var_escaped <- det$var_escaped
+  subvars_all <- det$subvars_all
+  has_dummies <- det$has_dummies
 
   if (!has_main && !has_dummies) {
     stop("`", var, "` no se encuentra en `data` ni se detectaron dummies asociadas.",
          call. = FALSE)
   }
 
-  tipo <- tipo_pregunta_spss(var, survey, sm_vars_force)
-  if (tipo != "sm" && has_dummies) tipo <- "sm"
-  if (tipo != "sm" && .looks_like_select_multiple_main(data, var, orders_list)) {
-    tipo <- "sm"
-  }
+  tipo <- det$tipo
 
   w <- .peso_vec(data)
   # Base sin ponderar (S1, contrato base-sin-ponderar F6): `n_casos` cuenta
@@ -1284,6 +1308,134 @@ mk_styles_spss <- function() {
   invisible(wb)
 }
 
+# -----------------------------------------------------------------------------
+# Piezas del bloque de una variable tal como salen en el archivo. Las consumen
+# los writers de abajo y la vista previa (`analitica_frecuencias_preview.R`):
+# una cifra o un rótulo del archivo se arma aquí y en ningún otro sitio.
+# -----------------------------------------------------------------------------
+
+#' Título de la pregunta sobre su tabla.
+#' @noRd
+.freq_titulo_archivo <- function(var, dic_vars = NULL, labels_override = NULL,
+                                 orders_list = NULL, data = NULL) {
+  label_q <- titulo_var(
+    var,
+    dic_vars,
+    labels_override,
+    orders_list = orders_list,
+    df = data
+  )
+  .freq_clean_other_title_es(label_q)
+}
+
+#' Tabla categórica que se escribe: opciones, `n`, `pct` (proporción 0 a 1) y la fila Total.
+#'
+#' Es `freq_table_spss()` con los rótulos de exportación y el orden pedido
+#' (`"asc"`/`"desc"` por `n`; `"original"` deja el del instrumento). Devuelve
+#' cero filas cuando nadie respondió: el archivo escribe "Sin datos".
+#' @noRd
+.freq_tabla_archivo <- function(data, var, survey = NULL, sm_vars_force = NULL,
+                                orders_list = NULL, mostrar_todo = FALSE,
+                                codigos_solo_si_presentes = NULL,
+                                orden = "original", incluir_porcentajes = TRUE) {
+  tab <- freq_table_spss(
+    data,
+    var,
+    survey        = survey,
+    sm_vars_force = sm_vars_force,
+    orders_list   = orders_list,
+    mostrar_todo  = mostrar_todo,
+    codigos_solo_si_presentes = codigos_solo_si_presentes
+  )
+  tab <- .freq_clean_option_labels_for_export(tab)
+
+  if (nrow(tab)) {
+    is_total0 <- tab$Opciones == "Total"
+    body0 <- tab[!is_total0, , drop = FALSE]
+    total0 <- tab[is_total0, , drop = FALSE]
+    orden <- as.character(orden %||% "original")
+    if (orden %in% c("asc", "desc") && nrow(body0) && "n" %in% names(body0)) {
+      body0 <- dplyr::arrange(body0, if (orden == "asc") n else dplyr::desc(n))
+    }
+    tab <- dplyr::bind_rows(body0, total0)
+  }
+  if (!isTRUE(incluir_porcentajes) && "pct" %in% names(tab)) {
+    tab$pct <- NULL
+  }
+  tab
+}
+
+#' Resumen de una variable numérica declarada (con `peso` si la base lo trae).
+#' @noRd
+.freq_resumen_archivo <- function(data, var) {
+  w <- .peso_vec(data)
+  .resumen_numerico_w(data[[var]], w)
+}
+
+#' Líneas al pie de una tabla: "Fuente: ..." y, si la pregunta tiene base, "Base: ...".
+#' @noRd
+.freq_notas_archivo <- function(fuente, base_texto = "") {
+  base_texto <- .notas_pie_texto(base_texto)
+  c(
+    paste0("Fuente: ", .notas_pie_cerrar(fuente)),
+    if (nzchar(base_texto)) paste0("Base: ", .notas_pie_cerrar(base_texto)) else character(0)
+  )
+}
+
+#' ¿La lista de respuestas de la variable es ordinal (escala, acuerdo, sí/no)?
+#' @noRd
+.freq_lista_es_ordinal <- function(var, ordinal_lists = character(), survey = NULL) {
+  if (!length(ordinal_lists)) return(FALSE)
+  ln_v <- tryCatch(get_list_name(var, survey), error = function(e) NA_character_)
+  !is.na(ln_v) && nzchar(ln_v) && ln_v %in% ordinal_lists
+}
+
+#' Qué entra al archivo y en qué orden: secciones, variables y opciones por variable.
+#'
+#' Una sección sin variables presentes en `data` (ni como columna ni como
+#' dummies) no sale. Por variable: si se resume como numérica, si su lista es
+#' ordinal, su orden EFECTIVO (una lista ordinal fuerza `"original"` para
+#' respetar el orden fijo del instrumento; las nominales obedecen el global) y
+#' su texto de base.
+#' @return `list(fuente, numericas, secciones)`; cada sección es
+#'   `list(nombre, rotulo, variables)` y cada variable
+#'   `list(var, numerica, orden, ordinal, base_texto)`.
+#' @noRd
+.freq_plan_archivo <- function(data, SECCIONES, numericas = NULL, orden = "original",
+                               ordinal_lists = character(), survey = NULL,
+                               notas = NULL, fuente = "Pulso PUCP") {
+  ordinal_lists <- as.character(ordinal_lists %||% character())
+  numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
+  # Notas al pie (reporte_notas_pie.R): fuente y base por pregunta.
+  notas <- .notas_pie_normalizar(notas, fuente_defecto = fuente)
+
+  secciones <- list()
+  for (sec in names(SECCIONES)) {
+    vars_sec <- SECCIONES[[sec]]
+
+    vars_sec <- vars_sec[vapply(vars_sec, function(v) .has_var_or_dummies(data, v), logical(1))]
+    if (!length(vars_sec)) next
+
+    secciones[[length(secciones) + 1L]] <- list(
+      nombre = sec,
+      rotulo = toupper(.freq_clean_section_label_for_export(sec)),
+      variables = lapply(vars_sec, function(v) {
+        numerica <- v %in% numericas
+        ordinal <- !numerica && .freq_lista_es_ordinal(v, ordinal_lists, survey)
+        list(
+          var = v,
+          numerica = numerica,
+          orden = if (numerica) NA_character_ else if (ordinal) "original" else orden,
+          ordinal = ordinal,
+          base_texto = .notas_pie_base(notas, v)
+        )
+      })
+    )
+  }
+
+  list(fuente = notas$fuente, numericas = numericas, secciones = secciones)
+}
+
 #' @noRd
 write_one_freq <- function(wb, sheet, data, var, dic_vars,
                            survey = NULL, sm_vars_force = NULL,
@@ -1301,14 +1453,7 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
   st <- mk_styles_spss()
   fila <- start_row
 
-  label_q <- titulo_var(
-    var,
-    dic_vars,
-    labels_override,
-    orders_list = orders_list,
-    df = data
-  )
-  label_q <- .freq_clean_other_title_es(label_q)
+  label_q <- .freq_titulo_archivo(var, dic_vars, labels_override, orders_list, data)
 
   if (isTRUE(incluir_titulo)) {
     openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
@@ -1345,30 +1490,17 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
   }
   fila <- fila + 1
 
-  tab <- freq_table_spss(
+  tab <- .freq_tabla_archivo(
     data,
     var,
     survey        = survey,
     sm_vars_force = sm_vars_force,
     orders_list   = orders_list,
     mostrar_todo  = mostrar_todo,
-    codigos_solo_si_presentes = codigos_solo_si_presentes
+    codigos_solo_si_presentes = codigos_solo_si_presentes,
+    orden         = orden,
+    incluir_porcentajes = incluir_porcentajes
   )
-  tab <- .freq_clean_option_labels_for_export(tab)
-
-  if (nrow(tab)) {
-    is_total0 <- tab$Opciones == "Total"
-    body0 <- tab[!is_total0, , drop = FALSE]
-    total0 <- tab[is_total0, , drop = FALSE]
-    orden <- as.character(orden %||% "original")
-    if (orden %in% c("asc", "desc") && nrow(body0) && "n" %in% names(body0)) {
-      body0 <- dplyr::arrange(body0, if (orden == "asc") n else dplyr::desc(n))
-    }
-    tab <- dplyr::bind_rows(body0, total0)
-  }
-  if (!isTRUE(incluir_porcentajes) && "pct" %in% names(tab)) {
-    tab$pct <- NULL
-  }
 
   if (!nrow(tab)) {
     openxlsx::writeData(wb, sheet, "Sin datos", startRow = fila, startCol = start_col)
@@ -1424,13 +1556,13 @@ write_one_freq <- function(wb, sheet, data, var, dic_vars,
   # cuadro completo de la tabla (marco exterior)
   pulso_xlsx_box(wb, sheet, r1 = hdr_row, r2 = last_row, c1 = start_col, c2 = end_col)
 
-  openxlsx::writeData(wb, sheet, paste0("Fuente: ", .notas_pie_cerrar(fuente)), startRow = fila, startCol = start_col, colNames = FALSE)
+  # Líneas del pie: "Fuente: ..." y, solo si la pregunta tiene base, "Base: ..." (config notas).
+  notas_lineas <- .freq_notas_archivo(fuente, base_texto)
+  openxlsx::writeData(wb, sheet, notas_lineas[[1]], startRow = fila, startCol = start_col, colNames = FALSE)
   openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
-  # Línea «Base: …» (config notas), solo si la pregunta tiene base.
-  base_texto <- .notas_pie_texto(base_texto)
-  if (nzchar(base_texto)) {
+  if (length(notas_lineas) > 1L) {
     fila <- fila + 1
-    openxlsx::writeData(wb, sheet, paste0("Base: ", .notas_pie_cerrar(base_texto)), startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::writeData(wb, sheet, notas_lineas[[2]], startRow = fila, startCol = start_col, colNames = FALSE)
     openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   }
 
@@ -1453,14 +1585,7 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
   st <- mk_styles_spss()
   fila <- start_row
 
-  label_q <- titulo_var(
-    var,
-    dic_vars,
-    labels_override,
-    orders_list = orders_list,
-    df = data
-  )
-  label_q <- .freq_clean_other_title_es(label_q)
+  label_q <- .freq_titulo_archivo(var, dic_vars, labels_override, orders_list, data)
 
   if (isTRUE(incluir_titulo)) {
     openxlsx::writeData(wb, sheet, label_q, startRow = fila, startCol = start_col, colNames = FALSE)
@@ -1478,8 +1603,7 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
   openxlsx::addStyle(wb, sheet, st$header, rows = fila, cols = start_col:(start_col + 1), gridExpand = TRUE, stack = TRUE)
   fila <- fila + 1
 
-  w    <- .peso_vec(data)
-  tabn <- .resumen_numerico_w(data[[var]], w)
+  tabn <- .freq_resumen_archivo(data, var)
 
   if (!nrow(tabn)) {
     openxlsx::writeData(wb, sheet, "Sin datos", startRow = fila, startCol = start_col)
@@ -1522,13 +1646,13 @@ write_one_numeric <- function(wb, sheet, data, var, dic_vars,
 
   fila <- r_fin + 1
 
-  openxlsx::writeData(wb, sheet, paste0("Fuente: ", .notas_pie_cerrar(fuente)), startRow = fila, startCol = start_col, colNames = FALSE)
+  notas_lineas <- .freq_notas_archivo(fuente, base_texto)
+  openxlsx::writeData(wb, sheet, notas_lineas[[1]], startRow = fila, startCol = start_col, colNames = FALSE)
   openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
   openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
-  base_texto <- .notas_pie_texto(base_texto)
-  if (nzchar(base_texto)) {
+  if (length(notas_lineas) > 1L) {
     fila <- fila + 1
-    openxlsx::writeData(wb, sheet, paste0("Base: ", .notas_pie_cerrar(base_texto)), startRow = fila, startCol = start_col, colNames = FALSE)
+    openxlsx::writeData(wb, sheet, notas_lineas[[2]], startRow = fila, startCol = start_col, colNames = FALSE)
     openxlsx::addStyle(wb, sheet, st$note, rows = fila, cols = start_col, gridExpand = TRUE)
     openxlsx::mergeCells(wb, sheet, rows = fila, cols = start_col:(start_col + 1))
   }
@@ -1578,11 +1702,14 @@ exportar_frecuencias_spss <- function(
   }
 
   orden <- match.arg(orden)
-  ordinal_lists <- as.character(ordinal_lists %||% character())
-  numericas <- if (is.null(numericas)) character(0) else as.character(numericas)
-  # Notas al pie (reporte_notas_pie.R): fuente y base por pregunta.
-  notas <- .notas_pie_normalizar(notas, fuente_defecto = fuente)
-  fuente <- notas$fuente
+  # Qué entra y en qué orden lo decide el plan (el mismo que lee la vista previa).
+  plan <- .freq_plan_archivo(
+    data, SECCIONES,
+    numericas = numericas, orden = orden, ordinal_lists = ordinal_lists,
+    survey = survey, notas = notas, fuente = fuente
+  )
+  numericas <- plan$numericas
+  fuente <- plan$fuente
 
   wb <- openxlsx::createWorkbook()
   sheet <- "Frecuencias"
@@ -1592,18 +1719,13 @@ exportar_frecuencias_spss <- function(
 
   fila <- 1L
 
-  for (sec in names(SECCIONES)) {
-    vars_sec <- SECCIONES[[sec]]
-
-    vars_sec <- vars_sec[vapply(vars_sec, function(v) .has_var_or_dummies(data, v), logical(1))]
-    if (!length(vars_sec)) next
-
+  for (sec in plan$secciones) {
     if (isTRUE(incluir_secciones)) {
-      sec_label <- toupper(.freq_clean_section_label_for_export(sec))
+      sec_label <- sec$rotulo
       openxlsx::writeData(wb, sheet, sec_label, startRow = fila, startCol = 1)
 
       # Merge depende de si habrá tablas numéricas en la sección
-      ncols_sec <- if (any(vars_sec %in% numericas)) 2 else 3
+      ncols_sec <- if (any(vapply(sec$variables, function(p) isTRUE(p$numerica), logical(1)))) 2 else 3
       openxlsx::mergeCells(wb, sheet, cols = 1:ncols_sec, rows = fila:fila)
 
       openxlsx::addStyle(wb, sheet, st$sec_title, rows = fila, cols = 1, gridExpand = TRUE, stack = TRUE)
@@ -1614,10 +1736,11 @@ exportar_frecuencias_spss <- function(
       fila <- fila + 2
     }
 
-    for (v in vars_sec) {
+    for (p in sec$variables) {
+      v <- p$var
 
       # --- Tabla numérica (solo si se declara) ---
-      if (v %in% numericas) {
+      if (isTRUE(p$numerica)) {
         fila <- write_one_numeric(
           wb, sheet,
           data  = data,
@@ -1629,42 +1752,13 @@ exportar_frecuencias_spss <- function(
           fuente = fuente,
           orders_list = orders_list,
           incluir_titulo = incluir_titulos,
-          base_texto = .notas_pie_base(notas, v)
+          base_texto = p$base_texto
         )
         next
       }
 
-      # --- Tabla categórica (flujo actual) ---
-      # Orden EFECTIVO por variable: si su lista es ordinal (likert, acuerdo,
-      # sí/no), se fuerza "original" para respetar el orden fijo del
-      # instrumento; las nominales sí obedecen el orden global desc/asc.
-      orden_v <- orden
-      if (length(ordinal_lists)) {
-        ln_v <- tryCatch(get_list_name(v, survey), error = function(e) NA_character_)
-        if (!is.na(ln_v) && nzchar(ln_v) && ln_v %in% ordinal_lists) orden_v <- "original"
-      }
-
-      tab <- freq_table_spss(
-        data,
-        v,
-        survey        = survey,
-        sm_vars_force = sm_vars_force,
-        orders_list   = orders_list,
-        mostrar_todo  = mostrar_todo,
-        codigos_solo_si_presentes = codigos_solo_si_presentes
-      )
-
-      if (nrow(tab)) {
-        is_total <- tab$Opciones == "Total"
-        body  <- tab[!is_total, , drop = FALSE]
-        total <- tab[ is_total, , drop = FALSE]
-
-        if (orden_v %in% c("asc","desc") && nrow(body)) {
-          body <- dplyr::arrange(body, if (orden_v == "asc") n else dplyr::desc(n))
-        }
-        tab <- dplyr::bind_rows(body, total)
-      }
-
+      # --- Tabla categórica ---
+      # `p$orden` es el orden EFECTIVO de la variable (ver `.freq_plan_archivo`).
       fila <- write_one_freq(
         wb, sheet,
         data  = data,
@@ -1681,8 +1775,8 @@ exportar_frecuencias_spss <- function(
         codigos_solo_si_presentes = codigos_solo_si_presentes,
         incluir_titulo = incluir_titulos,
         incluir_porcentajes = incluir_porcentajes,
-        orden = orden_v,
-        base_texto = .notas_pie_base(notas, v)
+        orden = p$orden,
+        base_texto = p$base_texto
       )
     }
 
@@ -1720,35 +1814,24 @@ exportar_frecuencias_spss <- function(
 # reporte_frecuencias
 # =============================================================================
 
-#' Generar reporte de frecuencias en Excel a partir de una base de reporte
+#' Error "el archivo no tendría tablas" (sin secciones o sin variables presentes).
 #'
-#' @param numericas Vector de variables numéricas (declaradas) para generar tabla
-#'   de resumen en lugar de n/%.
+#' Mismo mensaje que el `stop()` de siempre; la clase `freq_sin_tablas` deja que
+#' la vista previa lo distinga de una falla real sin leer el texto.
+#' @noRd
+.freq_stop_sin_tablas <- function(...) {
+  stop(structure(
+    class = c("freq_sin_tablas", "error", "condition"),
+    list(message = paste0(...), call = NULL)
+  ))
+}
+
+#' Contexto de `reporte_frecuencias()`: diccionario de variables, listas de
+#' respuestas y secciones ya filtradas a lo que existe en `data`.
 #'
-#' @family reporte
-#' @export
-reporte_frecuencias <- function(data,
-                                instrumento = NULL,
-                                secciones   = NULL,
-                                path_xlsx   = "frecuencias_spss.xlsx",
-                                orden       = c("desc", "asc", "original"),
-                                sm_vars_force = NULL,
-                                fuente      = "Pulso PUCP",
-                                mostrar_todo = FALSE,
-                                codigos_solo_si_presentes = NULL,
-                                numericas = NULL,
-                                incluir_titulos = TRUE,
-                                incluir_secciones = TRUE,
-                                incluir_porcentajes = TRUE,
-                                ordinal_lists = character(),
-                                ficha_tecnica = NULL,
-                                notas = NULL) {
-
-  if (!requireNamespace("openxlsx", quietly = TRUE)) {
-    stop("El paquete 'openxlsx' es necesario para `reporte_frecuencias()`. ",
-         "Instálalo con install.packages('openxlsx').", call. = FALSE)
-  }
-
+#' @return `list(survey, dic_vars, orders_list, SECCIONES)`.
+#' @noRd
+.freq_reporte_contexto <- function(data, instrumento = NULL, secciones = NULL) {
   if (!is.data.frame(data)) {
     stop("`data` debe ser un data.frame o tibble.", call. = FALSE)
   }
@@ -1780,8 +1863,6 @@ reporte_frecuencias <- function(data,
     survey = survey,
     choices = choices
   )
-  orden <- match.arg(orden)
-
   if (is.null(secciones)) {
     seccion_col <- NULL
     if ("section" %in% names(survey)) {
@@ -1800,14 +1881,14 @@ reporte_frecuencias <- function(data,
         dplyr::select(seccion = !!rlang::sym(seccion_col), name)
 
       if (nrow(secciones_df) == 0) {
-        stop("No se pudieron inferir secciones desde `survey$",
-             seccion_col, "`.", call. = FALSE)
+        .freq_stop_sin_tablas("No se pudieron inferir secciones desde `survey$",
+                              seccion_col, "`.")
       }
 
       secciones <- split(secciones_df$name, secciones_df$seccion)
     } else {
-      stop("No se especificaron `secciones` y el `survey` no tiene columna ",
-           "`section` ni `seccion`.", call. = FALSE)
+      .freq_stop_sin_tablas("No se especificaron `secciones` y el `survey` no tiene columna ",
+                            "`section` ni `seccion`.")
     }
   }
 
@@ -1817,10 +1898,48 @@ reporte_frecuencias <- function(data,
   SECCIONES <- SECCIONES[vapply(SECCIONES, length, integer(1)) > 0L]
 
   if (length(SECCIONES) == 0L) {
-    stop("Después de filtrar por presencia en `data` (variable o dummies), ",
-         "ninguna sección tiene variables válidas. Revisar `secciones` y la base.",
-         call. = FALSE)
+    .freq_stop_sin_tablas("Después de filtrar por presencia en `data` (variable o dummies), ",
+                          "ninguna sección tiene variables válidas. Revisar `secciones` y la base.")
   }
+
+  list(survey = survey, dic_vars = dic_vars, orders_list = orders_list, SECCIONES = SECCIONES)
+}
+
+#' Generar reporte de frecuencias en Excel a partir de una base de reporte
+#'
+#' @param numericas Vector de variables numéricas (declaradas) para generar tabla
+#'   de resumen en lugar de n/%.
+#'
+#' @family reporte
+#' @export
+reporte_frecuencias <- function(data,
+                                instrumento = NULL,
+                                secciones   = NULL,
+                                path_xlsx   = "frecuencias_spss.xlsx",
+                                orden       = c("desc", "asc", "original"),
+                                sm_vars_force = NULL,
+                                fuente      = "Pulso PUCP",
+                                mostrar_todo = FALSE,
+                                codigos_solo_si_presentes = NULL,
+                                numericas = NULL,
+                                incluir_titulos = TRUE,
+                                incluir_secciones = TRUE,
+                                incluir_porcentajes = TRUE,
+                                ordinal_lists = character(),
+                                ficha_tecnica = NULL,
+                                notas = NULL) {
+
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop("El paquete 'openxlsx' es necesario para `reporte_frecuencias()`. ",
+         "Instálalo con install.packages('openxlsx').", call. = FALSE)
+  }
+
+  ctx <- .freq_reporte_contexto(data, instrumento, secciones)
+  survey <- ctx$survey
+  dic_vars <- ctx$dic_vars
+  orders_list <- ctx$orders_list
+  SECCIONES <- ctx$SECCIONES
+  orden <- match.arg(orden)
 
   exportar_frecuencias_spss(
     data            = data,

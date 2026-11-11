@@ -9,10 +9,14 @@
 # se aplica globalmente a TODAS las bases; si una variable de la sección no existe
 # en una base, el motor la ignora en esa base (no rompe).
 
-# Devuelve la función single-base de render de frecuencias. `sid` es necesario
-# para el desglose por servicio de las bases hija repeat (Parte B), que re-ancla
-# `current_label` desde la data cruda de la propia hija.
-.analitica_frecuencias_render_fn <- function(sid, cfg) {
+# Devuelve la función que prepara, para UNA base, los argumentos con que se llama
+# a `reporte_frecuencias()` (todos menos `path_xlsx`): base revisada y ponderada,
+# instrumento, secciones, orden, códigos especiales, numéricas, listas ordinales
+# y notas al pie. La usan el render del archivo y la vista previa
+# (`analitica_frecuencias_preview.R`), así que ambos parten de lo mismo. `sid` es
+# necesario para el desglose por servicio de las bases hija repeat (Parte B), que
+# re-ancla `current_label` desde la data cruda de la propia hija.
+.analitica_frecuencias_args_fn <- function(sid, cfg) {
   fc <- cfg$frecuencias %||% list()
   activas <- .as_chr_vec(fc$secciones_activas)
   secs_cfg <- .secciones_from_config(cfg, activas_filter = if (length(activas) > 0L) activas else NULL)
@@ -35,7 +39,7 @@
   # «Fuente: Pulso PUCP», como siempre.
   notas <- .notas_pie_normalizar(cfg$notas)
 
-  function(rp_data, rp_inst, out_path, base = NULL) {
+  function(rp_data, rp_inst, base = NULL) {
     reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
     rp_data <- reviewed$data
     rp_inst <- reviewed$inst
@@ -69,10 +73,9 @@
       # Sus filas son registros, no encuestados: el texto de base del estudio no la describe (ADR 0128 §4 ter).
       notas_base <- .frecuencias_notas_hija(sid, notas, grain_child)   # analitica_repeats_grano.R
     }
-    reporte_frecuencias(
+    list(
       data = data_out, instrumento = rp_inst,
       secciones = secs,
-      path_xlsx = out_path,
       orden = orden,
       mostrar_todo = mostrar_todo,
       incluir_titulos = incluir_titulos,
@@ -90,6 +93,31 @@
           "Secciones activas" = if (!is.null(secs) && length(names(secs))) paste(names(secs), collapse = ", ") else "Todas las disponibles"
         )
       )
+    )
+  }
+}
+
+# Devuelve la función single-base de render de frecuencias: prepara los
+# argumentos con `.analitica_frecuencias_args_fn()` y escribe el XLSX.
+.analitica_frecuencias_render_fn <- function(sid, cfg) {
+  preparar <- .analitica_frecuencias_args_fn(sid, cfg)
+
+  function(rp_data, rp_inst, out_path, base = NULL) {
+    a <- preparar(rp_data, rp_inst, base)
+    reporte_frecuencias(
+      data = a$data, instrumento = a$instrumento,
+      secciones = a$secciones,
+      path_xlsx = out_path,
+      orden = a$orden,
+      mostrar_todo = a$mostrar_todo,
+      incluir_titulos = a$incluir_titulos,
+      incluir_secciones = a$incluir_secciones,
+      codigos_solo_si_presentes = a$codigos_solo_si_presentes,
+      numericas = a$numericas,
+      ordinal_lists = a$ordinal_lists,
+      fuente = a$fuente,
+      notas = a$notas,
+      ficha_tecnica = a$ficha_tecnica
     )
   }
 }
