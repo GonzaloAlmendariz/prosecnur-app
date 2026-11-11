@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, ClipboardList } from "lucide-react";
+import { ArrowLeft, ClipboardList } from "../../vendor/lucide-react";
 import { apiCodifPreguntasAbiertas, arquetipoOf, PreguntaAbierta } from "../../api/client";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
@@ -21,6 +21,9 @@ import { CabeceraDePregunta } from "./codificar/CabeceraDePregunta";
 import { ListaDePreguntas } from "./codificar/ListaDePreguntas";
 import { tipoDeFicha } from "./preguntas/modeloUnidades";
 import "./codificar/codificar.css";
+import "./codificar/lista.css";
+import "./codificar/codigos.css";
+import "./codificar/ventanas.css";
 
 type Props = {
   onBackToOrganizar: () => void;

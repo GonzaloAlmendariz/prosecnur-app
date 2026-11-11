@@ -42,7 +42,7 @@ export function AyudaDeTeclas({ id, permiteVarios }: { id: string; permiteVarios
       </span>
       <span>
         <kbd>{nombreDeAtajo("Z")}</kbd>
-        Deshacer
+        Deshacer asignación
       </span>
     </p>
   );

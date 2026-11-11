@@ -33,14 +33,16 @@ describe("la frase de una opción ya marcada", () => {
 });
 
 describe("la hoja de Codificar", () => {
-  const hoja = readFileSync(fileURLToPath(new URL("./codificar.css", import.meta.url)), "utf8");
+  const leer = (nombre: string) => readFileSync(fileURLToPath(new URL(`./${nombre}`, import.meta.url)), "utf8");
+  const marco = leer("codificar.css");
+  const codigos = leer("codigos.css");
 
   test("la rejilla de dos columnas depende del ancho de la columna de códigos (640 px), no de la ventana", () => {
-    expect(hoja).toMatch(/\.pulso-cc-codigos\.pulso-panel \{\s*container: pulso-cc-codigos \/ inline-size;/);
-    expect(hoja).toMatch(/@container pulso-cc-codigos \(min-width: 640px\) \{\s*\.pulso-cc-codigos-lista \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    expect(codigos).toMatch(/\.pulso-cc-codigos\.pulso-panel \{\s*container: pulso-cc-codigos \/ inline-size;/);
+    expect(codigos).toMatch(/@container pulso-cc-codigos \(min-width: 640px\) \{\s*\.pulso-cc-codigos-lista \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   });
 
   test("Tarjetas y Tabla reparten igual el ancho entre respuestas y códigos", () => {
-    expect(hoja).toMatch(/\.pulso-cv2-split\.pulso-cc-split,\s*\.pulso-cv2-split\.pulso-cc-split\.pulso-ct-split \{\s*grid-template-columns: minmax\(0, 1\.2fr\) minmax\(0, 1fr\);/);
+    expect(marco).toMatch(/\.pulso-cv2-split\.pulso-cc-split,\s*\.pulso-cv2-split\.pulso-cc-split\.pulso-ct-split \{\s*grid-template-columns: minmax\(0, 1\.2fr\) minmax\(0, 1fr\);/);
   });
 });

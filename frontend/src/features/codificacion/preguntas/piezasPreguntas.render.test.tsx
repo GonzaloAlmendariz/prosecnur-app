@@ -189,7 +189,7 @@ describe("barra de filtros", () => {
       <BarraPreguntas filtro="con-texto" conteos={contarFiltros(unidades)} consulta="" onFiltro={nada} onBuscar={nada} />,
     );
     const rotulos = [...html.matchAll(/<button[^>]*aria-pressed="(?:true|false)"[^>]*>.*?<span>([^<]+)<\/span><span[^>]*>(\d+)<\/span>/g)].map((m) => `${m[1]} ${m[2]}`);
-    expect(rotulos).toEqual(["Con texto 6", "Sin decidir 2", "Codificadas 1", "Todas 7"]);
+    expect(rotulos).toEqual(["Con texto 6", "Pendientes 2", "Codificadas 1", "Todas 7"]);
     expect(html).toMatch(/aria-pressed="true"[^>]*>(?:(?!<\/button>).)*Con texto/s);
     expect(html.split('aria-pressed="true"').length - 1).toBe(1);
     expect(html).not.toContain("Emparejadas");

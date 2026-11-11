@@ -262,6 +262,23 @@ describe("estado de la unidad", () => {
     expect(estadoDeUnidad(aparte)?.nota).toBe("5 sin asignar");
   });
 
+  it("el rótulo sale de la causa: una declaración que falta dice Sin decidir; respuestas sin código en algo ya declarado, Por codificar", () => {
+    const rotulo = (ps: ReturnType<typeof pregunta>[]) => estadoDeUnidad(armarUnidades(ps)[0])?.rotulo;
+    const texto = (padre: string) => pregunta(`${padre}_otro`, "text", { col_efectiva: `${padre}_otro`, n_respuestas: 10, n_unicas: 8 });
+    // Falta el modo del motor (requiere-config).
+    expect(rotulo([pregunta("a", "text", { marcada: true, status: "requiere-config" })])).toBe("Sin decidir");
+    // Pareja de opción única sin modo.
+    expect(rotulo([pregunta("b", "select_one", { modo_so: "", marcada: true, status: "en-curso", pareja: { child_col: "b_otro", modo_so: "", dummy_col: "" } }), texto("b")])).toBe("Sin decidir");
+    // Pareja de opción múltiple sin la opción "Otros".
+    expect(rotulo([pregunta("c", "select_multiple", { marcada: true, status: "no-iniciado", pareja: { child_col: "c_otro", modo_so: "", dummy_col: "" } }), texto("c")])).toBe("Sin decidir");
+    // Declarada, sin categorías todavía.
+    expect(rotulo([pregunta("d", "select_multiple", { marcada: true, status: "no-iniciado", pareja: { child_col: "d_otro", modo_so: "", dummy_col: "d/96" } }), texto("d")])).toBe("Por codificar");
+    // Declarada, con catálogo a medias.
+    expect(rotulo([pregunta("e", "select_one", { modo_so: "hijo", marcada: true, status: "en-curso", n_unicas: 8, n_codificadas: 3, pareja: { child_col: "e_otro", modo_so: "hijo", dummy_col: "" } }), texto("e")])).toBe("Por codificar");
+    // Una suelta abierta con respuestas sin código.
+    expect(rotulo([pregunta("f", "text", { marcada: true, status: "en-curso", n_unicas: 5, n_codificadas: 1 })])).toBe("Por codificar");
+  });
+
   it("una suelta que nadie pidió codificar no tiene estado que mostrar", () => {
     expect(estadoDeUnidad(una("p10"))).toBeNull();
     expect(estadoDeUnidad(una("p10_otro"))).toBeNull();

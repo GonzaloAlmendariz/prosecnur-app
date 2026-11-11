@@ -26,7 +26,7 @@ import { claveDeArrastre } from "./codificar/FilaRespuesta";
 import { FiltroDeRespuestas } from "./codificar/FiltroDeRespuestas";
 import { useFiltroRespuestas } from "./codificar/filtroRespuestasStore";
 import { ListaRespuestas } from "./codificar/ListaRespuestas";
-import { avisosDelLote, buscarRespuestas, cifrasDeCasos, filasDeRespuestas, filtrarPorCodigo, tarjetasDeCodigos } from "./codificar/modeloDeCodificar";
+import { avisosDelLote, buscarRespuestas, cifrasDeCasos, filasDeRespuestas, filtrarPorCodigo, sumarCasosConTexto, tarjetasDeCodigos } from "./codificar/modeloDeCodificar";
 import { BotonModuloSugerido, propuestasPorConfirmar } from "./codificar/ModuloSugerido";
 import { PanelCodigos } from "./codificar/PanelCodigos";
 import {
@@ -41,6 +41,9 @@ import {
 import { SinRespuestas, type MotivoSinRespuestas } from "./codificar/SinRespuestas";
 import { useGruposDeCodificacion } from "./codificar/useGruposDeCodificacion";
 import "./codificar/codificar.css";
+import "./codificar/lista.css";
+import "./codificar/codigos.css";
+import "./codificar/ventanas.css";
 import { clavesNoRespuesta, separarNoRespuestas } from "./noRespuestas";
 import "./noRespuestas.css";
 import { PalabrasBoton, PalabrasPanel } from "./PalabrasPanel";
@@ -125,7 +128,7 @@ export function RespuestasCodificador({ parent }: Props) {
   );
   const codigos = useMemo(() => codigosDeTabla(grupos, respuestas ?? SIN_RESPUESTAS), [grupos, respuestas]);
   // La base de la barra de proporción de cada código: los casos que escribieron algo en la pregunta.
-  const casosConTexto = useMemo(() => (respuestas ?? SIN_RESPUESTAS).reduce((suma, r) => suma + (r.frecuencia ?? 0), 0), [respuestas]);
+  const casosConTexto = useMemo(() => sumarCasosConTexto(respuestas ?? SIN_RESPUESTAS), [respuestas]);
   const filas = useMemo(() => filasDeRespuestas(tramos, grupos, codigos), [tramos, grupos, codigos]);
   const tarjetas = useMemo(() => tarjetasDeCodigos(grupos, respuestas ?? SIN_RESPUESTAS), [grupos, respuestas]);
   const orden = useMemo(() => filas.map((f) => f.clave), [filas]);

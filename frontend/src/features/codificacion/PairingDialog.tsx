@@ -46,7 +46,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
         const r = await apiCodifColumnas();
         setColumnas(r.columnas);
       } catch {
-        // silent — fallback a los candidatos sugeridos
+        // sin la lista completa se ofrecen solo las columnas sugeridas
       }
     })();
   }, []);
@@ -119,10 +119,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
 
         {/* Paso 1: columna hija */}
         <div style={{ marginBottom: 16 }}>
-          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 1: columna "Otros, especifique"</div>
-          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10 }}>
-            ¿Dónde está el texto abierto de esta pregunta?
-          </div>
+          <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Columna del texto abierto</div>
 
           {candidatosCols.length > 0 && !showAllCols && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -143,7 +140,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                 onClick={() => setShowAllCols(true)}
                 style={{ fontSize: "var(--pulso-type-caption-size)", padding: "4px 8px", marginTop: 4, alignSelf: "flex-start" }}
               >
-                No está acá — buscar en todas las columnas
+                Buscar en todas las columnas
               </button>
             </div>
           )}
@@ -154,7 +151,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                 list="all-cols"
                 value={childCol}
                 onChange={(e) => setChildCol(e.target.value)}
-                placeholder="nombre de columna"
+                placeholder="Nombre de la columna"
                 style={{ width: "100%", fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", padding: "6px 10px" }}
                 autoFocus
               />
@@ -167,54 +164,48 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
                   onClick={() => setShowAllCols(false)}
                   style={{ fontSize: "var(--pulso-type-caption-size)", padding: "4px 8px", marginTop: 6 }}
                 >
-                  ← Volver a candidatos sugeridos
+                  Volver a las columnas sugeridas
                 </button>
               )}
             </div>
           )}
         </div>
 
-        {/* Paso 2 SO: qué codificar */}
+        {/* Opción única: qué se codifica */}
         {isSO && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2: ¿qué vas a codificar?</div>
-            <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10 }}>
-              Una pregunta de opción única con "Otros, especifique" tiene dos datos: las opciones originales (1, 2, 3…) y el texto libre de quienes marcaron "Otros". Elige qué vas a agrupar y codificar.
-            </div>
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Qué se codifica</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <ModoOption
                 value="padre"
                 current={modoSo}
                 onChange={setModoSo}
                 title="Codificar pregunta original"
-                description={`${pregunta.parent} se convierte en ${pregunta.parent}_recod: conserva sus opciones originales y suma categorías creadas desde "${childCol}". Lo no categorizable queda como "Otros".`}
+                description={`${pregunta.parent} conserva sus opciones originales y suma las categorías creadas desde "${childCol}". Lo que no se puede categorizar queda en "Otros".`}
               />
               <ModoOption
                 value="hijo"
                 current={modoSo}
                 onChange={setModoSo}
                 title="Codificar texto aparte"
-                description={`Los textos de "${childCol}" se codifican como ${childCol}_recod, separados de las opciones originales. ${pregunta.parent} no cambia.`}
+                description={`Los textos de "${childCol}" se codifican por separado, con sus propias categorías. ${pregunta.parent} no cambia.`}
               />
             </div>
           </div>
         )}
 
-        {/* Paso 2 SM: dummy col — SM no tiene modo padre/hijo, solo dummy */}
+        {/* Opción múltiple: no tiene modo padre/hijo, solo la columna de la opción "Otros" */}
         {isSM && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Paso 2: ¿cuál opción es "Otros, especifique"?</div>
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Opción "Otros, especifique"</div>
             <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 10, lineHeight: 1.5 }}>
-              A diferencia de opción única, en preguntas múltiples solo vas a codificar el texto libre
-              (<code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{childCol}</code>). Pero primero indícanos cuál de las
-              opciones de {pregunta.parent} corresponde a "Otros, especifique". La app solo considera los
-              registros donde esa opción fue marcada — el resto no tiene texto para codificar.
+              Solo se codifican los registros que marcaron esta opción de {pregunta.parent}.
             </div>
             <input
               list="dummy-cols"
               value={dummyCol}
               onChange={(e) => setDummyCol(e.target.value)}
-              placeholder={`ej. ${pregunta.parent}/99`}
+              placeholder={`Por ejemplo, ${pregunta.parent}/99`}
               style={{ width: "100%", fontSize: "var(--pulso-type-body-size)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", padding: "6px 10px" }}
             />
             <datalist id="dummy-cols">
@@ -223,7 +214,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
             </datalist>
             {dummyCandidates.length > 0 && (
               <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", marginTop: 4 }}>
-                Sugeridas por la app: {dummyCandidates.slice(0, 4).join(", ")}
+                Sugeridas: {dummyCandidates.slice(0, 4).join(", ")}
               </div>
             )}
           </div>
@@ -271,7 +262,7 @@ function ModoOption({ value, current, onChange, title, description }: { value: "
 }
 
 function ConfLabel({ conf }: { conf: number }) {
-  if (conf >= 1.0) return <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-success-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Match fuerte</span>;
+  if (conf >= 1.0) return <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-success-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Coincidencia fuerte</span>;
   if (conf >= 0.6) return <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 700, color: "var(--pulso-warn-fg)", letterSpacing: 0.3, textTransform: "uppercase" }}>Prefijo</span>;
   return <span style={{ fontSize: "var(--pulso-type-micro-size)", fontWeight: 600, color: "var(--pulso-status-empty)", letterSpacing: 0.3, textTransform: "uppercase" }}>Misma sección</span>;
 }

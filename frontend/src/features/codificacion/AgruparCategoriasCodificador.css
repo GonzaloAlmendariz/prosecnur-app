@@ -283,7 +283,7 @@
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   text-align: left;
-  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .pulso-agrupar-tabla td {
@@ -300,6 +300,7 @@
 
 .pulso-agrupar-tabla td select {
   width: 100%;
+  min-width: 0;
   max-width: 240px;
 }
 

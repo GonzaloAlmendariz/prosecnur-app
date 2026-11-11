@@ -1,0 +1,72 @@
+/* Codificar, cierre de la cascada: silueta de carga, ventana baja, ventana angosta y movimiento reducido.
+ * Va al final porque sus reglas ajustan las de codificar.css, lista.css y codigos.css. */
+
+/* ---------- Carga: la silueta de los dos paneles ---------- */
+
+.pulso-cc-carga-filas {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+  padding: var(--pulso-space-3) var(--cc-riel);
+  overflow: hidden;
+}
+
+/* ---------- Ventana baja (1366x768 y menores): las teclas ceden su línea a las filas ---------- */
+
+@media (max-height: 820px) {
+  .pulso-cc-teclas.pulso-ct-teclas {
+    display: none;
+  }
+
+  .pulso-cc-panel-cab {
+    padding-block: var(--pulso-space-1);
+  }
+
+  .pulso-cc-preguntas-fila {
+    padding-block: var(--pulso-space-1);
+  }
+}
+
+/* ---------- Ventana angosta: una columna y la pestaña entera se desplaza ---------- */
+
+@media (max-width: 900px) {
+  .pulso-codificacion-frame .pulso-cc-wizard {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .pulso-cc-principal,
+  .pulso-cc-pane,
+  .pulso-codificacion-frame .pulso-cc-mesa.pulso-cv2-rc,
+  .pulso-cc-mesa {
+    flex: 0 0 auto;
+  }
+
+  .pulso-cc-panel.pulso-panel,
+  .pulso-cc-lista,
+  .pulso-cc-lista-marco,
+  .pulso-cc-codigos-cuerpo,
+  .pulso-cc-preguntas-lista {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .pulso-cc-preguntas-lista {
+    max-height: 14rem;
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-cc-fila.pulso-cv2-resp-row,
+  .pulso-cc-codigo.pulso-cv2-grupo,
+  .pulso-cc-nuevo,
+  .pulso-cc-preguntas-fila,
+  .pulso-cc-codigo-proporcion > span,
+  .pulso-cc-giro {
+    transition: none;
+  }
+}

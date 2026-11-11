@@ -1,0 +1,459 @@
+/* Codificar, la columna de códigos: panel y tarjetas de código, tarjeta punteada y fantasma del arrastre.
+ * Se carga después de lista.css y antes de ventanas.css. Solo tokens --pulso-*, --tipo-* y --motion-*. */
+
+/* ---------- Códigos ---------- */
+
+/* La columna entera es el contenedor de la consulta de la rejilla de tarjetas. */
+.pulso-cc-codigos.pulso-panel {
+  container: pulso-cc-codigos / inline-size;
+}
+
+.pulso-cc-codigos-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+  padding: var(--pulso-space-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+.pulso-cc-codigos-lista {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: calc(var(--pulso-space-1) + 2px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Con una columna de códigos ancha, dos tarjetas por renglón. La consulta es sobre la columna, no sobre
+   la ventana: en Tabla y en Tarjetas la columna mide lo mismo. */
+@container pulso-cc-codigos (min-width: 640px) {
+  .pulso-cc-codigos-lista {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pulso-cc-codigos-lista > li {
+  min-width: 0;
+}
+
+/* La tarjeta de un código. Su caja es `.pulso-cv2-grupo`; aquí va lo de dentro y sus estados de destino. */
+.pulso-cc-codigo.pulso-cv2-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pulso-space-1) + 2px);
+  min-width: 0;
+  padding: calc(var(--pulso-space-1) + 1px) var(--pulso-space-3);
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Al levantar respuestas, cada tarjeta se ofrece como destino; la que está bajo el cursor se enciende. */
+.pulso-cc-codigo.pulso-cv2-grupo[data-destino] {
+  border-color: color-mix(in srgb, var(--cc-acento) 46%, var(--pulso-border));
+}
+
+.pulso-cc-codigo.pulso-cv2-grupo[data-sobre] {
+  border-color: var(--cc-acento);
+  background: color-mix(in srgb, var(--cc-acento) 9%, var(--pulso-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc-acento) 22%, transparent);
+}
+
+/* Un renglón: número, nombre, estado y acciones. El nombre se queda con lo que sobra y parte en renglones
+   si no cabe; nunca se corta. En la rejilla de dos columnas la tarjeta es angosta y el estado y las
+   acciones bajan a un segundo renglón bajo el nombre. */
+.pulso-cc-codigo-cab {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "ficha nombre estado acciones";
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-cc-codigo-cab > .pulso-cc-codigo-ficha,
+.pulso-cc-codigo-cab > .pulso-cc-codigo-numero {
+  grid-area: ficha;
+}
+
+.pulso-cc-codigo-cab > .pulso-cc-codigo-titulo,
+.pulso-cc-codigo-cab > .pulso-cc-codigo-nombre {
+  grid-area: nombre;
+}
+
+.pulso-cc-codigo-cab > .pulso-cc-codigo-estado {
+  grid-area: estado;
+}
+
+/* El nombre de un código se lee entero: en una tarjeta angosta ocupa los renglones que necesite. */
+.pulso-cc-codigo-cab > .pulso-cc-codigo-titulo {
+  overflow-wrap: anywhere;
+}
+
+.pulso-cc-codigo-cab > .pulso-cc-codigo-acciones {
+  grid-area: acciones;
+}
+
+@container pulso-cc-codigos (min-width: 640px) {
+  .pulso-cc-codigo-cab {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "ficha nombre nombre"
+      "estado estado acciones";
+  }
+
+  .pulso-cc-codigo-cab > .pulso-cc-codigo-estado {
+    justify-self: start;
+  }
+}
+
+.pulso-cc-codigo-estado {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+/* La proporción del código: casos del código sobre los casos con texto de la pregunta, con su acento. */
+.pulso-cc-codigo-proporcion {
+  display: block;
+  overflow: hidden;
+  height: 3px;
+  margin-top: calc(-1 * var(--pulso-space-1));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+
+.pulso-cc-codigo-proporcion > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cv2-chip-accent, var(--cc-acento));
+  transform: scaleX(var(--cc-proporcion, 0));
+  transform-origin: left center;
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+/* Cuántos casos del lote ya tenían marcada la opción del código: frase entera, en su renglón. */
+.pulso-cc-codigo-marcada {
+  margin: 0;
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+/* El número del código en una ficha con el color del grupo. */
+.pulso-cc-codigo-ficha.pulso-ct-numero {
+  min-width: var(--pulso-space-6);
+  border-radius: calc(var(--pulso-control-radius) - 2px);
+  background: color-mix(in srgb, var(--cv2-chip-accent, var(--pulso-border-strong)) 26%, var(--pulso-surface));
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.85;
+}
+
+.pulso-cc-codigo-titulo {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-cc-codigo-numero.pulso-input {
+  flex: 0 0 auto;
+  width: calc(var(--pulso-space-9) + var(--pulso-space-1));
+  padding-inline: var(--pulso-space-1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+}
+
+.pulso-cc-codigo-nombre.pulso-input {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.pulso-cc-codigo-acciones {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.pulso-cc-codigo-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-cc-codigo-cifras strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Textos guardados en el código que la base actual ya no trae: se dicen y se ven atenuados. */
+.pulso-cc-codigo-fuera {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-cc-codigo-respuestas > li[data-fuera-de-la-base] .pulso-cc-codigo-texto {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-cc-codigo-respuestas,
+.pulso-cc-codigo-parecidas {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-cc-codigo-respuestas > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--pulso-space-2);
+  min-height: var(--pulso-control-height-sm);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-cc-codigo-texto {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-cc-codigo-veces {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-cc-codigo-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin-inline: calc(-1 * var(--pulso-space-2));
+}
+
+.pulso-cc-codigo-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-cc-codigo-parecidas {
+  gap: var(--pulso-space-1);
+}
+
+/* Una respuesta parecida es algo que se puede agregar: por eso lleva punteado. */
+.pulso-cc-codigo-parecida {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  justify-content: stretch;
+  column-gap: var(--pulso-space-2);
+  width: 100%;
+  max-width: none;
+  min-height: var(--pulso-control-height-sm);
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-control-radius);
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  text-align: start;
+  white-space: normal;
+  transform: none;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .pulso-cc-codigo-parecida:hover:not(:disabled) {
+    border-color: var(--cc-acento);
+    background: color-mix(in srgb, var(--cc-acento) 6%, var(--pulso-surface));
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+.pulso-cc-codigo-parecido {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- La tarjeta punteada: donde se suelta o se crea un código ---------- */
+
+.pulso-cc-nuevo {
+  display: flex;
+  min-height: calc(var(--pulso-control-height-lg) + var(--pulso-space-4));
+  border: 1.5px dashed var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-cc-nuevo[data-destino] {
+  border-color: color-mix(in srgb, var(--cc-acento) 60%, var(--pulso-border-strong));
+}
+
+.pulso-cc-nuevo[data-sobre] {
+  border-color: var(--cc-acento);
+  background: color-mix(in srgb, var(--cc-acento) 10%, var(--pulso-surface));
+}
+
+.pulso-cc-nuevo[data-abierta] {
+  border-color: var(--cc-acento);
+  background: var(--pulso-surface);
+}
+
+.pulso-cc-nuevo-boton {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--pulso-space-1) / 2);
+  width: 100%;
+  max-width: none;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text-soft);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: normal;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .pulso-cc-nuevo-boton:hover:not(:disabled) {
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--cc-acento);
+    transform: none;
+  }
+}
+
+.pulso-cc-nuevo-boton:focus-visible {
+  outline-offset: -3px;
+}
+
+.pulso-cc-nuevo-form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+}
+
+.pulso-cc-nuevo-form > .pulso-cc-codigo-nombre.pulso-input {
+  flex: 1 1 9rem;
+}
+
+.pulso-cc-nuevo-lote {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.pulso-cc-nuevo-acciones {
+  display: inline-flex;
+  gap: var(--pulso-space-2);
+  margin-inline-start: auto;
+}
+
+/* ---------- Fantasma del arrastre ---------- */
+
+.pulso-cc-nuevo-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-cc-nuevo-apoyo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+}
+
+/* La tarjeta que es a la vez el vacío del panel tiene el alto de un destino cómodo. */
+.pulso-cc-nuevo-boton[data-unica] {
+  min-height: calc(var(--pulso-space-9) + var(--pulso-space-7));
+}
+
+/* El fantasma es una seña, no la lectura: una línea con elipsis y el "+N" siempre a la vista. */
+.pulso-cc-fantasma {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  max-width: 20rem;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow:
+    0 0 0 1px var(--pulso-border-strong),
+    var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.35;
+  cursor: grabbing;
+}
+
+.pulso-cc-fantasma-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-cc-fantasma-mas {
+  flex: 0 0 auto;
+  padding: 1px var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--cc-acento, var(--module-accent, var(--pulso-primary)));
+  color: var(--pulso-surface);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+

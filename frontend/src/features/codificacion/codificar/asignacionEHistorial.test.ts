@@ -10,7 +10,7 @@ import {
   zonaDeCodigo,
 } from "./asignacionEnLote";
 import { TOPE_DE_HISTORIAL, apilarPaso, deshacerPaso, pasoEntre } from "./historialAsignaciones";
-import { cifrasDeCasos, cifrasDeTarjeta, filtrarPorCodigo, tarjetasDeCodigos } from "./modeloDeCodificar";
+import { cifrasDeCasos, cifrasDeTarjeta, filtrarPorCodigo, sumarCasosConTexto, tarjetasDeCodigos } from "./modeloDeCodificar";
 
 function grupo(id: string, codigo: string, respuestas: string[], extra: Partial<Grupo> = {}): Grupo {
   return { id, codigo, etiqueta: `Código ${codigo}`, respuestas, origen: "nuevo", ...extra };
@@ -127,5 +127,13 @@ describe("lo que pintan la lista y las tarjetas", () => {
   test("sin el total de Otros, los casos con código van sin base y sin aviso", () => {
     const [conCodigo] = cifrasDeCasos([respuesta("a", 3)], base(), null);
     expect(conCodigo).toEqual({ id: "con-codigo", valor: 3, singular: "caso con código", plural: "casos con código" });
+  });
+
+  test("los casos con texto se suman en un solo lugar: la cifra de casos y la base de la proporción de cada código coinciden", () => {
+    const rs = [respuesta("a", 3), respuesta("b", 2), respuesta("d", 4)];
+    expect(sumarCasosConTexto(rs)).toBe(9);
+    expect(sumarCasosConTexto([])).toBe(0);
+    const [, conTexto] = cifrasDeCasos(rs, base(), null);
+    expect(conTexto.valor).toBe(sumarCasosConTexto(rs));
   });
 });

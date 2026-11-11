@@ -134,6 +134,11 @@ export type CifraDeCasos = {
   aviso?: boolean;
 };
 
+/** Los casos que escribieron algo en la pregunta: la suma de las veces de todas sus respuestas. */
+export function sumarCasosConTexto(respuestas: readonly RespuestaUnica[]): number {
+  return respuestas.reduce((suma, r) => suma + (r.frecuencia ?? 0), 0);
+}
+
 /**
  * Las cifras en casos de una pregunta múltiple con "Otros, especifique". Una persona es un caso; una
  * respuesta de la lista junta a todas las que escribieron lo mismo.
@@ -150,7 +155,7 @@ export function cifrasDeCasos(
   marcaronOtros: number | null | undefined,
 ): CifraDeCasos[] {
   const asignadas = new Set(grupos.flatMap((g) => g.respuestas));
-  const conTexto = respuestas.reduce((suma, r) => suma + (r.frecuencia ?? 0), 0);
+  const conTexto = sumarCasosConTexto(respuestas);
   const conCodigo = respuestas.reduce((suma, r) => suma + (asignadas.has(r.texto_normalizado) ? r.frecuencia ?? 0 : 0), 0);
   const otros = typeof marcaronOtros === "number" && Number.isFinite(marcaronOtros) ? marcaronOtros : null;
   const casos = (n: number) => (n === 1 ? "1 caso" : `${formatoConteo(n)} casos`);

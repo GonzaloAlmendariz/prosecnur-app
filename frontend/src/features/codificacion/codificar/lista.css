@@ -1,0 +1,322 @@
+/* Codificar, la lista de respuestas: buscador, filas, barra de selección y ayuda de teclas.
+ * Se carga después de codificar.css y antes de codigos.css; el orden de las hojas es el de la
+ * cascada original. Solo tokens --pulso-*. */
+
+/* ---------- Respuestas ---------- */
+
+/* El buscador comparte la fila con el título y el filtro: es lo que cede ancho. */
+.pulso-cc-panel-cab > .pulso-cv2-search {
+  flex: 1 1 7rem;
+  min-width: 7rem;
+  height: var(--pulso-control-height-sm);
+  margin: 0;
+}
+
+.pulso-cc-todas {
+  flex: 0 0 auto;
+  inline-size: var(--pulso-space-4);
+  block-size: var(--pulso-space-4);
+  margin: 0;
+  accent-color: var(--cc-acento);
+  cursor: pointer;
+}
+
+.pulso-cc-lista {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Dueño del desplazamiento de la lista y de su vacío. */
+.pulso-cc-lista-marco {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pulso-border-strong) transparent;
+}
+
+/* Con la barra de selección a la vista, la última fila sigue alcanzable por encima de ella. */
+.pulso-cc-lista[data-con-barra] > .pulso-cc-lista-marco {
+  padding-bottom: calc(var(--pulso-control-height-lg) + var(--pulso-space-7));
+}
+
+.pulso-cc-lista-marco > .pulso-estado-vacio {
+  margin: var(--pulso-space-4);
+}
+
+.pulso-cc-filas {
+  margin: 0;
+  padding: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  list-style: none;
+}
+
+/* Una respuesta: asa, texto, sus códigos y sus veces en el primer renglón. El texto se queda al menos con
+   un tercio del ancho; si los códigos no caben a su lado, parten en renglones dentro de su columna. */
+.pulso-cc-fila.pulso-cv2-resp-row {
+  display: grid;
+  grid-template-columns: var(--pulso-space-4) minmax(min(10rem, 35%), 1fr) minmax(0, max-content) auto;
+  column-gap: var(--pulso-space-2);
+  row-gap: var(--pulso-space-1);
+  align-items: center;
+  min-height: calc(var(--pulso-control-height-sm) + var(--pulso-space-2) + 2px);
+  padding: calc(var(--pulso-space-1) + 1px) var(--cc-riel) calc(var(--pulso-space-1) + 1px) var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--motion-dur-fast) var(--motion-ease-out),
+    opacity var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) {
+  .pulso-cc-fila.pulso-cv2-resp-row:hover:not([data-seleccionada]) {
+    background: var(--pulso-surface-2);
+  }
+}
+
+/* La seleccionada se distingue por el fondo del módulo; sin franja lateral. */
+.pulso-cc-fila.pulso-cv2-resp-row[data-seleccionada] {
+  background: color-mix(in srgb, var(--cc-acento) 11%, var(--pulso-surface));
+}
+
+.pulso-cc-fila[data-levantada] {
+  opacity: 0.42;
+}
+
+.pulso-cc-fila-asa {
+  display: grid;
+  place-items: center;
+  color: var(--pulso-text-faint);
+  opacity: 0.45;
+  cursor: grab;
+}
+
+.pulso-cc-fila:hover .pulso-cc-fila-asa,
+.pulso-cc-fila[data-seleccionada] .pulso-cc-fila-asa {
+  color: var(--cc-acento);
+  opacity: 1;
+}
+
+/* El texto de la respuesta se lee entero: parte en renglones, no se corta. */
+.pulso-cc-fila-boton {
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--pulso-control-radius) - 2px);
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: start;
+  white-space: normal;
+  transform: none;
+  cursor: inherit;
+}
+
+.pulso-cc-fila-boton:hover:not(:disabled) {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.pulso-cc-fila-boton:focus-visible {
+  outline-offset: var(--pulso-space-1);
+}
+
+.pulso-cc-fila-asa {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.pulso-cc-fila-boton {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.pulso-cc-fila-codigos {
+  display: flex;
+  grid-column: 3;
+  grid-row: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  cursor: default;
+}
+
+.pulso-cc-fila-codigos > .pulso-ct-insignia {
+  max-width: 100%;
+}
+
+.pulso-cc-fila-veces {
+  grid-column: 4;
+  grid-row: 1;
+  min-width: calc(var(--pulso-space-9) + var(--pulso-space-1));
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+/* Segundo renglón, solo cuando hay algo que decir: la propuesta de módulo bajo el texto y las variantes
+   bajo las veces. No le quita ancho al texto. */
+.pulso-cc-fila-sugerencia {
+  display: flex;
+  grid-column: 2 / 4;
+  grid-row: 2;
+  align-items: center;
+  min-width: 0;
+  cursor: default;
+}
+
+/* Con segundo renglón, los dos van pegados y la fila recorta su aire: la lista sigue mostrando filas. */
+.pulso-cc-fila.pulso-cv2-resp-row:has(> .pulso-cc-fila-sugerencia),
+.pulso-cc-fila.pulso-cv2-resp-row:has(> .pulso-cc-fila-variantes) {
+  row-gap: 0;
+  padding-block: 3px;
+}
+
+.pulso-cc-fila-sugerencia .pulso-cv2-modsug {
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-cc-fila-sugerencia .pulso-cv2-modsug-eyebrow {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pulso-cc-fila-sugerencia .pulso-cv2-modsug-chip {
+  min-height: var(--pulso-space-4);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.2;
+}
+
+.pulso-cc-fila-variantes {
+  grid-column: 4;
+  grid-row: 2;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+  text-align: end;
+  white-space: nowrap;
+}
+
+/* ---------- Barra de selección: flota sobre el pie de la lista ---------- */
+
+.pulso-cc-seleccion {
+  position: absolute;
+  inset-inline: var(--pulso-space-3);
+  bottom: var(--pulso-space-3);
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow:
+    0 0 0 1px var(--pulso-border-strong),
+    var(--pulso-shadow-high);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-cc-seleccion-n {
+  white-space: nowrap;
+}
+
+.pulso-cc-seleccion-n strong {
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-cc-seleccion-cifras,
+.pulso-cc-seleccion-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.pulso-cc-seleccion-aviso {
+  color: var(--pulso-warn-fg);
+  white-space: normal;
+}
+
+.pulso-cc-seleccion-cifras kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--pulso-space-5);
+  min-height: var(--pulso-space-5);
+  padding-inline: var(--pulso-space-1);
+  border-radius: calc(var(--pulso-control-radius) - 2px);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-cc-asignar.pulso-input {
+  flex: 1 1 9rem;
+  width: auto;
+  min-width: 8rem;
+}
+
+/* ---------- Teclas ---------- */
+
+.pulso-cc-teclas.pulso-ct-teclas {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--cc-riel);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* La tabla, dentro del panel: su marco es el del panel y sus teclas van al pie. */
+.pulso-cc-panel .pulso-ct-marco.pulso-cv2-resp-list {
+  border: 0;
+  border-radius: 0;
+}
+
+/* En el marco de Codificar las filas de la tabla van tan juntas como las de las tarjetas. */
+.pulso-cc-panel .pulso-ct-fila > .pulso-ct-c-resp,
+.pulso-cc-panel .pulso-ct-fila > .pulso-ct-c-veces,
+.pulso-cc-panel .pulso-ct-fila > .pulso-ct-c-cod {
+  padding-block: calc(var(--pulso-space-1) + 1px);
+}
+
+.pulso-cc-panel .pulso-ct > .pulso-ct-teclas {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--cc-riel);
+  border-top: 1px solid var(--pulso-border);
+}
+

@@ -26,7 +26,7 @@ export function BarraPreguntas({ filtro, conteos, consulta, onFiltro, onBuscar }
           active={filtro === "con-texto"} onClick={() => onFiltro("con-texto")}
         />
         <FilterChip
-          label="Sin decidir" count={conteos["por-codificar"]}
+          label="Pendientes" count={conteos["por-codificar"]}
           icon={PencilLine} tone="warn"
           active={filtro === "por-codificar"} onClick={() => onFiltro("por-codificar")}
         />

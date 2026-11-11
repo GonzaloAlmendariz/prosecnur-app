@@ -353,6 +353,15 @@ describe("Codificar en tarjetas: lo que cuenta la tarjeta de un código", () => 
     expect(nueve?.querySelector(".pulso-cc-codigo-fuera")?.textContent).toBe("2 textos guardados no están en la base actual");
     expect(nueve?.querySelectorAll("li[data-fuera-de-la-base]")).toHaveLength(2);
   });
+
+  test("con un solo texto guardado que la base no trae, la frase va en singular", async () => {
+    await montar("select_one", null, [
+      { id: "ex_1", codigo: "1", etiqueta: "Trato", respuestas: ["menos colas", "texto de una base anterior"], origen: "existente" },
+    ]);
+    const uno = host.querySelector('[aria-label="Código 1. Trato del personal"]');
+    expect(uno?.querySelector(".pulso-cc-codigo-fuera")?.textContent).toBe("1 texto guardado no está en la base actual");
+    expect(uno?.querySelectorAll("li[data-fuera-de-la-base]")).toHaveLength(1);
+  });
 });
 
 describe("Codificar en tarjetas: el fantasma del arrastre", () => {

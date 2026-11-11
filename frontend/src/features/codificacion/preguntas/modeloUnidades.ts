@@ -254,8 +254,19 @@ export function faltaOpcionOtros(u: Unidad): boolean {
 }
 
 /**
- * El estado que muestra la fila. Usa las mismas reglas que los filtros: una fila con "Sin decidir" es
- * una de las que cuenta ese filtro, y lo mismo con "Codificada" y con la pareja.
+ * El rótulo de una fila con trabajo abierto. Si lo que falta es una declaración (el modo de una pareja de
+ * opción única, la opción "Otros" de una múltiple, o la configuración que pide el motor), todavía no hay
+ * nada que codificar y la fila dice "Sin decidir"; si está declarada y le quedan respuestas sin código,
+ * dice "Por codificar".
+ */
+export function rotuloDeAbierta(u: Unidad, abierta: PreguntaAbierta): "Sin decidir" | "Por codificar" {
+  const faltaDeclarar = decisionDePregunta(abierta) === "requiere_config" || faltaModo(u) || faltaOpcionOtros(u);
+  return faltaDeclarar ? "Sin decidir" : "Por codificar";
+}
+
+/**
+ * El estado que muestra la fila. Usa las mismas reglas que los filtros: una fila con "Sin decidir" o "Por codificar"
+ * es una de las que cuenta ese filtro ("Pendientes"), y lo mismo con "Codificada" y con la pareja.
  */
 export function estadoDeUnidad(u: Unidad): EstadoDeUnidad | null {
   if (u.arquetipo === "no-aplica") {
@@ -267,7 +278,7 @@ export function estadoDeUnidad(u: Unidad): EstadoDeUnidad | null {
     const presentacion = presentarDecision(decisionDePregunta(abierta));
     return {
       clave: "sin-decidir",
-      rotulo: "Sin decidir",
+      rotulo: rotuloDeAbierta(u, abierta),
       tono: "warn",
       nota: restanteDeUnidad(u, abierta) ?? presentacion?.etiqueta ?? null,
       detalle: presentacion?.detalle ?? "",
