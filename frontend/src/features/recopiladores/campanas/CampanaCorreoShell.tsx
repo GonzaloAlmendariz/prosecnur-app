@@ -1,9 +1,10 @@
 // La campaña de correo abierta (ADR 0111 §3): una sección —el correo— con dos
 // pestañas en el rail de la casa: el editor (identidad, destinatarios,
 // plataforma, envíos, revisión e importar son sus paneles) y los contactos
-// (ADR 0112 §4: la lista, el tablero por perfil y el enlace personal). No
-// lleva banda de módulo propia: la miga de la campaña vive en la barra de cada
-// pestaña, así el cuerpo gana el alto (pedido de Gonzalo, 2026-10-20).
+// (ADR 0112 §4: la lista, el tablero por perfil y el enlace personal). La miga
+// de la campaña vive en la barra de cada pestaña (pedido de Gonzalo,
+// 2026-10-20); la barra del módulo lleva sólo las secciones del modo correo,
+// Correo y Seguimiento (D8, 11 nov 2026).
 //
 // El editor sigue montado —oculto— mientras se miran los contactos: su
 // borrador sin guardar vive en él y volver al editor no lo relee del backend.
@@ -13,7 +14,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { AdaptiveSplitView } from "../../../components/AdaptiveSplitView";
 import { ContextTabRail, type ContextTabRailItem } from "../../../components/ContextTabRail";
+import { ModuleCommandBar } from "../../../components/ModuleCommandBar";
 import { PageFrame } from "../../../components/PageFrame";
+import { SectionPillbar } from "../../../components/SectionPillbar";
 import { PROSECNUR_MODULES } from "../../../lib/modules";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
 import { ContactosVista } from "../correos/contactos/ContactosVista";
@@ -22,14 +25,17 @@ import { PANEL_CORREO_DESTINATARIOS } from "../correos/panelesCorreos";
 import type { AccionesDeCampanas } from "../correos/useCampanas";
 import { searchDeCampanas } from "./direccionDeCampanas";
 import { refDeCorreo } from "./modeloRegistro";
+import { SECCION_SEGUIMIENTO } from "../seguimiento/navegacionSeguimiento";
+import { useDensidadDelChrome } from "../useDensidadDelChrome";
 import "../styles/recopiladores-shell.css";
 
 type PestanaDelCorreo = "editor" | "contactos";
 
+const SECCIONES_DEL_CORREO = PROSECNUR_MODULES.find((m) => m.slug === "material-campo")?.modos
+  ?.find((modo) => modo.id === "correo")?.sections ?? [];
+
 const PESTANAS: readonly ContextTabRailItem<PestanaDelCorreo>[] = (
-  PROSECNUR_MODULES.find((m) => m.slug === "material-campo")?.modos
-    ?.find((modo) => modo.id === "correo")?.sections
-    .find((s) => s.id === "correo")?.tabs ?? []
+  SECCIONES_DEL_CORREO.find((s) => s.id === "correo")?.tabs ?? []
 ).map((tab) => ({ key: tab.id as PestanaDelCorreo, label: tab.label, icon: tab.icon }));
 
 type Props = {
@@ -65,6 +71,25 @@ export function CampanaCorreoShell({ campana, nombre, cabecera, campanasAcc, onS
   }, [campana, direccion?.foco, location.pathname, location.search, navigate]);
 
   const irAImportar = useCallback(() => irA("editor", PANEL_CORREO_DESTINATARIOS.id), [irA]);
+  const densidadChrome = useDensidadDelChrome();
+
+  // D8: las secciones del modo correo, la misma barra que Seguimiento. "Correo" es esta campaña;
+  // "Seguimiento" es del estudio entero y su dirección no lleva `campana`.
+  const secciones = (
+    <SectionPillbar
+      modulo="material-campo"
+      ariaLabel="Secciones del correo"
+      seccionActiva="correo"
+      className="rec-section-selector"
+      items={SECCIONES_DEL_CORREO.map((s) => ({
+        id: s.id,
+        label: s.label,
+        href: s.id === SECCION_SEGUIMIENTO
+          ? `${location.pathname}${searchDeCampanas(location.search, { modo: "correo", seccion: SECCION_SEGUIMIENTO })}`
+          : `${location.pathname}${searchDeCampanas(location.search, { modo: "correo", campana, seccion: "correo", pestana })}`,
+      }))}
+    />
+  );
 
   return (
     <PageFrame
@@ -77,6 +102,14 @@ export function CampanaCorreoShell({ campana, nombre, cabecera, campanasAcc, onS
       resetScrollKey={`correo/${pestana}`}
       auditReady={cargando ? false : `material-campo/correo/${pestana}`}
       className="rec-page"
+      chrome={(
+        <ModuleCommandBar
+          densidad={densidadChrome}
+          modulo="material-campo"
+          secciones={secciones}
+          ariaLabel="Controles del correo"
+        />
+      )}
     >
       <div className="rec-workbench rec-workbench--rail">
         <AdaptiveSplitView
