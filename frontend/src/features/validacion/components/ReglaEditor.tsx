@@ -18,6 +18,7 @@ import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { RuleNarrative } from "./v2";
 import type { VariableHoverData } from "./v2";
 import { draftCustomToRule } from "../customRuleNarrative";
+import ClasificacionHallazgo, { severidadAlGuardar } from "./ClasificacionHallazgo";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 
@@ -69,15 +70,15 @@ const TIPOS: TipoMeta[] = [
   },
   {
     key: "rango_num",
-    label: "Duración o métrica sospechosa",
-    descripcion: "Encuentra tiempos, conteos o métricas operativas que merecen revisión.",
+    label: "Valor fuera de rango",
+    descripcion: "Encuentra números por debajo o por encima de lo permitido.",
     nVars: 1,
     grupo: "respuesta",
-    pregunta: "¿La entrevista fue demasiado corta o una métrica operativa no parece plausible?",
-    ejemplo: "Ej. encuesta cerrada en 2 minutos, número de visitas improbable o cantidad operativa fuera de lo esperable.",
-    resultado: "Detecta registros fuera de un umbral operativo.",
-    variableHint: "Elige duración, conteo o una variable operativa numérica.",
-    badge: "Operativo",
+    pregunta: "¿Un número debe estar entre un mínimo y un máximo?",
+    ejemplo: "Ej. la edad debe estar entre 16 y 25 años, o una entrevista no puede durar 2 minutos.",
+    resultado: "Detecta valores fuera del rango definido.",
+    variableHint: "Elige la pregunta numérica: edad, duración, conteo.",
+    badge: "Rango",
   },
   {
     key: "rango_fecha",
@@ -142,15 +143,15 @@ const TIPOS: TipoMeta[] = [
   },
   {
     key: "coherencia_2v",
-    label: "Coherencia o plausibilidad contextual",
-    descripcion: "Compara respuestas que deben tener sentido juntas dentro del operativo.",
+    label: "Dos respuestas que deben cuadrar",
+    descripcion: "Cruza dos preguntas: si una dice algo, la otra debería ser coherente.",
     nVars: 2,
     grupo: "coherencia",
-    pregunta: "¿Una respuesta vuelve sospechosa otra respuesta?",
-    ejemplo: "Ej. marcó “Solo fui una vez” pero reportó todos los servicios, o tiene menos de 60 y marca atención OMAPED.",
-    resultado: "Detecta registros para limpieza o transformación.",
-    variableHint: "Elige la variable de contexto y la variable objetivo.",
-    badge: "Plausibilidad",
+    pregunta: "Si una respuesta es X, ¿qué debería decir la otra?",
+    ejemplo: "Ej. si está cursando estudios superiores, su ocupación no puede ser \"solo trabajo\".",
+    resultado: "Detecta registros donde la segunda respuesta no cuadra con la primera.",
+    variableHint: "Elige primero la pregunta que pone la condición y luego la que se verifica.",
+    badge: "Cruce",
   },
   {
     key: "select_multiple_hierarchy",
@@ -214,9 +215,16 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
   const [params, setParams] = useState<Record<string, unknown>>(
     inicial?.params ?? {},
   );
-  const [hallazgoKind] = useState<ReglaCustomHallazgoKind>(
+  const [hallazgoKind, setHallazgoKind] = useState<ReglaCustomHallazgoKind>(
     inicial?.hallazgo_kind ?? "caso_validar",
   );
+  // Solo una clase elegida en esta edición cambia la severidad que la regla traía.
+  const [claseCambiada, setClaseCambiada] = useState(false);
+  const elegirClase = (kind: ReglaCustomHallazgoKind) => {
+    setClaseCambiada(true);
+    setHallazgoKind(kind);
+  };
+  const severidadFinal = severidadAlGuardar(hallazgoKind, inicial?.severidad, claseCambiada);
   const [gateConditions, setGateConditions] = useState<ReglaGateCondition[]>(
     inicial?.gate_conditions ?? [],
   );
@@ -264,8 +272,10 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
       nombre,
       mensaje,
       params: { ...params, gate_conditions: gateConditions },
+      hallazgo_kind: hallazgoKind,
+      severidad: severidadFinal,
     }),
-    [tipo, variables, nombre, mensaje, params, gateConditions],
+    [tipo, variables, nombre, mensaje, params, gateConditions, hallazgoKind, severidadFinal],
   );
 
   const variableHoverLookup = useMemo(
@@ -306,7 +316,6 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
       if (variables.length < needed) return `Necesitas al menos ${needed} variable${needed === 1 ? "" : "s"}.`;
     }
     if (s === 3) {
-      if (!nombre.trim()) return "Agrega un nombre descriptivo a la regla.";
       // Validaciones por tipo.
       if (tipo === "rango_num") {
         const mn = params.min as string | undefined;
@@ -386,16 +395,22 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
     setSaving(true);
     try {
       const submitParams = normalizeParamsForSubmit(tipo, params);
+      // El nombre es opcional: sin él, el criterio se nombra por su tipo y
+      // sus preguntas, que es lo que cualquiera escribiría a mano.
+      const nombreFinal = nombre.trim() || nombreSugerido(tipoMeta, variables);
       const gateExpr = gateExprFromConditions(gateConditions);
       await onSubmit({
         id: inicial?.id,
         activa,
-        nombre,
+        nombre: nombreFinal,
         tipo,
         variables,
         params: submitParams,
-        mensaje: mensaje || nombre,
-        severidad: (inicial?.severidad ?? "error"),
+        mensaje: mensaje || nombreFinal,
+        // La severidad sigue a la clasificación elegida (inconsistencia:
+        // error; caso a revisar: advertencia). Si no se eligió ninguna en esta
+        // edición, se conserva la que la regla traía.
+        severidad: severidadFinal,
         hallazgo_kind: hallazgoKind,
         planned_action_type: plannedAction,
         recommended_scope: recommendedScope,
@@ -475,6 +490,9 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
             tipoMeta={tipoMeta}
             nombre={nombre}
             setNombre={setNombre}
+            nombrePlaceholder={nombreSugerido(tipoMeta, variables)}
+            hallazgoKind={hallazgoKind}
+            setHallazgoKind={elegirClase}
             mensaje={mensaje}
             setMensaje={setMensaje}
             params={params}
@@ -575,6 +593,11 @@ export default function ReglaEditor({ inv, baseNombre, inicial, onSubmit, onCanc
   );
 }
 
+function nombreSugerido(tipoMeta: TipoMeta | null, variables: string[]): string {
+  const base = tipoMeta?.label ?? "Criterio";
+  return variables.length ? `${base}: ${variables.join(" y ")}` : base;
+}
+
 // =============================================================================
 // Step indicator
 // =============================================================================
@@ -597,9 +620,9 @@ function StepIndicator({ step }: { step: number }) {
 }
 
 function stepTitle(step: number) {
-  if (step === 1) return "tipo de señal";
-  if (step === 2) return "ámbito y variables";
-  return "criterio y tratamiento";
+  if (step === 1) return "qué revisar";
+  if (step === 2) return "preguntas que participan";
+  return "condición y clasificación";
 }
 
 function WizardIntro({
@@ -612,17 +635,17 @@ function WizardIntro({
   const copy =
     step === 1
       ? {
-          title: "Configura una señal adicional",
-          body: "Define patrones operativos, coherencias interpretativas o transformaciones que conviene dejar disponibles en la cola de limpieza.",
+          title: "¿Qué quieres revisar?",
+          body: "Elige el tipo de problema. Lo afinas en los pasos siguientes.",
         }
       : step === 2
         ? {
-            title: tipoMeta ? `Ámbito: ${tipoMeta.label}` : "Elige las variables",
+            title: tipoMeta ? `Preguntas: ${tipoMeta.label}` : "Elige las preguntas",
             body: tipoMeta?.variableHint ?? "Selecciona las variables que participan en el criterio.",
           }
         : {
-            title: tipoMeta ? `Parámetros: ${tipoMeta.label}` : "Define el criterio",
-            body: "Configura la señal, su ámbito y el tratamiento que quedará preparado para Limpieza.",
+            title: tipoMeta ? tipoMeta.label : "Define el criterio",
+            body: "Define cuándo se marca un registro y si es una inconsistencia o un caso a revisar.",
           };
 
   return (
@@ -685,13 +708,13 @@ function Step1({
   }> = [
     {
       key: "respuesta",
-      label: "Operativo y plausibilidad",
-      hint: "Duración, fechas de campo y métricas sospechosas.",
+      label: "Rangos y fechas",
+      hint: "Números fuera de lo permitido y fechas fuera del operativo.",
     },
     {
       key: "coherencia",
       label: "Coherencia de encuesta",
-      hint: "Cruces entre respuestas, contexto y duplicados prácticos.",
+      hint: "Cruces entre dos respuestas y registros duplicados.",
     },
     {
       key: "seleccion",
@@ -699,45 +722,8 @@ function Step1({
       hint: "Opciones acumuladas, incompatibles o demasiadas marcas.",
     },
   ];
-  const briefItems = [
-    {
-      label: "Señal",
-      body: "Patrón que debe quedar disponible.",
-    },
-    {
-      label: "Ámbito",
-      body: "Registros donde aplica el criterio.",
-    },
-    {
-      label: "Salida",
-      body: "Texto y parámetros que viajarán a limpieza.",
-    },
-  ];
-
   return (
     <div className="pulso-regla-step1">
-      <section className="pulso-regla-design-brief" aria-label="Cómo elegir un criterio">
-        <div className="pulso-regla-design-copy">
-          <span className="pulso-section-eyebrow">Cómo elegir</span>
-          <strong>Configura una señal adicional sobre la base.</strong>
-          <p>
-            Úsalo para patrones operativos, coherencias interpretativas, selección múltiple y
-            transformaciones que deben quedar disponibles en Limpieza.
-          </p>
-        </div>
-        <div className="pulso-regla-design-steps">
-          {briefItems.map((item, idx) => (
-            <div key={item.label} className="pulso-regla-design-step">
-              <span>{idx + 1}</span>
-              <div>
-                <strong>{item.label}</strong>
-                <p>{item.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       <div className="pulso-regla-settings-list">
         {grupos.map((grupo) => {
           const groupTipos = tipos.filter((t) => t.grupo === grupo.key);
@@ -962,6 +948,9 @@ function Step3({
   tipoMeta,
   nombre,
   setNombre,
+  nombrePlaceholder,
+  hallazgoKind,
+  setHallazgoKind,
   mensaje,
   setMensaje,
   params,
@@ -980,6 +969,9 @@ function Step3({
   tipoMeta: TipoMeta | null;
   nombre: string;
   setNombre: (v: string) => void;
+  nombrePlaceholder: string;
+  hallazgoKind: ReglaCustomHallazgoKind;
+  setHallazgoKind: (v: ReglaCustomHallazgoKind) => void;
   mensaje: string;
   setMensaje: (v: string) => void;
   params: Record<string, unknown>;
@@ -1000,52 +992,6 @@ function Step3({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {tipoMeta && <RuleIntentCard tipoMeta={tipoMeta} />}
-
-      <FieldRow label="Nombre corto del caso">
-        <input
-          type="text"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          placeholder={
-            tipo === "no_nulo" ? `${variables[0]} no puede estar vacío` :
-            tipo === "rango_num" ? `${variables[0]} sospechosa` :
-            tipoMeta ? tipoMeta.label : `Regla ${tipo}`
-          }
-          style={inputStyle}
-        />
-      </FieldRow>
-      <div className="pulso-regla-detection-note">
-        <strong>Salida del criterio.</strong>
-        <span>
-          Los registros detectados quedan disponibles para documentar, corregir, completar,
-          anular o excluir en una etapa posterior.
-        </span>
-      </div>
-
-      <FieldRow label="Detalle" hint="Texto visible junto a los registros detectados.">
-        <input
-          type="text"
-          value={mensaje}
-          onChange={(e) => setMensaje(e.target.value)}
-          placeholder="Ej. Completar opciones previas asociadas a grados superiores."
-          style={inputStyle}
-        />
-      </FieldRow>
-
-      <GateConditionsEditor
-        conditions={gateConditions}
-        setConditions={setGateConditions}
-        flatVars={flatVars}
-        baseNombre={baseNombre}
-      />
-
-      <TreatmentPlanner
-        tipo={tipo}
-        action={plannedAction}
-        scope={recommendedScope}
-        onAction={setPlannedAction}
-        onScope={setRecommendedScope}
-      />
 
       {/* Parámetros por tipo */}
       {(tipo === "rango_num" || tipo === "rango_fecha") && (
@@ -1128,13 +1074,16 @@ function Step3({
 
       {tipo === "coherencia_2v" && (
         <>
-          <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", lineHeight: 1.5 }}>
-            Si <code>{variables[0]}</code> ({labelVar(variables[0])}) cumple la condición X,
-            entonces <code>{variables[1]}</code> ({labelVar(variables[1])}) debe cumplir la condición Y.
+          <div className="pulso-regla-detection-note">
+            <strong>Se marca el registro cuando</strong>
+            <span>
+              <code>{variables[0]}</code> ({labelVar(variables[0])}) cumple la primera condición
+              y <code>{variables[1]}</code> ({labelVar(variables[1])}) NO cumple la segunda.
+            </span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <OpValor
-              title={`Condición sobre ${variables[0]}`}
+              title={`1. Cuando ${variables[0]}`}
               variableMeta={flatVars.find((x) => x.name === variables[0])}
               baseNombre={baseNombre}
               op={params.op_x as string}
@@ -1143,7 +1092,7 @@ function Step3({
               onValor={(v) => setParam("valor_x", v)}
             />
             <OpValor
-              title={`Entonces ${variables[1]}`}
+              title={`2. Se espera que ${variables[1]}`}
               variableMeta={flatVars.find((x) => x.name === variables[1])}
               baseNombre={baseNombre}
               op={params.op_y as string}
@@ -1240,6 +1189,44 @@ function Step3({
           </span>
         </div>
       )}
+
+      <ClasificacionHallazgo value={hallazgoKind} onChange={setHallazgoKind} />
+
+      <GateConditionsEditor
+        conditions={gateConditions}
+        setConditions={setGateConditions}
+        flatVars={flatVars}
+        baseNombre={baseNombre}
+      />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))", gap: 10 }}>
+        <FieldRow label="Nombre (opcional)" hint="Si lo dejas vacío, se usa el sugerido.">
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder={nombrePlaceholder}
+            style={inputStyle}
+          />
+        </FieldRow>
+        <FieldRow label="Detalle (opcional)" hint="Texto visible junto a los registros detectados.">
+          <input
+            type="text"
+            value={mensaje}
+            onChange={(e) => setMensaje(e.target.value)}
+            placeholder="Ej. Revisar con la ficha en papel."
+            style={inputStyle}
+          />
+        </FieldRow>
+      </div>
+
+      <TreatmentPlanner
+        tipo={tipo}
+        action={plannedAction}
+        scope={recommendedScope}
+        onAction={setPlannedAction}
+        onScope={setRecommendedScope}
+      />
     </div>
   );
 }
@@ -1703,10 +1690,10 @@ function GateConditionsEditor({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div>
           <div style={{ fontSize: "var(--pulso-type-eyebrow-size)", fontWeight: 800, color: "var(--pulso-text-soft)", textTransform: "uppercase", letterSpacing: 0.4 }}>
-            Ámbito
+            Solo revisar cuando (opcional)
           </div>
           <div style={{ fontSize: "var(--pulso-type-micro-size)", color: "var(--pulso-text-soft)", lineHeight: 1.35 }}>
-            Opcional. Limita el criterio a registros con una condición previa.
+            Limita el criterio a una parte de la base, por ejemplo una sola sede.
           </div>
         </div>
         <button
@@ -1720,7 +1707,7 @@ function GateConditionsEditor({
 
       {conditions.length === 0 ? (
         <div style={{ ...emptyInlineStyle, padding: "8px 10px" }}>
-          Sin filtro: el criterio aplica sobre toda la base.
+          Se revisa toda la base.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

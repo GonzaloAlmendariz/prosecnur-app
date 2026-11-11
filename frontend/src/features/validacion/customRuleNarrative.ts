@@ -38,13 +38,13 @@ const CUSTOM_TIPO_TO_AST: Record<ReglaCustomTipo, string> = {
 // de la lista.
 export const CUSTOM_TIPO_LABEL: Record<ReglaCustomTipo, string> = {
   no_nulo: "Respuesta obligatoria",
-  rango_num: "Duración o métrica sospechosa",
+  rango_num: "Valor fuera de rango",
   rango_fecha: "Fecha fuera del operativo",
   outliers_iqr: "Outliers (IQR)",
   outliers_z: "Outliers (Z-score)",
   duplicados: "Duplicados operativos",
   fuera_catalogo: "Respuesta fuera de lista",
-  coherencia_2v: "Coherencia o plausibilidad",
+  coherencia_2v: "Dos respuestas que deben cuadrar",
   select_multiple_hierarchy: "Jerarquía de selección múltiple",
   select_multiple_exclusive: "Opciones incompatibles",
   select_multiple_cardinality: "Cantidad de opciones marcada",
@@ -93,8 +93,14 @@ export function describeCustomParams(
       return valores > 0
         ? `Se marcan filas con valores que no están en la lista permitida (${valores} entradas).`
         : "Define la lista de opciones esperadas.";
-    case "coherencia_2v":
-      return "Si la primera respuesta define un contexto, la segunda debe ser plausible dentro de ese contexto.";
+    case "coherencia_2v": {
+      const x = condicionLegible(params.op_x, params.valor_x);
+      const y = condicionLegible(params.op_y, params.valor_y);
+      if (x && y && variables.length >= 2) {
+        return `Se marca cuando ${variables[0]} ${x} y ${variables[1]} no cumple "${y}".`;
+      }
+      return "Se marca cuando la primera respuesta cumple su condición y la segunda no cumple la suya.";
+    }
     case "select_multiple_hierarchy": {
       const map = params.hierarchy_map;
       const n = map && typeof map === "object" && !Array.isArray(map) ? Object.keys(map).length : 0;
@@ -111,6 +117,33 @@ export function describeCustomParams(
     default:
       return "";
   }
+}
+
+const OPERADOR_LEGIBLE: Record<string, string> = {
+  "==": "es",
+  "!=": "no es",
+  ">": "es mayor que",
+  ">=": "es mayor o igual que",
+  "<": "es menor que",
+  "<=": "es menor o igual que",
+  in: "está entre",
+  not_in: "no está entre",
+  contains: "incluye",
+  contains_any: "incluye alguna de",
+  contains_all: "incluye todas",
+  not_contains: "no incluye",
+  contains_none: "no incluye ninguna de",
+};
+
+// "es 1", "está entre 4, 5, 6": la condición de un lado del cruce en palabras.
+// Vacío si falta operador o valor (borrador a medio llenar).
+function condicionLegible(op: unknown, valor: unknown): string {
+  if (typeof op !== "string" || !op) return "";
+  const valores = (Array.isArray(valor) ? valor : [valor])
+    .map((v) => (v === null || v === undefined ? "" : String(v).trim()))
+    .filter(Boolean);
+  if (!valores.length) return "";
+  return `${OPERADOR_LEGIBLE[op] ?? op} ${valores.join(", ")}`;
 }
 
 // Convierte una ReglaCustom completa (ya guardada) al shape ReglaLike.
@@ -134,7 +167,9 @@ export function customRuleToRule(r: ReglaCustom): ReglaLike {
       : "Personalizada: caso a validar",
     severidad: r.severidad,
     categoria_ux: CUSTOM_TIPO_LABEL[r.tipo] ?? r.tipo,
-    objetivo: customObjective(r.tipo, r.params, r.variables, r.mensaje),
+    // Sin detalle propio, el editor guarda el nombre como mensaje; repetirlo
+    // como "Nota" sólo duplica lo que ya dice el título.
+    objetivo: customObjective(r.tipo, r.params, r.variables, r.mensaje === r.nombre ? "" : r.mensaje),
     variables: r.variables,
     variable_roles: target ? (gate ? { target, gate } : { target }) : null,
     n_casos: null,
@@ -151,6 +186,8 @@ export function draftCustomToRule(input: {
   nombre: string;
   mensaje: string;
   params: Record<string, unknown>;
+  hallazgo_kind?: ReglaCustom["hallazgo_kind"];
+  severidad?: ReglaCustom["severidad"];
 }): ReglaLike | null {
   if (!input.tipo || !input.variables.length) return null;
   const target = input.variables[0] ?? null;
@@ -175,9 +212,11 @@ export function draftCustomToRule(input: {
     tipo_regla: CUSTOM_TIPO_TO_AST[input.tipo] ?? null,
     tipo_observacion: input.tipo,
     fuente: "custom",
-    hallazgo_kind: "caso_validar",
-    origen_detalle: "Personalizada: caso a validar",
-    severidad: "error",
+    hallazgo_kind: input.hallazgo_kind ?? "caso_validar",
+    origen_detalle: input.hallazgo_kind === "inconsistencia_usuario"
+      ? "Personalizada: inconsistencia definida"
+      : "Personalizada: caso a validar",
+    severidad: input.severidad ?? "error",
     categoria_ux: CUSTOM_TIPO_LABEL[input.tipo],
     objetivo,
     variables: input.variables,
