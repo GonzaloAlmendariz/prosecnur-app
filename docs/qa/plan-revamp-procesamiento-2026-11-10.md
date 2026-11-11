@@ -554,7 +554,7 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | Codificación | Aplicar | Hecho | |
 | Analítica | Ponderación | Hecho | |
 | Analítica | Frecuencias | Hecho | Buscar por tecleo en "Ir a una pregunta" (necesita una pieza nueva del kit) y más alto útil en ventanas bajas |
-| Analítica | Cruces | Falta | Necesita motor: vista previa de cruces |
+| Analítica | Cruces | En curso | Pantalla con la vista previa del motor |
 | Analítica | Las otras diez pestañas | Falta | |
 | Todo el módulo | Piezas compartidas, cabecera y selector de base | Hecho | |
 | Todo el módulo | Estado del estudio | Hecho | |
@@ -563,7 +563,7 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 | Motor | Avisos de ponderación | Hecho | |
 | Motor | Vista previa de frecuencias | Hecho | |
 | Motor | Cabecera "N ponderado" en el Excel de frecuencias cuando hay pesos | Falta | |
-| Motor | Vista previa de cruces | Hecho | Ajustes del contrato pedidos por la revisión metodológica, en curso |
+| Motor | Vista previa de cruces | Hecho | |
 | Motor | Defectos del Excel de cruces de hoy: variable de cruce guardada como rótulo (letras vacías, casos perdidos), rótulo de fila repetido, modo dimensiones que no llega al archivo | Falta | |
 | Motor | Lo que pide el rediseño de Carga (nueve ítems) | Falta | |
 | Motor | Resto del plan original (M1 a M8 y M10) | Falta | M10 espera decisión |
