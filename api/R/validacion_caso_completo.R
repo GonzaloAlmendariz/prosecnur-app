@@ -1,0 +1,315 @@
+# =============================================================================
+# Validación: el caso completo y lo esperado por fila de un hallazgo
+# =============================================================================
+# Lo que la pestaña Hallazgos necesita del motor para mostrar un caso entero:
+#   - `validacion_caso_completo()`: las respuestas del caso agrupadas por
+#     sección del formulario y sus hallazgos de la última auditoría. De solo
+#     lectura: no toca la evaluación ni marca el proyecto como modificado.
+#   - `.validacion_esperado_por_fila()`: el enunciado de cada caso marcado por
+#     una regla (`validacion_enunciado_hallazgo()`), para el detalle de casos.
+#
+# El caso se busca por el mismo id que usan la cola y las decisiones
+# (`.limpieza_make_case_ids()` con la llave que rige, `.limpieza_identidad_caso()`),
+# en la tabla de la última auditoría. Los datos viajan por código; las
+# etiquetas se leen del formulario y van al lado, nunca en lugar del código.
+
+# Tipo de anomalía de una regla (validacion_taxonomia_anomalias.R). Las propias
+# se clasifican por su tipo de regla (`rango_num`, `coherencia_2v`...) y por su
+# sembrador; las del formulario, por lo que trae el resumen de la auditoría o,
+# en una auditoría anterior a esa columna, por su `tipo_regla`. NA si ninguno
+# lo dice: no se inventa un tipo.
+.validacion_anomalia_de_regla <- function(scope, id_regla, fila_resumen = NULL) {
+  propia <- Find(function(r) identical(as.character(r$id %||% ""), as.character(id_regla)),
+                 scope$reglas_custom %||% list())
+  if (!is.null(propia)) {
+    return(validacion_anomalia_tipo(
+      tipo_regla = propia$tipo %||% NULL,
+      origen_semilla = (propia$semilla %||% list())$origen %||% NULL,
+      declarado = propia$anomalia_tipo %||% NULL
+    ))
+  }
+  fila <- fila_resumen %||% list()
+  previo <- as.character(fila$anomalia_tipo %||% NA_character_)[1]
+  if (!is.na(previo) && nzchar(previo)) return(previo)
+  validacion_anomalia_tipo(tipo_regla = as.character(fila$tipo_regla %||% "")[1])
+}
+
+# Enunciado por fila del detalle de casos de una regla. `filas` son los índices
+# de los casos en la tabla de la auditoría, en el orden en que se publican;
+# `ids` sus ids de caso. Devuelve una lista del mismo largo: cada elemento es
+# lo que devuelve `validacion_enunciado_hallazgo()` más `anomalia_tipo`, o NA
+# (null en JSON) si la regla no tiene tipo de anomalía y por eso no hay
+# enunciado. Los valores se leen de la tabla de la auditoría, por código.
+.validacion_esperado_por_fila <- function(anomalia, roles, df, filas, ids,
+                                          etiquetas_valor = list()) {
+  if (!length(filas)) return(list())
+  if (is.na(anomalia) || !nzchar(anomalia) || !is.data.frame(df)) {
+    return(rep(list(NA), length(filas)))
+  }
+  roles <- roles %||% list()
+  vars <- unique(c(as.character(unlist(roles$target %||% character(0))),
+                   as.character(unlist(roles$drivers %||% character(0)))))
+  vars <- vars[!is.na(vars) & nzchar(vars) & vars %in% names(df)]
+  lapply(seq_along(filas), function(k) {
+    i <- filas[k]
+    if (is.na(i)) return(NA)
+    valores <- stats::setNames(lapply(vars, function(v) {
+      x <- df[[v]][i]
+      if (length(x) && !is.na(x)) as.character(x) else NA_character_
+    }), vars)
+    out <- validacion_enunciado_hallazgo(anomalia, roles, ids[k], valores = valores,
+                                         etiquetas_valor = etiquetas_valor)
+    c(list(anomalia_tipo = anomalia), out)
+  })
+}
+
+# Instrumento de la base con las etiquetas curadas del proyecto, o NULL si el
+# formulario no se puede leer (el caso se devuelve igual, sin etiquetas).
+.validacion_caso_instrumento <- function(sid, base_nombre) {
+  files <- tryCatch(.resolve_base_files(sid, base_nombre), error = function(e) NULL)
+  if (is.null(files$xlsform$path)) return(NULL)
+  inst <- tryCatch(leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE),
+                   error = function(e) NULL)
+  .validacion_apply_label_overrides(sid, inst)
+}
+
+# Respuestas de una fila agrupadas por sección del formulario, en el orden del
+# formulario. Solo las preguntas del formulario que tienen columna en la
+# tabla (las notas y los grupos no tienen valor).
+.validacion_caso_secciones <- function(inst, df, i) {
+  survey <- inst$survey
+  if (is.null(survey) || !nrow(survey) || !"name" %in% names(survey)) return(list())
+  tipo <- as.character(survey$type_base %||% survey$type)
+  nombre <- as.character(survey$name)
+  usar <- !is.na(nombre) & nzchar(nombre) & nombre %in% names(df) &
+    !(tipo %in% c("begin_group", "end_group", "begin_repeat", "end_repeat", "note"))
+  if (!any(usar)) return(list())
+  sv <- survey[usar, , drop = FALSE]
+  etiquetas <- .survey_label_map(sv)
+  opciones <- .survey_choices_map(sv, inst$choices)
+  grupo <- as.character(sv$group_name %||% rep("", nrow(sv)))
+  grupo[is.na(grupo)] <- ""
+  grupo_etiqueta <- as.character(sv$group_label %||% rep(NA_character_, nrow(sv)))
+
+  lapply(unique(grupo), function(g) {
+    filas <- which(grupo == g)
+    list(
+      seccion = if (nzchar(g)) g else NA_character_,
+      etiqueta = if (nzchar(g)) .validacion_texto_o_na(grupo_etiqueta[filas[1]]) else NA_character_,
+      variables = lapply(filas, function(j) {
+        var <- as.character(sv$name[j])
+        .validacion_caso_respuesta(var, as.character(sv$type_base[j] %||% sv$type[j]),
+                                   etiquetas[[var]], df[[var]][i], opciones[[var]])
+      })
+    )
+  })
+}
+
+.validacion_texto_o_na <- function(x) {
+  x <- as.character(x %||% NA_character_)[1]
+  if (is.na(x) || !nzchar(trimws(x))) NA_character_ else x
+}
+
+.validacion_caso_respuesta <- function(var, tipo, etiqueta, valor, opciones = NULL) {
+  v <- if (length(valor) && !is.na(valor)) trimws(as.character(valor)) else NA_character_
+  if (!is.na(v) && !nzchar(v)) v <- NA_character_
+  et_var <- .validacion_texto_o_na(etiqueta)
+  out <- list(
+    variable = var,
+    etiqueta = if (!is.na(et_var) && identical(et_var, var)) NA_character_ else et_var,
+    tipo = tipo,
+    valor = v,
+    valor_etiqueta = NA_character_
+  )
+  if (is.na(v) || is.null(opciones)) return(out)
+  if (identical(tipo, "select_multiple")) {
+    codigos <- strsplit(v, "[[:space:]]+")[[1]]
+    out$opciones <- lapply(codigos, function(cod) list(
+      codigo = cod, etiqueta = .validacion_texto_o_na(opciones[[cod]])
+    ))
+  } else {
+    out$valor_etiqueta <- .validacion_texto_o_na(opciones[[v]])
+  }
+  out
+}
+
+# Hallazgos del caso en la última auditoría: cada regla que lo marca, en
+# cualquier tabla (en una madre con hijas, un registro hijo con el mismo id).
+.validacion_caso_hallazgos <- function(scope, id_caso, identidad, inst) {
+  ev <- scope$evaluacion
+  catalogo <- .limpieza_rule_catalog(scope)
+  if (!nrow(catalogo)) return(list())
+  n <- suppressWarnings(as.integer(catalogo$n_inconsistencias))
+  catalogo <- catalogo[!is.na(n) & n > 0L, , drop = FALSE]
+  if (!nrow(catalogo)) return(list())
+  etiquetas <- if (!is.null(inst$survey)) .survey_label_map(inst$survey) else character(0)
+  cache <- new.env(parent = emptyenv())
+  parejas <- NULL
+
+  out <- list()
+  for (k in seq_len(nrow(catalogo))) {
+    rid <- as.character(catalogo$id_regla[k])
+    mapa <- .limpieza_rule_case_map(ev, rid, identidad, cache)
+    if (!(id_caso %in% mapa$case_ids)) next
+    vars <- as.character(unlist(catalogo$variables[[k]] %||% list()))
+    h <- list(
+      id_regla = rid,
+      nombre = .validacion_nombre_regla(catalogo$nombre_regla[k], rid),
+      clase = as.character(catalogo$hallazgo_kind[k]),
+      tipo_regla = as.character(catalogo$tipo_regla[k]),
+      categoria = as.character(catalogo$categoria_ux[k]),
+      anomalia_tipo = .validacion_anomalia_de_regla(scope, rid, as.list(catalogo[k, , drop = FALSE])),
+      tabla = as.character(mapa$table),
+      variables = lapply(vars, function(v) list(
+        variable = v,
+        etiqueta = .validacion_texto_o_na(if (v %in% names(etiquetas)) etiquetas[[v]] else NA)
+      ))
+    )
+    if (identical(rid, "OP_duplicates")) {
+      if (is.null(parejas)) parejas <- validacion_parejas_de_evaluacion(ev, rid, identidad) %||% FALSE
+      # NA (null): la regla no se pudo reconstruir, o el caso está marcado y
+      # no se le encontró pareja; nunca una lista vacía que se lea como
+      # "no coincide con nadie".
+      h$coincide_con <- if (isFALSE(parejas)) NA else
+        (validacion_coincidencias_de_caso(parejas, id_caso) %||% NA)
+    }
+    out[[length(out) + 1L]] <- h
+  }
+  out
+}
+
+.validacion_nombre_regla <- function(nombre, id_regla) {
+  n <- .validacion_texto_o_na(nombre)
+  if (is.na(n)) as.character(id_regla) else n
+}
+
+#' Caso completo de la última auditoría
+#'
+#' @param sid sesión.
+#' @param base_nombre base pedida (NULL: la activa).
+#' @param id_caso id del caso, el mismo que usan la cola y las decisiones.
+#' @return lista con las respuestas por sección y los hallazgos del caso.
+#' @keywords internal
+validacion_caso_completo <- function(sid, base_nombre, id_caso) {
+  id_caso <- as.character(id_caso %||% "")[1]
+  if (is.na(id_caso) || !nzchar(id_caso)) {
+    stop_api(400, "E_MISSING_ID", "Falta el id del caso (parámetro id).")
+  }
+  scope <- validacion_scope_get(sid, base_nombre)
+  ev <- scope$evaluacion
+  if (is.null(ev)) {
+    stop_api(409, "E_NO_AUDITORIA",
+             "Esta base no tiene auditoría: el caso se lee de la última auditoría.")
+  }
+  base_eff <- tryCatch(.resolve_base_files(sid, base_nombre)$base_nombre,
+                       error = function(e) NULL) %||% base_nombre %||% NA_character_
+  identidad <- .limpieza_identidad_caso(scope)$variables
+  tablas <- ev$datos_tablas %||% list(principal = ev$datos)
+  orden <- c(intersect("principal", names(tablas)), setdiff(names(tablas), "principal"))
+
+  encontrado <- NULL
+  en_otras <- list()
+  for (t in orden) {
+    df <- tablas[[t]]
+    if (!is.data.frame(df) || !nrow(df)) next
+    filas <- which(.limpieza_make_case_ids(df, t, identidad) == id_caso)
+    if (!length(filas)) next
+    if (is.null(encontrado)) {
+      encontrado <- list(tabla = t, filas = filas, df = df)
+    } else {
+      en_otras[[length(en_otras) + 1L]] <- list(tabla = t, n_filas = length(filas))
+    }
+  }
+  if (is.null(encontrado)) {
+    stop_api(404, "E_CASO_NO_ENCONTRADO",
+             sprintf("No hay ningún caso con el id \"%s\" en la última auditoría de esta base.", id_caso),
+             details = list(id_caso = id_caso, base_nombre = base_eff))
+  }
+
+  inst <- .validacion_caso_instrumento(sid, base_nombre)
+  i <- encontrado$filas[1]
+  hallazgos <- .validacion_caso_hallazgos(scope, id_caso, identidad, inst)
+  list(
+    ok = TRUE,
+    base_nombre = base_eff,
+    id_caso = id_caso,
+    identificacion_casos = .limpieza_identificacion_publica(scope) %||% NA,
+    tabla = encontrado$tabla,
+    fila = as.integer(i),
+    n_filas_con_el_id = length(encontrado$filas),
+    en_otras_tablas = en_otras,
+    auditada_en = as.character(ev$auditada_en %||% NA_character_)[1],
+    secciones = if (is.null(inst)) list() else .validacion_caso_secciones(inst, encontrado$df, i),
+    instrumento_leido = !is.null(inst),
+    n_hallazgos = length(hallazgos),
+    hallazgos = hallazgos
+  )
+}
+
+# Lo que el detalle de casos de una regla (POST /instrumento/regla) suma por
+# fila: el enunciado de lo esperado, la pareja de las respuestas casi iguales
+# y, con la llave declarada vigente, los ids de caso de esa llave (los mismos
+# de la cola). Cada fila de `casos_df` se ubica en la tabla de la auditoría
+# (`.validacion_filas_de_casos()`); una fila que no se puede ubicar va NA.
+.validacion_drill_detalle_casos <- function(scope, id_regla, casos_df, case_ids,
+                                            variable_roles, inst) {
+  n <- if (is.data.frame(casos_df)) min(nrow(casos_df), 500L) else 0L
+  out <- list(case_ids = case_ids, ids_de_la_llave = FALSE,
+              esperado = rep(list(NA), n), coincide_con = NA)
+  if (!n) {
+    out$esperado <- list()
+    return(out)
+  }
+  ev <- scope$evaluacion
+  identidad <- .limpieza_identidad_caso(scope)$variables
+  mapa <- .limpieza_rule_case_map(ev, id_regla, identidad)
+  df <- ev$datos_tablas[[mapa$table]] %||% ev$datos
+  filas <- .validacion_filas_de_casos(casos_df, df, mapa$row_idx)
+  if (all(is.na(filas))) return(out)
+  ids_tabla <- .limpieza_make_case_ids(df, mapa$table, identidad)
+  if (length(identidad)) {
+    out$case_ids <- ids_tabla[filas]
+    out$ids_de_la_llave <- TRUE
+  }
+  ids <- ids_tabla[utils::head(filas, n)]
+  res <- ev$resumen
+  fila <- as.list(res[which(as.character(res$id_regla) == id_regla)[1], , drop = FALSE])
+  anomalia <- .validacion_anomalia_de_regla(scope, id_regla, fila)
+  roles <- variable_roles %||% list()
+  vars_roles <- unique(c(as.character(unlist(roles$target %||% character(0))),
+                         as.character(unlist(roles$drivers %||% character(0)))))
+  out$esperado <- .validacion_esperado_por_fila(
+    anomalia, roles, df, utils::head(filas, n), ids,
+    etiquetas_valor = .drill_choice_value_labels(inst, vars_roles)
+  )
+  if (identical(id_regla, "OP_duplicates")) {
+    parejas <- validacion_parejas_de_evaluacion(ev, id_regla, identidad)
+    if (!is.null(parejas)) {
+      out$coincide_con <- lapply(ids, function(id) {
+        if (is.na(id)) return(NA)
+        validacion_coincidencias_de_caso(parejas, id) %||% NA
+      })
+    }
+  }
+  out
+}
+
+# Índice en la tabla de la auditoría de cada fila de `casos_df` (las que
+# publica el detalle), o NA si no se puede ubicar. Se cruza por la columna
+# candidata de identidad cuando `casos_df` la trae y sus valores son únicos
+# entre los casos de la regla; si no la trae, por posición, y solo si los dos
+# tienen el mismo largo (una hija con ids repetidos multiplica filas al
+# enriquecerlas).
+.validacion_filas_de_casos <- function(casos_df, df, row_idx) {
+  n <- nrow(casos_df)
+  if (!is.data.frame(df) || !length(row_idx)) return(rep(NA_integer_, n))
+  col <- intersect(.limpieza_uuid_candidates(), intersect(names(casos_df), names(df)))[1]
+  if (!is.na(col)) {
+    llaves <- as.character(df[[col]][row_idx])
+    if (!anyDuplicated(llaves[!is.na(llaves)])) {
+      return(as.integer(row_idx[match(as.character(casos_df[[col]]), llaves)]))
+    }
+  }
+  if (length(row_idx) == n) return(as.integer(row_idx))
+  rep(NA_integer_, n)
+}

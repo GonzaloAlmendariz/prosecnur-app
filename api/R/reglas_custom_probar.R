@@ -217,7 +217,7 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
     ))
   }
 
-  mapa <- .limpieza_rule_case_map(ev, .probar_id)
+  mapa <- .limpieza_rule_case_map(ev, .probar_id, .limpieza_identidad_caso(scope)$variables)
   base_fila <- res[as.character(res$id_regla) == id_base, , drop = FALSE]
   n_base <- as.integer(base_fila$n_inconsistencias[1] %||% NA_integer_)
   if (is.na(n_base)) n_base <- n_filas

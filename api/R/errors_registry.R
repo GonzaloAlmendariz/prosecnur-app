@@ -102,6 +102,7 @@ errores_registrados <- function() {
     "E_AULAS_SIN_CUOTAS",                                    "monitoreo_aulas_report_pdf.R",      "409",
     "E_CALC_MUESTRA_CRITERIOS_REHIDRATAR_SIN_FUENTES",       "router_calc_muestra_criterios.R",   "409",
     "E_CALC_MUESTRA_CRITERIOS_REHIDRATAR_SIN_MARCO",         "router_calc_muestra_criterios.R",   "409",
+    "E_CASO_NO_ENCONTRADO",                                  "validacion_caso_completo.R",        "404",
     "E_CATEGORIAS_SIN_LISTA",                                "graficos_orden_categorias.R",       "409",
     "E_CATEGORIAS_VAR_NO_EXISTE",                            "graficos_orden_categorias.R",       "404",
     # Miniaturas en lote y vista previa asíncrona (graficos_miniaturas*.R, F6 §5.3).
@@ -744,6 +745,7 @@ errores_registrados <- function() {
     "E_LABEL_OVERRIDES_SIN_CHOICES",                         "label_overrides.R",                 "500",
     "E_LIMPIEZA_ACTION",                                     "limpieza_decision_engine.R",        "400",
     "E_LIMPIEZA_BASE_VACIA",                                 "limpieza_cierre_base.R",            "409",
+    "E_LIMPIEZA_CASOS_INVALIDOS",                            "limpieza_casos_resueltos.R",        "409,422",
     "E_LIMPIEZA_DECISION_NOT_FOUND",                         "limpieza_decision_engine.R",        "404",
     "E_LIMPIEZA_HIERARCHY_MAP",                              "limpieza_decision_engine.R",        "400",
     "E_LIMPIEZA_PENDING",                                    "limpieza_decision_engine.R",        "409",

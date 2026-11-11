@@ -334,6 +334,128 @@ validation_operational_rules <- function(config = NULL) {
   out
 }
 
+# Respuestas casi iguales: con qué otro caso coincide cada una
+# ---------------------------------------------------------------------------
+# La regla `OP_duplicates` marca las dos entrevistas de cada pareja que
+# coincide (`.vd_duplicate_similarity()`), pero solo guarda la marca: la
+# pantalla no podía decir con quién coincide cada una. Esto arma las parejas
+# sobre las filas que la regla YA marcó (el compañero de una fila marcada está
+# marcado también), con el mismo criterio: de las preguntas que al menos uno
+# de los dos respondió, coinciden en una proporción >= `threshold`, y esas
+# comparables son al menos `minimum_coverage` del total de preguntas.
+# Devuelve un data.frame con una fila por pareja ordenada (fila_a < fila_b):
+# fila_a, fila_b (índices en `data`), n_comparables, n_coincidencias y
+# similitud (n_coincidencias / n_comparables).
+validacion_parejas_casi_iguales <- function(data, vars, marcadas,
+                                            threshold = 0.90,
+                                            minimum_coverage = 0.80) {
+  vacio <- data.frame(fila_a = integer(), fila_b = integer(), n_comparables = integer(),
+                      n_coincidencias = integer(), similitud = numeric())
+  filas <- which(as.logical(marcadas) %in% TRUE)
+  vars <- unique(as.character(vars))
+  if (length(filas) < 2L || !is.data.frame(data) || !length(vars) ||
+      !all(vars %in% names(data))) {
+    return(vacio)
+  }
+  normalizar <- function(x) {
+    v <- enc2utf8(as.character(x))
+    v[is.na(v)] <- ""
+    v <- tolower(gsub("[[:space:]]+", " ", trimws(v), perl = TRUE))
+    v[is.na(v)] <- ""
+    v
+  }
+  valores <- do.call(cbind, lapply(data[filas, vars, drop = FALSE], normalizar))
+  if (is.null(dim(valores))) valores <- matrix(valores, nrow = length(filas))
+  vacias <- valores == ""
+  p <- length(vars)
+  min_comparables <- ceiling(minimum_coverage * p - 1e-12)
+
+  partes <- list()
+  for (a in seq_len(length(filas) - 1L)) {
+    otros <- seq.int(a + 1L, length(filas))
+    comparables <- !(vacias[otros, , drop = FALSE] &
+                       matrix(vacias[a, ], nrow = length(otros), ncol = p, byrow = TRUE))
+    iguales <- comparables & (valores[otros, , drop = FALSE] ==
+                                matrix(valores[a, ], nrow = length(otros), ncol = p, byrow = TRUE))
+    n_comp <- rowSums(comparables)
+    n_ig <- rowSums(iguales)
+    ok <- n_comp >= min_comparables & n_comp > 0 & (n_ig / pmax(n_comp, 1)) + 1e-12 >= threshold
+    if (any(ok)) {
+      partes[[length(partes) + 1L]] <- data.frame(
+        fila_a = filas[a], fila_b = filas[otros[ok]],
+        n_comparables = as.integer(n_comp[ok]), n_coincidencias = as.integer(n_ig[ok]),
+        similitud = n_ig[ok] / n_comp[ok]
+      )
+    }
+  }
+  if (!length(partes)) return(vacio)
+  do.call(rbind, partes)
+}
+
+# Las parejas de la regla de respuestas casi iguales en una evaluación
+# guardada, con los ids de caso. Lee las preguntas y los umbrales del predicado
+# de la regla tal como se auditó (`evaluacion$bundle`), no de la configuración
+# vigente: si alguien cambió el umbral después, la pareja tiene que ser la de
+# la auditoría. NULL si la regla no está o no se puede reconstruir.
+validacion_parejas_de_evaluacion <- function(evaluacion, id_regla = "OP_duplicates",
+                                             identidad = NULL) {
+  res <- evaluacion$resumen
+  if (is.null(res) || !nrow(res) || !(id_regla %in% as.character(res$id_regla))) return(NULL)
+  regla <- Find(function(r) identical(as.character(r$id %||% ""), id_regla),
+                evaluacion$bundle$rules %||% list())
+  nodo <- .validacion_nodo_similitud(regla$predicate)
+  if (is.null(nodo)) return(NULL)
+  vars <- as.character(unlist(nodo$vars %||% character(0)))
+  thr <- suppressWarnings(as.numeric(nodo$threshold %||% NA))[1]
+  cov <- suppressWarnings(as.numeric(nodo$minimum_coverage %||% NA))[1]
+  if (!length(vars) || is.na(thr) || is.na(cov)) return(NULL)
+
+  mapa <- .limpieza_rule_case_map(evaluacion, id_regla, identidad)
+  df <- evaluacion$datos_tablas[[mapa$table]] %||% evaluacion$datos
+  if (!is.data.frame(df)) return(NULL)
+  marcadas <- seq_len(nrow(df)) %in% mapa$row_idx
+  parejas <- validacion_parejas_casi_iguales(df, vars, marcadas, thr, cov)
+  ids <- .limpieza_make_case_ids(df, mapa$table, identidad)
+  parejas$id_caso_a <- ids[parejas$fila_a]
+  parejas$id_caso_b <- ids[parejas$fila_b]
+  parejas
+}
+
+# El nodo `duplicate_similarity` del predicado (puede venir dentro de un `and`
+# con el filtro previo).
+.validacion_nodo_similitud <- function(nodo) {
+  if (!is.list(nodo)) return(NULL)
+  if (all(c("vars", "threshold", "minimum_coverage") %in% names(nodo))) return(nodo)
+  for (hijo in nodo) {
+    hallado <- .validacion_nodo_similitud(hijo)
+    if (!is.null(hallado)) return(hallado)
+  }
+  NULL
+}
+
+# Con qué casos coincide uno, en el formato que publican las rutas (NULL si no
+# tiene pareja: quien publica decide cómo decirlo, nunca como lista vacía):
+# [{ id_caso, similitud, n_comparables, n_coincidencias }].
+validacion_coincidencias_de_caso <- function(parejas, id_caso) {
+  if (is.null(parejas) || !nrow(parejas)) return(NULL)
+  a <- parejas[parejas$id_caso_a == id_caso, , drop = FALSE]
+  b <- parejas[parejas$id_caso_b == id_caso, , drop = FALSE]
+  otros <- rbind(
+    data.frame(id_caso = a$id_caso_b, similitud = a$similitud,
+               n_comparables = a$n_comparables, n_coincidencias = a$n_coincidencias),
+    data.frame(id_caso = b$id_caso_a, similitud = b$similitud,
+               n_comparables = b$n_comparables, n_coincidencias = b$n_coincidencias)
+  )
+  if (!nrow(otros)) return(NULL)
+  otros <- otros[order(-otros$similitud, otros$id_caso), , drop = FALSE]
+  lapply(seq_len(nrow(otros)), function(k) list(
+    id_caso = as.character(otros$id_caso[k]),
+    similitud = as.numeric(otros$similitud[k]),
+    n_comparables = as.integer(otros$n_comparables[k]),
+    n_coincidencias = as.integer(otros$n_coincidencias[k])
+  ))
+}
+
 validation_operational_append_rules <- function(bundle, config = NULL) {
   operational_ids <- c("OP_field_period", "OP_duplicates")
   existing <- Filter(function(rule) {

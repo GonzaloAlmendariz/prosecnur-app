@@ -348,9 +348,61 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   .limpieza_linaje_vigente(sid, base_nombre)
 }
 
-.limpieza_make_case_ids <- function(df, table_key = "principal") {
-  if (!is.data.frame(df) || !nrow(df)) return(character(0))
+# Identificador de cada caso de una tabla. `identidad` son las variables de la
+# llave que el estudio declaró (`operational_config$identity$variables`), ya
+# resueltas por `.limpieza_identidad_caso()`; NULL conserva el método anterior.
+.limpieza_make_case_ids <- function(df, table_key = "principal", identidad = NULL) {
+  .limpieza_identificar_casos(df, table_key, identidad)$ids
+}
 
+# Lo mismo, diciendo además cómo se identificó: la pantalla tiene que poder
+# avisar que los casos se identifican por su número de fila, y una llave
+# declarada que no sirve (repite valores, falta en la tabla) se dice en vez de
+# cambiarse en silencio por otra.
+.limpieza_identificar_casos <- function(df, table_key = "principal", identidad = NULL) {
+  vacio <- list(ids = character(0), metodo = NA_character_, variables = character(0),
+                columna = NA_character_, n_filas_sin_llave = 0L, motivo = NA_character_)
+  if (!is.data.frame(df) || !nrow(df)) return(vacio)
+
+  identidad <- as.character(unlist(identidad %||% character(0), use.names = FALSE))
+  identidad <- unique(identidad[!is.na(identidad) & nzchar(identidad)])
+  motivo <- NA_character_
+  if (length(identidad)) {
+    declarada <- .limpieza_ids_llave_declarada(df, table_key, identidad)
+    if (is.null(declarada$motivo)) {
+      return(list(ids = declarada$ids, metodo = "llave_declarada", variables = identidad,
+                  columna = NA_character_, n_filas_sin_llave = declarada$n_sin_llave,
+                  motivo = NA_character_))
+    }
+    motivo <- declarada$motivo
+  }
+
+  anterior <- .limpieza_ids_metodo_anterior(df, table_key)
+  anterior$motivo <- motivo
+  anterior
+}
+
+# Llave declarada: el valor de sus variables, unidas con "|" si son varias.
+# Solo sirve si identifica a cada fila: una llave que falta en la tabla, que
+# repite valores (una exclusión se llevaría a todos los que la comparten) o que
+# deja filas sin valor no se usa, y el motivo se devuelve.
+.limpieza_ids_llave_declarada <- function(df, table_key, variables) {
+  if (!all(variables %in% names(df))) {
+    return(list(motivo = "llave_ausente"))
+  }
+  partes <- lapply(variables, function(v) trimws(as.character(df[[v]])))
+  falta <- Reduce(`|`, lapply(partes, function(x) is.na(x) | !nzchar(x)))
+  if (any(falta)) {
+    return(list(motivo = "llave_con_vacios"))
+  }
+  ids <- do.call(paste, c(partes, sep = "|"))
+  if (anyDuplicated(ids)) {
+    return(list(motivo = "llave_repetida"))
+  }
+  list(ids = ids, n_sin_llave = 0L, motivo = NULL)
+}
+
+.limpieza_ids_metodo_anterior <- function(df, table_key) {
   for (cand in .limpieza_uuid_candidates()) {
     if (cand %in% names(df)) {
       ids <- as.character(df[[cand]])
@@ -358,7 +410,8 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
       if (any(ok)) {
         fallback <- sprintf("%s::row::%d", table_key, seq_len(nrow(df)))
         ids[!ok] <- fallback[!ok]
-        return(ids)
+        return(list(ids = ids, metodo = "columna_candidata", variables = character(0),
+                    columna = cand, n_filas_sin_llave = as.integer(sum(!ok))))
       }
     }
   }
@@ -366,10 +419,242 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   if ("_index" %in% names(df)) {
     idx <- suppressWarnings(as.integer(df[["_index"]]))
     idx[is.na(idx)] <- seq_len(nrow(df))[is.na(idx)]
-    return(sprintf("%s::idx::%d", table_key, idx))
+    return(list(ids = sprintf("%s::idx::%d", table_key, idx), metodo = "numero_fila",
+                variables = character(0), columna = "_index", n_filas_sin_llave = 0L))
   }
 
-  sprintf("%s::row::%d", table_key, seq_len(nrow(df)))
+  list(ids = sprintf("%s::row::%d", table_key, seq_len(nrow(df))), metodo = "numero_fila",
+       variables = character(0), columna = NA_character_, n_filas_sin_llave = 0L)
+}
+
+# IDENTIDAD DECLARADA APAGADA. Identificar los casos por la llave que declara
+# el estudio (`operational_config$identity$variables`) quedó fuera de M2 de
+# Validación: tres verificaciones independientes encontraron caminos (volver a
+# guardar o editar los casos de una decisión con la llave rota, reglas de una
+# tabla hija sin la llave) en que una decisión guardada terminaba excluyendo a
+# otro encuestado. Pasa a una etapa propia con diseño previo (pendiente en el
+# plan de Validación, P6). Mientras esté en FALSE, los casos se identifican
+# como antes de M2: columna candidata y, si no hay, número de fila; la llave
+# declarada no se lee para identificar casos, y una marca `llave_declarada`
+# guardada se resuelve con el método anterior. Este es el único interruptor:
+# lo consultan `.limpieza_identidad_caso()` y `.limpieza_ids_por_marca()` a
+# través de `.limpieza_llave_declarada_activa()`.
+.LIMPIEZA_IDENTIDAD_DECLARADA_ACTIVA <- FALSE
+
+.limpieza_llave_declarada_activa <- function() isTRUE(.LIMPIEZA_IDENTIDAD_DECLARADA_ACTIVA)
+
+# Qué llave rige los ids de caso de una base (con la identidad declarada
+# apagada, ninguna: método anterior). Con ella encendida: mientras haya
+# decisiones con casos guardados, los casos se identifican como cuando se
+# tomaron; sin decisiones, rige la llave declarada si la hay.
+.limpieza_identidad_caso <- function(scope) {
+  if (!.limpieza_llave_declarada_activa()) {
+    return(list(variables = NULL, declaradas = character(0), estado = "metodo_anterior"))
+  }
+  idn <- (scope$operational_config %||% list())$identity %||% list()
+  declaradas <- if (isTRUE(idn$enabled)) {
+    v <- as.character(unlist(idn$variables %||% list(), use.names = FALSE))
+    unique(v[!is.na(v) & nzchar(v)])
+  } else character(0)
+
+  decisiones <- c(scope$limpieza_draft %||% list(), scope$limpieza_preservadas %||% list())
+  marcas <- lapply(Filter(.limpieza_decision_tiene_casos, decisiones), .limpieza_marca_identidad)
+  if (length(marcas)) {
+    claves <- unique(vapply(marcas, function(m) paste(m, collapse = "|"), character(1)))
+    fija <- if (length(claves) == 1L) marcas[[1]] else character(0)
+    return(list(variables = if (length(fija)) fija else NULL,
+                declaradas = declaradas,
+                estado = if (length(claves) == 1L) "fijada_por_decisiones" else "decisiones_con_llaves_distintas"))
+  }
+  list(variables = if (length(declaradas)) declaradas else NULL,
+       declaradas = declaradas,
+       estado = if (length(declaradas)) "llave_declarada" else "sin_llave_declarada")
+}
+
+.limpieza_decision_tiene_casos <- function(d) {
+  if (!is.list(d)) return(FALSE)
+  ids <- as.character(unlist(c(d$target_case_ids %||% list(),
+                               d$target_case_ids_resueltos %||% list()), use.names = FALSE))
+  any(!is.na(ids) & nzchar(ids))
+}
+
+# Variables de la llave con que se tomó una decisión; character(0) es el
+# método anterior (también para las decisiones guardadas antes de la marca).
+.limpieza_marca_identidad <- function(d) {
+  marca <- d$identificacion_casos %||% list()
+  if (!identical(as.character(marca$metodo %||% "")[1], "llave_declarada")) return(character(0))
+  v <- as.character(unlist(marca$variables %||% list(), use.names = FALSE))
+  v[!is.na(v) & nzchar(v)]
+}
+
+.limpieza_marca_de_identidad <- function(variables) {
+  variables <- as.character(variables %||% character(0))
+  if (length(variables)) list(metodo = "llave_declarada", variables = as.list(variables))
+  else list(metodo = "anterior")
+}
+
+# Marca del método que identifica hoy los casos de la base (tabla principal de
+# la última auditoría), para guardarla con una decisión que guarda casos. Con el
+# método anterior se anota también la columna (o "posicion"), para que la
+# decisión se resuelva siempre con esa misma columna. Sin auditoría no se sabe
+# qué rige en la tabla: se anota la llave vigente sin columna.
+#
+# La marca se toma sobre la TABLA DE LA REGLA de la decisión (una regla de una
+# hija muestra sus casos con el método que rige en la hija), con el mismo
+# método con que la cola muestra esos casos. Sin regla, rige la principal.
+.limpieza_marca_actual <- function(scope, source_id = NULL) {
+  idn <- .limpieza_identidad_caso(scope %||% list())
+  tabla <- .limpieza_tabla_de_regla(scope, source_id)
+  df <- .limpieza_tabla_auditada(scope, tabla)
+  if (!is.data.frame(df) || !nrow(df)) return(.limpieza_marca_de_identidad(idn$variables))
+  out <- .limpieza_identificar_casos(df, tabla, idn$variables)
+  if (identical(out$metodo, "llave_declarada")) {
+    return(list(metodo = "llave_declarada", variables = as.list(out$variables)))
+  }
+  list(metodo = "anterior",
+       columna = if (is.na(out$columna)) "posicion" else as.character(out$columna))
+}
+
+# Tabla de la última auditoría donde vive la regla de una decisión; principal
+# si la decisión no tiene regla o la regla no está en la auditoría.
+.limpieza_tabla_de_regla <- function(scope, source_id = NULL) {
+  res <- (scope %||% list())$evaluacion$resumen
+  sid <- as.character(source_id %||% "")[1]
+  if (is.null(res) || !nrow(res) || !"tabla" %in% names(res) || is.na(sid) || !nzchar(sid)) {
+    return("principal")
+  }
+  t <- as.character(res$tabla[as.character(res$id_regla) == sid])[1]
+  if (is.na(t) || !nzchar(t)) "principal" else t
+}
+
+.limpieza_tabla_auditada <- function(scope, tabla = "principal") {
+  ev <- (scope %||% list())$evaluacion
+  if (is.null(ev)) return(NULL)
+  ev$datos_tablas[[tabla]] %||% (if (identical(tabla, "principal")) ev$datos else NULL)
+}
+
+# Ids de los casos de una tabla con el método de una marca, sin redirigir a
+# otro: si el método ya no sirve en esta tabla (llave repetida, ausente o con
+# vacíos; columna ausente), `aplicable` es FALSE, los ids van NA y `motivo` dice
+# por qué. Una marca sin columna (decisiones anteriores a la marca) usa el
+# método anterior tal como lo resolvía antes.
+.limpieza_ids_por_marca <- function(df, table_key, marca = NULL) {
+  n <- if (is.data.frame(df)) nrow(df) else 0L
+  no_aplica <- function(motivo) list(ids = rep(NA_character_, n), aplicable = FALSE, motivo = motivo)
+  if (!n) return(list(ids = character(0), aplicable = TRUE, motivo = NA_character_))
+  marca <- marca %||% list()
+  if (identical(as.character(marca$metodo %||% "")[1], "llave_declarada") &&
+      !.limpieza_llave_declarada_activa()) {
+    # Con la identidad declarada apagada, como una decisión sin marca.
+    marca <- list()
+  }
+  if (identical(as.character(marca$metodo %||% "")[1], "llave_declarada")) {
+    vars <- as.character(unlist(marca$variables %||% list(), use.names = FALSE))
+    vars <- vars[!is.na(vars) & nzchar(vars)]
+    if (!length(vars)) return(no_aplica("llave_ausente"))
+    r <- .limpieza_ids_llave_declarada(df, table_key, vars)
+    if (!is.null(r$motivo)) return(no_aplica(r$motivo))
+    return(list(ids = r$ids, aplicable = TRUE, motivo = NA_character_))
+  }
+  col <- as.character(marca$columna %||% NA_character_)[1]
+  if (is.na(col) || !nzchar(col)) {
+    return(list(ids = .limpieza_ids_metodo_anterior(df, table_key)$ids,
+                aplicable = TRUE, motivo = NA_character_))
+  }
+  if (identical(col, "posicion")) {
+    return(list(ids = sprintf("%s::row::%d", table_key, seq_len(n)),
+                aplicable = TRUE, motivo = NA_character_))
+  }
+  if (!(col %in% names(df))) return(no_aplica("columna_ausente"))
+  if (identical(col, "_index")) {
+    idx <- suppressWarnings(as.integer(df[["_index"]]))
+    idx[is.na(idx)] <- seq_len(n)[is.na(idx)]
+    return(list(ids = sprintf("%s::idx::%d", table_key, idx), aplicable = TRUE, motivo = NA_character_))
+  }
+  ids <- as.character(df[[col]])
+  ok <- !is.na(ids) & nzchar(ids)
+  ids[!ok] <- sprintf("%s::row::%d", table_key, seq_len(n))[!ok]
+  list(ids = ids, aplicable = TRUE, motivo = NA_character_)
+}
+
+.limpieza_ids_explicitos <- function(d) {
+  ids <- unique(as.character(unlist(d$target_case_ids %||% list(), use.names = FALSE)))
+  ids[!is.na(ids) & nzchar(ids)]
+}
+
+# Filas de `df` a las que llega una decisión. Una decisión con casos guardados
+# se resuelve SOLO con el método con que se tomaron (su marca); si ese método
+# ya no sirve, no llega a ninguna fila y `aplicable` es FALSE. Una decisión sin
+# casos guardados (la regla entera) se resuelve con los casos que marca la
+# regla en la última auditoría, con la llave que rige hoy; si la regla no marca
+# ninguno, `filas` es NULL (el llamador decide qué significa).
+#
+# `df` es la tabla tal como llega, ANTES de excluir nada: los ids se calculan
+# una sola vez sobre ella y quien aplica cruza por la fila original
+# (`ids_filas` es el id de cada fila con el método de la decisión).
+.limpieza_resolver_decision <- function(d, scope, df, table_key = "principal") {
+  explicitos <- .limpieza_ids_explicitos(d)
+  if (length(explicitos)) {
+    r <- .limpieza_ids_por_marca(df, table_key, d$identificacion_casos)
+    if (!isTRUE(r$aplicable)) {
+      return(list(filas = rep(FALSE, nrow(df)), ids_filas = r$ids, aplicable = FALSE,
+                  motivo = r$motivo))
+    }
+    return(list(filas = r$ids %in% explicitos, ids_filas = r$ids, aplicable = TRUE,
+                motivo = NA_character_))
+  }
+  identidad <- .limpieza_identidad_caso(scope)$variables
+  ids <- .limpieza_rule_case_map(scope$evaluacion, d$source_id, identidad)$case_ids
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  propios <- .limpieza_make_case_ids(df, table_key, identidad)
+  if (!length(ids)) return(list(filas = NULL, ids_filas = propios, aplicable = TRUE, motivo = NA_character_))
+  list(filas = propios %in% ids, ids_filas = propios, aplicable = TRUE, motivo = NA_character_)
+}
+
+# Si una decisión se puede aplicar hoy, para publicarlo por decisión en la
+# respuesta de la limpieza. Se comprueba en la tabla de su regla en la última
+# auditoría (la principal si no tiene regla); sin auditoría no se sabe (NA).
+.limpieza_aplicabilidad <- function(d, scope) {
+  if (!length(.limpieza_ids_explicitos(d))) return(list(aplicable = TRUE, motivo = NA_character_))
+  tabla <- .limpieza_tabla_de_regla(scope, d$source_id)
+  df <- .limpieza_tabla_auditada(scope, tabla)
+  if (!is.data.frame(df)) return(list(aplicable = NA, motivo = NA_character_))
+  r <- .limpieza_ids_por_marca(df, tabla, d$identificacion_casos)
+  list(aplicable = isTRUE(r$aplicable), motivo = r$motivo)
+}
+
+.limpieza_decisiones_con_aplicabilidad <- function(decisions, scope) {
+  lapply(decisions %||% list(), function(d) {
+    a <- .limpieza_aplicabilidad(d, scope)
+    d$aplicable <- a$aplicable
+    d$motivo_no_aplicable <- a$motivo
+    d
+  })
+}
+
+.limpieza_texto_no_aplicable <- function(motivo) {
+  switch(as.character(motivo %||% ""),
+    llave_repetida = "la llave que identifica los casos repite valores",
+    llave_con_vacios = "la llave que identifica los casos tiene filas sin valor",
+    llave_ausente = "la llave que identifica los casos ya no está en la base",
+    columna_ausente = "la columna que identifica los casos ya no está en la base",
+    "el método con que se identificaron sus casos ya no sirve")
+}
+
+# Cómo se identifican los casos de la base, para publicarlo en la respuesta
+# de la limpieza. Se lee de la tabla principal de la última auditoría; sin
+# auditoría no hay tabla y la respuesta es NULL.
+.limpieza_identificacion_publica <- function(scope) {
+  ev <- scope$evaluacion
+  df <- if (!is.null(ev)) (ev$datos_tablas$principal %||% ev$datos) else NULL
+  if (!is.data.frame(df)) return(NULL)
+  out <- .limpieza_identificar_casos(df, "principal", .limpieza_identidad_caso(scope)$variables)
+  list(
+    metodo = out$metodo,
+    columna = out$columna,
+    n_filas = nrow(df),
+    n_filas_sin_llave = as.integer(out$n_filas_sin_llave)
+  )
 }
 
 .limpieza_cast_like <- function(value, col) {
@@ -520,7 +805,10 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   )
 }
 
-.limpieza_upsert_decision <- function(existing, payload) {
+# `scope` (opcional) es el de la base antes del cambio: con él se registran los
+# casos que resolvió la decisión al pasar a lista (limpieza_casos_resueltos.R)
+# y la llave con que se identificaron.
+.limpieza_upsert_decision <- function(existing, payload, scope = NULL) {
   now <- .limpieza_now_utc()
   normalized <- .limpieza_validate_decision(payload)
   decisions <- existing %||% list()
@@ -528,6 +816,10 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   idx <- integer(0)
   if (nzchar(normalized$id)) {
     idx <- which(vapply(decisions, function(d) identical(as.character(d$id %||% ""), normalized$id), logical(1)))
+  }
+  previa <- if (length(idx)) decisions[[idx[1]]] else NULL
+  if (!is.null(scope)) {
+    normalized <- .limpieza_registrar_casos_resueltos(normalized, previa, scope, now)
   }
 
   if (length(idx)) {
@@ -554,7 +846,9 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   kept
 }
 
-.limpieza_rule_case_map <- function(evaluacion, source_id) {
+# `cache` (un environment) guarda los ids de cada tabla para no recalcularlos
+# regla por regla cuando se recorren todas.
+.limpieza_rule_case_map <- function(evaluacion, source_id, identidad = NULL, cache = NULL) {
   res <- evaluacion$resumen %||% NULL
   if (is.null(res) || !nrow(res)) {
     return(list(table = "principal", flag = NA_character_, row_idx = integer(0), case_ids = character(0)))
@@ -572,11 +866,17 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   mask <- df[[flag]]
   mask[is.na(mask)] <- FALSE
   idx_rows <- which(mask)
+  ids <- if (is.environment(cache)) {
+    if (is.null(cache[[tabla]])) cache[[tabla]] <- .limpieza_make_case_ids(df, tabla, identidad)
+    cache[[tabla]]
+  } else {
+    .limpieza_make_case_ids(df, tabla, identidad)
+  }
   list(
     table = tabla,
     flag = flag,
     row_idx = idx_rows,
-    case_ids = .limpieza_make_case_ids(df, tabla)[idx_rows]
+    case_ids = ids[idx_rows]
   )
 }
 
@@ -589,7 +889,17 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   if (!"tabla" %in% names(res)) res$tabla <- "principal"
   if (!"tabla" %in% names(meta)) meta$tabla <- "principal"
   if (!"nombre_regla" %in% names(meta)) meta$nombre_regla <- NA_character_
-  catalog <- dplyr::left_join(res, meta, by = c("id_regla", "nombre_regla", "tabla"))
+  # El resumen de una auditoría actual ya trae las columnas de `reglas_meta`
+  # (validacion_ast_runtime.R las une al armarlo). Unirlas otra vez las
+  # duplicaba con sufijos `.x`/`.y`, y la cola quedaba sin `variables`, sin
+  # `seccion` y con un `tipo_regla` adivinado. De `meta` se toma solo lo que
+  # el resumen no trae (una auditoría anterior a esa unión lo trae todo de ahí).
+  llaves <- c("id_regla", "nombre_regla", "tabla")
+  meta <- meta[, c(llaves, setdiff(names(meta), names(res))), drop = FALSE]
+  catalog <- dplyr::left_join(res, meta, by = llaves)
+  # `categoria_ux` del motor es un slug ("rangos"); en la cola es la etiqueta
+  # legible del tipo (contrato del cliente), que se arma más abajo.
+  catalog$categoria_ux <- NULL
 
   # Garantizar que las columnas que el resto de la función usa con
   # `catalog$col` existan, aunque el evaluación haya producido un
@@ -837,12 +1147,18 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   ))))
   explicit_ids <- explicit_ids[!is.na(explicit_ids) & nzchar(explicit_ids)]
 
-  case_ids <- .limpieza_rule_case_map(scope$evaluacion, source_id)$case_ids
-  case_ids <- unique(as.character(case_ids %||% character(0)))
-  case_ids <- case_ids[!is.na(case_ids) & nzchar(case_ids)]
-
-  covered <- if (length(case_ids)) {
-    sum(case_ids %in% explicit_ids)
+  # Cada decisión cubre los casos de la regla con el método con que se tomó
+  # (su marca); una decisión cuyo método ya no sirve no cubre ninguno.
+  mapa <- .limpieza_rule_case_map(scope$evaluacion, source_id)
+  df <- scope$evaluacion$datos_tablas[[mapa$table]] %||% scope$evaluacion$datos
+  covered <- if (length(mapa$row_idx) && is.data.frame(df)) {
+    cubiertas <- rep(FALSE, length(mapa$row_idx))
+    for (d in ready_hits) {
+      r <- .limpieza_ids_por_marca(df, mapa$table, d$identificacion_casos)
+      if (!isTRUE(r$aplicable)) next
+      cubiertas <- cubiertas | (r$ids[mapa$row_idx] %in% .limpieza_ids_explicitos(d))
+    }
+    sum(cubiertas)
   } else {
     min(total, length(explicit_ids))
   }
@@ -955,7 +1271,8 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   explicit_ids <- unique(as.character(unlist(decision$target_case_ids %||% list())))
   explicit_ids <- explicit_ids[!is.na(explicit_ids) & nzchar(explicit_ids)]
   if (length(explicit_ids)) return(explicit_ids)
-  .limpieza_rule_case_map(scope$evaluacion, decision$source_id)$case_ids
+  .limpieza_rule_case_map(scope$evaluacion, decision$source_id,
+                         .limpieza_identidad_caso(scope)$variables)$case_ids
 }
 
 .limpieza_apply_decisions_to_data <- function(df, scope, decisions, inst = NULL) {
@@ -974,7 +1291,8 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
 
   table_key <- "principal"
   data_out <- tibble::as_tibble(df)
-  data_out$`.__case_id__` <- .limpieza_make_case_ids(data_out, table_key)
+  data_out$`.__case_id__` <- .limpieza_make_case_ids(data_out, table_key,
+                                                      .limpieza_identidad_caso(scope)$variables)
 
   ready <- Filter(function(d) identical(as.character(d$status %||% ""), "ready"), decisions %||% list())
   if (!length(ready)) {
@@ -990,31 +1308,52 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     ))
   }
 
+  warning_rows <- character(0)
+  # Una decisión con casos guardados se resuelve solo con su marca; si su método
+  # ya no sirve no se aplica a nadie, y se avisa en vez de pasar a otro caso.
+  avisar_no_aplicable <- function(d, motivo) {
+    warning_rows <<- c(warning_rows, sprintf(
+      "La decisión %s no se aplica: %s.", as.character(d$id %||% ""),
+      .limpieza_texto_no_aplicable(motivo)))
+  }
+
+  # Los ids de caso se calculan UNA vez, sobre la tabla tal como llega y antes
+  # de excluir nada; cada fila lleva su posición original en una columna interna
+  # (`.__fila__`, o con sufijo si la base ya trae una con ese nombre) y toda
+  # la aplicación cruza por ella, así ninguna etapa vuelve a numerar.
+  col_fila <- ".__fila__"
+  while (col_fila %in% names(data_out)) col_fila <- paste0(col_fila, "_")
+  data_out[[col_fila]] <- seq_len(nrow(data_out))
+  original <- data_out
+  resolver <- function(d) .limpieza_resolver_decision(d, scope, original, table_key)
+
   exclude_decisions <- Filter(function(d) identical(d$action_type %||% "", "exclude_cases"), ready)
-  excluded_case_ids <- unique(unlist(lapply(exclude_decisions, .limpieza_target_case_ids, scope = scope)))
-  excluded_case_ids <- excluded_case_ids[!is.na(excluded_case_ids) & nzchar(excluded_case_ids)]
+  excluir <- rep(FALSE, nrow(data_out))
+  excluded_parts <- list()
+  for (d in exclude_decisions) {
+    r <- resolver(d)
+    if (!isTRUE(r$aplicable)) { avisar_no_aplicable(d, r$motivo); next }
+    if (is.null(r$filas) || !any(r$filas)) next
+    excluir <- excluir | r$filas
+    # El registro nombra las filas que de verdad salen, no la lista pedida.
+    excluded_parts[[length(excluded_parts) + 1L]] <- tibble::tibble(
+      decision_id = as.character(d$id %||% ""),
+      source_id = as.character(d$source_id %||% ""),
+      case_id = as.character(r$ids_filas[r$filas]),
+      rationale = as.character(d$rationale %||% "")
+    )
+  }
+  n_excluidas <- as.integer(sum(excluir))
+  excluded_cases_df <- if (length(excluded_parts)) dplyr::bind_rows(excluded_parts) else tibble::tibble()
 
-  excluded_cases_df <- if (length(exclude_decisions)) {
-    dplyr::bind_rows(lapply(exclude_decisions, function(d) {
-      ids <- .limpieza_target_case_ids(d, scope)
-      tibble::tibble(
-        decision_id = as.character(d$id %||% ""),
-        source_id = as.character(d$source_id %||% ""),
-        case_id = ids,
-        rationale = as.character(d$rationale %||% "")
-      )
-    }))
-  } else tibble::tibble()
-
-  if (length(excluded_case_ids)) {
-    data_out <- data_out[!(data_out$`.__case_id__` %in% excluded_case_ids), , drop = FALSE]
+  if (any(excluir)) {
+    data_out <- data_out[!excluir, , drop = FALSE]
   }
 
   replacements_log <- list()
   imputations_log <- list()
   transformations_log <- list()
   trace_rows <- list()
-  warning_rows <- character(0)
   changed_replacements <- 0L
   changed_normalizations <- 0L
   changed_imputations <- 0L
@@ -1027,8 +1366,11 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     var <- as.character(d$target_variable %||% "")
     if (!nzchar(var)) next
 
-    target_ids <- .limpieza_target_case_ids(d, scope)
-    row_mask <- if (length(target_ids)) data_out$`.__case_id__` %in% target_ids else rep(TRUE, nrow(data_out))
+    r <- resolver(d)
+    if (!isTRUE(r$aplicable)) { avisar_no_aplicable(d, r$motivo); next }
+    # Como antes: una decisión sobre la regla entera cuya regla no marca casos
+    # alcanza a todas las filas. Si no, se cruza por la fila original.
+    row_mask <- if (!is.null(r$filas)) r$filas[data_out[[col_fila]]] else rep(TRUE, nrow(data_out))
     if (!any(row_mask)) next
 
     if (identical(d$action_type, "complete_select_multiple_hierarchy")) {
@@ -1221,7 +1563,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   }
 
   list(
-    data = dplyr::select(data_out, -dplyr::all_of(".__case_id__")),
+    data = dplyr::select(data_out, -dplyr::any_of(c(".__case_id__", col_fila))),
     excluded_cases = if (length(excluded_cases_df)) excluded_cases_df else tibble::tibble(),
     replacements = if (length(replacements_log)) dplyr::bind_rows(replacements_log) else tibble::tibble(),
     imputations = if (length(imputations_log)) dplyr::bind_rows(imputations_log) else tibble::tibble(),
@@ -1229,7 +1571,8 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     warnings = unique(warning_rows),
     trace = if (length(trace_rows)) dplyr::bind_rows(trace_rows) else tibble::tibble(),
     impact = list(
-      cases_excluded = as.integer(length(unique(excluded_case_ids))),
+      # Filas efectivamente retiradas, nunca el largo de la lista pedida.
+      cases_excluded = n_excluidas,
       cells_changed = as.integer(changed_replacements + changed_normalizations + changed_imputations + changed_transformations),
       replacements = as.integer(changed_replacements),
       normalizations = as.integer(changed_normalizations),

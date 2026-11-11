@@ -42,11 +42,10 @@
 # Id de una ruta con parámetro, leído solo de la ruta. Los handlers con ese
 # parámetro no lo declaran como argumento formal: Plumber también vuelca ahí
 # los campos del cuerpo, y un cuerpo que traiga el mismo nombre respondía 500.
-.validacion_id_de_ruta <- function(req, nombre) {
+.validacion_id_de_ruta <- function(req, nombre, codigo = "E_MISSING_ID_REGLA",
+                                   mensaje = "La ruta debe incluir el id de la regla.") {
   id <- as.character(req$argsPath[[nombre]] %||% "")[1]
-  if (is.na(id) || !nzchar(id)) {
-    stop_api(400, "E_MISSING_ID_REGLA", "La ruta debe incluir el id de la regla.")
-  }
+  if (is.na(id) || !nzchar(id)) stop_api(400, codigo, mensaje)
   id
 }
 
@@ -744,7 +743,9 @@ mount_validacion <- function(pr) {
     # =========================================================================
 
     # --- Limpieza (Sprint 5) — KPIs + top reglas + top vars con deep-links --
-    plumber::pr_get("/api/validacion/v2/limpieza", wrap_endpoint(function(req, res) {
+    # `...`: la base también llega por consulta (`?base_nombre=`), y sin él
+    # Plumber respondía 500 por argumento no declarado.
+    plumber::pr_get("/api/validacion/v2/limpieza", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -775,7 +776,7 @@ mount_validacion <- function(pr) {
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
       scope <- .get_base_scope(sid, base)
-      upsert <- .limpieza_upsert_decision(scope$limpieza_draft %||% list(), parsed)
+      upsert <- .limpieza_upsert_decision(scope$limpieza_draft %||% list(), parsed, scope = scope)
       validacion_scope_set(sid, base, "limpieza_draft", upsert$decisions)
       .limpieza_invalidate_outputs(sid, base)
       limpieza <- build_limpieza(.get_base_scope(sid, base), sid = sid, base_nombre = base)
@@ -788,16 +789,25 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
-    plumber::pr_delete("/api/validacion/v2/limpieza/decision/<id>", wrap_endpoint(function(req, res, id = NULL) {
+    # Sin `id` formal: el id vale solo el de la ruta (ver `.validacion_id_de_ruta`).
+    plumber::pr_delete("/api/validacion/v2/limpieza/decision/<id>", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
-      if (is.null(id) || !nzchar(id)) stop_api(400, "E_MISSING_ID", "Falta id de decisión.")
+      id <- .validacion_id_de_ruta(req, "id", "E_MISSING_ID", "Falta id de decisión.")
       scope <- .get_base_scope(sid, base)
       kept <- .limpieza_delete_decision(scope$limpieza_draft %||% list(), id)
       validacion_scope_set(sid, base, "limpieza_draft", kept)
       .limpieza_invalidate_outputs(sid, base)
       limpieza <- build_limpieza(.get_base_scope(sid, base), sid = sid, base_nombre = base)
       list(ok = TRUE, id = id, decision_draft = limpieza$decision_draft, summary = limpieza$summary)
+    })) |>
+
+    # --- Caso completo (Hallazgos): respuestas por sección y sus hallazgos ----
+    # GET ?id=<id_caso>[&base_nombre=]. De solo lectura (validacion_caso_completo.R).
+    plumber::pr_get("/api/validacion/v2/caso", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      id <- as.character(req$argsQuery$id %||% "")[1]
+      validacion_caso_completo(sid, .get_base_nombre(req), id)
     })) |>
 
     plumber::pr_get("/api/validacion/v2/limpieza/preview", wrap_endpoint(function(req, res) {
@@ -1463,6 +1473,10 @@ mount_validacion <- function(pr) {
           }
         }
       }
+      detalle_casos <- .validacion_drill_detalle_casos(scope, id_regla, casos_df, case_ids,
+                                                       variable_roles, inst)
+      case_ids <- detalle_casos$case_ids
+      if (isTRUE(detalle_casos$ids_de_la_llave)) uuid_col <- "_pulso_case_id"
       value_label_vars <- unique(c(
         vars,
         .drill_data_names(casos_df),
@@ -1500,7 +1514,13 @@ mount_validacion <- function(pr) {
         case_ids = as.list(case_ids),
         casos = if (!is.null(casos_df)) {
           .plan_rows_preview(utils::head(casos_df, 500L), n = 500L)
-        } else list()
+        } else list(),
+        # Mismo orden y largo que `casos` (hasta 500). NA (null) por fila si la
+        # regla no tiene enunciado o no se pudo alinear con la auditoría.
+        esperado = detalle_casos$esperado,
+        # Solo en la regla de respuestas casi iguales: con quién coincide cada
+        # caso de `casos`, en el mismo orden. NA si no aplica.
+        coincide_con = detalle_casos$coincide_con
       )
     })) |>
 
@@ -1997,11 +2017,12 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Reglas custom: borrar -----------------------------------------------
+    # Sin `id` formal: el id vale solo el de la ruta (ver `.validacion_id_de_ruta`).
     plumber::pr_delete("/api/validacion/v2/reglas_custom/<id>",
-      wrap_endpoint(function(req, res, id = NULL) {
+      wrap_endpoint(function(req, res, ...) {
         sid <- session_header(req)
         base <- .get_base_nombre(req)
-        if (is.null(id) || !nzchar(id)) stop_api(400, "E_MISSING_ID", "Falta id")
+        id <- .validacion_id_de_ruta(req, "id", "E_MISSING_ID", "Falta id")
         scope <- .get_base_scope(sid, base)
         existing <- scope$reglas_custom %||% list()
         filtered <- Filter(function(r) !identical(as.character(r$id), id), existing)

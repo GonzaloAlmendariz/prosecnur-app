@@ -72,7 +72,7 @@
       bridge_regla_custom(r),
       error = function(e) {
         stop_api(422, "E_REGLA_NO_EVALUABLE",
-                 sprintf("La regla propia '%s' no se puede evaluar: %s",
+                 sprintf("La regla propia \"%s\" no se puede evaluar: %s",
                          as.character(r$nombre %||% r$id %||% ""), conditionMessage(e)),
                  details = list(id_regla = as.character(r$id %||% ""),
                                 tipo = as.character(r$tipo %||% "")))
