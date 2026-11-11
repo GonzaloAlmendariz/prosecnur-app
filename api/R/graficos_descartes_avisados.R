@@ -58,7 +58,8 @@
       etiqueta <- .graficos_scalar_chr(v$label, .graficos_scalar_chr(v$name, ""))
       cerrada <- tipo %in% c("select_one", "select_multiple")
 
-      clase <- if (cerrada && !identical(motivo, "metadato/control operativo del formulario")) {
+      clase <- if (cerrada && !motivo %in% c("metadato/control operativo del formulario", "encabezado de tabla del formulario",
+                                      "opciones tomadas de otro bloque del formulario")) {
         "cerrada_descartada"
       } else if (tipo %in% .graficos_tipos_sin_lamina) {
         "sin_lamina_posible"

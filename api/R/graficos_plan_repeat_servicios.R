@@ -112,7 +112,8 @@
         list(note = "", exclude_options = NULL, source_note = "")
       }
       title <- .graficos_repeat_service_var_title(v, label)
-      choice_pages <- .graficos_acnur_choice_pages(v, max_per_slide = categories_per_slide)
+      choice_pages <- .graficos_acnur_choice_pages(v, max_per_slide = categories_per_slide,   # sólo opciones con casos en el servicio
+                                                    con_casos = .graficos_acnur_codigos_con_casos(list(data = data[mask, , drop = FALSE]), v))
       for (page_spec in choice_pages) {
         page_excl <- .graficos_collect_strings(page_spec$exclude_options %||% NULL)
         graphs[[length(graphs) + 1L]] <- list(

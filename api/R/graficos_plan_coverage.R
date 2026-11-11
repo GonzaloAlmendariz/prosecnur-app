@@ -943,6 +943,10 @@
 .graficos_graphable_reason <- function(item) {
   tipo <- .graficos_base_type(item$tipo)
   if (!isTRUE(item$data_available)) return(list(graphable = FALSE, reason = "vacía"))
+  if (isTRUE(item$encabezado_tabla)) return(list(graphable = FALSE, reason = "encabezado de tabla del formulario"))
+  if (isTRUE(item$opciones_de_otro_bloque)) {   # sus opciones son nombres de personas de un grupo repetible
+    return(list(graphable = FALSE, reason = "opciones tomadas de otro bloque del formulario"))
+  }
   # Una pregunta cerrada (o una recodificada con catalogo) responde con su lista
   # de opciones: no puede ser un campo de contacto, asi que el filtro de
   # identificadores no la alcanza. Ver `.graficos_is_identifier_like()`.
@@ -1168,7 +1172,9 @@
       section_reliable = .graficos_section_is_reliable(group_path %||% section, source_kind),
       parent_inherited = parent_inherited,
       repeat_inherited = repeat_inherited,
-      habilitada_por = if ("relevant" %in% names(survey)) .relevant_habilitada_por(survey$relevant[i], survey, choices)
+      habilitada_por = if ("relevant" %in% names(survey)) .relevant_habilitada_por(survey$relevant[i], survey, choices),
+      encabezado_tabla = .graficos_es_encabezado_tabla(survey, i),   # graficos_filas_estructurales.R
+      opciones_de_otro_bloque = .graficos_opciones_de_otro_bloque(type[i], list_name)
     )
   }
   .graficos_finalize_var_metadata(vs)
@@ -1348,15 +1354,19 @@
   unique(values)
 }
 
-.graficos_acnur_choice_pages <- function(v, max_per_slide = 8L) {
+.graficos_acnur_choice_pages <- function(v, max_per_slide = 8L, con_casos = NULL) {
   choices <- v$choices %||% list()
-  n_choices <- length(choices)
   max_per_slide <- suppressWarnings(as.integer(max_per_slide)[1])
   if (!is.finite(max_per_slide) || is.na(max_per_slide) || max_per_slide < 2L) {
     max_per_slide <- 8L
   }
+  # Una lista que pasa el tope se pagina sobre las opciones con casos (graficos_acnur_paginas.R): las demás salen.
+  sin_casos <- .graficos_acnur_opciones_sin_casos(v, con_casos, max_per_slide)
+  siempre_fuera <- unique(unlist(lapply(choices[sin_casos], .graficos_acnur_choice_exclusion_aliases), use.names = FALSE))
+  if (length(sin_casos)) choices <- choices[-sin_casos]
+  n_choices <- length(choices)
   if (n_choices <= max_per_slide) {
-    return(list(list(exclude_options = NULL, page = 1L, pages = 1L)))
+    return(list(list(exclude_options = if (length(siempre_fuera)) siempre_fuera else NULL, page = 1L, pages = 1L)))
   }
 
   # Reparto EQUITATIVO, no "llenar y desbordar": con 11 opciones y tope 10, el
@@ -1371,9 +1381,9 @@
   lapply(seq_along(chunks), function(page_idx) {
     keep_idx <- chunks[[page_idx]]
     exclude_idx <- setdiff(seq_len(n_choices), keep_idx)
-    exclude_options <- unique(unlist(lapply(choices[exclude_idx], function(item) {
+    exclude_options <- unique(c(siempre_fuera, unlist(lapply(choices[exclude_idx], function(item) {
       .graficos_acnur_choice_exclusion_aliases(item)
-    }), use.names = FALSE))
+    }), use.names = FALSE)))
     list(
       exclude_options = exclude_options,
       page = as.integer(page_idx),
@@ -2121,7 +2131,8 @@
           !.graficos_acnur_pairwise_exempt(v)
         pair_specs <- if (isTRUE(pairwise)) .graficos_acnur_pair_specs(source) else list(NULL)
         choice_pages <- if (identical(profile_id, "acnur_kobo_cruncher_plus")) {
-          .graficos_acnur_choice_pages(v, max_per_slide = acnur_categories_per_slide)
+          .graficos_acnur_choice_pages(v, max_per_slide = acnur_categories_per_slide,
+                                      con_casos = .graficos_acnur_codigos_con_casos(acnur_source_ctx, v))
         } else {
           list(list(exclude_options = NULL, page = 1L, pages = 1L))
         }

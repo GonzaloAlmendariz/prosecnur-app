@@ -762,7 +762,10 @@
   rows <- list()
   add <- function(label, detail) {
     detail <- .graficos_scalar_chr(detail, "")
-    if (nzchar(detail)) rows[[length(rows) + 1L]] <<- list(criterio = label, detalle = detail)
+    # Dos grupos repetibles sobre las mismas personas (lista de miembros y su detalle, RMS 2026) dan la misma fila: el
+    # dato se escribe una vez (checklist-informe-acnur-2026-11-11, D5).
+    repetida <- any(vapply(rows, function(r) identical(r$criterio, label) && identical(r$detalle, detail), logical(1)))
+    if (nzchar(detail) && !repetida) rows[[length(rows) + 1L]] <<- list(criterio = label, detalle = detail)
   }
   add("Estudio", context$study_name)
   if (!is.null(context$period)) add("Periodo de campo", context$period$label)

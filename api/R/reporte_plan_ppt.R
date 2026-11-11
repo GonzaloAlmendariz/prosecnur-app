@@ -3436,7 +3436,7 @@ reporte_ppt_plan <- function(
       font.family = font_family,
       bold = isTRUE(bold)
     )
-    value <- officer::fpar(officer::ftext(text, prop = fp_txt), fp_p = officer::fp_par(text.align = align))
+    value <- .ppt_fpar_con_saltos(text, fp_txt, align)   # "\n" como salto de línea real (ppt_texto_saltos.R)
     officer::ph_with(doc, value = value, location = loc)
   }
 
@@ -6628,7 +6628,7 @@ reporte_ppt_plan <- function(
 
   ANTETITULOS <- .lam_antetitulos(plan); SECCIONES <- .lam_secciones_numeradas(plan); NOTAS_ORADOR <- NULL   # ADR 0093: capítulo vigente y número de cada separador; notas: lamina_notas_orador.R
   for (i in seq_along(plan)) {
-    doc <- .lam_notas_orador_aplicar(doc, NOTAS_ORADOR); slide <- .lam_avisos_paso(plan, i, doc); NOTAS_ORADOR <- .lam_notas_orador_marca(slide, doc)  # K12b: avisos de líneas por lámina lógica (lamina_avisos_lineas.R); C1: notas del orador
+    doc <- .lam_notas_orador_aplicar(doc, NOTAS_ORADOR); slide <- .lam_motor_de_plantilla(.lam_avisos_paso(plan, i, doc), opened_template_path, explicit_template_id); NOTAS_ORADOR <- .lam_notas_orador_marca(slide, doc)  # K12b: avisos de líneas por lámina lógica (lamina_avisos_lineas.R); C1: notas del orador; plantilla de cliente: lamina_plantilla_cliente.R
     if (!inherits(slide, "ppt_slide")) {
       .plan_input_abort("Cada slide debe tener clase `ppt_slide`.")
     }
