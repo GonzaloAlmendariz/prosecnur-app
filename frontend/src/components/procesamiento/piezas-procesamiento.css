@@ -146,7 +146,12 @@
     transform var(--motion-dur-fast) var(--motion-ease-out);
 }
 
+/* Como dato no es un control: su alto es el de su contenido más el relleno, no los 52 px del botón.
+ * Con alto fijo quedaba capacidad sin usar dentro de la caja, que el Contrato de Superficie mide (C2). */
 .pulso-franja-destino--dato {
+  block-size: auto;
+  min-block-size: 0;
+  padding-block: var(--pulso-space-2);
   padding-inline-end: var(--pulso-space-5);
 }
 
@@ -541,6 +546,112 @@
 
 .pulso-cifra-hallazgo[data-enmarcada] .pulso-cifra-hallazgo-cifra {
   font-size: var(--pulso-type-kpi-size);
+}
+
+/* --- BloquePregunta --------------------------------------------------------
+   Lado de una fila: la pregunta en un bloque teñido con el color de su tipo.
+   El tinte es suave (relleno al 38 % y borde fino); el color entero queda en la
+   etiqueta del tipo, que además lo dice en palabras. Arriba van, en un renglón,
+   el código, el tipo y la cifra; debajo la pregunta, en dos líneas como mucho.
+   El bloque llena su celda y se estira con ella. Quien lo coloca puede
+   reservarle sitio al final con --pulso-bloque-reserva-fin. */
+
+.pulso-bloque-pregunta {
+  --pulso-bloque-fondo: var(--tipo-int-bg);
+  --pulso-bloque-borde: var(--tipo-int-border);
+  --pulso-bloque-texto: var(--tipo-int-fg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--pulso-space-1) - 1px);
+  box-sizing: border-box;
+  min-inline-size: 0;
+  inline-size: 100%;
+  padding: var(--pulso-space-2) calc(var(--pulso-space-3) + var(--pulso-bloque-reserva-fin, 0px)) var(--pulso-space-2)
+    var(--pulso-space-3);
+  border: 1px solid color-mix(in srgb, var(--pulso-bloque-borde) 50%, var(--pulso-surface));
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-bloque-fondo) 38%, var(--pulso-surface));
+  color: var(--pulso-text);
+  font-style: normal;
+  letter-spacing: 0;
+  text-align: start;
+  white-space: normal;
+}
+
+.pulso-bloque-pregunta[data-tipo="unica"] {
+  --pulso-bloque-fondo: var(--tipo-so-bg);
+  --pulso-bloque-borde: var(--tipo-so-border);
+  --pulso-bloque-texto: var(--tipo-so-fg);
+}
+
+.pulso-bloque-pregunta[data-tipo="multiple"] {
+  --pulso-bloque-fondo: var(--tipo-sm-bg);
+  --pulso-bloque-borde: var(--tipo-sm-border);
+  --pulso-bloque-texto: var(--tipo-sm-fg);
+}
+
+.pulso-bloque-pregunta[data-tipo="texto"] {
+  --pulso-bloque-fondo: var(--tipo-text-bg);
+  --pulso-bloque-borde: var(--tipo-text-border);
+  --pulso-bloque-texto: var(--tipo-text-fg);
+}
+
+.pulso-bloque-pregunta[data-ancho="completo"] {
+  grid-column: 1 / -1;
+}
+
+/* El código es un identificador: si no cabe junto al tipo baja de línea, no se recorta. La cifra hace
+   lo mismo cuando el bloque es angosto. */
+.pulso-bloque-pregunta-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--pulso-space-2);
+  min-inline-size: 0;
+}
+
+.pulso-bloque-pregunta-codigo {
+  min-inline-size: 0;
+  color: var(--pulso-text-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.pulso-bloque-pregunta-tipo {
+  flex: none;
+  padding: 0 0.55em;
+  border: 1px solid var(--pulso-bloque-borde);
+  border-radius: var(--pulso-control-radius);
+  background: color-mix(in srgb, var(--pulso-bloque-fondo) 60%, var(--pulso-surface));
+  color: var(--pulso-bloque-texto);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.pulso-bloque-pregunta-etiqueta {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.pulso-bloque-pregunta-detalle {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1.4;
 }
 
 @media (prefers-reduced-motion: reduce) {

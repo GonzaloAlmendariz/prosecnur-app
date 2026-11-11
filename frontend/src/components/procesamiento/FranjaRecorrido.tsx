@@ -46,10 +46,23 @@ export type FranjaRecorridoProps = {
   avisos?: readonly AvisoDeFranja[];
   /** Acción al extremo del pie de avisos. */
   accionDeAvisos?: ReactNode;
+  /**
+   * Nombre con el que la franja declara su geometría (Contrato de Superficie, C1). Los grupos y los avisos
+   * son colecciones de ancho propio: se declaran `intrinsic`. Dos franjas en la misma vista llevan nombres distintos.
+   */
+  grupoDeGeometria?: string;
   className?: string;
 };
 
-export function FranjaRecorrido({ etiqueta, grupos, destino, avisos, accionDeAvisos, className }: FranjaRecorridoProps) {
+export function FranjaRecorrido({
+  etiqueta,
+  grupos,
+  destino,
+  avisos,
+  accionDeAvisos,
+  grupoDeGeometria = "procesamiento/franja-recorrido",
+  className,
+}: FranjaRecorridoProps) {
   const conPie = Boolean(avisos?.length) || Boolean(accionDeAvisos);
   return (
     <div
@@ -58,7 +71,7 @@ export function FranjaRecorrido({ etiqueta, grupos, destino, avisos, accionDeAvi
       aria-label={etiqueta}
       data-destino={destino ? "" : undefined}
     >
-      <div className="pulso-franja-fila">
+      <div className="pulso-franja-fila" data-qa-geometry-group={grupoDeGeometria} data-qa-geometry-contract="intrinsic">
         {grupos.map((grupo, i) => (
           <Fragment key={grupo.id}>
             {i > 0 && !grupo.aparte ? (
@@ -85,7 +98,11 @@ export function FranjaRecorrido({ etiqueta, grupos, destino, avisos, accionDeAvi
       {conPie ? (
         <div className="pulso-franja-pie">
           {avisos?.length ? (
-            <ul className="pulso-franja-avisos">
+            <ul
+              className="pulso-franja-avisos"
+              data-qa-geometry-group={`${grupoDeGeometria}-avisos`}
+              data-qa-geometry-contract="intrinsic"
+            >
               {avisos.map((a) => (
                 <li key={a.id} className="pulso-franja-aviso" data-tono={a.tono ?? "conforme"}>
                   <span className="pulso-franja-aviso-punto" aria-hidden="true" />

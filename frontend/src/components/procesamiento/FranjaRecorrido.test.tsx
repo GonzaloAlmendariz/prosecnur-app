@@ -148,4 +148,21 @@ describe("FranjaRecorrido", () => {
     expect(html).not.toContain("pulso-franja-pie");
     expect(html).not.toContain("data-audit-ready");
   });
+
+  test("declara la geometría de sus grupos y de sus avisos (C1), con el nombre que se le pase", () => {
+    const avisos = [{ id: "a", texto: "Uno" }, { id: "b", texto: "Dos" }];
+    const porDefecto = renderToStaticMarkup(<FranjaRecorrido etiqueta="Recorrido" grupos={GRUPOS} avisos={avisos} />);
+    expect(porDefecto).toContain(
+      'class="pulso-franja-fila" data-qa-geometry-group="procesamiento/franja-recorrido" data-qa-geometry-contract="intrinsic"',
+    );
+    expect(porDefecto).toContain(
+      'class="pulso-franja-avisos" data-qa-geometry-group="procesamiento/franja-recorrido-avisos" data-qa-geometry-contract="intrinsic"',
+    );
+    const conNombre = renderToStaticMarkup(
+      <FranjaRecorrido etiqueta="Recorrido" grupos={GRUPOS} avisos={avisos} grupoDeGeometria="codificacion/aplicar-franja" />,
+    );
+    expect(conNombre).toContain('data-qa-geometry-group="codificacion/aplicar-franja"');
+    expect(conNombre).toContain('data-qa-geometry-group="codificacion/aplicar-franja-avisos"');
+    expect(conNombre).not.toContain("procesamiento/franja-recorrido");
+  });
 });
