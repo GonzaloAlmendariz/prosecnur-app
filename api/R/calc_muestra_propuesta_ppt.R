@@ -42,8 +42,7 @@
 #' @keywords internal
 calc_muestra_propuesta_tablas <- function(propuesta) {
   esc <- propuesta$escenarios %||% list()
-  # Aún sin ruta HTTP: el código E_* se registra junto con el endpoint (errors_registry.R).
-  if (!length(esc)) stop("La propuesta no tiene escenarios.", call. = FALSE)
+  if (!length(esc)) stop_api(400, "E_CALC_MUESTRA_PROPUESTA_ESCENARIOS", "La propuesta lleva entre uno y cuatro escenarios.")
   calc <- lapply(esc, function(e) {
     comps <- lapply(e$componentes %||% list(), function(c) {
       c <- calc_muestra_normalize_componente(c)

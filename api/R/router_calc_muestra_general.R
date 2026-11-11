@@ -138,5 +138,28 @@ mount_calc_muestra_general <- function(pr) {
       meta <- .register_output_file(sid, "calc_muestra_general_sorteo", out_path, original_name = out_name)
       list(ok = TRUE, export = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name,
                                                          size = meta$size), meta))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/propuesta/exportar
+    # Body: { formato: "pptx"|"xlsx", escenarios: [{ nombre, metas: { <componente_id>: n } }], minimo_segmento?,
+    #         incluir_portada?, incluir_diseno?, solicitante?, referencia_rotulo?, segmentacion?, control? }
+    # PPT o Excel de escenarios de la propuesta (calc_muestra_propuesta_estudio.R); mismo patrón de descarga.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/propuesta/exportar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      formato <- calc_enum(body$formato, c("pptx", "xlsx"), "pptx")
+      s <- session_get(sid)
+      estudio <- .cm_estudio_con_identidad(s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list()), s)
+      estado <- .cm_general_estado(s$calc_muestra_general)
+      propuesta <- calc_muestra_propuesta_desde_estudio(estudio, estado$marcos, body)
+      out_path <- tempfile("calc_muestra_propuesta_", fileext = paste0(".", formato))
+      if (identical(formato, "pptx")) calc_muestra_propuesta_ppt(propuesta, out_path) else calc_muestra_propuesta_xlsx(propuesta, out_path)
+      out_name <- .export_filename(sid, if (identical(formato, "pptx")) "propuesta_diseno_muestral" else "escenarios_de_muestra", formato)
+      meta <- .register_output_file(sid, "calc_muestra_propuesta", out_path, original_name = out_name)
+      list(ok = TRUE, export = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name,
+                                                         size = meta$size), meta))
     }))
 }

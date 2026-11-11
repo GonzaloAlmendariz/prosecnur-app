@@ -509,6 +509,8 @@ errores_registrados <- function() {
     "E_CALC_MUESTRA_GENERAL_TECNICA",                        "calc_muestra_general_marco.R",      "409",
     "E_CALC_MUESTRA_GENERAL_N",                              "calc_muestra_general_sorteo.R",     "400",
     "E_CALC_MUESTRA_GENERAL_SIN_CORRIDA",                    "router_calc_muestra_general.R",     "404",
+    "E_CALC_MUESTRA_PROPUESTA_SIN_ACTORES",                  "calc_muestra_propuesta_estudio.R",  "409",
+    "E_CALC_MUESTRA_PROPUESTA_ESCENARIOS",                   "calc_muestra_propuesta_estudio.R",  "400",
     "E_CALC_MUESTRA_GENERAL_SIN_MARCO",                      "calc_muestra_general_marco.R",      "409",
     "E_CALC_MUESTRA_FILE_INSPECT",                           "router_calc_muestra.R",             "400",
     "E_CALC_MUESTRA_FILE_REQUIRED",                          "router_calc_muestra.R",             "400",
