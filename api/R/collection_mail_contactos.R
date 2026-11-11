@@ -123,10 +123,12 @@
     hit <- efectivo & key %in% names(marks)
     respondio[hit] <- as.logical(marks[key[hit]])
   }
+  # A medias: tiene respuesta parcial y ninguna completa (no cuenta como respondió).
+  parcial <- efectivo & key %in% (store$parcial %||% character(0)) & !(respondio %in% TRUE)
   nombre <- if (!is.null(m$name_column)) .cmail_value(store$rows[[m$name_column]]) else rep("", n)
   list(
     n = n, email = email, key = key, estado = estado, efectivo = efectivo,
-    tiene_enlace = tiene_enlace, respondio = respondio, leidas = leidas, nombre = nombre,
+    tiene_enlace = tiene_enlace, respondio = respondio, parcial = parcial, leidas = leidas, nombre = nombre,
     fila = as.integer(store$source_row %||% (seq_len(n) + 1L))
   )
 }
@@ -159,7 +161,7 @@
 
 .cmail_no_store_resumen <- function() {
   list(importados = 0L, efectivos = 0L, sin_correo = 0L, correo_invalido = 0L, repetidos = 0L,
-       con_enlace = 0L, respondieron = NA_integer_, leido_en = NA_character_, enlace_url = NA_character_,
+       con_enlace = 0L, respondieron = NA_integer_, a_medias = NA_integer_, leido_en = NA_character_, enlace_url = NA_character_,
        enlace_variable = NA_character_)
 }
 
@@ -172,6 +174,7 @@
     repetidos = as.integer(sum(fr$estado == "repetido")),
     con_enlace = as.integer(sum(fr$efectivo & fr$tiene_enlace)),
     respondieron = if (fr$leidas) as.integer(sum(fr$efectivo & fr$respondio %in% TRUE)) else NA_integer_,
+    a_medias = if (fr$leidas) as.integer(sum(fr$parcial)) else NA_integer_,
     leido_en = if (fr$leidas) as.character(store$lectura$leido_en %||% NA_character_) else NA_character_,
     # El enlace del recopilador y la variable de la encuesta con que se
     # generaron los enlaces (store$enlace, collection_mail_enlace.R); null si
@@ -191,7 +194,7 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
   session <- session_get(sid)
   pick <- .cmail_campaign_for(session, .collection_current(session), campaign_id)
   estado <- .cmail_choice_arg(estado, c(.CMAIL_CONTACT_ESTADOS, "todos"), "todos", "estado")
-  respondio <- .cmail_choice_arg(respondio, c("si", "no", "todos"), "todos", "respondio")
+  respondio <- .cmail_choice_arg(respondio, c("si", "no", "parcial", "todos"), "todos", "respondio")
   page <- .cmail_int_arg(page, 1L, 1L, .Machine$integer.max, "page")
   per_page <- .cmail_int_arg(per_page, .CMAIL_CONTACTS_PER_PAGE, 1L, .CMAIL_CONTACTS_PER_PAGE_MAX, "per_page")
   store <- .cmail_recipients_load(session, pick$campaign$campaign_id)
@@ -206,6 +209,7 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
   if (!identical(estado, "todos")) mask <- mask & fr$estado == estado
   if (identical(respondio, "si")) mask <- mask & fr$respondio %in% TRUE
   if (identical(respondio, "no")) mask <- mask & fr$respondio %in% FALSE
+  if (identical(respondio, "parcial")) mask <- mask & fr$parcial
   query <- .cmail_one(as.list(q %||% list(NA_character_)))
   if (!is.null(query) && nzchar(trimws(query))) {
     needle <- .cmail_fold(trimws(query))
@@ -223,7 +227,7 @@ collection_mail_contacts_list <- function(sid, campaign_id = NULL, q = NULL, est
     if (!length(vals)) vals <- structure(list(), names = character(0))
     list(fila = fr$fila[[i]], email = na_if_empty(fr$email[[i]]), nombre = na_if_empty(fr$nombre[[i]]),
          estado = fr$estado[[i]], tiene_enlace = isTRUE(fr$tiene_enlace[[i]]), respondio = fr$respondio[[i]],
-         valores = vals)
+         a_medias = isTRUE(fr$parcial[[i]]), valores = vals)
   })
   list(
     ok = TRUE, campaign_id = pick$campaign$campaign_id, cargados = TRUE,
@@ -415,7 +419,8 @@ collection_mail_contacts_control_put <- function(sid, campaign_id = NULL, variab
 #' @param tokens tokens de las respuestas completas que traían `t`.
 #' @return número de contactos marcados como respondidos, o NULL si no hay store.
 #' @keywords internal
-.cmail_respuestas_apply <- function(sid, campaign_id, tokens, survey_id = NULL, leido_en = NULL) {
+.cmail_respuestas_apply <- function(sid, campaign_id, tokens, survey_id = NULL, leido_en = NULL,
+                                    completo_en = NULL, parciales = NULL, archivados = FALSE) {
   session <- session_get(sid, required = FALSE)
   if (is.null(session)) return(NULL)
   store <- .cmail_recipients_load(session, campaign_id)
@@ -431,7 +436,19 @@ collection_mail_contacts_control_put <- function(sid, campaign_id = NULL, variab
   if (length(nuevos)) first[nuevos] <- now
   store$respondio <- marks
   store$respondio_en <- first
-  store$lectura <- list(leido_en = now, survey_id = survey_id, respondieron = length(answered))
+  # Hora de la respuesta completa en SurveyMonkey (correo -> ISO), para la
+  # prueba de horarios; y quién la dejó a medias sin completarla.
+  if (length(completo_en)) {
+    ce <- store$completo_en %||% stats::setNames(character(0), character(0))
+    tk <- intersect(names(completo_en), names(idx))
+    if (length(tk)) ce[unname(idx[tk])] <- as.character(completo_en[tk])
+    store$completo_en <- ce[names(ce) %in% answered]
+  }
+  if (!is.null(parciales)) {
+    store$parcial <- setdiff(unique(unname(idx[intersect(as.character(parciales), names(idx))])), answered)
+  }
+  store$lectura <- list(leido_en = now, survey_id = survey_id, respondieron = length(answered),
+                        parciales = length(store$parcial %||% character(0)), archivados = isTRUE(archivados))
   .cmail_recipients_save(session, campaign_id, store)
   .cmail_contactos_touch(sid)
   length(answered)

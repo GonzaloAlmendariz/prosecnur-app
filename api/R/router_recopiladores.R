@@ -355,7 +355,8 @@ mount_recopiladores <- function(pr) {
       # respondió en los contactos sin tocar Mailchimp ni pedir su clave.
       collection_mail_mailchimp_sync_submit(session_header(req), campaign_id = body$campaign_id, survey_id = body$survey_id,
                                             list_id = body$list_id, tag = body$tag,
-                                            dry_run = isTRUE(body$dry_run) || isTRUE(body$solo_marcar))
+                                            dry_run = isTRUE(body$dry_run) || isTRUE(body$solo_marcar),
+                                            archive = isTRUE(body$archive) || isTRUE(body$archivar))
     })) |>
     # Cargar la audiencia de la campaña en Mailchimp (job con avance).
     plumber::pr_post("/api/recopiladores/mail-sync/audience", wrap_endpoint(function(req, res, ...) {

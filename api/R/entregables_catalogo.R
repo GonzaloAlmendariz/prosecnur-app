@@ -72,6 +72,7 @@
   "collection_material_pdf|Fichas con QR|mc|0|1",
   "collection_material_bundle|Fichas con QR|mc|0|1",
   "collection_material_prueba|Ficha de prueba|mc|0|1",
+  "collection_mail_prueba_horario_pdf|Informe de la prueba de horarios|mc|0|1",
   # Monitoreo
   "aulas_libro|Libro de aulas|mo|0|1",
   "monitoreo_reporte|Reporte de monitoreo|mo|0|1",

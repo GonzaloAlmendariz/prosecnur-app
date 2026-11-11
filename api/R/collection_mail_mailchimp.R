@@ -13,7 +13,9 @@
 #   3. cruza cada token con los destinatarios de la campaña (el token va dentro
 #      del enlace personal, `?t=...`, en alguno de sus campos);
 #   4. pone una etiqueta («Respondió» por defecto) a esos correos en la
-#      audiencia de Mailchimp, por su API.
+#      audiencia de Mailchimp, por su API, sólo a los suscriptores activos;
+#   5. si se pide, los archiva en Mailchimp con su segundo correo
+#      (collection_mail_mailchimp_archivo.R).
 #
 # En Mailchimp, el recordatorio se envía al segmento «no tiene la etiqueta
 # Respondió». La etiqueta de Mailchimp es un segmento estático: se agrega en
@@ -211,7 +213,8 @@ mailchimp_api_lists <- function(key) {
 # salen como HTTP 4xx en el acto) y `.mc_sync_run` hace la red (SurveyMonkey y
 # Mailchimp) sin tocar la sesión, que el worker callr no tiene.
 
-.mc_sync_prepare <- function(sid, campaign_id = NULL, survey_id, list_id, tag = .MC_TAG_DEFAULT, dry_run = FALSE) {
+.mc_sync_prepare <- function(sid, campaign_id = NULL, survey_id, list_id, tag = .MC_TAG_DEFAULT, dry_run = FALSE,
+                             archive = FALSE, mc_key = TRUE) {
   session <- session_get(sid)
   ct <- .cmail_campaign_template_for_session(session, campaign_id)
   survey_id <- trimws(as.character(survey_id %||% "")[1])
@@ -233,14 +236,17 @@ mailchimp_api_lists <- function(key) {
   }
   list(
     campaign_id = ct$campaign_id, survey_id = survey_id, list_id = list_id, tag = tag, dry_run = isTRUE(dry_run),
+    archive = isTRUE(archive) && !isTRUE(dry_run),
     variable = variable,
     index = ti$index, recipients = ti$recipients,
+    # Segundo correo de cada persona (correo personal): se archiva con el primero.
+    linked = .mc_linked_emails(store),
     sm_token = .connections_token_require("surveymonkey", sid),
-    mc_key = if (!isTRUE(dry_run)) .connections_token_require("mailchimp", sid)
+    mc_key = if (!isTRUE(dry_run) && isTRUE(mc_key)) .connections_token_require("mailchimp", sid)
   )
 }
 
-.mc_sync_run <- function(input, report = function(...) invisible(NULL)) {
+.mc_sync_run <- function(input, report = function(...) invisible(NULL), activos = NULL) {
   force(input)
   variable <- input$variable %||% .CMAIL_ENLACE_VARIABLE_DEFAULT
   report("surveymonkey", percent = 2, message = "Revisando la encuesta en SurveyMonkey...")
@@ -256,6 +262,12 @@ mailchimp_api_lists <- function(key) {
   has_token <- !is.na(tk)
   in_campaign <- has_token & tk %in% names(input$index)
   emails <- unique(unname(input$index[tk[completed & in_campaign]]))
+  # Hora de la primera respuesta completa de cada token (para la prueba de
+  # horarios) y quién la dejó a medias sin completarla (no cuenta como respondió).
+  fechas <- vapply(responses, function(r) as.character(r$date_modified %||% r$date_created %||% "")[1], "")
+  ok_t <- completed & in_campaign & nzchar(fechas)
+  times <- if (any(ok_t)) tapply(fechas[ok_t], tk[ok_t], min) else character(0)
+  partial_tokens <- setdiff(unique(tk[st == "partial" & in_campaign]), unique(tk[completed & in_campaign]))
 
   out <- list(
     ok = TRUE, campaign_id = input$campaign_id, survey_id = input$survey_id, list_id = input$list_id, tag = input$tag,
@@ -267,16 +279,17 @@ mailchimp_api_lists <- function(key) {
     synced_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
     # Para la marca por contacto (ADR 0112 §3): la aplica el proceso de la API
     # (`.mc_sync_mark`) y la quita antes de responder. Tokens, no correos.
-    respondent_tokens = unique(tk[completed & in_campaign])
+    respondent_tokens = unique(tk[completed & in_campaign]),
+    respondent_times = as.list(stats::setNames(as.character(times), names(times))),
+    partial_tokens = partial_tokens,
+    partial_people = length(partial_tokens),
+    archive = isTRUE(input$archive), archived = 0L, archived_second = 0L, archive_errors = 0L, inactive = 0L
   )
   if (isTRUE(input$dry_run)) return(out)
-  report("mailchimp", current = 0L, total = length(emails), message = .mc_progress_label(0L, length(emails)))
-  tag_id <- .mc_tag_id(input$mc_key, input$list_id, input$tag)
-  res <- .mc_tag_emails(input$mc_key, input$list_id, tag_id, emails,
-                        report = function(done, total) report("mailchimp", current = done, total = total,
-                                                              message = .mc_progress_label(done, total)))
-  out$tagged <- res$added
-  out$not_in_audience <- res$not_in_audience
+  linked <- input$linked %||% character(0)
+  linked <- unname(linked[names(linked) %in% tk[completed & in_campaign]])
+  res <- .mc_tag_and_archive(input, emails, linked, report, activos = activos)
+  out[names(res)] <- res
   out
 }
 
@@ -289,10 +302,10 @@ mailchimp_api_lists <- function(key) {
 #'   contactos, sin tocar Mailchimp ni pedir su clave.
 #' @keywords internal
 collection_mail_mailchimp_sync <- function(sid, campaign_id = NULL, survey_id, list_id, tag = .MC_TAG_DEFAULT,
-                                           dry_run = FALSE) {
+                                           dry_run = FALSE, archive = FALSE) {
   # Se evalúa antes: dentro de `.mc_sync_run` la promesa se forzaría dentro del
   # tryCatch de SurveyMonkey y un error de entrada saldría disfrazado de él.
-  input <- .mc_sync_prepare(sid, campaign_id, survey_id, list_id, tag, dry_run)
+  input <- .mc_sync_prepare(sid, campaign_id, survey_id, list_id, tag, dry_run, archive = archive)
   .mc_sync_mark(sid, input, .mc_sync_run(input))
 }
 
@@ -302,8 +315,11 @@ collection_mail_mailchimp_sync <- function(sid, campaign_id = NULL, survey_id, l
 .mc_sync_mark <- function(sid, input, out) {
   if (!isTRUE(out$ok)) return(out)
   tokens <- out$respondent_tokens %||% character(0)
-  out$respondent_tokens <- NULL
-  marked <- .cmail_respuestas_apply(sid, input$campaign_id, tokens, survey_id = input$survey_id)
+  times <- unlist(out$respondent_times %||% list())
+  partial <- out$partial_tokens %||% character(0)
+  out$respondent_tokens <- NULL; out$respondent_times <- NULL; out$partial_tokens <- NULL
+  marked <- .cmail_respuestas_apply(sid, input$campaign_id, tokens, survey_id = input$survey_id,
+                                    completo_en = times, parciales = partial, archivados = isTRUE(out$archive))
   out$marcados <- as.integer(marked %||% 0L)
   out
 }
@@ -367,8 +383,8 @@ collection_mail_mailchimp_sync_job <- function(sid, input_path, progress_path = 
 #' @return list(ok, job_id).
 #' @keywords internal
 collection_mail_mailchimp_sync_submit <- function(sid, campaign_id = NULL, survey_id, list_id,
-                                                  tag = .MC_TAG_DEFAULT, dry_run = FALSE) {
-  input <- .mc_sync_prepare(sid, campaign_id, survey_id, list_id, tag, dry_run)
+                                                  tag = .MC_TAG_DEFAULT, dry_run = FALSE, archive = FALSE) {
+  input <- .mc_sync_prepare(sid, campaign_id, survey_id, list_id, tag, dry_run, archive = archive)
   .mc_job_submit(sid, "recopiladores.mail_sync", "collection_mail_mailchimp_sync_job", input,
                  on_complete = .mc_sync_mark_hook(sid, input$campaign_id, input$survey_id))
 }

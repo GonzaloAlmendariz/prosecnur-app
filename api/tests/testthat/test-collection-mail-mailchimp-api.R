@@ -248,7 +248,7 @@ test_that("borrador de la invitación: imágenes alojadas, solo static_is y edit
   expect_identical(out$edit_url, "https://us21.admin.mailchimp.com/campaigns/edit?id=123456")
   expect_identical(out$recipient_count, 3L)
   expect_identical(out$images_uploaded, 2L)
-  expect_identical(out$title, "Recuperación de estudiantes · Invitación")
+  expect_identical(out$title, "Recuperación de estudiantes, invitación")
   .mca_no_emails(out)
 
   files <- srv$of("POST", "/file-manager/files$")
@@ -280,7 +280,7 @@ test_that("borrador del recordatorio: static_is del público y static_not de «R
   local_mocked_bindings(.connections_token_require = .mca_tokens, .mc_http = srv$http, .mc_sleep = function(...) NULL)
   out <- collection_mail_mailchimp_campaign_draft(sid, send_id = "recordatorio-1", list_id = "lst1",
                                                   from_name = "PULSO", reply_to = "pulso@ejemplo.org")
-  expect_identical(out$title, "Recuperación de estudiantes · Recordatorio 1")
+  expect_identical(out$title, "Recuperación de estudiantes, recordatorio 1")
   conds <- srv$of("POST", "/campaigns$")[[1]]$body$recipients$segment_opts$conditions
   expect_identical(vapply(conds, `[[`, "", "op"), c("static_is", "static_not"))
   created <- srv$of("POST", "/segments$")
@@ -338,6 +338,7 @@ test_that("worker de «quién respondió»: se llama directo, escribe el avance 
     sm_api_fetch_all_responses_bulk = function(...) list(data = lapply(seq_len(n), function(i)
       list(response_status = "completed", custom_variables = list(t = sprintf("tok%05d", i))))),
     .mc_http = function(method, url, key, body = NULL) {
+      if (.mc_fx_es_activos(url)) return(.mc_fx_activos(sprintf("p%d@ejemplo.org", seq_len(n))))
       if (grepl("/segments\\?", url)) return(.mca_ok(list(segments = list(list(id = 1L, name = "Respondió")))))
       .mca_ok(list(total_added = length(body$members_to_add), errors = list()))
     },

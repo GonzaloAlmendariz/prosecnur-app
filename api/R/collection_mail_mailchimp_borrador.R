@@ -32,14 +32,16 @@
 }
 
 # Segmento de la campaña: con la etiqueta del público y, si hay, sin la excluida.
-.mc_segment_opts <- function(tag_id, exclude_id = NULL) {
+.mc_segment_opts <- function(tag_id, exclude_id = NULL, group_id = NULL) {
   cond <- function(op, value) {
     num <- suppressWarnings(as.integer(value))  # Mailchimp espera el id numérico
     list(condition_type = "StaticSegment", field = "static_segment", op = op,
          value = if (is.na(num)) value else num)
   }
   conditions <- list(cond("static_is", tag_id))
-  if (!is.null(exclude_id)) conditions[[2L]] <- cond("static_not", exclude_id)
+  # Prueba de horarios: además, sólo el grupo ("Envío mañana" o "Envío tarde").
+  if (!is.null(group_id)) conditions[[length(conditions) + 1L]] <- cond("static_is", group_id)
+  if (!is.null(exclude_id)) conditions[[length(conditions) + 1L]] <- cond("static_not", exclude_id)
   list(match = "all", conditions = conditions)
 }
 
@@ -67,11 +69,15 @@
 #' @param from_name,reply_to remitente que verá el destinatario.
 #' @param tag etiqueta del público (por defecto, la de la carga de audiencia).
 #' @param exclude_tag etiqueta a excluir (por defecto «Respondió» en un recordatorio).
+#' @param group_tag etiqueta del grupo de la prueba de horarios (opcional): el
+#'   segmento exige también esa etiqueta.
+#' @param title_suffix se agrega al título de la campaña en Mailchimp (", grupo A").
 #' @return list(ok, mailchimp_campaign_id, web_id, edit_url, recipient_count,
 #'   subject, title, images_uploaded). Sin correos.
 #' @keywords internal
 collection_mail_mailchimp_campaign_draft <- function(sid, campaign_id = NULL, send_id = NULL, list_id,
-                                                     from_name, reply_to, tag = NULL, exclude_tag = NULL) {
+                                                     from_name, reply_to, tag = NULL, exclude_tag = NULL,
+                                                     group_tag = NULL, title_suffix = NULL) {
   session <- session_get(sid)
   list_id <- .mc_text_arg(list_id)
   from_name <- .mc_text_arg(from_name)
@@ -107,13 +113,23 @@ collection_mail_mailchimp_campaign_draft <- function(sid, campaign_id = NULL, se
   # La excluida puede no existir aún (nadie respondió): se crea vacía y el
   # segmento no excluye a nadie, que es lo correcto.
   exclude_id <- if (!is.null(exclude)) .mc_tag_id(key, list_id, exclude, create = TRUE)
+  group <- .mc_text_arg(group_tag)
+  group_id <- NULL
+  if (nzchar(group)) {
+    group_id <- .mc_tag_id(key, list_id, group, create = FALSE)
+    if (is.null(group_id)) {
+      stop_api(409, "E_COLLECTION_MAIL_SYNC_NO_AUDIENCE_TAG",
+               sprintf("La audiencia no tiene la etiqueta \"%s\": pon primero las etiquetas de los grupos en Seguimiento › Prueba de horarios.", group))
+    }
+  }
 
   hosted <- .mc_images_host(key, r$rendered$html, r$images, campaign$campaign_id)
-  title <- sprintf("%s · %s", campaign$name %||% campaign$campaign_id, send$label %||% send$send_id)
+  title <- sprintf("%s, %s%s", campaign$name %||% campaign$campaign_id, tolower(send$label %||% send$send_id),
+                   .mc_text_arg(title_suffix))
   subject <- as.character(r$rendered$subject %||% tpl$subject %||% "")[1]
   created <- .mc_call("POST", "/campaigns", key, body = list(
     type = "regular",
-    recipients = list(list_id = list_id, segment_opts = .mc_segment_opts(tag_id, exclude_id)),
+    recipients = list(list_id = list_id, segment_opts = .mc_segment_opts(tag_id, exclude_id, group_id)),
     settings = list(subject_line = subject, preview_text = as.character(r$rendered$preheader %||% "")[1],
                     title = title, from_name = from_name, reply_to = reply_to)
   ))

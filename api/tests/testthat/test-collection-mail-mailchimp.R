@@ -36,6 +36,7 @@ test_that("cruza tokens de respuestas completas con la campaña y etiqueta solo 
     .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(survey_id, token, ...) .mc_fx_responses(),
     .mc_http = function(method, url, key, body = NULL) {
+      if (.mc_fx_es_activos(url)) return(.mc_fx_activos(c("ana@ejemplo.org", "carlos@ejemplo.org", "luz@ejemplo.org", "maria@ejemplo.org")))
       calls[[length(calls) + 1L]] <<- list(method = method, url = url, body = body)
       if (grepl("/segments\\?", url)) return(list(status = 200L, body = list(segments = list(list(id = 77L, name = "Respondió")))))
       if (grepl("/segments/77$", url)) return(list(status = 200L, body = list(total_added = length(body$members_to_add), errors = list())))
@@ -70,6 +71,7 @@ test_that("crea la etiqueta si la audiencia no la tiene", {
     .mc_survey_variables = function(...) "t",
     sm_api_fetch_all_responses_bulk = function(...) .mc_fx_responses(),
     .mc_http = function(method, url, key, body = NULL) {
+      if (.mc_fx_es_activos(url)) return(.mc_fx_activos(c("ana@ejemplo.org", "carlos@ejemplo.org")))
       if (grepl("/segments\\?", url)) return(list(status = 200L, body = list(segments = list())))
       if (identical(method, "POST") && grepl("/segments$", url)) { creada <<- body$name; return(list(status = 200L, body = list(id = 5L))) }
       list(status = 200L, body = list(total_added = 2L, errors = list()))
@@ -93,6 +95,7 @@ test_that("cuenta a quien no está en la audiencia y reparte en lotes de 500", {
     sm_api_fetch_all_responses_bulk = function(...) list(data = lapply(seq_len(n), function(i)
       list(response_status = "completed", custom_variables = list(t = sprintf("tok%05d", i))))),
     .mc_http = function(method, url, key, body = NULL) {
+      if (.mc_fx_es_activos(url)) return(.mc_fx_activos(sprintf("p%d@ejemplo.org", seq_len(n))))
       if (grepl("/segments\\?", url)) return(list(status = 200L, body = list(segments = list(list(id = 1L, name = "Respondió")))))
       lotes[[length(lotes) + 1L]] <<- length(body$members_to_add)
       list(status = 200L, body = list(total_added = length(body$members_to_add) - 1L,

@@ -503,7 +503,7 @@ test_that("HTTP: contrato de las cuatro rutas con el serializador de producción
   expect_null(l$body$rows[[1]]$respondio)
   expect_true(isTRUE(l$body$rows[[1]]$tiene_enlace))
   expect_setequal(names(l$body$resumen), c("importados", "efectivos", "sin_correo", "correo_invalido", "repetidos",
-                                           "con_enlace", "respondieron", "leido_en", "enlace_url", "enlace_variable"))
+                                           "con_enlace", "respondieron", "a_medias", "leido_en", "enlace_url", "enlace_variable"))
   expect_null(l$body$resumen$respondieron)
   expect_identical(l$body$resumen$enlace_url, "https://es.surveymonkey.com/r/ABC")
   expect_identical(l$body$resumen$enlace_variable, "t")
