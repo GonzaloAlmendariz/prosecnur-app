@@ -1,0 +1,26 @@
+{
+  "una-base_con-insumos_plan": {
+    "marcado": "c969437172e4fc591d512b5442f667dd09fbe5d6cca0ba725b7da01dce1676f2",
+    "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
+  },
+  "una-base_plan_plan-de-varias-bases": {
+    "marcado": "d79aee18da18dfd31bd62ecee193ede01f692f19a6ae0f4776f71f92c1104c7b",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "una-base_sin-archivos_plan": {
+    "marcado": "1da2e29eff43e990fc490cc78c8eacd72353c123fd7da8b754e61d155af64556",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "varias_integradas_plan": {
+    "marcado": "25654fc2f917c7a23ccd66760d30a85b2873123f9665084938bc15f7f9faad74",
+    "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
+  },
+  "varias_separadas_plan": {
+    "marcado": "df2357805044000e2ac492ea05b855cafb7acbbc3f6f10e2cb109d679c40e248",
+    "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
+  },
+  "varias_sin-bases_plan": {
+    "marcado": "1b5c94d0eb5630367d72654f22c39f28b467d2ab05313dbc215e4d3051b335fb",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  }
+}

@@ -35,5 +35,7 @@ describe("CargaWorkspaceHeader", () => {
     expect(html).toContain("Revisión");
     expect(html).toContain("Requiere atención");
     expect(html).toContain("Hay incidencias de carga que requieren una decisión.");
+    // El rótulo superior es solo "Carga": sin "pestaña n de m".
+    expect(html).not.toMatch(/pestaña\s+\d+\s+de\s+\d+/i);
   });
 });

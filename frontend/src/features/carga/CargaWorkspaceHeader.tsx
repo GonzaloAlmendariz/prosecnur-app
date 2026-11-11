@@ -13,9 +13,9 @@ export type CargaWorkspaceHeaderProps = {
 };
 
 /**
- * Carga usa la cabecera única de pestaña del kit (L14): «Pestaña n de m» porque
- * Carga sí es un recorrido con orden, el estado como palabra fuera del h2 y el
- * detalle de la pestaña. Neutral y «Revisando…» no llevan palabra de estado.
+ * Carga usa la cabecera única de pestaña del kit (L14): el rótulo "Carga", el
+ * estado como palabra fuera del h2 y el detalle de la pestaña. Neutral y
+ * "Revisando" no llevan palabra de estado.
  */
 export function estadoDeCabecera(estado: CargaWorkspaceState): TabHeadingEstado | undefined {
   if (estado === "ready") return "listo";
@@ -29,8 +29,7 @@ export function CargaWorkspaceHeader({
   context,
 }: CargaWorkspaceHeaderProps) {
   const items = cargaWorkspaceItems(context);
-  const activeIndex = Math.max(0, items.findIndex((item) => item.key === active));
-  const activeItem = items[activeIndex] ?? items[0];
+  const activeItem = items.find((item) => item.key === active) ?? items[0];
 
   return (
     <TabHeading
@@ -39,8 +38,6 @@ export function CargaWorkspaceHeader({
       icono={ClipboardList}
       estado={estadoDeCabecera(activeItem.state)}
       detalle={activeItem.description}
-      pestanaN={activeIndex + 1}
-      pestanaDe={items.length}
     />
   );
 }

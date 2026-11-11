@@ -205,7 +205,7 @@ function sourcesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   );
 }
 
-export const CARGA_REVISION_LEYENDO = "Revisando…";
+export const CARGA_REVISION_LEYENDO = "Revisando";
 
 function reviewItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   if (context.revisionLeyendo) {

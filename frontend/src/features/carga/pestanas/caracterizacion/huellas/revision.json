@@ -1,0 +1,46 @@
+{
+  "una-base_con-insumos_revision": {
+    "marcado": "101bc898ecb876595e8bf15ea5d0227e818beb9beddee187e5f8f9cdfee399eb",
+    "pedidos": "dcfff690f09f91dffe5bedf03c93e611c3b798e113158cf5de308c45663e0b41"
+  },
+  "una-base_revision_con-pendientes": {
+    "marcado": "58a7f048d7efd6cef449e49e32fe4f66754eae1b8e5aee37e76ee8d7b582535a",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_revision_dialogo-de-extras": {
+    "marcado": "3d4bf35f601ecdb5b5e68f1dafe2071354326fbada6d58f8288942cd29d99e2d",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_revision_dialogo-de-mapeo": {
+    "marcado": "3d4bf35f601ecdb5b5e68f1dafe2071354326fbada6d58f8288942cd29d99e2d",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_revision_lista": {
+    "marcado": "df65eece0d452bd16c475b3fdb34b82ed508a3f1bac2598607df1f81a4c5e321",
+    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  },
+  "una-base_sin-archivos_revision": {
+    "marcado": "899f0b616f2ad31381176e28c8be275b45e38cf1e12893efb933f80ca73d8e56",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "varias_integradas_revision": {
+    "marcado": "94f50caf1c79a27e2988fc8a874244128e4c438692a8f8bbdacc6a05069e1120",
+    "pedidos": "7d5ff1f31a097521bafe4b7b7dfa39547784f10a47a43005a03b88faa790c508"
+  },
+  "varias_separadas_revision": {
+    "marcado": "f213fe1ec4407b000c51394243ce847affb68e3602189fdf6b65e331950e041f",
+    "pedidos": "67350f9f68c9932bd9c60583b3e0c5a085e224e92a71573c2d343ff16040f1c6"
+  },
+  "varias_separadas_revision_con-pendientes": {
+    "marcado": "f3a02097f90b9c2e3cf11ca241a7847a72d61929d908bdd0fa10de8683b1d086",
+    "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
+  },
+  "varias_separadas_revision_lista": {
+    "marcado": "77634ab395f8763a7c45617f0634096fd22e6ff36b2cf732a25f094f329bee37",
+    "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
+  },
+  "varias_sin-bases_revision": {
+    "marcado": "2ca6e6fff09945b026977632ed8f5bb10754bfeada3acf490f21e9e472df715d",
+    "pedidos": "d6c7987f7904e9dc37c115d29436bda92a53f1f2bc5d90f743d0f9279431a62e"
+  }
+}

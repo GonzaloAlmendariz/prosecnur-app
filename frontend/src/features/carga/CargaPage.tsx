@@ -263,7 +263,7 @@ export default function CargaPage() {
   });
   // Conteo de la equivalencia declarada, para que la pestaña diga si hay trabajo
   // hecho sin obligar a abrirla.
-  // `null` hasta que Equivalencias la lee; así la pestaña dice "Revisando…" y
+  // `null` hasta que Equivalencias la lee; así la pestaña dice "Revisando" y
   // no un "Pendiente" que todavía no sabe.
   const [equivalenciasFilas, setEquivalenciasFilas] = useState<number | "error" | null>(null);
   const reviewHasIssues = Boolean(cargaReview && (
@@ -307,7 +307,7 @@ export default function CargaPage() {
     equivalenciasDeclaradas: equivalenciasFilas,
     equivalenciasLeyendo: cargaDireccion.pestana === "equivalencias" && equivalenciasFilas === null,
     // Solo mientras se mira Revisión: en otras pestañas no se lee y la marca
-    // se quedaría en "Revisando…" para siempre.
+    // se quedaría en "Revisando" para siempre.
     revisionLeyendo: cargaDireccion.pestana === "revision" && !revisionEstado.datosLeidos,
   };
   const activeCargaTab = resolveCargaWorkspaceTab(cargaDireccion.pestana, workspaceContext);
@@ -507,7 +507,7 @@ export default function CargaPage() {
 
   async function onConfirmChoiceMapping() {
     setError("");
-    setBusy("Confirmando mapeo de códigos…");
+    setBusy("Confirmando mapeo de códigos");
     try {
       await apiCargaConfirmChoiceMapping(selectedCargaBase);
       setDataPreview((prev) => markChoiceMappingConfirmed(prev));
@@ -524,7 +524,7 @@ export default function CargaPage() {
 
   async function onEnableMultiBase(strategy: MultiBaseStrategy) {
     setError("");
-    setBusy("Activando modo de varias bases…");
+    setBusy("Activando modo de varias bases");
     setTopologyIntent(strategy);
     setPreferredMultiStrategy(strategy);
     setMultiBaseStrategy(strategy);

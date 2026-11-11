@@ -44,7 +44,7 @@ export async function quitarInsumo(kind: "xlsform" | "data", efectos: EfectosDeI
   )) return;
 
   setError("");
-  setBusy(`Quitando ${label}…`);
+  setBusy(`Quitando ${label}`);
   try {
     if (kind === "xlsform") {
       await apiQuitarInstrumento();
@@ -82,11 +82,11 @@ export async function subirInsumo(
     return;
   }
   setError("");
-  setBusy(`Subiendo ${file.name}…`);
+  setBusy(`Subiendo ${file.name}`);
   try {
     const uploadKind = kind === "data" ? uploadKindForDataFile(file) : kind;
     const up = await apiUpload(file, uploadKind);
-    setBusy(`Procesando ${file.name}…`);
+    setBusy(`Procesando ${file.name}`);
     if (kind === "xlsform") {
       const r = await apiCargaInstrumento(up.file_id);
       setInstrumento(r.resumen);

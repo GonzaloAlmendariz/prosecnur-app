@@ -99,8 +99,7 @@ export function CargaHidratando({
       >
         {/* La misma cabecera que pinta CargaWorkspaceHeader al terminar (L14):
             mientras hidrata no hay estado que declarar, y la espera la dice el
-            renglón «Leyendo…» de abajo. Sin «pestaña N de M»: con bases
-            separadas Equivalencias aún no se sabe y el total saldría falso. */}
+            renglón de lectura de abajo. La cabecera no numera las pestañas. */}
         <TabHeading
           eyebrow="Carga"
           titulo={metadata.label}
@@ -112,7 +111,7 @@ export function CargaHidratando({
             <div className="pulso-carga-hidratando-cuerpo">
               <div className="pulso-carga-hidratando-estado" role="status" aria-live="polite">
                 <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
-                <span className="pulso-sr-only">{`${texto}…`}</span>
+                <span className="pulso-sr-only">{texto}</span>
                 <span aria-hidden="true">
                   {texto}, <strong>{formatoTranscurrido(segundos)}</strong>
                 </span>

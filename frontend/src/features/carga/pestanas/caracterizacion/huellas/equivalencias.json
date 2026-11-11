@@ -1,0 +1,22 @@
+{
+  "una-base_con-insumos_equivalencias": {
+    "marcado": "e7df30d9a08998804877114d4448e59ac93959c3adbfb5f053774bd01da82723",
+    "pedidos": "d3fc042df1b05936739430839319c8af3a9ac67e0f9a5ba7ef6ac9e2d11332c3"
+  },
+  "una-base_sin-archivos_equivalencias": {
+    "marcado": "4132895c0e7875056dd906203a024bc42c7f23db740b1db9032891c3f9441608",
+    "pedidos": "3276d059ab88ce7a3e2cd354f7b8f1c4dc6e5b105544cb03f5d942fd9b34fe72"
+  },
+  "varias_integradas_equivalencias": {
+    "marcado": "d1b00d6dd161902b90affec57029f94305d455022e82e2e5e31bf85c7b88f641",
+    "pedidos": "9f7e304beee6c6f6bd5b82b136826d2ac6d0102755780e193e695b95c9766f3a"
+  },
+  "varias_separadas_equivalencias": {
+    "marcado": "f2f33c9553c76724a9e8e42bb5f50db862d433fc12cbd20da64873d3db70aebb",
+    "pedidos": "7fa0652c05e6b66496db76d34094e4888a7168db2124ffe68f1d3a75322b8943"
+  },
+  "varias_sin-bases_equivalencias": {
+    "marcado": "aa288dd0749f1e8049219f9239c5051fbd7d2dcdbcc31b0de893247f821905c8",
+    "pedidos": "bb6b2c8f7a4b618c938b24c0fdf70c21c41a2f1aa6a120616191c5becd517d0e"
+  }
+}

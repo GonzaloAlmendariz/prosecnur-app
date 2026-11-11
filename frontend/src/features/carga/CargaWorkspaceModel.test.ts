@@ -167,18 +167,18 @@ describe("disponibilidad de Equivalencias", () => {
     expect(items.findIndex((item) => item.key === "equivalencias")).toBe(5);
   });
 
-  it('Equivalencias no dice "Pendiente" mientras lee: dice "Revisando…" (P-A8)', () => {
+  it('Equivalencias no dice "Pendiente" mientras lee: dice "Revisando" (P-A8)', () => {
     const base = { ...EMPTY_CONTEXT, isMultiBase: true, baseCount: 3, basesSeparadas: true };
     const equiv = (ctx: CargaWorkspaceContext) =>
       cargaWorkspaceItems(ctx).find((item) => item.key === "equivalencias");
 
     const leyendo = equiv({ ...base, equivalenciasDeclaradas: null, equivalenciasLeyendo: true });
     expect(leyendo?.state).toBe("neutral");
-    expect(leyendo?.statusLabel).toBe("Revisando…");
+    expect(leyendo?.statusLabel).toBe("Revisando");
 
     expect(equiv({ ...base, equivalenciasDeclaradas: 78 })?.statusLabel).toBe("Listo");
     expect(equiv({ ...base, equivalenciasDeclaradas: 0 })?.statusLabel).toBe("Pendiente");
-    // Un error no es «Pendiente» (no sabe si hay algo) ni «Revisando…» para siempre.
+    // Un error no es «Pendiente» (no sabe si hay algo) ni «Revisando» para siempre.
     expect(equiv({ ...base, equivalenciasDeclaradas: "error" })?.state).toBe("attention");
   });
 });

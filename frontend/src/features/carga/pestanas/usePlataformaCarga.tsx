@@ -166,11 +166,11 @@ export function usePlataformaCarga({
             connection_profile_id: activeSmProfile?.id || "",
           };
           if (vistaPreviaFuente?.surveyId !== survey.id) {
-            setBusy(`Comparando las preguntas de ${survey.title} con "${fuenteDestino.base}"…`);
+            setBusy(`Comparando las preguntas de ${survey.title} con "${fuenteDestino.base}"`);
             setVistaPreviaFuente({ surveyId: survey.id, datos: await apiCargaVistaPreviaFuenteSm(pedido) });
             return;
           }
-          setBusy(`Uniendo ${survey.title} a la base "${fuenteDestino.base}"…`);
+          setBusy(`Uniendo ${survey.title} a la base "${fuenteDestino.base}"`);
           const r = await apiCargaAgregarFuenteSm({
             base_name: fuenteDestino.base,
             survey_id: survey.id,

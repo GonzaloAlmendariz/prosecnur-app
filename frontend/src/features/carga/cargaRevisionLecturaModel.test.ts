@@ -105,7 +105,7 @@ describe("pestaña Revisión mientras lee", () => {
   it('no afirma "Listo" ni "Sin incidencias" sin el resultado', () => {
     const leyendo = revision({ ...contexto, revisionLeyendo: true });
     expect(leyendo?.state).toBe("neutral");
-    expect(leyendo?.statusLabel).toBe("Revisando…");
+    expect(leyendo?.statusLabel).toBe("Revisando");
     expect(leyendo?.description).not.toMatch(/No hay incidencias/);
     // Aunque el estado viejo traiga incidencias, mientras lee no las atribuye a la base nueva.
     expect(revision({ ...contexto, revisionLeyendo: true, hasReviewIssues: true })?.state).toBe("neutral");

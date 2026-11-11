@@ -48,7 +48,7 @@ export async function traerTrabajoDeCampo({
   )) return;
   setError("");
   setHandoffMessage("");
-  setBusy("Trayendo tu trabajo de campo al procesamiento…");
+  setBusy("Trayendo tu trabajo de campo al procesamiento");
   try {
     const result = await apiCargaMonitoreoHandoffPromote(
       selectedMonitoringSourceId ? { source_id: selectedMonitoringSourceId } : {},

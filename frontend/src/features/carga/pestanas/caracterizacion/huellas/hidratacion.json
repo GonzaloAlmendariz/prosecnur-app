@@ -1,0 +1,26 @@
+{
+  "hidratando_error-de-estudio": {
+    "marcado": "1ce069029b3a1aee1fc4b64ee30b03850db58e54794b65b5654d055d176d733f",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "hidratando_error-de-sesion": {
+    "marcado": "ee005b52c7069576a29064ee1d692413c9c21782b8973d71514ebb7d93e9a093",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "hidratando_estudio-en-vuelo_plan": {
+    "marcado": "1f0ba21abf6d80e79179cf4270e3db0d36deba616fbd825cfe82bbc8d0e88b2f",
+    "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
+  },
+  "hidratando_estudio-en-vuelo_revision": {
+    "marcado": "63800d922348519084b01a578d5b93600b90b92c39c8e79e1df160ad69c9dbfe",
+    "pedidos": "d6c7987f7904e9dc37c115d29436bda92a53f1f2bc5d90f743d0f9279431a62e"
+  },
+  "hidratando_sin-sesion_fuentes": {
+    "marcado": "85c0e0b021c90084b055aedff9a849786cf83f004619777cf251db13f9a7acdc",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  },
+  "hidratando_sin-sesion_plan": {
+    "marcado": "47e6da793080f9d51ba42a66110905301d8edf6e2e51dca3f3b6991519f7fb14",
+    "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
+  }
+}
