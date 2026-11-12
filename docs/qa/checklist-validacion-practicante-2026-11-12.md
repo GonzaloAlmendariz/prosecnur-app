@@ -28,7 +28,8 @@ cómo se arma desde la hoja "Codigo" de la base (emparejar las listas por orden,
 1. Levanta una pila propia (nunca el puerto 8787, que es de Gonzalo): backend con `load_all` del árbol y Vite,
    como en el skill `/ver-ui`. Una sola corrida pesada a la vez.
 2. Crea un proyecto y carga la base con su XLSForm. **El practicante ya armó ese XLSForm con la propia
-   plataforma (editor de Formularios)**; no está al 100 %. Pídeselo a Gonzalo y úsalo en lugar de armar uno: así
+   plataforma (editor de Formularios)**; no está al 100 %. También dejó su proyecto de prueba. Las rutas de los
+   dos están en `tmp/validacion-practicante/RUTAS.md`; trabaja sobre copias. Úsalo en lugar de armar uno: así
    la prueba sigue el camino real del practicante, y lo que le falte a ese formulario es en sí un hallazgo.
    Solo si no está disponible, ármalo desde la hoja "Codigo" (ver `INVENTARIO_CHEQUEOS.md`).
 3. En Validación escribe las reglas del inventario, audita y recorre Hallazgos y Cierre, abriendo cada
