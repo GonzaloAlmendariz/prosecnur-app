@@ -37,6 +37,8 @@ type Props = {
   dirty?: boolean;
   disabled?: boolean;
   onChange: (value: InstrumentoOperationalConfig) => void;
+  /** Abre desplegado: dentro del panel `operativo` de Reglas no hay nada más que mostrar. */
+  desplegado?: boolean;
 };
 
 export default function InstrumentoOperationalControls({
@@ -46,8 +48,9 @@ export default function InstrumentoOperationalControls({
   dirty = false,
   disabled = false,
   onChange,
+  desplegado = false,
 }: Props) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(desplegado);
   const [variables, setVariables] = useState<ExploradorVariable[]>([]);
   const [loadingVariables, setLoadingVariables] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -137,7 +140,7 @@ export default function InstrumentoOperationalControls({
             Elige la variable de fecha y las preguntas que se compararán. Estas opciones se guardan al construir el plan.
           </p>
 
-          {loadingVariables && <LoadingBlock variant="inline" minHeight={40} label="Leyendo variables disponibles…" />}
+          {loadingVariables && <LoadingBlock variant="inline" minHeight={40} label="Leyendo las variables de la base" />}
           {loadError && <div className="pulso-operational-error" role="alert">{loadError}</div>}
 
           {upstreamUniverse?.applied && (
@@ -217,7 +220,7 @@ export default function InstrumentoOperationalControls({
                 variables={variables.filter((variable) => !value.duplicates.variables.includes(variable.name))}
                 purpose="duplicates"
                 disabled={disabled}
-                placeholder="Selecciona una pregunta…"
+                placeholder="Selecciona una pregunta"
                 onChange={(variable) => {
                   if (variable) update("duplicates", { variables: [...value.duplicates.variables, variable] });
                 }}
@@ -334,7 +337,7 @@ function VariableSelect({
   purpose,
   onChange,
   disabled,
-  placeholder = "Selecciona una variable…",
+  placeholder = "Selecciona una variable",
 }: {
   label: string;
   value: string;

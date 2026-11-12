@@ -232,12 +232,113 @@ export const RUTA_DRILL: Ruta = [
 
 export function rutasInstrumento(plan: boolean, auditoria: boolean, cambios: Partial<InstrumentoEstado> = {}): Ruta[] {
   return [
+    rutaCatalogo(catalogoDeReglas({ plan, auditoria })),
     ["GET", "/api/validacion/v2/instrumento/estado", estadoInstrumento(plan, auditoria, cambios)],
     ["GET", "/api/validacion/v2/instrumento/variables-excluidas", VARIABLES_EXCLUIDAS],
     ["GET", "/api/validacion/v2/instrumento/resultado", RESULTADO],
     ["GET", "/api/validacion/v2/roles/sugerencias", { ok: true, identidad: { llaves: [], agentes: [] }, periodo: null, caso_valido: [] }],
     RUTA_DRILL,
   ];
+}
+
+// ── Catálogo de reglas (M3) ──────────────────────────────────────────────────
+
+type ReglaDelCatalogoCrudo = Record<string, unknown>;
+
+function reglaDelFormulario(
+  id: string,
+  familia: string,
+  pregunta: [codigo: string, etiqueta: string, tipo: string],
+  cambios: ReglaDelCatalogoCrudo = {},
+): ReglaDelCatalogoCrudo {
+  return {
+    id, id_motor: id, origen: id.startsWith("OP_") ? "operativo" : "formulario", familia,
+    nombre: `Regla de "${pregunta[1]}"`,
+    frase: [{ pregunta: pregunta[0], etiqueta: pregunta[1], tipo: pregunta[2] }, { texto: " es obligatoria." }],
+    clase: "inconsistencia", hallazgo_kind: "inconsistencia_xlsform", tratamiento_previsto: { accion: null, alcance: null },
+    activa: true, motivo_desactivada: null, se_puede_desactivar: true, variable_revisada: pregunta[0], variables: [pregunta[0]],
+    tabla: "principal", expresion_formulario: null, direccion: null, pareja: null,
+    estado_evaluacion: "evaluada", causa_codigo: null, causa: null, ultima_auditoria: null, limites: null,
+    ...cambios,
+  };
+}
+
+function auditada(n: number, base: number, definicion = "que respondieron la pregunta"): ReglaDelCatalogoCrudo {
+  return { ultima_auditoria: { n_casos: n, n_base: base, base_definicion: definicion, porcentaje: base ? n / base : null, nivel: "caso", n_decididos: 0 } };
+}
+
+const FAMILIAS_DEL_CATALOGO: Record<string, string> = {
+  obligatoria: "Obligatorias", salto: "Saltos", restriccion: "Restricciones", calculo: "Valores calculados",
+  rango_num: "Valor fuera de rango", coherencia_2v: "Dos respuestas que deben cuadrar",
+};
+
+/**
+ * El catálogo de reglas de los escenarios: con plan, las reglas del resumen de
+ * la auditoría (`RESUMEN_TABLA`) con su familia y su estado; con auditoría, sus
+ * casos; y las propias que se pasan.
+ */
+export function catalogoDeReglas({ plan, auditoria, propias = [], formulario = plan }: {
+  plan: boolean;
+  auditoria: boolean;
+  propias?: ReglaCustom[];
+  /** Con `false`, el plan está leído pero los escenarios solo miran las propias. */
+  formulario?: boolean;
+}) {
+  const delFormulario = formulario
+    ? [
+        reglaDelFormulario("R_REQ_EDAD", "obligatoria", ["edad", "Edad en años cumplidos", "numerica"], auditoria ? auditada(5, 120, "casos de la base") : {}),
+        reglaDelFormulario("R_RANGO_EDAD", "restriccion", ["edad", "Edad en años cumplidos", "numerica"], {
+          nombre: "\"Edad en años cumplidos\" entre 16 y 99", expresion_formulario: ". >= 16 and . <= 99",
+          ...(auditoria ? auditada(9, 115) : {}),
+        }),
+        reglaDelFormulario("R_SALTO_P21", "salto", ["p21", "Situación laboral", "unica"], {
+          nombre: "Salto de \"Situación laboral\": vacía cuando le correspondía", direccion: "debe", pareja: null,
+          expresion_formulario: "${p4} = '1'", ...(auditoria ? auditada(0, 64, "a quienes les correspondía responder") : {}),
+        }),
+        reglaDelFormulario("R_ODK_RAW", "restriccion", ["q9", "Servicio", "texto"], {
+          estado_evaluacion: "sin_evaluar", causa_codigo: "expresion_no_leida", causa: "Expresión que no se pudo leer",
+          expresion_formulario: "regex(., '^[0-9]{8}$')",
+        }),
+        reglaDelFormulario("R_PULL_SEDE", "calculo", ["sede_ppl", "Sede", "texto"], {
+          estado_evaluacion: "sin_evaluar", causa_codigo: "listado_externo", causa: "Depende de un listado externo",
+        }),
+      ]
+    : [];
+  const deLasPropias = propias.map((r): ReglaDelCatalogoCrudo => ({
+    ...reglaDelFormulario(r.id, r.tipo, [r.variables[0] ?? "edad", "Edad en años cumplidos", "numerica"]),
+    id_motor: r.id, origen: "propia", nombre: r.nombre, activa: r.activa,
+    clase: r.hallazgo_kind === "caso_validar" ? "caso_a_revisar" : "inconsistencia",
+    hallazgo_kind: r.hallazgo_kind ?? "caso_validar",
+    tratamiento_previsto: { accion: r.planned_action_type ?? null, alcance: r.recommended_scope ?? null },
+    frase: [{ texto: "Se marca cuando " }, { pregunta: r.variables[0] ?? "edad", etiqueta: "Edad en años cumplidos", tipo: "numerica" }, { texto: " está fuera de lo esperado." }],
+  }));
+  const reglas: ReglaDelCatalogoCrudo[] = [...delFormulario, ...deLasPropias];
+  const claves = [...new Set(reglas.map((r) => `${String(r.origen)}|${String(r.familia)}`))];
+  return {
+    ok: true, base_nombre: null, variable: null, plan_construido: plan,
+    auditada_en: auditoria ? "2026-11-08T15:00:00Z" : null,
+    n_total: reglas.length, n_activas: reglas.filter((r) => r.activa).length,
+    n_sin_evaluar: reglas.filter((r) => r.estado_evaluacion === "sin_evaluar").length,
+    por_origen: {
+      formulario: reglas.filter((r) => r.origen === "formulario").length,
+      operativo: reglas.filter((r) => r.origen === "operativo").length,
+      propia: reglas.filter((r) => r.origen === "propia").length,
+    },
+    familias: claves.map((clave) => {
+      const [origen, familia] = clave.split("|");
+      const de = reglas.filter((r) => r.origen === origen && r.familia === familia);
+      return {
+        origen, familia, nombre: FAMILIAS_DEL_CATALOGO[familia] ?? familia, n: de.length,
+        n_activas: de.filter((r) => r.activa).length, n_sin_evaluar: de.filter((r) => r.estado_evaluacion === "sin_evaluar").length,
+      };
+    }),
+    reglas,
+    avisos: [],
+  };
+}
+
+export function rutaCatalogo(catalogo: ReturnType<typeof catalogoDeReglas>): Ruta {
+  return ["GET", /^\/api\/validacion\/v2\/reglas\/catalogo/, catalogo];
 }
 
 // ── Explorar ─────────────────────────────────────────────────────────────────
@@ -352,6 +453,7 @@ export const SEMILLAS: ReglaSemilla[] = [
 
 export function rutasReglasPropias(reglas: ReglaCustom[], semillas: ReglaSemilla[] = SEMILLAS): Ruta[] {
   return [
+    rutaCatalogo(catalogoDeReglas({ plan: true, auditoria: false, propias: reglas, formulario: false })),
     ["GET", "/api/validacion/v2/reglas_custom", { ok: true, base_nombre: null, reglas }],
     ["GET", "/api/validacion/v2/reglas_custom/semillas", { ok: true, semillas }],
     ["POST", "/api/validacion/v2/reglas_custom", (_url: string, cuerpo: string) => ({

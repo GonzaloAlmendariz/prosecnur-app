@@ -13,6 +13,12 @@
  * el detalle de transición sigue, y piden lo mismo que antes. El enlace viejo
  * (`pestana=instrumento&panel=regla`) abre Reglas con su foco: lo fija
  * `instrumento_panel-alias-cierra-en-hallazgos`, que conserva su nombre.
+ *
+ * Rebanada V1 del plan de fidelidad: Reglas es la mesa del catálogo (M3). El
+ * plan se lee con "Leer el formulario" (mismo POST), los controles del
+ * operativo y los roles viven en sus paneles (`panel=operativo`,
+ * `panel=roles`) y las preguntas fuera de la auditoría son una familia de la
+ * columna. Los escenarios `reglas_*` fijan lo nuevo de la mesa.
  */
 import { describe, expect } from "vitest";
 import { useValidacionStore } from "../store";
@@ -71,9 +77,10 @@ describe("Validación, Reglas del formulario: estados", () => {
     fijar("instrumento_sin-insumos");
   });
 
-  escenario("instrumento_sin-plan", "una base sin plan: paso 1 con la secuencia y el botón de construir", async () => {
+  escenario("instrumento_sin-plan", "una base sin plan: el vacío del formulario con Leer el formulario", async () => {
     await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutas(false, false) });
-    expect(hay("button", "Construir plan")).toBe(true);
+    expect(hay(".pulso-panel-de-mesa--reglas", "El plan del formulario todavía no se leyó")).toBe(true);
+    expect(hay("button", "Leer el formulario")).toBe(true);
     fijar("instrumento_sin-plan");
   });
 
@@ -148,6 +155,9 @@ describe("Validación, Reglas del formulario: panel de la regla", () => {
     expect(document.querySelector("#validacion-tab-reglas")?.getAttribute("aria-selected")).toBe("true");
     expect(hay('button[aria-label="Cerrar panel"]')).toBe(false);
     expect(direccionActual()).toBe(entrada);
+    // Plan de fidelidad, rebanada V1: el foco es la ficha de esa regla en su familia.
+    expect(hay(".pulso-panel-de-mesa--ficha .pulso-panel-de-mesa-titulo", 'Regla de "Edad en años cumplidos"')).toBe(true);
+    expect(hay('.pulso-rl-familia[aria-current="true"]', "Obligatorias")).toBe(true);
     fijar("instrumento_panel-alias-cierra-en-hallazgos");
   });
 });
@@ -159,10 +169,17 @@ describe("Validación, controles del operativo sin aplicar entre pestañas", () 
   escenario("instrumento_controles-sin-aplicar-entre-pestanas", "un control editado en Reglas bloquea la auditoría en Hallazgos y sigue al volver", async () => {
     const SWITCH = 'button[role="switch"][aria-label="Declarar Identidad del caso"]';
     await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutas(true, true) });
+    // Los roles viven en su panel, que se abre desde la familia "Del operativo" (D-F7b).
+    await pulsar(".pulso-rl-familias-accesos button", "Cómo se identifica un caso");
+    expect(direccionActual()).toBe("/validacion?pestana=reglas&panel=roles");
     expect(control(SWITCH).getAttribute("aria-checked")).toBe("false");
     await pulsar(SWITCH);
     expect(control(SWITCH).getAttribute("aria-checked")).toBe("true");
-    expect(hay("button", "Aplicar y reconstruir plan")).toBe(true);
+    expect(hay("button", "Aplicar y reconstruir el plan")).toBe(true);
+    await pulsar('button[aria-label="Cerrar cómo se identifica un caso"]');
+    // Con cambios sin aplicar, Auditar se bloquea y la franja dice por qué.
+    expect((control(".pulso-cabecera-pestana-acciones button", "Auditar") as HTMLButtonElement).disabled).toBe(true);
+    expect(hay(".pulso-franja-aviso", "Los controles del operativo tienen cambios sin aplicar")).toBe(true);
 
     await pulsar("#validacion-tab-hallazgos");
     expect((control("button", "Ejecutar de nuevo") as HTMLButtonElement).disabled).toBe(true);
@@ -170,26 +187,27 @@ describe("Validación, controles del operativo sin aplicar entre pestañas", () 
 
     await pulsar("button", "Ir a Reglas");
     expect(direccionActual()).toBe("/validacion?pestana=reglas");
+    await pulsar(".pulso-rl-familias-accesos button", "Cómo se identifica un caso");
     expect(control(SWITCH).getAttribute("aria-checked")).toBe("true");
-    expect(hay("button", "Aplicar y reconstruir plan")).toBe(true);
+    expect(hay("button", "Aplicar y reconstruir el plan")).toBe(true);
     fijar("instrumento_controles-sin-aplicar-entre-pestanas");
   });
 
   escenario("instrumento_controles-sin-aplicar-por-base", "el cambio sin aplicar de una base no aparece en la otra", async () => {
     const SWITCH = 'button[role="switch"][aria-label="Declarar Identidad del caso"]';
-    await montar({ ...DOS_BASES, pestana: "reglas", rutas: rutas(true, true) });
+    await montar({ ...DOS_BASES, entrada: "/validacion?pestana=reglas&panel=roles", rutas: rutas(true, true) });
     await pulsar(SWITCH);
     expect(control(SWITCH).getAttribute("aria-checked")).toBe("true");
     // La otra base pasa a ser la activa en el backend; el store no se reinicia.
     await montar({
       estado: { ...DOS_BASES.estado, active_base: "docentes" },
       estudio: { ...DOS_BASES.estudio, active_base: "docentes" },
-      pestana: "reglas",
+      entrada: "/validacion?pestana=reglas&panel=roles",
       rutas: rutas(true, true),
     });
     expect(useValidacionStore.getState().baseNombre).toBe("docentes");
     expect(control(SWITCH).getAttribute("aria-checked")).toBe("false");
-    expect(hay("button", "Aplicar y reconstruir plan")).toBe(false);
+    expect((control("button", "Aplicar y reconstruir el plan") as HTMLButtonElement).disabled).toBe(true);
     // Lo editado en la otra base sigue guardado para ella.
     expect(Object.keys(useValidacionStore.getState().controlesSinAplicar)).toEqual(["estudiantes"]);
     fijar("instrumento_controles-sin-aplicar-por-base");
@@ -228,9 +246,9 @@ describe("Validación, Hallazgos tras ejecutar la auditoría", () => {
 });
 
 describe("Validación, Reglas del formulario: lo que se guarda", () => {
-  escenario("instrumento_construir-plan", "construir el plan manda la configuración del operativo", async () => {
+  escenario("instrumento_construir-plan", "leer el formulario manda la configuración del operativo", async () => {
     await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutas(false, false) });
-    await pulsar("button", "Construir plan");
+    await pulsar("button", "Leer el formulario");
     fijar("instrumento_construir-plan");
   });
 
@@ -254,5 +272,69 @@ describe("Validación, Reglas del formulario: lo que se guarda", () => {
     expect(control('button[role="switch"][aria-label="Excluir obs_campo"]').getAttribute("aria-checked")).toBe("true");
     await pulsar('button[role="switch"][aria-label="Excluir obs_campo"]');
     fijar("instrumento_reponer-variable");
+  });
+});
+
+// Plan de fidelidad, rebanada V1: la mesa de Reglas con el catálogo (M3).
+describe("Validación, Reglas: la mesa del catálogo", () => {
+  const ACTIVA: Ruta = ["PATCH", /^\/api\/validacion\/v2\/instrumento\/regla\/[^/]+\/activa$/, (url: string, cuerpo: string) => ({
+    ok: true, id_regla: decodeURIComponent(url.split("/").at(-2) ?? ""), activa: (JSON.parse(cuerpo || "{}") as { activa?: boolean }).activa ?? true, n_desactivadas: 1,
+  })];
+
+  escenario("reglas_familia-saltos", "familia=salto abre los saltos y la ficha con sus dos sentidos y su base", async () => {
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&familia=salto", rutas: rutas(true, true) });
+    expect(hay('.pulso-rl-familia[aria-current="true"]', "Saltos")).toBe(true);
+    expect(hay(".pulso-panel-de-mesa--ficha .pulso-rl-sentido", "Le correspondía y está vacía")).toBe(true);
+    expect(hay(".pulso-panel-de-mesa--ficha .pulso-rl-hechos", "64 a quienes les correspondía responder")).toBe(true);
+    expect(hay(".pulso-panel-de-mesa--ficha .pulso-rl-expresion", "${p4} = '1'")).toBe(true);
+    expect(hay(".pulso-cifras-pestana", "8 nov")).toBe(true);
+    fijar("reglas_familia-saltos");
+  });
+
+  escenario("reglas_sin-evaluar-convierte", "una regla sin evaluar dice por qué y se convierte en regla propia", async () => {
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&familia=sin-evaluar&foco=R_ODK_RAW", rutas: rutas(true, true) });
+    expect(hay('.pulso-table [role="row"], .pulso-table tr', "Expresión que no se pudo leer")).toBe(true);
+    expect(hay(".pulso-panel-de-mesa--ficha", "Por qué no se evaluó")).toBe(true);
+    await pulsar(".pulso-panel-de-mesa--ficha button", "Convertir en regla propia");
+    expect(direccionActual()).toBe("/validacion?pestana=reglas&familia=sin-evaluar&panel=regla&foco=nueva&pregunta=q9");
+    fijar("reglas_sin-evaluar-convierte");
+  });
+
+  escenario("reglas_desactiva-con-motivo", "desactivar una regla del formulario pide el motivo y lo manda por su ruta", async () => {
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&familia=obligatoria", rutas: [ACTIVA, ...rutas(true, true)] });
+    await pulsar('button[role="switch"][aria-label^="Desactivar la regla"]');
+    expect(hay('[role="dialog"]', "Motivo para desactivar la regla")).toBe(true);
+    expect((control(".pulso-dialog__actions button", "Desactivar") as HTMLButtonElement).disabled).toBe(true);
+    await escribir('input[aria-label="Motivo para desactivar la regla"]', "Se revisa en el consolidado");
+    await pulsar(".pulso-dialog__actions button", "Desactivar");
+    fijar("reglas_desactiva-con-motivo");
+  });
+
+  escenario("reglas_excluye-pregunta", "dejar una pregunta fuera de la auditoría desde su familia manda lo mismo que antes", async () => {
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&familia=fuera-de-auditoria", rutas: rutas(true, true) });
+    await pulsar('button[role="switch"][aria-label="Excluir edad"]');
+    await escribir('input[aria-label="Motivo para excluir edad"]', "La edad se valida en otra base");
+    await pulsar(".pulso-dialog__actions button", "Excluir");
+    fijar("reglas_excluye-pregunta");
+  });
+
+  escenario("reglas_audita", "Auditar lanza la auditoría completa y relee la mesa al terminar", async () => {
+    const JOB = {
+      id: "job-aud", kind: "validacion.v2.auditoria", status: "done", started_at: "2026-01-01T00:00:00Z",
+      finished_at: "2026-01-01T00:00:01Z", has_file_result: false, result_filename: null, result_data: {}, progress: null, error: "",
+    };
+    await montar({
+      ...UNA_BASE,
+      pestana: "reglas",
+      rutas: [
+        ["POST", "/api/validacion/v2/auditoria", { ok: true, job_id: "job-aud", n_reglas: 6, n_plan: 6, n_propias: 0 }],
+        ["GET", "/api/jobs/job-aud", JOB],
+        ...rutas(true, true),
+      ],
+    });
+    await pulsar(".pulso-cabecera-pestana-acciones button", "Auditar");
+    await asentar(20);
+    expect(direccionActual()).toBe("/validacion?pestana=reglas");
+    fijar("reglas_audita");
   });
 });

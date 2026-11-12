@@ -16,19 +16,19 @@
     "pedidos": "943c193762d9577f1c0eeab9f7760d3201c5b26802d0c285c98ba52770479021"
   },
   "instrumento_construir-plan": {
-    "marcado": "4770a7a59bb305813d0a8f6eff24b0be6a41b1eaa548db1ebd5f85e04626d70c",
-    "pedidos": "2b7f200808d2394d652e877f198e5b170a20718540c2737a48e376d80f9783a3",
+    "marcado": "fdeea5c0f22a26a5e10701629dc20f58de9a57d2aa2f27594c21657fe4e8a6fa",
+    "pedidos": "44927d75ac2a3fba1312716b91380ddd97a57cd854a940da6bff0d3419c85b77",
     "guardado": [
       "POST /api/validacion/v2/instrumento/plan [base=default]\n{\"operational_config\":{\"version\":2,\"field_period\":{\"enabled\":false,\"variable\":\"\",\"start_date\":\"\",\"end_date\":\"\",\"timezone\":\"America/Lima\"},\"duplicates\":{\"enabled\":false,\"variables\":[],\"matching_method\":\"response_similarity\",\"similarity_threshold\":0.9,\"minimum_coverage\":0.8},\"identity\":{\"enabled\":false,\"variables\":[],\"agent_variable\":\"\"},\"caso_valido\":{\"enabled\":false,\"condiciones\":[]},\"abiertas\":{\"enabled\":false,\"variables\":[]}}}"
     ]
   },
   "instrumento_controles-sin-aplicar-entre-pestanas": {
-    "marcado": "086dd897731f6675da2fa468bef426ff0c135b7e0f6261b2eedebc8c7e69f705",
-    "pedidos": "cba34602e7e4252727353d480b3e9e2968aa3882f824970e72b9301928f01107"
+    "marcado": "3177c07f13a38f6d5dfca7f69af3a85cfdb6299dfc52b4a580712d5c52c639b7",
+    "pedidos": "0519eb7f0ffb3dfe4d78d6ea8673a95096d894d15f0fb98eaf6dfeb2361102bf"
   },
   "instrumento_controles-sin-aplicar-por-base": {
-    "marcado": "080f0298e8cae87383715e8f93c3bc36872669a7cb01865d18650f2e6298f719",
-    "pedidos": "b665a19131465705632cb1f02b93335695577d575fe254e9e1318d512032da83"
+    "marcado": "848a15fe3124fab0a43d582d5212a43118940ef00020ce61f7c5eb2208591c73",
+    "pedidos": "333f16ea185517accc756b8e3dd2fccce5289862154974c69bd7e65a00f6cc20"
   },
   "instrumento_dos-bases": {
     "marcado": "df6334afc83180edc66921863915cd22a423c2ea2d7516918c183211840e4009",
@@ -42,8 +42,8 @@
     ]
   },
   "instrumento_error-de-estado": {
-    "marcado": "4793657f59eaff7819a2851a6476305f1cc52b04cb957ebfa4399e850f063474",
-    "pedidos": "f145eb3d3de271f37f5ac7709b60834e0094156d5c197947a6685c8fc0f1ee55"
+    "marcado": "1d8ea8e9757e556ae2c91af09fceb440a11c8f5ba0009f011d0fe746e9ae048c",
+    "pedidos": "1a1e5a9f6890b2383f2673e6882be3efc6af9fd918bf4845667058b57643612a"
   },
   "instrumento_excluir-variable": {
     "marcado": "88bcc4c4d443f35f20e9970042a553b94307c131e0404256fee72df913fa4edd",
@@ -57,8 +57,8 @@
     "pedidos": "b5218420f84c71a0369399a9c17a4ac253482736b7bb642e3d1fab6c8db52ff8"
   },
   "instrumento_panel-alias-cierra-en-hallazgos": {
-    "marcado": "c52dddfe71dd4544adccf87b78d476a20b70392df5d840439237c0ac50cffc59",
-    "pedidos": "7e35490ce90f1f3919d53bc54d8ce5e081f576e35ac9eae646301d9471245b2e"
+    "marcado": "a96e6d9c1ecb6526d9ddfe6e40c9331658f97ca477e6788aa44d2b38e2723786",
+    "pedidos": "1a1e5a9f6890b2383f2673e6882be3efc6af9fd918bf4845667058b57643612a"
   },
   "instrumento_panel-por-clic": {
     "marcado": "cd8f180e06a4b32f2324a5edac6ee609c2ca09cdf3317b851bbc7135f1d09608",
@@ -98,7 +98,36 @@
     "pedidos": "e94eac00b50f09637c877475483097230c10775f57a8c2115f520092f51a1c19"
   },
   "instrumento_sin-plan": {
-    "marcado": "4770a7a59bb305813d0a8f6eff24b0be6a41b1eaa548db1ebd5f85e04626d70c",
-    "pedidos": "7e35490ce90f1f3919d53bc54d8ce5e081f576e35ac9eae646301d9471245b2e"
+    "marcado": "fdeea5c0f22a26a5e10701629dc20f58de9a57d2aa2f27594c21657fe4e8a6fa",
+    "pedidos": "1a1e5a9f6890b2383f2673e6882be3efc6af9fd918bf4845667058b57643612a"
+  },
+  "reglas_audita": {
+    "marcado": "ca2d063facb226adb101bd3fb5e4789e96221691adb623d372cd16f7d247567d",
+    "pedidos": "52708f82dc005888174447b177c57b7132f825a146cf2ce5995b98ea79dfa945",
+    "guardado": [
+      "POST /api/validacion/v2/auditoria [base=default]\n"
+    ]
+  },
+  "reglas_desactiva-con-motivo": {
+    "marcado": "888449de936f27ff724086d37bdc17fe98d4b167db796ddd2e98bbd8741a5236",
+    "pedidos": "525a435aa495fe877085cd4944ccbeed45fe6e83fce835b2cb48ab7b0efb1351",
+    "guardado": [
+      "PATCH /api/validacion/v2/instrumento/regla/R_REQ_EDAD/activa [base=default]\n{\"activa\":false,\"motivo\":\"Se revisa en el consolidado\"}"
+    ]
+  },
+  "reglas_excluye-pregunta": {
+    "marcado": "0e372646b71b11caa8fc5906da450a49b923768e9d1e285ef88c309cc57f93c1",
+    "pedidos": "b3b701d65263cc6cc83c85f52e30eca96862f7a53dd43be9e7a1dac6e8d04f61",
+    "guardado": [
+      "POST /api/validacion/v2/instrumento/variables-excluidas [base=default]\n{\"variables\":[\"obs_campo\",\"edad\"],\"motivos\":{\"edad\":\"La edad se valida en otra base\"}}"
+    ]
+  },
+  "reglas_familia-saltos": {
+    "marcado": "0103a9663e2ae35ee4d0645cd0867175f795cd7cda94434fc61601ccb5361ec6",
+    "pedidos": "1a1e5a9f6890b2383f2673e6882be3efc6af9fd918bf4845667058b57643612a"
+  },
+  "reglas_sin-evaluar-convierte": {
+    "marcado": "2725554cfedf7d1716c88a1a1b53ccaa27dcde823cf5eca37b36297cb3fb63b7",
+    "pedidos": "f4eaf9c121bdd2d0bf5b8ecc40c1356640ea6529debfa186f145e1d8d313ffb4"
   }
 }

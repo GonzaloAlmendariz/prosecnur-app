@@ -1,0 +1,615 @@
+/* Mesa de Reglas (plan de fidelidad de Validación, rebanada V1). Vara:
+   tmp/revamp-procesamiento/vistas.js (`validacion-reglas`, 607-662) y sus
+   capturas. Los marcos son del kit (MesaDePestana, PanelDeMesa, FranjaRecorrido,
+   FraseRegla, CifraHallazgo); aquí solo va lo de dentro de cada contenedor.
+
+   Ningún bloque con marco propio: la fila elegida lleva el fondo suave del
+   módulo y su anillo, como la lista de Codificar; lo demás va sobre el fondo
+   del contenedor o en un pozo sin borde. Solo tokens; letra por rol. */
+
+/* ---------- La pestaña llena el cuerpo de Validación ---------- */
+
+.pulso-validacion-panel-body:has(> .pulso-validacion-pestana-reglas) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pulso-validacion-pestana-reglas {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------- Piezas comunes ---------- */
+
+.pulso-rl-punto {
+  display: inline-block;
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  margin-inline-start: var(--pulso-space-2);
+  border-radius: 50%;
+  background: var(--pulso-text-faint);
+  vertical-align: middle;
+}
+
+.pulso-rl-punto[data-tono="aviso"] {
+  background: var(--pulso-warn-accent);
+}
+
+.pulso-rl-seccion-rotulo,
+.pulso-rl-familias-rotulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-rl-familias-n {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.pulso-rl-codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-rl-valor {
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-rl-nota,
+.pulso-rl-pie-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-rl-pie-nota {
+  flex: 1 1 auto;
+}
+
+/* Clase del hallazgo: el punto rojo de la inconsistencia, el ámbar del caso a revisar. */
+.pulso-rl-clase {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-rl-clase::before {
+  content: "";
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--pulso-danger-solid);
+}
+
+.pulso-rl-clase[data-clase="revisar"]::before {
+  background: var(--pulso-warn-accent);
+}
+
+/* ---------- Familias ---------- */
+
+.pulso-rl-familias {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-2) var(--pulso-space-4);
+}
+
+.pulso-rl-familias-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-rl-familias-rotulo {
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+}
+
+.pulso-rl-familias-lista,
+.pulso-rl-reglas,
+.pulso-rl-sugeridas-lista,
+.pulso-rl-avisos,
+.pulso-rl-sentidos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-rl-familias-lista {
+  gap: 2px;
+}
+
+.pulso-rl-familia,
+.pulso-rl-regla-boton {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: start;
+  white-space: normal;
+  transform: none;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-rl-familia {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-height: 40px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-rl-familia-nombre {
+  min-width: 0;
+}
+
+.pulso-rl-familia-n {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) {
+  .pulso-rl-familia:hover:not([aria-current]),
+  .pulso-rl-regla-boton:hover:not([aria-current]) {
+    border: 0;
+    background: var(--pulso-surface-2);
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+/* Lo elegido lleva el fondo suave del módulo y su anillo; sin franja lateral. */
+.pulso-rl-familia[aria-current],
+.pulso-rl-regla-boton[aria-current] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 40%, var(--pulso-border));
+}
+
+.pulso-rl-familia:focus-visible,
+.pulso-rl-regla-boton:focus-visible {
+  outline-offset: -2px;
+}
+
+.pulso-rl-familias-accesos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  padding: var(--pulso-space-1) var(--pulso-space-3) 0;
+}
+
+/* ---------- Lista de reglas ---------- */
+
+.pulso-rl-reglas {
+  gap: var(--pulso-space-1);
+  padding: var(--pulso-space-2);
+}
+
+.pulso-rl-regla {
+  position: relative;
+}
+
+.pulso-rl-regla-boton {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  /* El interruptor va encima del botón, en el primer renglón: el nombre le deja su lugar. */
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-3);
+}
+
+.pulso-rl-regla-nombre {
+  padding-inline-end: 48px;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
+.pulso-rl-regla-frase {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.9;
+}
+
+.pulso-rl-regla-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-rl-regla-tratamiento {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-rl-regla-casos {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  margin-inline-start: auto;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-rl-regla-casos b {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-rl-regla-casos small {
+  padding-inline-start: var(--pulso-space-3);
+  border-inline-start: 1px solid var(--pulso-border);
+  font-size: inherit;
+}
+
+.pulso-rl-regla-causa {
+  color: var(--pulso-warn-fg);
+  white-space: normal;
+}
+
+.pulso-rl-regla-interruptor {
+  position: absolute;
+  inset-block-start: var(--pulso-space-3);
+  inset-inline-end: var(--pulso-space-3);
+  display: inline-flex;
+}
+
+/* Una regla apagada se lee igual, en un tono más bajo. */
+.pulso-rl-regla[data-inactiva] .pulso-rl-regla-frase,
+.pulso-rl-regla[data-inactiva] .pulso-rl-regla-nombre {
+  opacity: 0.6;
+}
+
+.pulso-rl-causa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-rl-causa .pulso-rl-punto {
+  margin-inline-start: 0;
+}
+
+.pulso-rl-pie-lista {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-rl-fuera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-2) var(--pulso-space-2);
+}
+
+.pulso-rl-fuera > .pulso-input {
+  margin-inline: var(--pulso-space-2);
+}
+
+.pulso-rl-fuera .pulso-rl-reglas {
+  padding: 0;
+}
+
+.pulso-rl-fuera .pulso-rl-nota {
+  padding-inline: var(--pulso-space-3);
+}
+
+/* ---------- Sugeridas al mirar la base ---------- */
+
+.pulso-rl-sugeridas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin-block-start: auto;
+  padding: var(--pulso-space-3) var(--pulso-space-5) var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-rl-sugerida {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding-block: var(--pulso-space-2);
+}
+
+.pulso-rl-sugerida + .pulso-rl-sugerida {
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-rl-sugerida-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-rl-sugerida-texto span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* ---------- Ficha ---------- */
+
+/* Con la columna angosta (264 hasta 1400 de ventana) las dos acciones del pie
+   no caben lado a lado: bajan una debajo de otra, enteras. */
+.pulso-panel-de-mesa--ficha .pulso-panel-de-mesa-pie {
+  flex-wrap: wrap;
+}
+
+.pulso-panel-de-mesa--ficha .pulso-panel-de-mesa-pie > .pulso-button {
+  flex: 1 1 auto;
+}
+
+.pulso-rl-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
+}
+
+.pulso-rl-ficha-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-rl-ficha-texto {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.5;
+}
+
+.pulso-rl-ficha-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-rl-sentidos {
+  gap: var(--pulso-space-2);
+}
+
+.pulso-rl-sentido {
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 0;
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: start;
+  white-space: normal;
+}
+
+button.pulso-rl-sentido {
+  cursor: pointer;
+}
+
+.pulso-rl-sentido[aria-current] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-rl-sentido small {
+  margin-inline-start: auto;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.pulso-rl-sentido b {
+  font-size: var(--pulso-type-title-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-rl-expresion {
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  overflow-x: auto;
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pulso-rl-hechos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.pulso-rl-hechos > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.8fr) minmax(0, 2fr);
+  gap: var(--pulso-space-3);
+  align-items: baseline;
+  padding-block: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-rl-hechos > div:last-child {
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-rl-hechos dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-rl-hechos dd {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--pulso-type-body-size);
+  overflow-wrap: anywhere;
+}
+
+.pulso-rl-avisos {
+  gap: var(--pulso-space-2);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+.pulso-rl-avisos li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-rl-avisos .pulso-rl-punto {
+  margin-inline-start: 0;
+}
+
+/* ---------- Menú, diálogos, carga y error ---------- */
+
+.pulso-rl-menu {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 220px;
+  padding: var(--pulso-space-1);
+}
+
+.pulso-rl-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  text-align: start;
+  cursor: pointer;
+}
+
+.pulso-rl-menu button:hover:not(:disabled),
+.pulso-rl-menu button:focus-visible {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-rl-menu button:disabled {
+  color: var(--pulso-text-faint);
+  cursor: not-allowed;
+}
+
+.pulso-rl-motivo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-rl-motivo p,
+.pulso-rl-confirmar {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.5;
+}
+
+.pulso-rl-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+}
+
+.pulso-rl-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-3);
+  grid-column: 1 / -1;
+}
+
+/* Las acciones de la cabecera de la mesa no se parten en dos líneas. */
+.pulso-validacion-pestana-reglas .pulso-cabecera-pestana-acciones {
+  flex-wrap: nowrap;
+}
+
+/* Los controles del operativo dentro de su panel lateral: la cabecera del
+   componente toma la disposición angosta (la de su hoja a menos de 760 px de
+   ventana), para que los estados no pisen la descripción. */
+.pulso-rl-operativo .pulso-operational-disclosure {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.pulso-rl-operativo .pulso-operational-chips {
+  grid-column: 2 / -1;
+}
+
+.pulso-rl-operativo .pulso-operational-edit-label {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+/* Las dos tarjetas (periodo y casi iguales) una debajo de otra: en el ancho del panel no caben juntas. */
+.pulso-rl-operativo .pulso-operational-card-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ---------- Ventana baja ---------- */
+
+@media (max-height: 820px) {
+  .pulso-rl-familias {
+    gap: var(--pulso-space-3);
+    padding-block: var(--pulso-space-2);
+  }
+
+  .pulso-rl-familia {
+    min-height: 34px;
+    padding-block: var(--pulso-space-1);
+  }
+
+  .pulso-rl-regla-boton {
+    gap: var(--pulso-space-1);
+    padding-block: var(--pulso-space-2);
+  }
+}

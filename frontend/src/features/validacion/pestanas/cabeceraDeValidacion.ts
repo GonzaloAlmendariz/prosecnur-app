@@ -23,7 +23,7 @@ export type CabeceraDeDatos = {
 };
 
 export const PENDIENTES_EXPLORAR = "preguntas, casos y versión de la base: rebanada V5 (Explorar)";
-export const PENDIENTES_REGLAS = "reglas activas y sin evaluar: pedido M3; última auditoría: rebanada V1 (estado de la auditoría); acciones Nueva regla y Auditar: V1 y V2";
+export const PENDIENTES_REGLAS = "reglas activas, sin evaluar y última auditoría: se leen del catálogo de reglas (M3) y llegan con la mesa (rebanada V1)";
 export const PENDIENTES_HALLAZGOS = "hallazgos por decidir: decisión D-F1; reglas listas y casos por auditar: pedido M3; acción Volver a auditar: V3";
 export const PENDIENTES_CIERRE = "hallazgos decididos: decisión D-F1; valores cambiados: pedido M5; última auditoría: rebanada V4; acción Reabrir la base: V4 y D-F8";
 

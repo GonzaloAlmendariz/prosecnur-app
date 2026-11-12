@@ -1,60 +1,128 @@
 /**
- * Pestaña Reglas de Validación (ADR 0142, rebanada V2 de P6).
+ * Pestaña Reglas de Validación (plan de fidelidad, rebanada V1; prototipo
+ * `validacion-reglas`): la mesa del catálogo de reglas (`reglas/lista/`) y el
+ * panel de regla propia (`reglas/panel/`, `panel=regla`), más los paneles del
+ * operativo (`panel=operativo`, `panel=roles`).
  *
- * Montaje de transición: arriba el plan de reglas del formulario (con los
- * controles del operativo y los roles), tal como era el paso 1 de "Reglas del
- * formulario"; debajo, las reglas propias, tal como eran "Criterios de
- * revisión". La auditoría y sus resultados pasaron a Hallazgos, y el paquete
- * metodológico a Cierre. V3 rehace esta pestaña con su catálogo y su panel.
+ * Reemplaza el montaje de transición de la rebanada V2 de P6, que apilaba el
+ * plan del formulario (`instrumento/PlanDelFormulario.tsx`) y las reglas propias
+ * (`tabs/ReglasCustomTab.tsx`). Lo que hacían está en la mesa: el plan en "Más
+ * acciones" y en el vacío "Leer el formulario", los controles del operativo y
+ * los roles en sus paneles, la lista y el interruptor de las propias en su
+ * familia, las sugeridas bajo la lista de las propias y "Ejecutar" en "Auditar".
  *
- * Readiness: la marca de la pestaña va en la raíz; mientras el plan o las
- * reglas propias cargan, la carga de bloque del kit (`CargaDeBloque`) la retiene.
+ * Readiness: la marca de la pestaña va en la raíz; mientras el catálogo se lee,
+ * la carga de bloque del kit (`CargaDeBloque`, en el esqueleto de la mesa) la
+ * retiene.
  */
-import { useEffect } from "react";
-import { AlertTriangle } from "../../../vendor/lucide-react";
-import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
-import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { preguntasDelCatalogo } from "../reglas/panel/useCatalogoDeReglas";
+import { PanelRegla, type AlGuardarRegla } from "../reglas/panel/PanelRegla";
+import { FOCO_NUEVA, searchSinPanelRegla, usePanelRegla } from "../reglas/panel/usePanelRegla";
+import { comoReglaPropia } from "../reglas/tiposDelMotor";
+import { MesaDeReglas } from "../reglas/lista/MesaDeReglas";
+import { PanelesDelOperativo } from "../reglas/lista/PanelesDelOperativo";
+import { useMesaDeReglas } from "../reglas/lista/useMesaDeReglas";
+import "../reglas/lista/lista.css";
 import { useInstrumento } from "../instrumento/useInstrumento";
-import PlanDelFormulario from "../instrumento/PlanDelFormulario";
-import ReglasCustomTab from "../tabs/ReglasCustomTab";
+import { searchDePestana, usePestanaValidacion } from "../pestanaDireccionable";
 import { useValidacionStore } from "../store";
-import CabeceraDeTransicion from "./CabeceraDeTransicion";
-import { cabeceraDeReglas } from "./cabeceraDeValidacion";
+import type { ExploradorVariable, ReglaSemilla } from "../types";
 
 export default function PestanaReglas() {
-  // Reglas no dibuja la auditoría: no pide su resultado ni las variables fuera de auditoría.
+  // El plan del formulario y los controles del operativo: Reglas no dibuja la auditoría.
   const inst = useInstrumento({ conAuditoria: false });
-  const { loading, estado, busy, error } = inst;
+  const { irAPestana } = usePestanaValidacion();
+  const bumpVersion = useValidacionStore((s) => s.bumpVersion);
+  const setPrefill = useValidacionStore((s) => s.setPrefill);
+  const panel = usePanelRegla();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const mesa = useMesaDeReglas({
+    // "Guardar y auditar" en el panel: al terminar, a Hallazgos (como desde la rebanada V2).
+    alTerminarAuditoriaDelPanel: () => {
+      bumpVersion();
+      irAPestana("hallazgos", { source: "reglas_custom", at: Date.now() });
+    },
+  });
+
   // El inventario compartido (`inventarioDeBase.ts`) vale mientras la pestaña
   // está montada: al salir se olvida, para no servir uno viejo si Carga cambió
   // las variables entretanto.
   const setInventario = useValidacionStore((s) => s.setInventario);
   useEffect(() => () => setInventario(null), [setInventario]);
 
-  return (
-    <div
-      className="pulso-validacion-pestana-reglas"
-      data-audit-ready="validacion-reglas"
-      style={{ display: "flex", flexDirection: "column", gap: "var(--pulso-space-4)", minWidth: 0 }}
-    >
-      <CabeceraDeTransicion pestana="reglas" {...cabeceraDeReglas()} />
-      {loading ? (
-        <CargaDeBloque label="Cargando el plan de reglas" />
-      ) : !estado ? (
-        <EmptyState
-          icon={<AlertTriangle size={20} />}
-          title="Sin estado"
-          hint="Carga una base primero."
-        />
-      ) : (
-        <div className="pulso-instrumento-workbench">
-          <PlanDelFormulario inst={inst} estado={estado} />
-          {busy && <LoadingBlock variant="inline" label={busy} />}
-          {error && <ErrorBlock label="Error" detail={error} />}
-        </div>
-      )}
+  const lista = mesa.lectura.fase === "lista" ? mesa.lectura : null;
+  const { inventario, propias: propiasLeidas, semillas } = mesa.complementos;
+  const variables = useMemo<ExploradorVariable[]>(() => {
+    if (inventario) return inventario.secciones.flatMap((s) => s.variables.map((v) => ({ ...v, seccion: s.nombre })));
+    return lista ? preguntasDelCatalogo(lista.catalogoDelPanel) : [];
+  }, [inventario, lista]);
 
-      <ReglasCustomTab />
+  const propias = propiasLeidas ?? [];
+  // La sugerida con que se abre el panel desde "Añadir"; se olvida al cerrarlo.
+  const [sugeridaDelPanel, setSugeridaDelPanel] = useState<ReglaSemilla | null>(null);
+  useEffect(() => {
+    if (!panel.abierto) setSugeridaDelPanel(null);
+  }, [panel.abierto]);
+  const enEdicion = panel.abierto && panel.foco && panel.foco !== FOCO_NUEVA
+    ? propias.find((r) => r.id === panel.foco) ?? null
+    : null;
+  const guardar: AlGuardarRegla = async (cuerpo, opciones) => {
+    await mesa.guardarDesdeElPanel(cuerpo, opciones);
+    panel.cerrar();
+  };
+
+  return (
+    <div className="pulso-validacion-pestana-reglas" data-audit-ready="validacion-reglas">
+      <MesaDeReglas
+        mesa={mesa}
+        inst={inst}
+        panel={panel}
+        irAPestana={irAPestana}
+        onAnadirSugerida={(semilla) => {
+          setSugeridaDelPanel(semilla);
+          panel.abrirNueva();
+        }}
+      />
+      <PanelesDelOperativo
+        inst={inst}
+        onReleer={() => {
+          void inst.onBuildPlan().then(() => mesa.recargar());
+        }}
+      />
+      <PanelRegla
+        abierto={panel.abierto}
+        onCerrar={panel.cerrar}
+        inicial={enEdicion ? comoReglaPropia(enEdicion) : null}
+        focoInexistente={propiasLeidas !== undefined && panel.abierto && panel.foco && panel.foco !== FOCO_NUEVA && !enEdicion ? panel.foco : null}
+        cargandoPreguntas={!lista && inventario === undefined}
+        tipoElegido={panel.tipo}
+        pregunta={panel.pregunta}
+        onElegirTipo={panel.elegirTipo}
+        variables={variables}
+        baseNombre={mesa.baseNombre}
+        semillas={semillas ?? []}
+        onGuardar={guardar}
+        semillaInicial={sugeridaDelPanel}
+        onEliminar={enEdicion ? async () => {
+          await mesa.eliminarPropia(enEdicion.id);
+          panel.cerrar();
+        } : undefined}
+        onVerEnExplorar={(variable) => {
+          // A Explorar sin el panel ni lo que solo él usa (`tipo`, `pregunta`).
+          setPrefill("explorar", { var: variable });
+          navigate({ pathname: location.pathname, search: searchDePestana(searchSinPanelRegla(location.search), "explorar") });
+        }}
+        panelProps={panel.props}
+        onVerSinEvaluar={() =>
+          navigate({
+            pathname: location.pathname,
+            search: searchDePestana(searchSinPanelRegla(location.search), "reglas", { familia: "sin-evaluar" }),
+          })
+        }
+      />
     </div>
   );
 }

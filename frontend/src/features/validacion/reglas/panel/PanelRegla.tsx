@@ -20,7 +20,7 @@ import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { Sideover } from "../../../../components/Sideover";
-import { AlertTriangle, Pencil, Play } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Pencil, Play, Trash2 } from "../../../../vendor/lucide-react";
 import type { ExploradorVariable, ReglaSemilla } from "../../types";
 import { fraseDeReglaPropia, type PiezaDeFrase } from "../../customRuleNarrative";
 import {
@@ -73,6 +73,13 @@ export type PanelReglaProps = {
   cargandoPreguntas?: boolean;
   /** "Ver" en la fila de las reglas del formulario sin evaluar. */
   onVerSinEvaluar?: () => void;
+  /**
+   * Una sugerida con que se abre una regla nueva ya armada ("Añadir" en las
+   * sugeridas de Reglas), igual que "Usar" dentro del panel.
+   */
+  semillaInicial?: ReglaSemilla | null;
+  /** Borra la regla propia que se edita; sin esta función el pie no ofrece "Eliminar la regla". */
+  onEliminar?: () => Promise<void>;
 };
 
 /** La clave que reinicia el borrador: otra regla, o una nueva con otro arranque. */
@@ -82,12 +89,14 @@ function claveDelBorrador(p: Pick<PanelReglaProps, "inicial" | "focoInexistente"
 
 export function PanelRegla(props: PanelReglaProps) {
   const [semilla, setSemilla] = useState<ReglaSemilla | null>(null);
+  // "Usar" dentro del panel gana a la sugerida con que se abrió.
+  const efectiva = semilla ?? (props.abierto && !props.inicial ? props.semillaInicial ?? null : null);
   // Cerrar y volver a abrir empieza de cero: la clave cambia y el borrador se rehace.
-  const clave = props.abierto ? claveDelBorrador(props, semilla) : "cerrado";
+  const clave = props.abierto ? claveDelBorrador(props, efectiva) : "cerrado";
   if (!props.abierto && semilla) setSemilla(null);
   return (
     <OpcionesProvider baseNombre={props.baseNombre}>
-      <EditorDelPanel key={clave} {...props} semilla={semilla} onUsarSemilla={setSemilla} />
+      <EditorDelPanel key={clave} {...props} semilla={efectiva} onUsarSemilla={setSemilla} />
     </OpcionesProvider>
   );
 }
@@ -141,6 +150,7 @@ function EditorDelPanel({
   onVerEnExplorar,
   cargandoPreguntas = false,
   onVerSinEvaluar,
+  onEliminar,
   semilla,
   onUsarSemilla,
 }: PanelReglaProps & { semilla: ReglaSemilla | null; onUsarSemilla: (s: ReglaSemilla | null) => void }) {
@@ -170,6 +180,18 @@ function EditorDelPanel({
   const [inicioDelBorrador] = useState(() => JSON.stringify(borrador));
   const conCambios = JSON.stringify(borrador) !== inicioDelBorrador;
   const [confirmar, setConfirmar] = useState(false);
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  async function eliminar() {
+    if (!onEliminar) return;
+    setConfirmarEliminar(false);
+    setEnvio({ guardando: true, error: "" });
+    try {
+      await onEliminar();
+      setEnvio({ guardando: false, error: "" });
+    } catch (e) {
+      setEnvio({ guardando: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
   function intentarCerrar() {
     if (conCambios) setConfirmar(true);
     else onCerrar();
@@ -322,6 +344,12 @@ function EditorDelPanel({
     );
     pie = (
       <>
+        {!nueva && onEliminar ? (
+          <PulsoButton variant="danger" size="lg" onClick={() => setConfirmarEliminar(true)} disabled={envio.guardando}>
+            <Trash2 size={14} aria-hidden="true" />
+            Eliminar la regla
+          </PulsoButton>
+        ) : null}
         <PulsoButton variant="secondary" size="lg" onClick={intentarCerrar} disabled={envio.guardando}>
           Cancelar
         </PulsoButton>
@@ -398,6 +426,26 @@ function EditorDelPanel({
         }
       >
         <p className="pulso-panel-regla-confirmar">Al cerrar se pierde lo que cambiaste desde que abriste la regla.</p>
+      </Dialog>
+      <Dialog
+        open={confirmarEliminar}
+        onOpenChange={setConfirmarEliminar}
+        size="sm"
+        tono="peligro"
+        title="Eliminar la regla"
+        closeLabel="Cerrar la confirmación"
+        footer={(
+          <>
+            <PulsoButton variant="secondary" onClick={() => setConfirmarEliminar(false)}>
+              Cancelar
+            </PulsoButton>
+            <PulsoButton variant="danger" confirm onClick={() => void eliminar()}>
+              Eliminar la regla
+            </PulsoButton>
+          </>
+        )}
+      >
+        <p className="pulso-panel-regla-confirmar">"{inicial?.nombre ?? ""}" se borra de las reglas propias. No se puede deshacer.</p>
       </Dialog>
     </Sideover>
   );

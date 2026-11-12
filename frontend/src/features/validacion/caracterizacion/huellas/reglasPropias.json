@@ -1,53 +1,53 @@
 {
   "reglas-propias_adopta-sugerencia": {
-    "marcado": "cf02bb785d6fbe7f4eea08ab23fd38d3218125efcca26a12a723804e0c296b18",
-    "pedidos": "7fe91567e5c28e0324a7750479626cd007eaf5b6c19cc729f10b909b7dd320cd",
+    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
+    "pedidos": "4f7bdd8e1ea358c70437c42ab5dbd3d8e913d857370271e555570d03b6bbe52e",
     "guardado": [
-      "POST /api/validacion/v2/reglas_custom [base=default]\n{\"activa\":true,\"nombre\":\"Duplicados por documento\",\"tipo\":\"duplicados\",\"variables\":[\"dni\"],\"params\":{},\"mensaje\":\"Documento repetido\",\"severidad\":\"advertencia\",\"hallazgo_kind\":\"caso_validar\",\"semilla\":{\"origen\":\"procedencia\",\"porque\":\"La columna dni identifica a cada persona y tiene 3 repetidos.\",\"n_casos_afectados\":3}}"
+      "POST /api/validacion/v2/reglas_custom [base=default]\n{\"activa\":true,\"nombre\":\"Duplicados por documento\",\"tipo\":\"duplicados\",\"variables\":[\"dni\"],\"params\":{\"missing_key_policy\":\"ignore_missing\"},\"mensaje\":\"Documento repetido\",\"severidad\":\"advertencia\",\"hallazgo_kind\":\"caso_validar\",\"planned_action_type\":\"exclude_cases\",\"recommended_scope\":\"selected\",\"gate_expr\":\"\",\"gate_conditions\":[],\"origen\":\"sembrado\",\"semilla\":{\"origen\":\"procedencia\",\"porque\":\"La columna dni identifica a cada persona y tiene 3 repetidos.\",\"n_casos_afectados\":3}}"
     ]
   },
   "reglas-propias_con-reglas": {
-    "marcado": "7f32fede9bc9a09b9d8ec6fbef6a2c93edff0045ed32bf971c5f5a7246ea7227",
-    "pedidos": "7e98b6bfc183ab0cf0a0d1b67038c3e2f8317aef1d7ed81662880f2740ed26f4"
+    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
+    "pedidos": "52a09841ddbf264bfd2797fa91a31b69d6223134031607e376891de4668023aa"
   },
   "reglas-propias_dos-bases": {
-    "marcado": "7f32fede9bc9a09b9d8ec6fbef6a2c93edff0045ed32bf971c5f5a7246ea7227",
-    "pedidos": "010e45de1152f216081245cd186ca7c4cea13fd0cff08daea18419ce2438e27e"
+    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
+    "pedidos": "a94ad6692093fabe8ffa7152d82965f7c9affe17118a19079c4be697a5166d06"
   },
   "reglas-propias_edita-y-guarda": {
-    "marcado": "7f32fede9bc9a09b9d8ec6fbef6a2c93edff0045ed32bf971c5f5a7246ea7227",
-    "pedidos": "f229863b8da881decb9b66c5566a02dfda4e4c8b3e8daed929a940f04435f75f",
+    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
+    "pedidos": "7428762803c4e7263b2887c73f895c762d71d4eaccc1788e3edfe5174b2d8b06",
     "guardado": [
       "PUT /api/validacion/v2/reglas_custom/RC_001 [base=default]\n{\"id\":\"RC_001\",\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}"
     ]
   },
   "reglas-propias_ejecuta": {
-    "marcado": "9b26b3ec3d9804d5aa8ae3f0ab86e5564b17acff8189251d926aa90262f7bb73",
-    "pedidos": "4e611d1d948d21e676ba173d67f64d6ac31318aea89cf98a18d80c116c375cc4",
+    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
+    "pedidos": "58b09bbb22cc492d1fe9e91863cc49cd74ed8198b39e42e24205e07225fcb7e0",
     "guardado": [
-      "POST /api/validacion/v2/reglas_custom/ejecutar [base=default]\n"
+      "POST /api/validacion/v2/auditoria [base=default]\n"
     ]
   },
   "reglas-propias_elimina": {
-    "marcado": "7f32fede9bc9a09b9d8ec6fbef6a2c93edff0045ed32bf971c5f5a7246ea7227",
-    "pedidos": "76ee6a7d439808a90a4588b7128a4496ab5204451f5aa1e9a0f7968347e9f133",
+    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
+    "pedidos": "a65fee9e57ca56ef07dac75967f3757d2554ed09219862f7bbbb8adf283da2f2",
     "guardado": [
       "DELETE /api/validacion/v2/reglas_custom/RC_001 [base=default]\n"
     ]
   },
   "reglas-propias_nueva": {
-    "marcado": "a43260da10b6f395019ce014d5be4ee096a9f9927078d390c42db4fad46034a5",
-    "pedidos": "21c4b2bbc516d727e230d074d1298ca9651f0838a55d13185536dc2e42c5d7b8"
+    "marcado": "7ef70ea2b5c65acbb2f48dfc4b4b8c0a9e2fa0876ad77103a4d4e240c4e787df",
+    "pedidos": "e592c9959915b20ed7f813b3d9287e627f0accbbf8ff858ec09e2d940849b2ad"
   },
   "reglas-propias_omite": {
-    "marcado": "7f32fede9bc9a09b9d8ec6fbef6a2c93edff0045ed32bf971c5f5a7246ea7227",
-    "pedidos": "f229863b8da881decb9b66c5566a02dfda4e4c8b3e8daed929a940f04435f75f",
+    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
+    "pedidos": "7428762803c4e7263b2887c73f895c762d71d4eaccc1788e3edfe5174b2d8b06",
     "guardado": [
       "PUT /api/validacion/v2/reglas_custom/RC_001 [base=default]\n{\"activa\":false}"
     ]
   },
   "reglas-propias_sin-reglas": {
-    "marcado": "df610664046701c77db229a8483ca9f917c698762440e86e0d0a09f48d1d7e69",
-    "pedidos": "7e98b6bfc183ab0cf0a0d1b67038c3e2f8317aef1d7ed81662880f2740ed26f4"
+    "marcado": "befb520c3c703978c3a02e9909acbfeb0d4dd3f9a55ca6de92b7f69a2c73daa6",
+    "pedidos": "52a09841ddbf264bfd2797fa91a31b69d6223134031607e376891de4668023aa"
   }
 }
