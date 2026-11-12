@@ -336,7 +336,10 @@ export function estadoMesaAcreditacion(args: {
       tono: "pendiente",
       etiqueta: "Falta seleccionar",
       // El chip ya dice «Falta seleccionar»: la siguiente condición cuenta cuántos (P9).
-      siguiente: `${fmtInt(sinSorteo.length)} de ${plural(sorteables.length, "actor con π todavía sin selección", "actores con π todavía sin selección")}.`,
+      // Un actor censal (barrido por correo o teléfono, ADR 0143) no sortea: el motor le da el orden de contacto.
+      siguiente: sinSorteo.every((c) => tecnicaDelActor(c.tecnica).clase === "censal")
+        ? `${fmtInt(sinSorteo.length)} de ${plural(sorteables.filter((c) => tecnicaDelActor(c.tecnica).clase === "censal").length, "actor censal sin orden de contacto", "actores censales sin orden de contacto")}.`
+        : `${fmtInt(sinSorteo.length)} de ${plural(sorteables.length, "actor todavía sin selección", "actores todavía sin selección")}.`,
       accion: irA("seleccion", "Ir a Selección"),
     };
   }

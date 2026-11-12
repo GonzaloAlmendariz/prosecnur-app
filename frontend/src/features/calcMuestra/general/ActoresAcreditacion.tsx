@@ -65,7 +65,7 @@ export function ActoresAcreditacion({
               <th scope="col">Actor</th>
               <th scope="col">Canal</th>
               <th scope="col" className="cmg-num">Marco (N)</th>
-              <th scope="col" className="cmg-num">Meta mínima</th>
+              <th scope="col" className="cmg-num">Meta</th>
               <th scope="col">Técnica</th>
               <th scope="col">Resultado</th>
               <th scope="col"><span className="cmg-sr-only">Selección</span></th>

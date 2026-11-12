@@ -132,6 +132,16 @@ describe("V2 · estado de la mesa y siguiente condición", () => {
     expect(estadoMesaAcreditacion({ componentes: [sinN, calculado], corridas: { b: corrida() }, cargado: true }).clave).toBe("parcial");
     expect(estadoMesaAcreditacion({ componentes: [calculado], corridas: { b: corrida() }, cargado: true }).clave).toBe("listo");
   });
+
+  it("acreditación por correo: un actor censal pide su orden de contacto, no una selección con π (ADR 0143)", () => {
+    const censal = { ...CALCULADO, id: "c", tecnica: "intencion_censal" as const };
+    const e = estadoMesaAcreditacion({ componentes: [censal], corridas: {}, cargado: true });
+    expect(e.clave).toBe("sin-sorteo");
+    expect(e.siguiente).toBe("1 de 1 actor censal sin orden de contacto.");
+    const mixto = estadoMesaAcreditacion({ componentes: [censal, { ...CALCULADO, id: "d" }], corridas: {}, cargado: true });
+    expect(mixto.siguiente).toBe("2 de 2 actores todavía sin selección.");
+    expect(mixto.siguiente).not.toContain("π");
+  });
 });
 
 describe('V1 · banda "Diseño vigente"', () => {
