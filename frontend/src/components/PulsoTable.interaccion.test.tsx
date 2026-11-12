@@ -60,3 +60,22 @@ describe("PulsoTable · teclado con controles en la celda", () => {
     expect(onSeleccionar).toHaveBeenCalledWith("p1");
   });
 });
+
+describe("PulsoTable · una celda editable no se vuelve a montar", () => {
+  test("con un arreglo de columnas nuevo en cada render, el campo de la celda es el mismo nodo", () => {
+    // El dueño arma las columnas en el render (como PropuestaEscenarios): cada render trae un arreglo nuevo.
+    const pintar = (n: number) => {
+      const nuevas: PulsoTableColumna<Fila>[] = [
+        { id: "id", encabezado: "Código", ancho: 120, celda: (f) => `${f.id} ${n}` },
+        { id: "etiqueta", encabezado: "Etiqueta", ancho: 240, celda: (f) => <input aria-label={`Etiqueta de ${f.id}`} defaultValue={f.etiqueta} /> },
+      ];
+      act(() => root.render(<PulsoTable columnas={nuevas} filas={[{ id: "a", etiqueta: "x" }]} idDeFila={(f) => f.id} ariaLabel="t" />));
+    };
+    pintar(1);
+    const antes = host.querySelector('input[aria-label="Etiqueta de a"]');
+    pintar(2);
+    expect(host.textContent).toContain("a 2");
+    expect(host.querySelector('input[aria-label="Etiqueta de a"]')).toBe(antes);
+  });
+});
+

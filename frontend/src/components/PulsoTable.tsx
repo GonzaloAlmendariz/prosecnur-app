@@ -184,7 +184,11 @@ export function PulsoTable<T>({
                   const valor = columna?.valor?.(fila.original);
                   return (
                     <td key={celda.id} data-tipo={columna?.tipo ?? "texto"} title={valor == null ? undefined : String(valor)}>
-                      {flexRender(celda.column.columnDef.cell, celda.getContext())}
+                      {/* La celda se pinta llamando a `celda` y no con flexRender: flexRender monta la función de la
+                          definición como componente, y como las definiciones se rehacen cuando cambian las columnas
+                          (un arreglo nuevo en cada render del dueño), React veía otro componente y volvía a montar la
+                          celda. Un campo editable perdía el foco con cada tecla (Cálculo de muestra, 2026-11-12). */}
+                      {columna ? columna.celda(fila.original) : flexRender(celda.column.columnDef.cell, celda.getContext())}
                     </td>
                   );
                 })}
