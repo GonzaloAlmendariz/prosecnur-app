@@ -18,7 +18,7 @@ import { Panel } from "../../../components/Panel";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ErrorBlock } from "../../../components/States";
 import { CabeceraDePestana } from "../../../components/procesamiento/CabeceraDePestana";
-import { esperaDelIntento, seccionSinMotor, textoDeEspera } from "./modeloSinMotor";
+import { esperaDelIntento, LATIDO_DEL_MOTOR_MS, seccionSinMotor, textoDeEspera } from "./modeloSinMotor";
 import "./sin-motor.css";
 
 export function useMotorSinRespuesta(): boolean {
@@ -28,6 +28,17 @@ export function useMotorSinRespuesta(): boolean {
 /** Envuelve la sección de Procesamiento: con el motor caído, la cambia por el aviso. */
 export function GuardaDelMotor({ children }: { children: ReactNode }) {
   const sinRespuesta = useMotorSinRespuesta();
+  // Latido: con la app quieta ningún pedido falla y el aviso no salía. Con la pestaña a la vista,
+  // cada LATIDO_DEL_MOTOR_MS se toca /api/system/health; si falla, `apiFetch` lo publica y la guarda
+  // cambia la sección por el aviso. Con el aviso a la vista, los reintentos son los del aviso.
+  useEffect(() => {
+    if (sinRespuesta) return undefined;
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      apiHealth().catch(() => undefined);
+    }, LATIDO_DEL_MOTOR_MS);
+    return () => window.clearInterval(id);
+  }, [sinRespuesta]);
   return sinRespuesta ? <ProcesamientoSinMotor /> : <>{children}</>;
 }
 

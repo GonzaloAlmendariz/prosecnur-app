@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { notificarFallo, notificarRespuesta, reiniciarEstadoDelMotor } from "../../../api/motorDisponible";
 import { GuardaDelMotor } from "./SinMotor";
-import { esperaDelIntento, seccionSinMotor, textoDeEspera } from "./modeloSinMotor";
+import { esperaDelIntento, LATIDO_DEL_MOTOR_MS, seccionSinMotor, textoDeEspera } from "./modeloSinMotor";
 
 describe("modelo de la vista sin motor", () => {
   test("los intentos se espacian y se quedan en 30 s", () => {
@@ -53,6 +53,17 @@ describe("GuardaDelMotor", () => {
         <GuardaDelMotor><p>Sección</p></GuardaDelMotor>
       </MemoryRouter>,
     );
+  });
+
+  test("con la app quieta, el latido nota la caída y muestra el aviso", async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn(() => Promise.reject(new TypeError("Failed to fetch")));
+    vi.stubGlobal("fetch", fetch);
+    montar();
+    expect(nodo.textContent).toContain("Sección");
+    await act(async () => { await vi.advanceTimersByTimeAsync(LATIDO_DEL_MOTOR_MS); });
+    expect(String(fetch.mock.calls[0]?.[0] ?? "")).toContain("/api/system/health");
+    expect(nodo.textContent).not.toContain("Sección");
   });
 
   test("con el motor respondiendo deja la sección", () => {
