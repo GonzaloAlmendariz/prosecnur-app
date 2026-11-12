@@ -133,6 +133,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_hojas_ruta_envio(pr)          # ADR 0118: foto de la muestra para Material de campo
     pr <- mount_calc_muestra(pr)
     pr <- mount_calc_muestra_general(pr)
+    pr <- mount_calc_muestra_marco_publico(pr)  # fase 5: marco de un público por correo o teléfono
     pr <- mount_plan_trabajo(pr)
     pr <- mount_diseno_estudio(pr)
     pr <- mount_bitacora(pr)

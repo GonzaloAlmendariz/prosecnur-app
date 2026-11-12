@@ -745,7 +745,7 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
     return(.cm_aulas_clean_table_names(as.data.frame(.read_excel_data(path, skip = .cm_aulas_encabezado_skip(path)), stringsAsFactors = FALSE, check.names = FALSE)))
   }
   if (ext %in% c("csv", "txt")) {
-    return(.cm_aulas_clean_table_names(utils::read.csv(path, stringsAsFactors = FALSE, check.names = FALSE)))
+    return(.cm_aulas_clean_table_names(.cm_marco_leer_csv(path)$datos))
   }
   stop(sprintf("Formato de marco no soportado: .%s", ext), call. = FALSE)
 }
