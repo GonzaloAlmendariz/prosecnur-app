@@ -1,0 +1,415 @@
+/* Analítica › Orden de categorías con la forma del prototipo ("Analítica,
+   Categorías"). La cabecera, la mesa y los paneles son del kit
+   (components/procesamiento); aquí van las listas, las categorías en orden, la
+   lectura de la lista y sus preguntas. Sin cajas propias: los marcos son los del
+   Panel; una fila elegida o una categoría se dibujan con sombra interior. */
+
+.categorias-superficie {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.categorias-ayuda {
+  max-inline-size: 200px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+.categorias-nota {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.categorias-nota--cuerpo {
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+/* ---------- Listas ---------- */
+
+.categorias-buscador {
+  position: relative;
+  /* Margen corto: a 1024 el campo es de 218 px y el texto de ayuda debe caber entero (C4). */
+  margin: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-2);
+}
+
+.categorias-buscador > svg {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 10px;
+  color: var(--pulso-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.categorias-buscador > .pulso-input {
+  inline-size: 100%;
+  padding-inline-start: 30px;
+}
+
+.categorias-listas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--pulso-space-2);
+  list-style: none;
+}
+
+.categorias-listas .categorias-lista {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--pulso-space-1);
+  inline-size: 100%;
+  padding: 10px var(--pulso-space-3);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.categorias-listas .categorias-lista:hover {
+  background: var(--pulso-surface-2);
+}
+
+.categorias-listas .categorias-lista:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+.categorias-listas .categorias-lista[aria-current="true"] {
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 80%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.categorias-listas .categorias-lista b {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.categorias-lista-detalle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.categorias-marca {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.categorias-marca[data-tono="ordinal"] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.categorias-lista-propio {
+  color: var(--pulso-text-faint);
+}
+
+/* ---------- Categorías en orden ---------- */
+
+.categorias-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5) var(--pulso-space-5);
+}
+
+.categorias-encabezado {
+  display: flex;
+  justify-content: space-between;
+  padding-inline: var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.categorias-orden {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* La categoría: asa, código, etiqueta, barra y casos. Sombra interior en vez de borde. */
+.categorias-categoria {
+  display: grid;
+  grid-template-columns: 28px 44px minmax(0, 1fr) minmax(64px, 96px) minmax(40px, auto);
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-4) var(--pulso-space-2) var(--pulso-space-2);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  transition: box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.categorias-categoria:hover {
+  box-shadow: inset 0 0 0 1px var(--pulso-border-strong);
+}
+
+.categorias-categoria[data-especial] {
+  background: var(--pulso-surface-2);
+}
+
+.categorias-categoria[data-arrastrando] {
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border)), var(--pulso-shadow-med);
+  opacity: 0.9;
+}
+
+.categorias-asa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pulso-control-radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text-faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.categorias-asa:hover {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.categorias-asa:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 0;
+}
+
+.categorias-codigo {
+  justify-self: start;
+  padding: 0 6px;
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.categorias-etiqueta {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.categorias-sin-etiqueta {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.categorias-barra {
+  display: block;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pulso-surface-3);
+}
+
+.categorias-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--pulso-data-seq-4);
+}
+
+.categorias-categoria[data-especial] .categorias-barra > i {
+  background: var(--pulso-data-seq-2);
+}
+
+.categorias-casos {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.categorias-separador {
+  padding: var(--pulso-space-3) var(--pulso-space-2) 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* ---------- Lectura de la lista ---------- */
+
+.categorias-lectura {
+  display: flex;
+  flex-direction: column;
+}
+
+.categorias-interruptores {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* El interruptor a la derecha y el rótulo a la izquierda, como en el prototipo. */
+.categorias-interruptores > .analitica-interruptor-linea {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--pulso-space-4);
+  padding-block: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.categorias-interruptores > .analitica-interruptor-linea:first-child {
+  border-top: 0;
+}
+
+.categorias-interruptores .analitica-interruptor-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.categorias-interruptores .analitica-control-copy {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+.categorias-deteccion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  padding-block-end: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.categorias-especiales {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
+}
+
+.categorias-subtitulo {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.categorias-fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.categorias-ficha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* El alto lo da el relleno, no un mínimo: un min-height deja interior muerto (C2, capacity-drift). */
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.categorias-ficha small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.categorias-ficha[data-sin-casos] {
+  color: var(--pulso-text-soft);
+}
+
+/* ---------- Columna derecha ---------- */
+
+/* La lectura mide lo suyo y las preguntas se quedan con el alto libre (en la
+   pila del kit las dos parten de su contenido y se encogían a la par). */
+.categorias-superficie .pulso-mesa-pestana-pila > .pulso-panel-de-mesa--preguntas {
+  flex: 1 1 0;
+  min-height: 160px;
+}
+
+/* ---------- Preguntas que la usan ---------- */
+
+/* Rejilla común: los códigos de todas las preguntas comparten columna. */
+.categorias-preguntas {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-5) var(--pulso-space-4);
+  list-style: none;
+}
+
+.categorias-preguntas li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  padding-block: var(--pulso-space-2);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.35;
+}
+
+.categorias-preguntas code {
+  max-inline-size: 120px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}
+
+.categorias-preguntas span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

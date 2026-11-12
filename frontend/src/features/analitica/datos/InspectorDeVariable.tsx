@@ -9,7 +9,6 @@ import { EstadoVacio } from "../../../components/EstadoVacio";
 import { BotonCerrar } from "../../../components/BotonCerrar";
 import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { textoPlano } from "../../../lib/textoPlano";
@@ -17,6 +16,7 @@ import { Check, RotateCcw, Tags } from "../../../vendor/lucide-react";
 import { describirCobertura } from "../coberturaVariable";
 import { AvisosEtiqueta } from "../panes/revisionEtiquetas/AvisosEtiqueta";
 import { opcionesEquivalentes, problemasDeEtiqueta, type ProblemaEtiqueta } from "../panes/revisionEtiquetas/detectorEtiquetas";
+import { CampoDeEtiqueta } from "./CampoDeEtiqueta";
 import { casosDeLaVariable } from "./modeloDeVariables";
 
 export type SeccionElegible = { id: string; nombre: string };
@@ -110,11 +110,11 @@ export function InspectorDeVariable(props: InspectorDeVariableProps) {
       <div className="datos-inspector" data-qa-geometry-group="analitica/datos-inspector" data-qa-geometry-contract="intrinsic">
         <div className="datos-bloque">
           <label className="datos-rotulo" htmlFor="datos-etiqueta-variable">Etiqueta de la variable</label>
-          <PulsoInput
+          <CampoDeEtiqueta
             id="datos-etiqueta-variable"
             value={props.etiqueta}
             invalid={!props.etiqueta.trim()}
-            onChange={(e) => props.onEtiqueta(variable.name, e.target.value)}
+            onValor={(valor) => props.onEtiqueta(variable.name, valor)}
           />
           {original && original !== props.etiqueta.trim() ? (
             <span className="datos-mas">En el formulario: "{textoPlano(original)}"</span>
@@ -140,11 +140,11 @@ export function InspectorDeVariable(props: InspectorDeVariableProps) {
                 return (
                   <li key={o.code} className="datos-opcion">
                     <code>{o.code}</code>
-                    <PulsoInput
+                    <CampoDeEtiqueta
                       value={o.etiqueta}
                       invalid={!o.etiqueta.trim()}
                       aria-label={`Etiqueta de la opción ${o.code} de ${variable.name}`}
-                      onChange={(e) => props.onEtiquetaDeOpcion(variable.name, o.code, e.target.value)}
+                      onValor={(valor) => props.onEtiquetaDeOpcion(variable.name, o.code, valor)}
                     />
                     <em title={`${formatoConteo(o.count)} ${o.count === 1 ? "caso eligió" : "casos eligieron"} esta opción`}>{formatoConteo(o.count)}</em>
                     {avisos.length > 0 ? (

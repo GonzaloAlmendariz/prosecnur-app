@@ -75,7 +75,8 @@
 
 /* Las columnas del prototipo: entra, código, etiqueta, tipo, con dato y opciones. */
 .datos-tabla {
-  --datos-columnas: 52px minmax(96px, 150px) minmax(0, 1fr) 120px minmax(112px, 140px) 64px;
+  /* El código cabe entero en una línea hasta unos 22 caracteres (H2 del QA): "time_consent_start" no parte. */
+  --datos-columnas: 52px minmax(120px, 184px) minmax(0, 1fr) 120px minmax(112px, 140px) 64px;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -98,8 +99,9 @@
   grid-template-columns: var(--datos-columnas);
   column-gap: var(--pulso-space-4);
   align-items: center;
-  min-height: 48px;
-  padding: var(--pulso-space-2) var(--pulso-space-5);
+  /* Sin alto mínimo: el alto lo da la celda más alta y el relleno, así no queda
+     interior muerto bajo el contenido (H1 del QA, capacity-drift de 2.5 px). */
+  padding: calc(var(--pulso-space-2) + var(--pulso-space-1) / 2) var(--pulso-space-5);
   border-bottom: 1px solid var(--pulso-border);
   cursor: pointer;
   transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
@@ -393,6 +395,17 @@
   overflow-wrap: anywhere;
 }
 
+/* El campo de etiqueta muestra el texto entero: baja de línea y crece (H3 del QA). */
+.pulso-input.datos-campo-etiqueta {
+  field-sizing: content;
+  height: auto;
+  padding-block: var(--pulso-space-2);
+  line-height: 1.35;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  resize: none;
+}
+
 .datos-opciones {
   display: flex;
   flex-direction: column;
@@ -405,8 +418,13 @@
 .datos-opcion {
   display: grid;
   grid-template-columns: minmax(28px, auto) minmax(0, 1fr) minmax(40px, auto);
-  align-items: center;
+  align-items: start;
   gap: var(--pulso-space-3);
+}
+
+.datos-opcion > code,
+.datos-opcion > em {
+  padding-block-start: calc(var(--pulso-space-2) + 1px);
 }
 
 .datos-opcion > code {
@@ -462,7 +480,7 @@
 /* Junto al inspector a 1366 o menos: el tipo y el dato se estrechan. */
 @container mesa-pestana (max-width: 1299px) {
   .datos-tabla {
-    --datos-columnas: 48px minmax(88px, 132px) minmax(0, 1fr) 112px minmax(104px, 128px) 56px;
+    --datos-columnas: 48px minmax(112px, 168px) minmax(0, 1fr) 112px minmax(104px, 128px) 56px;
   }
 
   .datos-fila {

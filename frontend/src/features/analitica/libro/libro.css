@@ -42,7 +42,7 @@
 }
 
 .libro-tabla {
-  --libro-columnas: minmax(96px, 136px) minmax(0, 1.4fr) 92px minmax(0, 1fr) 76px;
+  --libro-columnas: minmax(120px, 176px) minmax(0, 1.4fr) 92px minmax(0, 1fr) 76px;
   overflow: hidden;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
@@ -59,8 +59,8 @@
   grid-template-columns: var(--libro-columnas);
   column-gap: var(--pulso-space-3);
   align-items: center;
-  min-height: 44px;
-  padding-block: var(--pulso-space-2);
+  /* Sin alto mínimo (H1 del QA): el relleno da el aire y la celda más alta, el alto. */
+  padding-block: var(--pulso-space-3);
   padding-inline: var(--pulso-space-4);
   border-bottom: 1px solid var(--pulso-border);
   color: var(--pulso-text);

@@ -1,256 +1,175 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpDown, Check, Layers, Search, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+
 import {
   apiAnaliticaDataReview,
   apiAnaliticaVariables,
   type DataReviewOption,
   type DataReviewVariable,
   type VariableInstrumento,
-} from "../../../api/client";
-import { Alert } from "../../../components/Alert";
-import { Panel } from "../../../components/Panel";
-import "./ordenCategorias.css";
-import { ErrorBlock, LoadingBlock } from "../../../components/States";
+} from "../../../api/analitica";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { MesaDePestana, PilaDeMesa } from "../../../components/procesamiento/MesaDePestana";
+import { PulsoButton } from "../../../components/PulsoButton";
+import { ErrorBlock } from "../../../components/States";
+import { conNivel } from "../../../lib/navegacion/direccion";
 import { useAnaliticaStore } from "../store";
-import { Section } from "../PaneKit";
-import { VariableSelect } from "../VariableSelect";
-import { OrdenCategoriasEditor } from "./OrdenCategoriasEditor";
-import { derivarCatalogoListas } from "./ordenCategoriasModel";
+import { CabeceraDeCategorias, cifrasDeLaCabecera } from "../categorias/CabeceraDeCategorias";
+import { LecturaDeLaLista } from "../categorias/LecturaDeLaLista";
+import {
+  cifrasDeCategorias,
+  especialesAlFinal,
+  especialesDelEstudio,
+  especialesEnSuLugar,
+  esPreguntaDeOpcion,
+  listasQueCasan,
+  opcionesDeLaLista,
+} from "../categorias/modeloDeCategorias";
+import { PanelDeCategorias } from "../categorias/PanelDeCategorias";
+import { PanelDeListas } from "../categorias/PanelDeListas";
+import { PreguntasDeLaLista } from "../categorias/PreguntasDeLaLista";
+import {
+  derivarCatalogoListas,
+  enviarEspecialesAlFinal,
+  esListaOrdinalEfectiva,
+  esValorEspecial,
+  ordinalAutoDeLista,
+  sembrarOrden,
+} from "./ordenCategoriasModel";
+import "../categorias/categorias.css";
 
-import { EstadoVacio } from "../../../components/EstadoVacio";
-// Pane "Orden de categorías" (Analítica).
+// Analítica › Orden de categorías con la forma del prototipo ("Analítica,
+// Categorías"): la cabecera con las cifras de las listas; debajo, tres columnas
+// que llegan al pie: "Listas" (buscador por lista o pregunta), la lista elegida
+// con sus categorías en orden y, a la derecha, "Lectura de la lista" y las
+// preguntas que la usan. La lista elegida vive en `?foco=`.
 //
-// Flujo: el analista elige una LISTA de opciones (list_name) del catálogo de
-// listas disponibles → cargamos sus categorías (code + label + count) y las
-// variables que la comparten → editor drag-and-drop que persiste el orden en
-// `orden_categorias[list_name]` vía el store + autosave. El VariableSelect
-// queda como atajo para saltar a la lista de una variable concreta.
+// El orden se guarda por lista en `orden_categorias[list_name]` (secuencia
+// explícita; sin ella manda el formulario con los especiales al final) y la
+// ordinalidad en `listas_ordinales[list_name]` (sin ella, la detección del
+// motor). Los dos van por el store y el autoguardado.
 
-// Solo variables de selección tienen categorías ordenables.
-function esVariableSeleccion(v: VariableInstrumento): boolean {
-  const tipo = (v.tipo ?? "").trim().toLowerCase();
-  return tipo.startsWith("select_one") || tipo.startsWith("select_multiple");
-}
-
-// Resuelve las opciones (code+label+count) de una lista. La variable elegida
-// puede no tener casos en la base; en ese caso caemos a cualquier variable que
-// comparta el list_name y sí traiga opciones desde data-review.
-export function resolverOpcionesLista(
-  variablesLista: VariableInstrumento[],
-  dataReview: DataReviewVariable[],
-): DataReviewOption[] {
-  const nombres = new Set(variablesLista.map((v) => v.name));
-  const candidatas = dataReview.filter((d) => nombres.has(d.name));
-  const conOpciones = candidatas.find((d) => d.opciones.length > 0);
-  return conOpciones ? conOpciones.opciones : [];
+/** Las opciones de una lista; se exporta con el nombre de siempre para quien lo importa desde aquí. */
+export function resolverOpcionesLista(variablesLista: VariableInstrumento[], dataReview: DataReviewVariable[]): DataReviewOption[] {
+  return opcionesDeLaLista(variablesLista, dataReview).opciones;
 }
 
 export function OrdenCategoriasPane() {
   const [variables, setVariables] = useState<VariableInstrumento[] | null>(null);
   const [dataReview, setDataReview] = useState<DataReviewVariable[] | null>(null);
   const [error, setError] = useState("");
-  // Estado UI efímero: lista seleccionada, variable del atajo y filtro del
-  // catálogo. La config vive en el store; esto es sólo navegación.
-  const [listName, setListName] = useState("");
-  const [atajoVar, setAtajoVar] = useState("");
-  const [query, setQuery] = useState("");
+  const [intento, setIntento] = useState(0);
+  const [consulta, setConsulta] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const overrides = useAnaliticaStore((s) => s.config.orden_categorias);
-  const ordinalOverrides = useAnaliticaStore((s) => s.config.listas_ordinales);
+  const ordenes = useAnaliticaStore((s) => s.config.orden_categorias);
+  const ordinales = useAnaliticaStore((s) => s.config.listas_ordinales);
+  const setOrdenCategorias = useAnaliticaStore((s) => s.setOrdenCategorias);
+  const clearOrdenCategorias = useAnaliticaStore((s) => s.clearOrdenCategorias);
+  const setListaOrdinal = useAnaliticaStore((s) => s.setListaOrdinal);
+  const clearListaOrdinal = useAnaliticaStore((s) => s.clearListaOrdinal);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelado = false;
+    setError("");
     (async () => {
       try {
-        const [vRes, dRes] = await Promise.all([
-          apiAnaliticaVariables(),
-          apiAnaliticaDataReview(),
-        ]);
-        if (cancelled) return;
-        setVariables(vRes.variables);
-        setDataReview(dRes.variables);
+        const [v, d] = await Promise.all([apiAnaliticaVariables(), apiAnaliticaDataReview()]);
+        if (cancelado) return;
+        setVariables(v.variables);
+        setDataReview(d.variables);
       } catch (e) {
-        if (!cancelled) setError((e as Error).message);
+        if (!cancelado) setError((e as Error).message);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelado = true; };
+  }, [intento]);
 
-  const seleccionables = useMemo(
-    () => (variables ?? []).filter(esVariableSeleccion),
-    [variables],
-  );
-
+  const deOpcion = useMemo(() => (variables ?? []).filter(esPreguntaDeOpcion), [variables]);
   const catalogo = useMemo(
-    () => (dataReview ? derivarCatalogoListas(seleccionables, dataReview, overrides, ordinalOverrides) : []),
-    [seleccionables, dataReview, overrides, ordinalOverrides],
+    () => (dataReview ? derivarCatalogoListas(deOpcion, dataReview, ordenes, ordinales) : []),
+    [deOpcion, dataReview, ordenes, ordinales],
   );
+  const especiales = useMemo(() => especialesDelEstudio(dataReview ?? []), [dataReview]);
+  const visibles = useMemo(() => listasQueCasan(catalogo, deOpcion, consulta), [catalogo, deOpcion, consulta]);
 
-  const catalogoFiltrado = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return catalogo;
-    return catalogo.filter((e) => e.listName.toLowerCase().includes(q));
-  }, [catalogo, query]);
-
-  const varsCompartidas = useMemo(
-    () => (listName ? (variables ?? []).filter((v) => v.list_name === listName) : []),
-    [variables, listName],
-  );
-
-  const opciones = useMemo(
-    () => (listName && dataReview ? resolverOpcionesLista(varsCompartidas, dataReview) : []),
-    [listName, dataReview, varsCompartidas],
-  );
-
-  // Atajo: elegir una variable resuelve su list_name y selecciona esa lista.
-  function saltarAListaDeVariable(name: string) {
-    setAtajoVar(name);
-    const v = seleccionables.find((x) => x.name === name);
-    if (v && v.list_name.trim()) setListName(v.list_name.trim());
+  // La lista elegida va en la dirección; sin una pedida, la primera del catálogo.
+  const pedida = new URLSearchParams(location.search).get("foco");
+  const elegida = catalogo.find((e) => e.listName === pedida)?.listName ?? catalogo[0]?.listName ?? null;
+  function elegir(listName: string) {
+    navigate({ pathname: location.pathname, search: conNivel(location.search, "foco", listName) }, { replace: true });
   }
 
-  const ready = variables !== null && dataReview !== null;
+  const preguntas = useMemo(() => (elegida ? (variables ?? []).filter((v) => v.list_name === elegida) : []), [variables, elegida]);
+  const { opciones, fuente } = useMemo(() => opcionesDeLaLista(preguntas, dataReview ?? []), [preguntas, dataReview]);
+  const formulario = opciones.map((o) => o.code);
+  const guardado = elegida ? ordenes[elegida] : undefined;
+  const codes = sembrarOrden(formulario, guardado);
+  const ordinalAuto = ordinalAutoDeLista(preguntas);
+  const ordinal = elegida ? esListaOrdinalEfectiva(elegida, ordinales, { [elegida]: ordinalAuto }) : false;
 
-  // Este pane carga sus datos aparte del `preparar` de la sección, así que es
-  // dueño de su marca de readiness (`readinessPropia` en AnaliticaPage) y debe
-  // declararla en sus dos estados terminales: cargado y error. Sin la del
-  // error, un fallo del instrumento deja la ruta sin marca.
   if (error) {
     return (
-      <div data-audit-ready="analitica-orden" style={{ display: "contents" }}>
-        <ErrorBlock label="No se pudo cargar el instrumento" detail={error} />
+      <div className="categorias-superficie" data-audit-ready="analitica-orden">
+        <ErrorBlock
+          label="No se pudieron leer las listas de respuesta"
+          detail={error}
+          queda="El orden que ya guardaste sigue en el proyecto."
+          variante="enmarcado"
+          acciones={<PulsoButton variant="secondary" onClick={() => setIntento((n) => n + 1)}>Volver a leer</PulsoButton>}
+        />
       </div>
     );
   }
-  if (!ready) {
-    return <LoadingBlock label="Cargando variables y categorías…" />;
+  if (variables === null || dataReview === null) {
+    return <CargaDeBloque label="Leyendo las listas de respuesta" />;
   }
 
   return (
-    // El panel es dueño de su scroll (6 nov 2026): a 1024×600 el catálogo de listas no cabe y, con el overflow
-    // oculto del panel, lo de abajo quedaba inalcanzable (C4).
-    <Panel className="analitica-orden-panel" data-qa-scroll-owner="analitica-orden">
-      <div className="analitica-report-shell" data-audit-ready="analitica-orden">
-        <div className="analitica-dimensiones-docbar">
-          <span className="analitica-dimensiones-docbar-icon" aria-hidden="true">
-            <ArrowUpDown size={16} />
-          </span>
-          <div className="analitica-dimensiones-docbar-copy">
-            <span>Presentación de categorías</span>
-            <strong>Orden de categorías</strong>
-            <small>Define en qué orden aparecen las respuestas de una variable ordinal en tablas y PPT.</small>
-          </div>
-        </div>
-
-        <Section
-          title="Lista a ordenar"
-          subtitle="Elige una lista de opciones del catálogo. El orden se aplica por lista, así que se comparte entre todas las variables que la usan. Si prefieres, usa el atajo para saltar a la lista de una variable concreta."
-        >
-          <div className="analitica-orden-atajo">
-            <span className="analitica-orden-atajo-label">Saltar a la lista de una variable</span>
-            <VariableSelect
-              variables={seleccionables}
-              value={atajoVar}
-              onChange={saltarAListaDeVariable}
-              allowClear
-              placeholder="Buscar variable de selección…"
-            />
-          </div>
-
-          {catalogo.length === 0 ? (
-            <Alert kind="info">
-              No se detectaron listas de opciones en el instrumento. Las categorías ordenables
-              provienen de preguntas de selección (<code>select_one</code> / <code>select_multiple</code>).
-            </Alert>
-          ) : (
-            <>
-              {catalogo.length > 6 && (
-                <div className="analitica-orden-catalogo-search">
-                  <Search size={13} className="analitica-orden-catalogo-search-icon" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Filtrar listas por nombre…"
-                    className="analitica-orden-catalogo-search-input"
-                  />
-                  {query && (
-                    <button
-                      type="button"
-                      onClick={() => setQuery("")}
-                      className="pulso-icon"
-                      aria-label="Limpiar filtro"
-                    >
-                      <X size={11} />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <div className="analitica-orden-catalogo" role="listbox" aria-label="Listas de opciones">
-                {catalogoFiltrado.length === 0 ? (
-                  <EstadoVacio icono={<Search size={16} />} titulo={`Ninguna lista coincide con "${query}"`} />
-                ) : (
-                  catalogoFiltrado.map((e) => {
-                    const selected = e.listName === listName;
-                    return (
-                      <button
-                        key={e.listName}
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        onClick={() => setListName(e.listName)}
-                        className={`analitica-orden-lista-card${selected ? " is-selected" : ""}`}
-                      >
-                        <span className="analitica-orden-lista-icon" aria-hidden="true">
-                          {selected ? <Check size={13} /> : <Layers size={13} />}
-                        </span>
-                        <span className="analitica-orden-lista-name">{e.listName}</span>
-                        {e.tieneOverride && (
-                          <span className="analitica-orden-lista-override" title="Esta lista ya tiene un orden propio guardado">
-                            orden propio
-                          </span>
-                        )}
-                        <span className="analitica-orden-lista-meta">
-                          {e.nVariables} {e.nVariables === 1 ? "variable" : "variables"}
-                          {", "}
-                          {e.nCategorias} {e.nCategorias === 1 ? "categoría" : "categorías"}
-                          {e.ordinalEfectivo && (
-                            <>
-                              {", "}
-                              <span className="analitica-orden-lista-ordinal">ordinal</span>
-                            </>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </>
-          )}
-        </Section>
-
-        {listName && opciones.length > 0 && (
-          <OrdenCategoriasEditor
-            listName={listName}
-            opciones={opciones}
-            varsCompartidas={varsCompartidas}
+    <div className="categorias-superficie" data-audit-ready="analitica-orden">
+      <MesaDePestana
+        grupo="analitica/categorias"
+        columnas={3}
+        cabecera={<CabeceraDeCategorias cifras={cifrasDeLaCabecera(cifrasDeCategorias(catalogo, especiales, variables))} />}
+      >
+        <PanelDeListas
+          total={catalogo.length}
+          listas={visibles}
+          elegida={elegida}
+          consulta={consulta}
+          onBuscar={setConsulta}
+          onElegir={elegir}
+        />
+        <PanelDeCategorias
+          listName={elegida}
+          codes={codes}
+          opciones={opciones}
+          fuente={fuente}
+          hayOrdenPropio={!!guardado && guardado.length > 0}
+          onOrden={(siguiente) => elegida && setOrdenCategorias(elegida, siguiente)}
+          onInvertir={() => elegida && setOrdenCategorias(elegida, [...codes].reverse())}
+          onComoElFormulario={() => elegida && clearOrdenCategorias(elegida)}
+        />
+        <PilaDeMesa grupo="analitica/categorias">
+          <LecturaDeLaLista
+            listName={elegida}
+            ordinal={ordinal}
+            ordinalAuto={ordinalAuto}
+            ordinalPropio={elegida ? ordinales[elegida] !== undefined : false}
+            conEspeciales={codes.some(esValorEspecial)}
+            especialesAlFinal={especialesAlFinal(codes)}
+            especiales={especiales}
+            onOrdinal={(valor) => elegida && setListaOrdinal(elegida, valor)}
+            onUsarDeteccion={() => elegida && clearListaOrdinal(elegida)}
+            onEspecialesAlFinal={(alFinal) => elegida && setOrdenCategorias(
+              elegida,
+              alFinal ? enviarEspecialesAlFinal(codes) : especialesEnSuLugar(codes, formulario),
+            )}
           />
-        )}
-
-        {listName && opciones.length === 0 && (
-          <Alert kind="warn">
-            No se detectaron categorías para <code>{listName}</code>. Verifica que la base tenga
-            respuestas para esta lista de opciones.
-          </Alert>
-        )}
-
-        {/* 6 nov 2026 (pulido de UI): sin lista elegida no va un segundo aviso. «Lista a ordenar» ya dice «Elige una
-            lista de opciones del catálogo…» justo encima, y este repetido quedaba cortado al pie del panel a
-            1280×720 (470 px de contenido en 444). */}
-      </div>
-    </Panel>
+          <PreguntasDeLaLista preguntas={elegida ? preguntas : []} />
+        </PilaDeMesa>
+      </MesaDePestana>
+    </div>
   );
 }
