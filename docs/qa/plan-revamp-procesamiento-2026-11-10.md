@@ -528,49 +528,33 @@ Gonzalo pidió implementar la propuesta en un loop indefinido con un tick cada 5
 
 **Tablero de implementación.** Primero el resumen por sección, en el orden del módulo; debajo, el detalle de cada etapa con sus commits. Estados: Hecho, En curso, Falta, Espera decisión (de Gonzalo) y Bloqueado (por algo ajeno).
 
-**Resumen por sección** (al 2026-11-11)
+**Resumen por sección** (al 2026-11-11, 20:30)
 
-| Sección | Qué | Estado | Qué falta |
-|---|---|---|---|
-| Carga | Una sola página para estudios de una base y de varias | Hecho | |
-| Carga | Red de pruebas por pestaña y textos de progreso | Hecho | |
-| Carga | Cambio a las seis pestañas nuevas (Bases, Revisión, Variables, Equivalencias, Formulario, Respuestas) | Hecho | |
-| Carga | Bases, que absorbe Plan y Fuentes | Hecho | Mostrar la etiqueta de la base y no su identificador; íconos distintos para "Nueva versión" y "Reemplazar archivos"; declarar el marco de las secciones del inspector; confirmar el borrado de los componentes viejos de Fuentes. Sin probar en la app con una base integrada (ningún proyecto de referencia la tiene) |
-| Carga | Panel para actualizar una fuente | Falta | Necesita motor: vista previa de qué cambia |
-| Carga | Revisión | Falta | |
-| Carga | Variables | Falta | Necesita motor: roles de la base y lista de preguntas por base |
-| Carga | Formulario y Respuestas | Falta | |
-| Validación | Trabajo recuperado del 4 de noviembre: editar un criterio propio ya no responde 500, y el editor clasifica el hallazgo | Hecho | |
-| Validación | Red de pruebas y partición de los archivos grandes, sin cambio visible | Hecho | |
-| Validación | Cambio a las cuatro pestañas (Explorar, Reglas, Hallazgos, Cierre) | En curso | |
-| Validación | Motor de Reglas: auditoría única, conteo previo de una regla y condiciones combinadas | Hecho | Decidir cómo trata un vacío la coherencia entre dos preguntas |
-| Validación | Reglas con su panel | Falta | Espera el cambio a las cuatro pestañas |
-| Validación | Hallazgos por tipo | Falta | Motor de Hallazgos en curso: la identidad del caso por columna declarada fue rechazada dos veces en verificación (una exclusión guardada podía sacar a otro encuestado); si no cierra, pasa a etapa propia |
-| Validación | Cierre y retiro de los archivos viejos | Falta | Confirmar los borrados |
-| Validación | Script de limpieza replicable en `.qmd`, que piden estudios como los de ACNUR | Falta | Diseñar cómo sale de las reglas y decisiones guardadas; anotado el 2026-11-11 |
-| Codificación | Preguntas | Hecho | |
-| Codificación | Codificar, vista de tabla | Hecho | |
-| Codificación | Codificar, vista de tarjetas | Hecho | |
-| Codificación | Limpieza: hoja de estilos partida, textos del diálogo de emparejar, archivos sin uso borrados | Hecho | |
-| Codificación | Aplicar | Hecho | |
-| Analítica | Ponderación | Hecho | |
-| Analítica | Frecuencias | Hecho | Buscar por tecleo en "Ir a una pregunta" (necesita una pieza nueva del kit) y más alto útil en ventanas bajas |
-| Analítica | Cruces | Hecho | Ver en la app el selector de variable nuevo y el N ponderado con un proyecto ponderado. Decisiones tomadas con criterio conservador, por confirmar: columnas de base chica sin atenuar, N ponderado en enteros con nota, selección múltiple disponible como variable de cruce, base antes que N ponderado, fila de base solo en la vista previa |
-| Analítica | Marco compartido de Frecuencias y Cruces: banda sin mayúsculas, cabecera compacta, ajustes alcanzables a 1024x600, "registros" en bases hijas | En curso | |
-| Analítica | Las otras diez pestañas | Falta | |
-| Todo el módulo | Piezas compartidas, cabecera y selector de base | Hecho | |
-| Todo el módulo | Estado del estudio | Hecho | |
-| Todo el módulo | Estados de carga, trabajo en curso y error | Falta | |
-| Motor | Nombres "Base codificada" y "Formulario codificado" | Hecho | |
-| Motor | Avisos de ponderación | Hecho | |
-| Motor | Vista previa de frecuencias | Hecho | |
-| Motor | Cabecera "N ponderado" en el Excel de frecuencias cuando hay pesos | Falta | |
-| Motor | Vista previa de cruces | Hecho | |
-| Motor | Defectos del Excel de cruces de hoy: variable de cruce guardada como rótulo (letras vacías, casos perdidos), rótulo de fila repetido, modo dimensiones que no llega al archivo | Falta | |
-| Motor | Defectos de la prueba de diferencias hallados el 2026-11-11: una categoría cuyo nombre empieza con "Otro" queda fuera de la prueba aunque sea sustantiva; la columna excluida y vacía cuenta para el tope de seis; la nota de muestreo aleatorio simple sale en tablas con prueba por conglomerado; la nota no explica las flechas; la base de una tabla hija se informa antes de la exclusión | Falta | |
-| Motor | El anonimizador y el detector de datos personales no recorren los casos guardados en las decisiones de limpieza | Falta | Hace falta antes de anonimizar un estudio con columna de identidad declarada |
-| Motor | Lo que pide el rediseño de Carga (nueve ítems) | Falta | |
-| Motor | Resto del plan original (M1 a M8 y M10) | Falta | M10 espera decisión |
+Desde el 2026-11-11 cada pantalla se compara, imagen contra imagen, con su pantalla del prototipo antes de commitearse. La columna "Fiel al prototipo" dice el veredicto de esa comparación independiente: "Sí, con diferencias menores" quiere decir que lo distinto tiene causa escrita (el motor no da el dato, o una decisión posterior). "Sin comparar" es trabajo anterior a esa regla.
+
+| Sección | Qué | Estado | Fiel al prototipo | Qué falta |
+|---|---|---|---|---|
+| Carga | Una sola página, red de pruebas y las seis pestañas | Hecho | | |
+| Carga | Bases | Hecho | Sí, con diferencias menores | Del motor: decisiones pendientes por base, fecha de lectura fuera de SurveyMonkey, detalle de la integración, "Actualizar" por fuente |
+| Carga | Panel para actualizar una fuente | Falta | | Necesita motor: vista previa de qué cambia |
+| Carga | Revisión, Variables, Formulario y Respuestas | Falta | No (lista de trabajo hecha) | Rehacer con el prototipo como especificación; Variables necesita motor |
+| Validación | Motor de Reglas, de Hallazgos y catálogo de reglas | Hecho | | Identidad del caso por columna declarada, apagada, pasa a etapa propia; aviso cuando una regla no se puede evaluar en ninguna fila, en curso |
+| Validación | Cuatro pestañas (Explorar, Reglas, Hallazgos, Cierre) y cabecera común | Hecho | Sí en la cabecera | |
+| Validación | Explorar | Hecho | Sí, con diferencias menores | Cifras de cabecera y conmutadores |
+| Validación | Panel de regla (nueva regla y edición) | En curso | En revisión | |
+| Validación | Reglas, Hallazgos y Cierre | Falta | No (transición) | Plan de fidelidad escrito; Hallazgos y Cierre necesitan motor |
+| Validación | Script de limpieza replicable en `.qmd` | Falta | | Depende de la identidad del caso |
+| Codificación | Preguntas, Codificar y Aplicar | En curso | No; pasada de fidelidad en marcha | Del motor: dos códigos para un "Otro", "Cerradas con Otro", identificadores fuera de la lista |
+| Analítica | Frecuencias y Cruces | Hecho | Sí, con diferencias menores | Lista de preguntas a 1440, frase de base común, Total de Cruces fuera de su celda |
+| Analítica | Ponderación | Hecho | No | Recorrido por pasos y cabecera nueva |
+| Analítica | Las otras diez pestañas | Falta | No (lista de trabajo para Datos, Orden, Dimensiones y Entrega) | |
+| Todo el módulo | Estado del estudio | Hecho | No | Cabecera, "Archivos del estudio", "Cambios recientes" |
+| Todo el módulo | Zona de contexto (casos que cuentan, estado por fase) | Falta | | |
+| Todo el módulo | Estados de carga, trabajo en curso y error | Falta | | |
+| Motor | Excel de cruces y prueba de diferencias | Falta | | Defectos anotados en el detalle |
+| Motor | Anonimizador: ids de regla dañados y decisiones de limpieza sin recorrer | Falta | | Exige regenerar los proyectos de referencia |
+| Motor | Evaluación con base exportada por etiquetas | Falta | | Hoy esas reglas dan 0 casos en silencio; el aviso va en curso |
+| Motor | Lo que pide el rediseño de Carga y resto del plan original | Falta | | M10 espera decisión |
 
 **Detalle por etapa**
 
