@@ -15,14 +15,14 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { ErrorBlock } from "../../../../components/States";
 import { formatoConteoDe } from "../../../../lib/formatoNumero";
-import { ArrowLeftRight, Columns3, Download, FileUp, GitCompareArrows, ListChecks, Pencil, Plus, Trash2 } from "../../../../vendor/lucide-react";
+import { ArrowLeftRight, Columns3, Download, FileUp, GitCompareArrows, ListChecks, Pencil, Plus, RefreshCw, Trash2 } from "../../../../vendor/lucide-react";
 import { ReplaceFilesForm } from "../../BasesPanel";
 import { DescargaDeBaseEnFila, useDescargaDeBase } from "../../entregas/DescargaDeBase";
 import { AbrirPanelFuentes } from "../../fuentes/AbrirPanelFuentes";
 import { comparablesCon, searchConArmonizacionBase, searchConComparacion } from "../../fuentes/compararFuentesModel";
 import { rotuloBaseDeclarada, vinculoFormularioDeBase } from "../../fuentes/formularioPublicadoModel";
 import { IrAVariablesDeBase } from "../../fuentes/IrAVariablesDeBase";
-import { NuevaVersionRespuestas } from "../../fuentes/NuevaVersionRespuestas";
+import { modoDeLaFila } from "../../actualizar/ActualizarFuente";
 import { importedAtLabel } from "../../surveymonkey/smBasesModel";
 import { CAUSA_SIN_OTRA_FUENTE, etiquetaDeBase, type BaseDeLaColeccion, type FuenteDeBase, type HijaDeBase } from "./basesModel";
 import { resumenDeIntegracion } from "./integracionModel";
@@ -43,6 +43,8 @@ export type InspectorDeBaseProps = {
   onAgregarFuente: () => void;
   /** Con una base: abre el recorrido en el paso "Origen" para traer otra fuente. */
   onCambiarFuente: (() => void) | null;
+  /** Abre "Actualizar" de la fuente (`panel=actualizar-fuente&foco=<base>`). */
+  onActualizar: () => void;
   /** Con una base: el aviso del enlace con la revisión publicada. */
   avisoDelFormulario?: ReactNode;
   /** Con una base y el mapeo de códigos sin confirmar, la base preparada todavía no se descarga. */
@@ -112,6 +114,7 @@ export function InspectorDeBase({
   onQuitada,
   onAgregarFuente,
   onCambiarFuente,
+  onActualizar,
   avisoDelFormulario,
   descargable,
 }: InspectorDeBaseProps) {
@@ -149,6 +152,7 @@ export function InspectorDeBase({
   // Lo que cambia los datos de la fuente. Solo existe para una base de una
   // fuente: "Nueva versión" de las respuestas, "Reemplazar archivos" (formulario
   // y respuestas) o, con una base, "Cambiar la fuente".
+  const modoActualizar = hija ? null : modoDeLaFila(base);
   const accionesDeFuente = hija ? null : (
     <>
       {onCambiarFuente ? (
@@ -156,8 +160,14 @@ export function InspectorDeBase({
           <ArrowLeftRight size={13} aria-hidden="true" />Cambiar la fuente
         </PulsoButton>
       ) : null}
-      {base.recibeNuevaVersion && base.enEstudio ? (
-        <NuevaVersionRespuestas base={base.nombre} ocupado={ocupado} onCambio={onCambio} />
+      {modoActualizar ? (
+        // Abre el panel "Actualizar": con un archivo, vista previa y copia para volver; con la
+        // plataforma, la causa de que no haya vista previa.
+        <PulsoButton variant="secondary" size="sm" aria-haspopup="dialog" disabled={ocupado} onClick={onActualizar}>
+          {modoActualizar === "archivo"
+            ? <><FileUp size={13} aria-hidden="true" />Nueva versión</>
+            : <><RefreshCw size={13} aria-hidden="true" />Actualizar</>}
+        </PulsoButton>
       ) : null}
       {base.enEstudio && base.reemplazaArchivos ? (
         <PulsoButton variant="secondary" size="sm" disabled={ocupado || reemplazando} onClick={() => setReemplazando(true)}>
@@ -166,7 +176,7 @@ export function InspectorDeBase({
       ) : null}
     </>
   );
-  const hayAccionesDeFuente = !hija && (Boolean(onCambiarFuente) || (base.recibeNuevaVersion && base.enEstudio) || (base.enEstudio && base.reemplazaArchivos));
+  const hayAccionesDeFuente = !hija && (Boolean(onCambiarFuente) || Boolean(modoActualizar) || (base.enEstudio && base.reemplazaArchivos));
   const unaFuente = base.fuentes.length <= 1;
 
   return (

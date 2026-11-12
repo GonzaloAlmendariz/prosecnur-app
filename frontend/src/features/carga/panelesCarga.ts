@@ -59,6 +59,16 @@ export const PANEL_BITACORA_INTEGRACION: PanelDeclarado = {
   clase: "sideover",
 };
 
+/**
+ * Carga › Bases: actualizar las respuestas de una base (`foco=<base>`) con vista
+ * previa, aplicación con copia y vuelta a la versión anterior.
+ */
+export const PANEL_ACTUALIZAR_FUENTE: PanelDeclarado = {
+  id: "actualizar-fuente",
+  label: "Actualizar la fuente",
+  clase: "sideover",
+};
+
 /** Lo emite quien guarda o quita un segmento; el recorrido de la serie relee. */
 export const EVENTO_SEGMENTOS = "pulso:segmentos-changed";
 
@@ -83,4 +93,5 @@ export const PANELES_CARGA = [
   PANEL_RELACION,
   PANEL_AGREGAR_FUENTE,
   PANEL_BITACORA_INTEGRACION,
+  PANEL_ACTUALIZAR_FUENTE,
 ] as const satisfies readonly PanelDeclarado[];

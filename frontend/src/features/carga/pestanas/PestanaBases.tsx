@@ -15,6 +15,8 @@ import { useFormulariosPublicados } from "../fuentes/useFormulariosPublicados";
 import { useOrdenDeSerie } from "../fuentes/useOrdenDeSerie";
 import type { MultiBaseStrategy } from "../store";
 import type { SessionState } from "../../../api/core";
+import { ActualizarFuente } from "../actualizar/ActualizarFuente";
+import { searchConActualizarFuente } from "../actualizar/actualizarFuenteModel";
 import { AgregarBase } from "./bases/AgregarBase";
 import { AgregarFuente } from "./bases/AgregarFuente";
 import { BitacoraDeIntegracion } from "./bases/BitacoraDeIntegracion";
@@ -229,6 +231,7 @@ export function PestanaBases({
             onQuitada={() => ir(searchConInspector(location.search, null))}
             onAgregarFuente={() => ir(searchConAgregarFuente(location.search, objetivo.base.nombre))}
             onCambiarFuente={varias ? null : () => ir(searchConAgregarBase(location.search, null))}
+            onActualizar={() => ir(searchConActualizarFuente(location.search, objetivo.base.nombre))}
             avisoDelFormulario={varias ? null : (
               <InstrumentRevisionBindingNotice binding={unaBase.enlaceConRevision} base={registrada ?? undefined} />
             )}
@@ -238,6 +241,7 @@ export function PestanaBases({
       </div>
 
       <PanelDeRelacion relacion={relacion} />
+      <ActualizarFuente coleccion={coleccion} ocupado={ocupado} onCambio={variasBases.onEstudioCambiado} />
       <AgregarBase
         varias={varias}
         estrategia={estrategia}

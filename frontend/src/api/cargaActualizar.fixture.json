@@ -1,0 +1,206 @@
+{
+ "ok": true,
+ "version_vigente": {
+  "file_id": "12631f47-f6b8-4ca3-a834-20bcd82baa29",
+  "archivo": "data_2026.xlsx",
+  "es": "vigente"
+ },
+ "version_nueva": {
+  "file_id": "de7c5c2b-d566-4dcf-b1bd-e803f967044e",
+  "archivo": "v2.xlsx"
+ },
+ "formulario": {
+  "cambia": false,
+  "causa": "Se conserva el formulario de la base; solo cambian las respuestas."
+ },
+ "identificador": {
+  "columnas": [
+   "_uuid"
+  ],
+  "metodo": "columna_candidata"
+ },
+ "casos": {
+  "antes": 40,
+  "despues": 31,
+  "nuevos": 1,
+  "ya_no_vienen": 10,
+  "editados": 1,
+  "sin_cambios": 29,
+  "celdas_cambiadas": 1,
+  "causa": null,
+  "ejemplos": {
+   "nuevos": [
+    "u41"
+   ],
+   "ya_no_vienen": [
+    "u31",
+    "u32",
+    "u33",
+    "u34",
+    "u35",
+    "u36",
+    "u37",
+    "u38",
+    "u39",
+    "u40"
+   ],
+   "editados": [
+    "u05"
+   ]
+  }
+ },
+ "columnas": {
+  "nuevas": [],
+  "ya_no_vienen": [],
+  "con_cambios": [
+   {
+    "columna": "q3",
+    "n_casos": 1
+   }
+  ],
+  "no_comparadas": []
+ },
+ "fases": [
+  {
+   "fase": "carga",
+   "nombre": "Carga",
+   "se_conserva": [
+    {
+     "clave": "formulario",
+     "que": "Formulario",
+     "n": null,
+     "causa": "Solo cambian las respuestas."
+    },
+    {
+     "clave": "variables_propias",
+     "que": "Variables propias",
+     "n": 0,
+     "causa": null
+    },
+    {
+     "clave": "variables_calculadas",
+     "que": "Variables calculadas",
+     "n": 0,
+     "causa": null
+    }
+   ],
+   "hay_que_rehacer": [],
+   "se_pierde": []
+  },
+  {
+   "fase": "validacion",
+   "nombre": "Validación",
+   "se_conserva": [
+    {
+     "clave": "reglas_formulario",
+     "que": "Reglas del formulario",
+     "n": null,
+     "causa": "El formulario no cambia; se cuentan al volver a auditar."
+    },
+    {
+     "clave": "reglas_propias",
+     "que": "Reglas propias",
+     "n": 1,
+     "causa": null
+    },
+    {
+     "clave": "variables_excluidas",
+     "que": "Variables excluidas de la auditoría",
+     "n": 0,
+     "causa": null
+    },
+    {
+     "clave": "configuracion_operativa",
+     "que": "Configuración operativa (identidad del caso, periodo de campo)",
+     "n": null,
+     "causa": null
+    },
+    {
+     "clave": "decisiones_limpieza",
+     "que": "Decisiones de limpieza",
+     "n": 1,
+     "causa": null
+    }
+   ],
+   "hay_que_rehacer": [
+    {
+     "clave": "auditoria",
+     "que": "Volver a auditar",
+     "n": 2,
+     "causa": "Casos nuevos y editados."
+    }
+   ],
+   "se_pierde": [
+    {
+     "clave": "decisiones_limpieza",
+     "que": "Decisiones de limpieza",
+     "n": 1,
+     "causa": "Identificaba sus casos por número de fila; en la versión nueva esa fila puede ser otro caso."
+    }
+   ]
+  },
+  {
+   "fase": "codificacion",
+   "nombre": "Codificación",
+   "se_conserva": [
+    {
+     "clave": "catalogo",
+     "que": "Libro de códigos",
+     "n": 0,
+     "causa": null
+    }
+   ],
+   "hay_que_rehacer": [],
+   "se_pierde": []
+  },
+  {
+   "fase": "analitica",
+   "nombre": "Analítica",
+   "se_conserva": [
+    {
+     "clave": "configuracion",
+     "que": "Configuración de tablas, pesos y dimensiones",
+     "n": null,
+     "causa": null
+    }
+   ],
+   "hay_que_rehacer": [],
+   "se_pierde": []
+  },
+  {
+   "fase": "graficos",
+   "nombre": "Gráficos",
+   "se_conserva": [
+    {
+     "clave": "laminas",
+     "que": "Láminas y su estilo",
+     "n": null,
+     "causa": null
+    }
+   ],
+   "hay_que_rehacer": [],
+   "se_pierde": []
+  }
+ ],
+ "decisiones": [
+  {
+   "id": "1",
+   "accion": "exclude_cases",
+   "source_id": "R2",
+   "destino": "conserva",
+   "causa": "Se conserva con su lista de casos; los que ya no vienen no se tocan.",
+   "n_casos_guardados": 2,
+   "n_casos_que_ya_no_vienen": 1
+  },
+  {
+   "id": "2",
+   "accion": "exclude_cases",
+   "source_id": "R3",
+   "destino": "se_pierde",
+   "causa": "Identificaba sus casos por número de fila; en la versión nueva esa fila puede ser otro caso.",
+   "n_casos_guardados": 1,
+   "n_casos_que_ya_no_vienen": null
+  }
+ ],
+ "respaldo": null
+}
