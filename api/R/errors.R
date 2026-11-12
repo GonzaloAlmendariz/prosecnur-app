@@ -56,10 +56,20 @@ wrap_endpoint <- function(fn) {
   # nombre. Un handler escrito `function(req, res)` (sin `...`) reventaba con "unused argument"
   # en cuanto llegaban (500 en /instrumento/estado?base_nombre= y en las rutas de actualizar una
   # fuente, 2026-11-12). Si el handler no declara `...`, los extras no se le pasan: los lee de req.
-  acepta_extras <- "..." %in% names(formals(fn))
+  # Los que el handler SÍ declara por nombre (el `<file_id>` de la ruta, `sid` de la descarga) se le
+  # siguen pasando: quitarlos dejó /api/files/<file_id>/download en 404 (2026-11-12).
+  formales <- names(formals(fn))
+  acepta_extras <- "..." %in% formales
+  declarados <- setdiff(formales, c("req", "res"))
   function(req, res, ...) {
     tryCatch(
-      if (acepta_extras) fn(req, res, ...) else fn(req, res),
+      if (acepta_extras) {
+        fn(req, res, ...)
+      } else {
+        extras <- list(...)
+        extras <- extras[names(extras) %in% declarados]
+        do.call(fn, c(list(req, res), extras))
+      },
       error = function(e) handle_api_error(req, res, e)
     )
   }
