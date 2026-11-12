@@ -125,8 +125,8 @@ export default function AnaliticaPage() {
   // y su acción (prototipo del rediseño): la página no pinta la suya y les pasa
   // la pestaña y la barra de fuente, que va a sus ajustes.
   // Datos, Libro de códigos y Orden de categorías también dibujan la suya
-  // (prototipo "Analítica, Variables", "Entrega" y "Categorías").
-  const propia = cabeceraPropia(activeMeta.key) || activeMeta.key === "datos" || activeMeta.key === "codebook" || activeMeta.key === "orden";
+  // (prototipo "Analítica, Variables", "Entrega" y "Categorías"), y Dimensiones.
+  const propia = cabeceraPropia(activeMeta.key) || activeMeta.key === "datos" || activeMeta.key === "codebook" || activeMeta.key === "orden" || activeMeta.key === "dimensiones";
   const fuente = <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />;
   const encabezado = {
     titulo: activeMeta.label,

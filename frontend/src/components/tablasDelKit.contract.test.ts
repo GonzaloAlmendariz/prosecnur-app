@@ -28,7 +28,6 @@ const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/analitica/MetadatosEditor.tsx": 1,
   "features/analitica/panes/ComparativosColumnas.tsx": 1,
   "features/analitica/panes/ComparativosPane.tsx": 1,
-  "features/analitica/panes/DimensionesPane.tsx": 1,
   "features/analitica/panes/PanelBasePane.tsx": 2,
   "features/calcMuestra/ComponenteTablas.tsx": 2,
   "features/calcMuestra/general/ActoresAcreditacion.tsx": 1,
