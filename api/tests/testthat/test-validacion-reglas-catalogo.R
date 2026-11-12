@@ -33,22 +33,22 @@
              p8 = p8, p10 = p10, edad = edad, stringsAsFactors = FALSE)
 }
 
-.m3_archivos <- function(dir, datos) {
+.m3_archivos <- function(dir, datos, survey = .m3_survey()) {
   xls <- file.path(dir, "formulario.xlsx")
   choices <- data.frame(list_name = c("sino", "sino"), name = c("1", "2"),
                         label = c("Sí", "No"), stringsAsFactors = FALSE)
-  openxlsx::write.xlsx(list(survey = .m3_survey(), choices = choices), xls)
+  openxlsx::write.xlsx(list(survey = survey, choices = choices), xls)
   csv <- file.path(dir, "base.csv")
   utils::write.csv(datos, csv, row.names = FALSE)
   list(xlsform = xls, data = csv, datos = datos)
 }
 
-.m3_sesion <- function(dir, datos_personas = .m3_datos(), datos_hogares = .m3_datos(20L)) {
+.m3_sesion <- function(dir, datos_personas = .m3_datos(), datos_hogares = .m3_datos(20L), survey = .m3_survey()) {
   sid <- session_create()
   for (nombre in c("Hogares", "Personas")) {
     sub <- file.path(dir, nombre)
     dir.create(sub, showWarnings = FALSE, recursive = TRUE)
-    f <- .m3_archivos(sub, if (identical(nombre, "Personas")) datos_personas else datos_hogares)
+    f <- .m3_archivos(sub, if (identical(nombre, "Personas")) datos_personas else datos_hogares, survey)
     xm <- save_upload(sid, "xlsform", basename(f$xlsform),
                       readBin(f$xlsform, "raw", n = file.info(f$xlsform)$size))
     dm <- save_upload(sid, "data", basename(f$data),
@@ -367,4 +367,254 @@ test_that("en modo público la ruta responde 403", {
   r <- .m1_http(pr, sid, "GET", "/api/validacion/v2/reglas/catalogo")
   expect_identical(r$status, 403L)
   expect_identical(r$body$error$code, "E_FORBIDDEN_PUBLIC")
+})
+
+# --- Segunda entrega (verificación de M3) ------------------------------------
+
+test_that("restricción con condición y vacíos: la base es quienes respondieron y cumplen la condición", {
+  survey <- rbind(.m3_survey(), data.frame(type = "integer", name = "horas", label = "Horas trabajadas",
+    required = "", relevant = "${p8} = '1'", constraint = ". <= 80", stringsAsFactors = FALSE))
+  datos <- .m3_datos()
+  datos$horas <- NA_integer_
+  datos$horas[1:12] <- c(90L, 95L, NA, NA, rep(40L, 8))
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir, datos_personas = datos, survey = survey)
+  .m3_plan(sid, "Personas")
+  .m2_auditar(sid, "Personas")
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  horas <- Filter(function(f) identical(f$variable_revisada, "horas") && identical(f$familia, "restriccion"), cat$reglas)[[1]]
+  expect_identical(horas$ultima_auditoria$n_casos, 2L)
+  expect_identical(horas$ultima_auditoria$n_base, 10L)
+  expect_identical(horas$ultima_auditoria$base_tipo, "respondieron")
+  expect_identical(horas$limites$max, "80")
+  expect_true(is.na(horas$limites$min))
+  expect_true(horas$limites$inclusive_max)
+  expect_identical(horas$nombre, "\"Horas trabajadas\" menor o igual a 80")
+})
+
+test_that("las exclusiones de recolección salen de la base, también de la base de todas las filas", {
+  exclusiones <- list(list(excluded_validation_vars = list("edad"), collector_ids = "K2",
+                           validation_exclusion_profile = "telefonico"))
+  testthat::local_mocked_bindings(.validacion_mb_collection_exclusions_for_base = function(...) exclusiones)
+  datos <- .m3_datos()
+  datos$collector_id <- ifelse(seq_len(nrow(datos)) > 400L, "K2", "K1")
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir, datos_personas = datos)
+  .m3_plan(sid, "Personas")
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(.m1_regla("RC_001", "rango_num", list("edad"),
+                                                                        list(min = 18, max = 65))))
+  .m2_auditar(sid, "Personas")
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  rango <- .m3_regla(cat, "restriccion")$ultima_auditoria
+  expect_identical(rango$n_base, 400L)
+  propia <- Filter(function(f) identical(f$origen, "propia"), cat$reglas)[[1]]$ultima_auditoria
+  expect_identical(propia$base_tipo, "todas")
+  expect_identical(propia$n_base, 400L)
+  expect_lte(propia$n_casos, propia$n_base)
+})
+
+.m3_familias <- function() {
+  survey <- data.frame(
+    type = c("integer", "integer", "calculate", "integer", "begin_repeat", "text", "end_repeat", "date"),
+    name = c("a", "b", "total", "n_hijos", "hijos", "hijo_nombre", "hijos", "fecha"),
+    label = c("Hombres", "Mujeres", "Total de personas", "Número de hijos", "Hijos del hogar", "Nombre del hijo", "", "Fecha de visita"),
+    calculation = c("", "", "${a} + ${b}", "", "", "", "", ""),
+    repeat_count = c("", "", "", "", "${n_hijos}", "", "", ""),
+    required = "", relevant = "", constraint = c("", "", "", ". >= 0", "", "", "", ""),
+    stringsAsFactors = FALSE)
+  x <- tempfile(fileext = ".xlsx")
+  openxlsx::write.xlsx(list(survey = survey, choices = data.frame(list_name = "x", name = "1", label = "X")), x)
+  inst <- leer_xlsform_limpieza(x, verbose = FALSE)
+  b <- build_validation_bundle(inst)
+  cfg <- list(version = 2L, field_period = list(enabled = TRUE, variable = "fecha",
+                                                start_date = "2026-06-01", end_date = "2026-06-30"),
+              duplicates = list(enabled = TRUE, variables = as.list(sprintf("v%02d", 1:10)),
+                                matching_method = "response_similarity"))
+  b <- validation_operational_append_rules(b, cfg)
+  dup <- rule_duplicate(vars = c("_parent_index", "hijo_nombre"))
+  dup$tabla <- "hijos"; dup$presentation$subtipo_semantico <- "relacional"
+  filtro <- make_rule(nombre = "filtro", tipo_regla = "constraint", fuente = "instrumento",
+                      predicate = ast_not_in_set("a", c("1", "2")))
+  b$rules <- c(b$rules, list(dup, filtro))
+  plan <- compile_rules_to_plan(b$rules)
+  plan[["Categoría"]][plan$ID == filtro$id] <- "Filtro de opciones"
+  list(inst = inst, bundle = b, plan = plan, xlsform = x)
+}
+
+test_that("familias sin cobertura: cálculo, grupo repetido, periodo, casi iguales y filtro de opciones", {
+  fx <- .m3_familias()
+  sid <- session_create()
+  xm <- save_upload(sid, "xlsform", "f.xlsx", readBin(fx$xlsform, "raw", n = file.info(fx$xlsform)$size))
+  estudio_add_base(sid = sid, nombre = "Hogares", xlsform_file_id = xm$file_id, data_file_id = NULL,
+                   data_ext = "csv", rp_data = NULL, rp_inst = NULL, n_filas = 0L, n_columnas = 0L)
+  validacion_scope_set(sid, "Hogares", "plan_result", list(plan = fx$plan, bundle = fx$bundle))
+  cat <- validacion_reglas_catalogo(sid, "Hogares")
+  fam <- function(f) Filter(function(x) identical(x$familia, f), cat$reglas)
+
+  calc <- fam("calculo")[[1]]
+  expect_identical(calc$nombre, "Valor calculado de \"Total de personas\"")
+  expect_identical(.m3_texto(calc$frase), "El valor calculado de Total de personas debe coincidir con su fórmula del formulario.")
+  expect_identical(calc$expresion_formulario, "${a} + ${b}")
+
+  grupos <- fam("grupo_repetido")
+  nombres <- vapply(grupos, `[[`, "", "nombre")
+  expect_false(anyDuplicated(nombres) > 0L)
+  expect_true(all(grepl("\"Hijos del hogar\"", nombres)))
+  expect_true("Registros repetidos en \"Hijos del hogar\"" %in% nombres)
+  textos <- vapply(grupos, function(f) .m3_texto(f$frase), "")
+  expect_false(any(grepl("_parent_index|tabla principal|principal\"", c(textos, nombres))))
+  expect_true("Se marca cuando Nombre del hijo se repite dentro de la misma encuesta." %in% textos)
+  expect_true("Se marca cuando el registro no pertenece a ninguna encuesta de la base." %in% textos)
+
+  periodo <- fam("periodo")[[1]]
+  expect_identical(periodo$origen, "operativo")
+  expect_identical(.m3_texto(periodo$frase), "Se marca cuando Fecha de visita está fuera del periodo del 2026-06-01 al 2026-06-30.")
+  expect_identical(c(periodo$limites$min, periodo$limites$max), c("2026-06-01", "2026-06-30"))
+  expect_identical(periodo$limites$tipo, "fecha")
+
+  casi <- fam("casi_iguales")[[1]]
+  expect_identical(casi$nombre, "Respuestas casi iguales")
+  expect_match(.m3_texto(casi$frase), "al menos 90 % de las 10 preguntas comparadas")
+
+  filtro <- fam("filtro_opciones")[[1]]
+  expect_identical(filtro$familia_nombre, "Filtros de opciones")
+  expect_identical(filtro$nombre, "Filtro de opciones de \"Hombres\"")
+
+  hijos <- Filter(function(f) identical(f$variable_revisada, "n_hijos") && identical(f$familia, "restriccion"), cat$reglas)[[1]]
+  expect_identical(hijos$limites$min, "0")
+  expect_true(hijos$limites$inclusive_min)
+  expect_true(is.na(hijos$limites$max))
+  expect_identical(hijos$nombre, "\"Número de hijos\" mayor o igual a 0")
+  .m3_sin_vetados(unlist(lapply(cat$reglas, function(f) c(f$nombre, .m3_texto(f$frase)))))
+})
+
+test_that("etiquetas con marcadores: se resuelve el rótulo referido o se recorta, nunca sale el marcador", {
+  ctx <- .vrf_contexto(NULL)
+  ctx$etiquetas <- c(sede = "Sede de atención", t1 = "¿Cuánto tardó en llegar a ${sede}?",
+                     t2 = "¿Cuánto tardó en llegar al espacio de ${sede_ppl}?",
+                     t3 = "¿Se encuentra satisfecho - ${current_label}?", t4 = "${current_label}")
+  expect_identical(.vrf_etiqueta("t1", ctx), "¿Cuánto tardó en llegar a [Sede de atención]?")
+  expect_identical(.vrf_etiqueta("t2", ctx), "¿Cuánto tardó en llegar al espacio?")
+  expect_identical(.vrf_etiqueta("t3", ctx), "¿Se encuentra satisfecho?")
+  expect_identical(.vrf_etiqueta("t4", ctx), "t4")
+})
+
+test_that("una negación de comparaciones simples se escribe en afirmativo", {
+  ctx <- .vrf_contexto(NULL)
+  ctx$etiquetas <- c(p8 = "Trabaja", edad = "Edad", p9 = "Ocupación")
+  plano <- function(x) .vrf_texto_plano(.vrf_cond(x, .vrf_contexto_regla(ctx)))
+  neg_y <- ast_not(ast_and(ast_compare_const("p8", "==", "1"), ast_compare_const("edad", ">", "18")))
+  expect_identical(plano(neg_y), "Trabaja no es 1 o Edad es menor o igual a 18")
+  doble <- ast_not(ast_and(ast_not(ast_and(ast_compare_const("p8", "==", "1"), ast_is_missing("p9"))),
+                           ast_compare_const("edad", "<=", "3")))
+  txt <- plano(doble)
+  expect_false(grepl("no se cumple", txt))
+  expect_identical(txt, "(Trabaja es 1 y Ocupación está vacía) o Edad es mayor que 3")
+})
+
+test_that("la base de un grupo repetido se nombra por el rótulo del grupo y en registros", {
+  expect_identical(.vrb_base_texto("todas", "constraint", "hijos", grupo = "Hijos del hogar"),
+                   "registros de \"Hijos del hogar\"")
+  expect_identical(.vrb_base_texto("condicion_verdadera", "required", "hijos", grupo = "Hijos del hogar"),
+                   "registros de \"Hijos del hogar\" en que se mostró la pregunta")
+  expect_identical(.vrb_base_texto("respondieron", "range", "principal", familia = "periodo"),
+                   "con la fecha registrada")
+})
+
+test_that("un valor que no está entre las opciones de la pregunta sale con un aviso por regla", {
+  survey <- .m3_survey()
+  survey$relevant[survey$name == "p10"] <- "${p8} = '9'"
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir, survey = survey)
+  .m3_plan(sid, "Personas")
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  av <- Filter(function(a) identical(a$codigo, "valor_fuera_de_opciones"), cat$avisos)
+  ids_salto <- vapply(Filter(function(f) identical(f$familia, "salto") || identical(f$familia, "obligatoria"), cat$reglas), `[[`, "", "id")
+  expect_true(length(av) >= 2L)
+  expect_true(all(vapply(av, `[[`, "", "id_regla") %in% ids_salto))
+  expect_false(anyDuplicated(vapply(av, `[[`, "", "id_regla")) > 0L)
+  expect_identical(av[[1]]$texto,
+    "El formulario compara \"¿Trabaja actualmente?\" con \"9\", que no está entre sus opciones: ese valor sale sin rótulo.")
+})
+
+test_that("reglas de la auditoría fuera del catálogo se cuentan por regla, no por id distinto", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  .m2_auditar(sid, "Personas")
+  ev <- validacion_scope_get(sid, "Personas")$evaluacion
+  extra <- ev$resumen[1:2, ]
+  extra$id_regla <- "VR_skip_[documento]"
+  ev$resumen <- rbind(ev$resumen, extra)
+  validacion_scope_set(sid, "Personas", "evaluacion", ev)
+  av <- Filter(function(a) identical(a$codigo, "auditoria_con_reglas_fuera"), validacion_reglas_catalogo(sid, "Personas")$avisos)[[1]]
+  expect_identical(av$n_reglas, 2L)
+  expect_length(av$ids, 1L)
+  expect_match(av$texto, "tiene 2 reglas")
+})
+
+test_that("caché por base: se reusa y se invalida al cambiar la activación de una regla", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  n <- 0L
+  original <- .vrc_construir
+  testthat::local_mocked_bindings(.vrc_construir = function(...) { n <<- n + 1L; original(...) })
+  primero <- validacion_reglas_catalogo(sid, "Personas")
+  validacion_reglas_catalogo(sid, "Personas", variable = "p8")
+  expect_identical(n, 1L)
+  rid <- .m3_regla(primero, "restriccion")$id_motor
+  pr <- .m1_router()
+  r <- .m1_http(pr, sid, "PATCH", sprintf("/api/validacion/v2/instrumento/regla/%s/activa", rid),
+                body = '{"activa": false, "motivo": "Se revisa a mano"}', query = "base_nombre=Personas")
+  expect_identical(r$status, 200L)
+  despues <- validacion_reglas_catalogo(sid, "Personas")
+  expect_identical(n, 2L)
+  expect_false(.m3_regla(despues, "restriccion")$activa)
+  expect_identical(.m3_regla(despues, "restriccion")$motivo_desactivada, "Se revisa a mano")
+})
+
+test_that("GET /instrumento/resultado acepta base_nombre en la query", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  .m2_auditar(sid, "Personas")
+  r <- .m1_http(.m1_router(), sid, "GET", "/api/validacion/v2/instrumento/resultado", query = "base_nombre=Personas")
+  expect_identical(r$status, 200L)
+  expect_identical(r$body$base_nombre, "Personas")
+  expect_length(r$body$avisos, 0L)
+})
+
+test_that("la auditoría avisa cuando la condición de una regla no se pudo evaluar en casi ninguna fila", {
+  datos <- .m3_datos()
+  datos$p8 <- ifelse(datos$p8 == 1L, "Sí", "No")
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir, datos_personas = datos)
+  .m3_plan(sid, "Personas")
+  resultado <- NULL
+  testthat::local_mocked_bindings(job_submit = function(sid, kind, func, args = list(), on_complete = NULL, ...) {
+    inst <- leer_xlsform_limpieza(args$xlsform_path, verbose = FALSE)
+    d <- read_validation_data_ast(args$data_path, args$data_ext, instrumento = inst)
+    ev <- evaluate_validation_bundle(args$bundle, d, strict = FALSE)
+    resultado <<- on_complete(list(sid = sid, result_data = list(ev = ev, total = NA_integer_)))
+    "job"
+  })
+  validacion_auditoria_lanzar(sid, "Personas")
+  debe <- .m3_regla(validacion_reglas_catalogo(sid, "Personas"), "salto", "debe")
+
+  esperado <- "La base guarda textos donde el formulario espera códigos en la pregunta \"¿Trabaja actualmente?\": la condición de la regla no se pudo evaluar en 426 de 426 casos y la regla no marcó ninguno."
+  av_job <- Filter(function(a) identical(a$id_regla, debe$id_motor), resultado$avisos)
+  expect_length(av_job, 1L)
+  expect_identical(av_job[[1]]$texto, esperado)
+  expect_identical(av_job[[1]]$pregunta, "p8")
+
+  est <- .m1_http(.m1_router(), sid, "GET", "/api/validacion/v2/auditoria/estado", query = "base_nombre=Personas")
+  expect_identical(est$status, 200L)
+  ids <- vapply(est$body$avisos, function(a) a$id_regla, "")
+  expect_true(debe$id_motor %in% ids)
+  expect_identical(unique(vapply(est$body$avisos, function(a) a$codigo, "")), "condicion_indeterminada")
+  res <- .m1_http(.m1_router(), sid, "GET", "/api/validacion/v2/instrumento/resultado", query = "base_nombre=Personas")
+  expect_true(debe$id_motor %in% vapply(res$body$avisos, function(a) a$id_regla, ""))
+  # La restricción de edad no depende de p8: sin aviso.
+  expect_false(.m3_regla(validacion_reglas_catalogo(sid, "Personas"), "restriccion")$id_motor %in% ids)
 })

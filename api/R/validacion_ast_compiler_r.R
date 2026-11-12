@@ -160,24 +160,37 @@ ast_to_r <- function(x) {
 }
 
 .c_cmp_vars <- function(va, op, vb) {
-  # ODK coerce implícito: intentamos numérico primero; si ambos no parsean
-  # como número, caemos a comparación de fechas (string ISO o Excel serial).
-  # Esto cierra el gap detectado en ESPP date_residing vs date_ppl donde
-  # as.numeric(date_string) = NA → silencio falso-negativo.
+  # ODK coerce implícito, fila por fila: número contra número; si no, fecha
+  # contra fecha (texto ISO "aaaa-mm-dd" o "aaaa/mm/dd", con o sin hora); si
+  # ninguno de los dos lados es número ni fecha, texto contra texto (solo "=" y
+  # "!=", que son las comparaciones con sentido entre textos). Cualquier otra
+  # mezcla (fecha contra texto, número contra texto) queda indeterminada (NA).
+  # Cierra el gap de ESPP date_residing vs date_ppl, donde as.numeric(fecha) =
+  # NA daba falso negativo.
+  # La fecha se lee con formatos explícitos: `as.Date()` sin formato adivina por
+  # el primer valor y, ante un texto que no es fecha, lanza "character string
+  # is not in a standard unambiguous format", que `suppressWarnings` no atrapa
+  # y tumbaba la regla entera.
   va_b <- .backtick(va)
   vb_b <- .backtick(vb)
+  texto <- if (op %in% c("==", "!=")) sprintf("ifelse(.ok_txt, .a_t %s .b_t, NA)", op) else "NA"
   sprintf(
     paste0(
-      "{ .a_n <- suppressWarnings(as.numeric(%s)); ",
+      "{ .fecha <- function(x) { x <- trimws(as.character(x)); ",
+      "d <- as.Date(x, format = '%%Y-%%m-%%d'); f <- is.na(d) & !is.na(x); ",
+      "d[f] <- as.Date(x[f], format = '%%Y/%%m/%%d'); d }; ",
+      ".a_n <- suppressWarnings(as.numeric(%s)); ",
       ".b_n <- suppressWarnings(as.numeric(%s)); ",
       ".ok_num <- !is.na(.a_n) & !is.na(.b_n); ",
-      ".a_d <- suppressWarnings(as.Date(%s)); ",
-      ".b_d <- suppressWarnings(as.Date(%s)); ",
-      ".ok_dt <- !is.na(.a_d) & !is.na(.b_d); ",
+      ".a_d <- .fecha(%s); .b_d <- .fecha(%s); ",
+      ".ok_dt <- !.ok_num & !is.na(.a_d) & !is.na(.b_d); ",
+      ".a_t <- trimws(as.character(%s)); .b_t <- trimws(as.character(%s)); ",
+      ".ok_txt <- !is.na(.a_t) & nzchar(.a_t) & !is.na(.b_t) & nzchar(.b_t) & ",
+      "is.na(.a_n) & is.na(.b_n) & is.na(.a_d) & is.na(.b_d); ",
       "ifelse(.ok_num, .a_n %s .b_n, ",
-      "ifelse(.ok_dt, .a_d %s .b_d, NA)) }"
+      "ifelse(.ok_dt, .a_d %s .b_d, %s)) }"
     ),
-    va_b, vb_b, va_b, vb_b, op, op
+    va_b, vb_b, va_b, vb_b, va_b, vb_b, op, op, texto
   )
 }
 

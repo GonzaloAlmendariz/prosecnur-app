@@ -222,7 +222,10 @@ validacion_auditoria_estado <- function(sid, base = NULL) {
     n_reglas_auditadas = if (is.null(ev)) NA_integer_ else as.integer(auditada$n_reglas %||% nrow(ev$resumen %||% data.frame())),
     huella_vigente = vigente$conjunto,
     huella_auditada = auditada$conjunto %||% NA_character_,
-    cambios = cambios
+    cambios = cambios,
+    # Reglas cuya condición no se pudo evaluar en casi ninguna fila: su "0
+    # casos" no dice que la base esté limpia (validacion_reglas_avisos.R).
+    avisos = validacion_avisos_condicion(sid, paquete$base_nombre, ev, scope$reglas_custom %||% list())
   )
 }
 
@@ -338,7 +341,9 @@ validacion_auditoria_lanzar <- function(sid, base = NULL, kind = "validacion.v2.
       .limpieza_rehidratar_preservadas(j$sid, base_eff)
       .limpieza_invalidate_outputs(j$sid, base_eff)
       list(ok = TRUE, total_inconsistencias = raw$total %||% NA_integer_,
-           n_reglas = huella$n_reglas, huella_reglas = huella$conjunto)
+           n_reglas = huella$n_reglas, huella_reglas = huella$conjunto,
+           avisos = validacion_avisos_condicion(j$sid, base_eff, ev,
+                                                .get_base_scope(j$sid, base_eff)$reglas_custom %||% list()))
     }
   )
   list(

@@ -21,25 +21,36 @@
 
 .VRF_TEXTO_ILEGIBLE <- "una condición que no se puede escribir en palabras"
 
+# Columnas que unen el registro de un grupo repetido con su encuesta.
+.VRF_LLAVES_TECNICAS <- c("_parent_index", "_index", "_uuid", "_submission__uuid", "_parent_uuid")
+
 # Contexto de redacción: etiquetas, tipos y opciones por código de pregunta.
 .vrf_contexto <- function(inst = NULL) {
   survey <- if (is.list(inst)) inst$survey else NULL
   etiquetas <- character(0)
   tipos <- character(0)
   opciones <- list()
+  aviso <- NULL
   if (is.data.frame(survey) && nrow(survey) && "name" %in% names(survey)) {
     etiquetas <- .survey_label_map(survey)
     base_tipo <- if ("type_base" %in% names(survey)) as.character(survey$type_base)
                  else vapply(as.character(survey$type), .type_base, character(1))
     tipos <- stats::setNames(vapply(base_tipo, .vrf_tipo_pregunta, character(1)),
                              as.character(survey$name))
-    opciones <- tryCatch(.survey_choices_map(survey, inst$choices),
-                         error = function(e) list())
+    # Si las opciones no se pueden leer, los valores salen por su código y el
+    # catálogo lo avisa (`aviso`), en vez de mostrarlos sin rótulo sin decirlo.
+    opciones <- tryCatch(.survey_choices_map(survey, inst$choices), error = function(e) e)
+    if (inherits(opciones, "error")) {
+      aviso <- list(codigo = "opciones_ilegibles",
+                    texto = "Las opciones del formulario no se pudieron leer: los valores salen por su código.")
+      opciones <- list()
+    }
   }
   estado <- new.env(parent = emptyenv())
   estado$incompleta <- FALSE
+  estado$fuera_de_opciones <- list()
   list(etiquetas = etiquetas, tipos = tipos, opciones = opciones,
-       roles = list(), estado = estado)
+       roles = list(), estado = estado, aviso = aviso)
 }
 
 .vrf_tipo_pregunta <- function(tipo_base) {
@@ -59,6 +70,7 @@
   out$roles <- (rule$variable_roles %||% list())$labels %||% list()
   out$estado <- new.env(parent = emptyenv())
   out$estado$incompleta <- FALSE
+  out$estado$fuera_de_opciones <- list()
   out
 }
 
@@ -71,9 +83,9 @@
 
 .vrf_t <- function(x) list(list(texto = as.character(x)))
 
-.vrf_etiqueta <- function(var, ctx) {
-  v <- as.character(var %||% "")[1]
-  if (is.na(v) || !nzchar(v)) return("")
+# Rótulo propio de una pregunta (formulario, luego papeles de la regla), sin
+# resolver marcadores; "" si no tiene.
+.vrf_rotulo_crudo <- function(v, ctx) {
   if (v %in% names(ctx$etiquetas)) {
     lab <- as.character(ctx$etiquetas[[v]])
     if (length(lab) && !is.na(lab) && nzchar(trimws(lab))) return(trimws(lab))
@@ -82,7 +94,56 @@
   if (!is.null(lab) && length(lab) && !is.na(lab[1]) && nzchar(trimws(as.character(lab[1])))) {
     return(trimws(as.character(lab[1])))
   }
-  v
+  ""
+}
+
+.vrf_palabras_colgantes <- c("de", "del", "la", "el", "los", "las", "en", "a", "al", "y", "o",
+                             "con", "para", "por", "que", "su", "sus")
+
+# Una etiqueta del formulario puede traer `${otra}` (etiqueta dinámica). Se
+# cambia por el rótulo de la pregunta referida entre corchetes; si esa pregunta
+# no tiene rótulo propio (un cálculo, por ejemplo), la etiqueta se recorta antes
+# del primer marcador y se le quitan los conectores que quedan colgando, para que
+# lo que se lee siga siendo cierto. Nunca sale "${...}" crudo.
+.vrf_resolver_marcadores <- function(lab, ctx, profundidad = 0L) {
+  patron <- "\\$\\{([^}]+)\\}"
+  if (!grepl(patron, lab)) return(lab)
+  refs <- regmatches(lab, gregexpr(patron, lab))[[1]]
+  vars <- sub(patron, "\\1", refs)
+  rotulos <- vapply(vars, function(r) {
+    x <- .vrf_rotulo_crudo(trimws(r), ctx)
+    if (nzchar(x) && profundidad < 1L) x <- .vrf_resolver_marcadores(x, ctx, profundidad + 1L)
+    if (grepl(patron, x)) "" else x
+  }, character(1))
+  if (all(nzchar(rotulos))) {
+    out <- lab
+    for (i in seq_along(refs)) out <- sub(refs[i], paste0("[", rotulos[i], "]"), out, fixed = TRUE)
+    return(trimws(gsub("\\s+", " ", out)))
+  }
+  corte <- regexpr(patron, lab)
+  out <- substr(lab, 1L, corte - 1L)
+  repeat {
+    antes <- out
+    out <- sub("[\\s,;:\\-]+$", "", out, perl = TRUE)
+    palabras <- strsplit(out, "\\s+")[[1]]
+    if (length(palabras) && tolower(palabras[length(palabras)]) %in% .vrf_palabras_colgantes) {
+      out <- paste(palabras[-length(palabras)], collapse = " ")
+    }
+    if (identical(out, antes)) break
+  }
+  out <- trimws(out)
+  if (!nzchar(out)) return("")
+  if (startsWith(out, "\u00bf") && !endsWith(out, "?")) out <- paste0(out, "?")
+  out
+}
+
+.vrf_etiqueta <- function(var, ctx) {
+  v <- as.character(var %||% "")[1]
+  if (is.na(v) || !nzchar(v)) return("")
+  lab <- .vrf_rotulo_crudo(v, ctx)
+  if (!nzchar(lab)) return(v)
+  lab <- .vrf_resolver_marcadores(lab, ctx)
+  if (nzchar(lab)) lab else v
 }
 
 .vrf_q <- function(var, ctx) {
@@ -98,6 +159,13 @@
   if (!is.null(ctx) && !is.na(v) && nzchar(v)) {
     lab <- .resolve_choice_label(ctx$opciones, v, val)
     if (!is.null(lab)) return(list(list(valor = lab, codigo = val)))
+    # Un valor que no es código ni rótulo de las opciones de la pregunta: el
+    # formulario compara con algo que la lista no tiene. Se anota para avisar.
+    ops <- ctx$opciones[[v]]
+    if (!is.null(ops) && length(ops) && nzchar(val) &&
+        !(val %in% c(names(ops), as.character(unlist(ops))))) {
+      ctx$estado$fuera_de_opciones[[length(ctx$estado$fuera_de_opciones) + 1L]] <- list(pregunta = v, valor = val)
+    }
   }
   list(list(valor = val))
 }
@@ -205,7 +273,41 @@
 .vrf_negables <- c("is_missing", "is_empty_string", "compare_const", "compare_vars",
                    "selected", "any_selected", "none_selected", "in_set",
                    "not_in_set", "range_numeric", "range_date", "matches_regex",
-                   "collection_date_cmp", "count_selected_cmp")
+                   "collection_date_cmp", "count_selected_cmp", "text_length_cmp",
+                   "always_true", "always_false")
+
+# Una condición se puede escribir negada en afirmativo si es una comparación
+# simple, la negación de una, o un "y"/"o" de condiciones así (De Morgan: "no
+# (A y B)" se escribe "no A o no B").
+.vrf_se_niega <- function(x) {
+  if (!is_ast(x)) return(FALSE)
+  op <- ast_op(x)
+  if (op %in% .vrf_negables) return(TRUE)
+  if (identical(op, "not")) return(.vrf_se_niega(x$arg))
+  if (op %in% c("and", "or")) return(all(vapply(x$args, .vrf_se_niega, logical(1))))
+  FALSE
+}
+
+# "y"/"o" negado: cada parte negada y el conector cambiado.
+.vrf_unir_negado <- function(args, op_padre, ctx) {
+  op_nuevo <- if (identical(op_padre, "and")) "or" else "and"
+  sep <- if (identical(op_nuevo, "and")) " y " else " o "
+  out <- list()
+  for (i in seq_along(args)) {
+    if (i > 1L) out <- c(out, .vrf_t(sep))
+    a <- args[[i]]
+    f <- .vrf_cond(a, ctx, negar = TRUE)
+    # Conector con que queda escrita la parte negada: un "y" negado se escribe
+    # "o" y al revés; una negación negada queda como su interior. Paréntesis si
+    # ese conector no es el de afuera.
+    op_a <- if (is_ast(a)) ast_op(a) else ""
+    queda <- if (identical(op_a, "not") && is_ast(a$arg)) ast_op(a$arg)
+             else switch(op_a, and = "or", or = "and", op_a)
+    if (queda %in% c("and", "or") && !identical(queda, op_nuevo)) f <- c(.vrf_t("("), f, .vrf_t(")"))
+    out <- c(out, f)
+  }
+  out
+}
 
 # Fichas de una condición del árbol. `negar` escribe su negación.
 .vrf_cond <- function(x, ctx, negar = FALSE) {
@@ -216,9 +318,12 @@
   op <- ast_op(x)
   if (identical(op, "not")) {
     arg <- x$arg
-    if (is_ast(arg) && ast_op(arg) %in% .vrf_negables) return(.vrf_cond(arg, ctx, negar = !negar))
     if (isTRUE(negar)) return(.vrf_cond(arg, ctx))
+    if (.vrf_se_niega(arg)) return(.vrf_cond(arg, ctx, negar = TRUE))
     return(c(.vrf_t("no se cumple que ("), .vrf_cond(arg, ctx), .vrf_t(")")))
+  }
+  if (isTRUE(negar) && op %in% c("and", "or") && .vrf_se_niega(x)) {
+    return(.vrf_unir_negado(x$args, op, ctx))
   }
   if (isTRUE(negar) && !(op %in% .vrf_negables)) {
     return(c(.vrf_t("no se cumple que ("), .vrf_cond(x, ctx), .vrf_t(")")))
@@ -250,7 +355,7 @@
     "matches_regex" =
       c(q(x$var), .vrf_t(if (negar) " no sigue el patrón " else " sigue el patrón "), .vrf_v(x$pattern)),
     "text_length_cmp" =
-      c(.vrf_t("el largo de "), q(x$var), .vrf_t(paste0(" ", .vrf_op(x$op), " ")), .vrf_v(x$n), .vrf_t(" caracteres")),
+      c(.vrf_t("el largo de "), q(x$var), .vrf_t(paste0(" ", .vrf_op(x$op, negar), " ")), .vrf_v(x$n), .vrf_t(" caracteres")),
     "count_selected_cmp" =
       c(.vrf_t("la cantidad de opciones marcadas en "), q(x$var),
         .vrf_t(paste0(" ", .vrf_op(x$op, negar), " ")), .vrf_v(x$n)),
@@ -272,8 +377,16 @@
       c(.vrf_t("alguna de "), .vrf_lista_preguntas(x$cols, ctx), .vrf_t(" es "), .vrf_v(x$value)),
     "all_columns_not_equals" =
       c(.vrf_t("ninguna de "), .vrf_lista_preguntas(x$cols, ctx), .vrf_t(" es "), .vrf_v(x$value)),
-    "duplicate_tuple" =
-      c(.vrf_t("la combinación de "), .vrf_lista_preguntas(x$vars, ctx), .vrf_t(" se repite en otra fila")),
+    "duplicate_tuple" = {
+      # Las llaves técnicas que unen un registro con su encuesta no son
+      # preguntas: "dentro de la misma encuesta" dice lo mismo en llano.
+      vars <- as.character(unlist(x$vars))
+      llaves <- vars %in% .VRF_LLAVES_TECNICAS
+      vistas <- vars[!llaves]
+      cola <- if (any(llaves)) " se repite dentro de la misma encuesta" else " se repite en otra fila"
+      if (!length(vistas)) .vrf_t(paste0("el registro", cola))
+      else c(.vrf_t(if (length(vistas) == 1L) "" else "la combinación de "), .vrf_lista_preguntas(vistas, ctx), .vrf_t(cola))
+    },
     "duplicate_similarity" =
       c(.vrf_t("la encuesta coincide con otra en al menos "), .vrf_v(.vrf_porcentaje(x$threshold)),
         .vrf_t(" de las "), .vrf_v(length(x$vars)),
@@ -289,13 +402,12 @@
     "repeat_length_matches" =
       c(.vrf_t("la cantidad de registros de "), q(x$repeat_name), .vrf_t(" no coincide con "),
         .vrf_esperado(x$expected, ctx)),
-    "referential_parent_exists" =
-      c(.vrf_t("el registro no tiene una encuesta a la que pertenecer en la tabla "), .vrf_v(x$source_table)),
+    "referential_parent_exists" = .vrf_t("el registro no pertenece a ninguna encuesta de la base"),
     "aggregate_cmp" =
       c(q(x$host_var), .vrf_t(paste0(" ", .vrf_op(x$op), " lo que suman los registros de ")), q(x$source_var)),
     "roster_set_cmp" =
       c(.vrf_t("las opciones marcadas en "), q(x$host_sm_var), .vrf_t(" no coinciden con los registros de "),
-        q(x$source_var)),
+        q(x$source_table)),
     "if_then" =
       c(.vrf_t("si "), .vrf_cond(x$condition, ctx), .vrf_t(", "), .vrf_cond(x$consequence, ctx)),
     "and" = .vrf_unir(x$args, "and", ctx),
@@ -411,14 +523,48 @@
       lim <- info$limites
       if (is.list(lim) && !is.na(lim$min %||% NA) && !is.na(lim$max %||% NA)) {
         sprintf("%s entre %s y %s", et, lim$min, lim$max)
+      } else if (is.list(lim) && !is.na(lim$min %||% NA)) {
+        sprintf("%s %s %s", et, if (isTRUE(lim$inclusive_min)) "mayor o igual a" else "mayor que", lim$min)
+      } else if (is.list(lim) && !is.na(lim$max %||% NA)) {
+        sprintf("%s %s %s", et, if (isTRUE(lim$inclusive_max)) "menor o igual a" else "menor que", lim$max)
       } else sprintf("Restricción de %s", et)
     },
     "filtro_opciones" = sprintf("Filtro de opciones de %s", et),
     "calculo" = sprintf("Valor calculado de %s", et),
-    "grupo_repetido" = sprintf("Grupo repetido %s", .vrf_comillas(.vrf_etiqueta(info$tabla, ctx))),
+    "grupo_repetido" = .vrf_nombre_grupo(info, ctx),
     "periodo" = "Periodo de campo",
     "casi_iguales" = "Respuestas casi iguales",
     sprintf("Regla de %s", et)
+  )
+}
+
+# El grupo repetido de una regla relacional, por su rótulo en el formulario, y
+# un nombre que dice qué revisa: hay varias reglas por grupo.
+.vrf_grupo_de <- function(info) {
+  c0 <- info$cuerpo
+  op <- if (is_ast(c0)) ast_op(c0) else ""
+  g <- switch(op,
+    repeat_length_matches = c0$repeat_name,
+    roster_set_cmp = , aggregate_cmp = c0$source_table,
+    NULL)
+  g <- as.character(g %||% info$tabla %||% "")[1]
+  if (identical(g, "principal") && is_ast(c0) && !is.null(c0$source_table)) g <- as.character(c0$source_table)
+  list(grupo = g, op = op)
+}
+
+.vrf_nombre_grupo <- function(info, ctx) {
+  gi <- .vrf_grupo_de(info)
+  g <- .vrf_comillas(.vrf_etiqueta(gi$grupo, ctx))
+  c0 <- info$cuerpo
+  switch(gi$op,
+    repeat_length_matches = sprintf("Cantidad de registros en %s", g),
+    referential_parent_exists = sprintf("Registros sin encuesta en %s", g),
+    duplicate_tuple = sprintf("Registros repetidos en %s", g),
+    roster_set_cmp = sprintf("Opciones de %s frente a los registros de %s",
+                             .vrf_comillas(.vrf_etiqueta(c0$host_sm_var, ctx)), g),
+    aggregate_cmp = sprintf("%s frente a la suma de los registros de %s",
+                            .vrf_comillas(.vrf_etiqueta(c0$host_var, ctx)), g),
+    sprintf("Grupo repetido %s", g)
   )
 }
 

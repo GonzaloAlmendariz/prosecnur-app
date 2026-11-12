@@ -1243,7 +1243,9 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Instrumento: resultado consolidado (view descriptors) ---------------
-    plumber::pr_get("/api/validacion/v2/instrumento/resultado", wrap_endpoint(function(req, res) {
+    # Con `...`: Plumber vuelca la query (`?base_nombre=`) como argumentos y sin
+    # él respondía 500 "unused argument".
+    plumber::pr_get("/api/validacion/v2/instrumento/resultado", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -1317,7 +1319,9 @@ mount_validacion <- function(pr) {
         kpis = kpis,
         top_reglas = top_reglas,
         heatmap = heatmap,
-        resumen_tabla = resumen_tabla
+        resumen_tabla = resumen_tabla,
+        avisos = validacion_avisos_condicion(sid, .validacion_auditoria_base(sid, base), ev,
+                                             scope$reglas_custom %||% list())
       )
     })) |>
 

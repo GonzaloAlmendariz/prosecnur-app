@@ -134,6 +134,23 @@
   )
 }
 
+# Motivo en castellano llano de una regla que el motor no evaluó, para el
+# cliente. Nunca devuelve el mensaje de R (en inglés) ni la jerga del motor
+# ("drivers", "gate"): la causa por código y, si faltan preguntas, cuáles.
+.vrc_motivo_llano <- function(estado, issue, detalle = NA_character_) {
+  causa <- .vrc_causa_auditoria(estado, issue)
+  if (is.na(causa)) causa <- "error_al_evaluar"
+  txt <- .vrf_causa(causa)
+  if (identical(causa, "pregunta_ausente")) {
+    m <- regmatches(as.character(detalle %||% ""), regexec("Columnas ausentes: ([^|]+)", as.character(detalle %||% "")))[[1]]
+    if (length(m) == 2L) return(sprintf("%s: %s.", txt, trimws(m[2])))
+  }
+  if (identical(causa, "error_al_evaluar")) {
+    return(paste0(txt, ". Revisa que las preguntas que compara sean del mismo tipo (número, fecha o texto)."))
+  }
+  paste0(txt, ".")
+}
+
 # Primer valor de `x`, o `y` si es NULL, vacío o NA.
 .vrc_o <- function(x, y) if (is.null(x) || !length(x) || is.na(x[1])) y else x
 
@@ -172,15 +189,59 @@
   # expresión cruda va en `expresion_formulario`.
   if (length(setdiff(.ast_raw_origins(cuerpo), "legacy_r_expr"))) return(NA)
   r <- .vrc_buscar_rango(cuerpo)
-  num <- function(v) if (is.null(v) || !length(v) || is.na(v[1])) NA else v[1]
+  num <- function(v) if (is.null(v) || !length(v) || is.na(v[1])) NA_character_ else as.character(v[1])
   texto <- .vrf_texto_plano(.vrf_cond(cuerpo, .vrf_contexto_regla(ctx)))
-  list(
-    tipo = if (is.null(r)) NA_character_ else if (identical(ast_op(r), "range_date")) "fecha" else "numero",
-    min = if (is.null(r)) NA else as.character(num(r$min)),
-    max = if (is.null(r)) NA else as.character(num(r$max)),
-    inclusive = if (is.null(r)) NA else isTRUE(r$inclusive),
-    restriccion = texto
-  )
+  lim <- if (!is.null(r)) {
+    list(tipo = if (identical(ast_op(r), "range_date")) "fecha" else "numero",
+         min = num(r$min), max = num(r$max),
+         inclusive_min = if (is.na(num(r$min))) NA else isTRUE(r$inclusive),
+         inclusive_max = if (is.na(num(r$max))) NA else isTRUE(r$inclusive))
+  } else .vrc_limites_comparacion(cuerpo)
+  inc <- stats::na.omit(c(lim$inclusive_min, lim$inclusive_max))
+  list(tipo = lim$tipo, min = lim$min, max = lim$max,
+       inclusive = if (length(inc) && length(unique(inc)) == 1L) inc[[1]] else NA,
+       inclusive_min = lim$inclusive_min, inclusive_max = lim$inclusive_max,
+       restriccion = texto)
+}
+
+# Límites de una restricción de uno o dos lados escrita con comparaciones. Lo
+# que marca es la violación: `. >= 0` llega como "no (>= 0)" o como "< 0", y el
+# límite permitido es el contrario. Permitido ">= v": mínimo v incluido; "> v":
+# mínimo sin incluir; "<= v": máximo incluido; "< v": máximo sin incluir.
+.vrc_limites_comparacion <- function(cuerpo) {
+  vacio <- list(tipo = NA_character_, min = NA_character_, max = NA_character_,
+                inclusive_min = NA, inclusive_max = NA)
+  es_cmp <- function(n) is_ast(n) && identical(ast_op(n), "compare_const")
+  negar <- function(op) switch(op, "<" = ">=", "<=" = ">", ">" = "<=", ">=" = "<", NA_character_)
+  permitidos <- list()
+  agregar <- function(n, op) permitidos[[length(permitidos) + 1L]] <<- list(var = as.character(n$var), op = op,
+                                                                             valor = as.character(n$value)[1])
+  violacion <- function(n) {
+    if (es_cmp(n)) { agregar(n, negar(as.character(n$op))); return(TRUE) }
+    if (is_ast(n) && identical(ast_op(n), "not") && es_cmp(n$arg)) { agregar(n$arg, as.character(n$arg$op)); return(TRUE) }
+    FALSE
+  }
+  if (!is_ast(cuerpo)) return(vacio)
+  op <- ast_op(cuerpo)
+  ok <- if (identical(op, "or")) all(vapply(cuerpo$args, violacion, logical(1)))
+        else if (identical(op, "not") && is_ast(cuerpo$arg) && identical(ast_op(cuerpo$arg), "and") &&
+                 all(vapply(cuerpo$arg$args, es_cmp, logical(1)))) {
+          for (n in cuerpo$arg$args) agregar(n, as.character(n$op)); TRUE
+        } else violacion(cuerpo)
+  if (!isTRUE(ok) || !length(permitidos)) return(vacio)
+  if (length(unique(vapply(permitidos, `[[`, "", "var"))) != 1L) return(vacio)
+  out <- vacio
+  for (p in permitidos) {
+    switch(p$op %||% "",
+      ">=" = { out$min <- p$valor; out$inclusive_min <- TRUE },
+      ">" = { out$min <- p$valor; out$inclusive_min <- FALSE },
+      "<=" = { out$max <- p$valor; out$inclusive_max <- TRUE },
+      "<" = { out$max <- p$valor; out$inclusive_max <- FALSE },
+      return(vacio))
+  }
+  lims <- c(out$min, out$max)[!is.na(c(out$min, out$max))]
+  out$tipo <- if (all(!is.na(suppressWarnings(as.numeric(lims))))) "numero" else NA_character_
+  out
 }
 
 .vrc_expresion <- function(rule, familia, target, survey) {
@@ -247,7 +308,8 @@
     causa_codigo = NA_character_,
     causa = NA_character_,
     ultima_auditoria = NA,
-    limites = limites
+    limites = limites,
+    .fuera_de_opciones = rctx$estado$fuera_de_opciones
   )
 }
 
@@ -326,7 +388,7 @@
 
 # --- Última auditoría --------------------------------------------------------
 
-.vrc_auditoria <- function(filas, reglas, scope, sid, base_eff) {
+.vrc_auditoria <- function(filas, reglas, scope, sid, base_eff, ctx) {
   ev <- scope$evaluacion
   avisos <- list()
   if (is.null(ev) || !is.data.frame(ev$resumen)) return(list(filas = filas, avisos = avisos))
@@ -334,28 +396,26 @@
   ids_res <- as.character(res$id_regla)
   repetidos <- unique(ids_res[duplicated(ids_res)])
   motor <- vapply(filas, function(f) .vrc_o(f$id_motor, ""), character(1))
-  fuera <- setdiff(unique(ids_res), motor)
-  if (length(fuera)) {
+  # Se cuentan reglas (filas del resumen), no ids distintos: dos reglas con el
+  # mismo id dañado son dos reglas que perdieron su resultado.
+  fuera_filas <- !(ids_res %in% motor)
+  n_fuera <- sum(fuera_filas)
+  if (n_fuera) {
     avisos[[length(avisos) + 1L]] <- list(codigo = "auditoria_con_reglas_fuera",
       texto = sprintf("La última auditoría tiene %d %s que no %s entre las vigentes: vuelve a auditar.",
-                      length(fuera), if (length(fuera) == 1L) "regla" else "reglas",
-                      if (length(fuera) == 1L) "está" else "están"),
-      ids = as.list(sort(fuera)))
+                      n_fuera, if (n_fuera == 1L) "regla" else "reglas",
+                      if (n_fuera == 1L) "está" else "están"),
+      n_reglas = n_fuera,
+      ids = as.list(sort(unique(ids_res[fuera_filas]))))
   }
   cola <- .limpieza_build_decision_queue(scope, scope$limpieza_draft %||% list())
   decididos <- stats::setNames(vapply(cola, function(q) as.integer(q$n_casos_cubiertos %||% 0L), integer(1)),
                                vapply(cola, function(q) as.character(q$source_id), character(1)))
   auditadas <- stats::setNames(ev$bundle$rules %||% list(),
                                vapply(ev$bundle$rules %||% list(), function(r) as.character(r$id), character(1)))
-  a_contar <- list()
-  for (i in seq_along(filas)) {
-    f <- filas[[i]]
-    id <- f$id_motor
-    if (is.na(id) || !(id %in% ids_res) || id %in% repetidos || is.null(auditadas[[id]])) next
-    a_contar[[length(a_contar) + 1L]] <- list(id = id, rule = auditadas[[id]],
-                                              propia = if (identical(f$origen, "propia")) reglas[[i]]$propia else NULL)
-  }
-  bases <- .vrb_bases(ev, a_contar,
+  propias <- Filter(Negate(is.null), lapply(reglas, `[[`, "propia"))
+  a_contar <- .vrb_reglas_evaluadas(ev, propias)
+  bases <- .vrb_bases_cached(ev, a_contar,
                       exclusiones = .validacion_mb_collection_exclusions_for_base(sid, base_eff),
                       compat = validation_profile_for_base(base_eff))
   sin_base <- character(0); indeterminadas <- character(0)
@@ -394,7 +454,9 @@
       n_base = n_base,
       n_base_indeterminada = b$n_base_indeterminada,
       base_tipo = b$tipo,
-      base_definicion = if (is.na(n_base)) NA_character_ else .vrb_base_texto(b$tipo, tipo_regla, b$tabla),
+      base_definicion = if (is.na(n_base)) NA_character_ else .vrb_base_texto(b$tipo, tipo_regla, b$tabla,
+                                                                                        familia = f$familia,
+                                                                                        grupo = .vrf_etiqueta(b$tabla, ctx)),
       porcentaje = if (!is.na(n_base) && n_base > 0L && !is.na(n_casos)) n_casos / n_base else NA_real_,
       nivel = if (identical(b$tabla, "principal")) "caso" else "registro",
       tabla = b$tabla,
@@ -454,10 +516,68 @@
 validacion_reglas_catalogo <- function(sid, base = NULL, variable = NULL) {
   base_eff <- .validacion_auditoria_base(sid, base)
   scope <- .get_base_scope(sid, base_eff)
+  clave <- .vrc_firma(sid, base_eff, scope)
+  todo <- .validacion_reglas_cache_get(clave)
+  if (is.null(todo)) todo <- .validacion_reglas_cache_put(clave, .vrc_construir(sid, base_eff, scope))
+  filas <- todo$filas
+  avisos <- todo$avisos
+
+  variable <- trimws(as.character(variable %||% ""))[1]
+  if (!is.na(variable) && nzchar(variable)) {
+    lee <- vapply(filas, function(f) variable %in% unlist(f$variables), logical(1))
+    if (!any(lee) && !(variable %in% todo$preguntas)) {
+      avisos[[length(avisos) + 1L]] <- list(codigo = "variable_desconocida",
+        texto = sprintf("La pregunta \"%s\" no está en el formulario ni en ninguna regla.", variable))
+    }
+    filas <- filas[lee]
+  } else variable <- NA_character_
+
+  origenes <- vapply(filas, `[[`, "", "origen")
+  list(
+    ok = TRUE,
+    base_nombre = base_eff %||% NA_character_,
+    variable = variable,
+    plan_construido = !is.null(scope$plan_result),
+    auditada_en = (scope$evaluacion %||% list())$auditada_en %||% NA_character_,
+    n_total = length(filas),
+    n_activas = sum(vapply(filas, function(f) isTRUE(f$activa), logical(1))),
+    n_sin_evaluar = sum(vapply(filas, function(f) identical(f$estado_evaluacion, "sin_evaluar"), logical(1))),
+    por_origen = lapply(stats::setNames(.VRC_ORDEN_ORIGEN, .VRC_ORDEN_ORIGEN), function(o) sum(origenes == o)),
+    familias = .vrc_familias(filas),
+    reglas = filas,
+    avisos = avisos
+  )
+}
+
+# Firma de todo lo que cambia el catálogo de una base: el formulario (archivo y
+# etiquetas corregidas), el plan, las reglas propias, la activación y sus
+# motivos, las preguntas excluidas, las decisiones, la evaluación, las
+# exclusiones de recolección y el archivo de datos. NULL si no se puede firmar
+# (entonces se arma sin caché).
+.vrc_firma <- function(sid, base_eff, scope) {
+  tryCatch({
+    s <- session_get(sid)
+    meta_b <- if (!is.null(base_eff)) s$estudio$bases[[base_eff]] else NULL
+    archivo <- function(fid) if (is.null(fid)) NULL else .analitica_lectura_file_stamp(get_file(sid, fid))
+    digest::digest(list(
+      "catalogo", sid, base_eff,
+      archivo(meta_b$xlsform_file_id), archivo(meta_b$data_file_id),
+      s$label_overrides,
+      scope$plan_result, scope$reglas_custom, scope$reglas_desactivadas, scope$reglas_desactivadas_motivo,
+      scope$variables_excluidas, scope$limpieza_draft, .vrb_huella_evaluacion(scope$evaluacion),
+      .validacion_mb_collection_exclusions_for_base(sid, base_eff)
+    ), algo = "xxhash64")
+  },
+  # Sin firma se arma sin caché: la caché es una optimización, nunca un error.
+  error = function(e) NULL)
+}
+
+# El catálogo entero de una base, sin filtrar.
+.vrc_construir <- function(sid, base_eff, scope) {
   lectura <- .vrc_instrumento(sid, base_eff)
   ctx <- .vrf_contexto(lectura$inst)
   survey <- if (is.list(lectura$inst)) lectura$inst$survey else NULL
-  avisos <- if (is.null(lectura$aviso)) list() else list(lectura$aviso)
+  avisos <- Filter(Negate(is.null), list(lectura$aviso, ctx$aviso))
 
   plan <- .vrc_reglas_plan(base_eff, scope)
   categorias <- {
@@ -529,34 +649,42 @@ validacion_reglas_catalogo <- function(sid, base = NULL, variable = NULL) {
 
   filas <- .vrc_ids_unicos(filas, lapply(reglas, `[[`, "rule"))
   filas <- .vrc_parejas(filas)
-  aud <- .vrc_auditoria(filas, reglas, scope, sid, base_eff)
+  aud <- .vrc_auditoria(filas, reglas, scope, sid, base_eff, ctx)
   filas <- aud$filas
-  avisos <- c(avisos, aud$avisos)
+  avisos <- c(avisos, .vrc_avisos_fuera_de_opciones(filas, ctx), aud$avisos,
+              validacion_avisos_condicion(sid, base_eff, scope$evaluacion, scope$reglas_custom %||% list()))
+  filas <- lapply(filas, function(f) { f$.fuera_de_opciones <- NULL; f })
+  list(filas = filas, avisos = avisos,
+       preguntas = if (is.data.frame(survey)) as.character(survey$name) else character(0))
+}
 
-  variable <- trimws(as.character(variable %||% ""))[1]
-  if (!is.na(variable) && nzchar(variable)) {
-    lee <- vapply(filas, function(f) variable %in% unlist(f$variables), logical(1))
-    en_formulario <- is.data.frame(survey) && variable %in% as.character(survey$name)
-    if (!any(lee) && !en_formulario) {
-      avisos[[length(avisos) + 1L]] <- list(codigo = "variable_desconocida",
-        texto = sprintf("La pregunta \"%s\" no está en el formulario ni en ninguna regla.", variable))
-    }
-    filas <- filas[lee]
-  } else variable <- NA_character_
+# Un aviso por regla cuyo formulario compara una pregunta con valores que no
+# están entre sus opciones (ni como código ni como rótulo).
+.vrc_avisos_fuera_de_opciones <- function(filas, ctx) {
+  out <- list()
+  for (f in filas) {
+    fuera <- f$.fuera_de_opciones %||% list()
+    if (!length(fuera)) next
+    preg <- vapply(fuera, function(x) as.character(x$pregunta), character(1))
+    val <- vapply(fuera, function(x) as.character(x$valor), character(1))
+    partes <- vapply(unique(preg), function(q) {
+      vs <- unique(val[preg == q])
+      sprintf("\"%s\" con %s", .vrf_etiqueta(q, ctx),
+              .vrc_enumerar(sprintf("\"%s\"", vs)))
+    }, character(1))
+    n_val <- length(unique(paste(preg, val)))
+    out[[length(out) + 1L]] <- list(
+      codigo = "valor_fuera_de_opciones", id_regla = f$id,
+      preguntas = as.list(unique(preg)), valores = as.list(unique(val)),
+      texto = sprintf("El formulario compara %s, que no %s entre sus opciones: %s sin rótulo.",
+                      paste(partes, collapse = "; "),
+                      if (n_val == 1L) "está" else "están",
+                      if (n_val == 1L) "ese valor sale" else "esos valores salen"))
+  }
+  out
+}
 
-  origenes <- vapply(filas, `[[`, "", "origen")
-  list(
-    ok = TRUE,
-    base_nombre = base_eff %||% NA_character_,
-    variable = variable,
-    plan_construido = !is.null(scope$plan_result),
-    auditada_en = (scope$evaluacion %||% list())$auditada_en %||% NA_character_,
-    n_total = length(filas),
-    n_activas = sum(vapply(filas, function(f) isTRUE(f$activa), logical(1))),
-    n_sin_evaluar = sum(vapply(filas, function(f) identical(f$estado_evaluacion, "sin_evaluar"), logical(1))),
-    por_origen = lapply(stats::setNames(.VRC_ORDEN_ORIGEN, .VRC_ORDEN_ORIGEN), function(o) sum(origenes == o)),
-    familias = .vrc_familias(filas),
-    reglas = filas,
-    avisos = avisos
-  )
+.vrc_enumerar <- function(x) {
+  if (length(x) <= 1L) return(paste(x, collapse = ""))
+  paste(paste(x[-length(x)], collapse = ", "), "y", x[length(x)])
 }
