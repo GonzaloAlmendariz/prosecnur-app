@@ -1,7 +1,7 @@
 /**
  * "Sugeridas al mirar la base" bajo la lista de las propias (prototipo
  * `pp-v-sug`, `vistas.js:639-642`): lo que el motor propone tras leer la base,
- * con su porqué y "Añadir". Añadir abre el panel de regla armado con ella,
+ * con su porqué, los casos que marca hoy (si el motor los mide) y "Añadir". Añadir abre el panel de regla armado con ella,
  * como "Usar" dentro del panel; se guarda desde ahí.
  */
 import { Plus } from "../../../../vendor/lucide-react";
@@ -36,6 +36,9 @@ export function SugeridasDeLaBase({
             <div className="pulso-rl-sugerida-texto">
               <b>{textoDeLaCasa(s.nombre)}</b>
               <span>{textoDeLaCasa(s.semilla.porque)}</span>
+              {typeof s.semilla.n_casos_hoy === "number" ? (
+                <span className="pulso-rl-sugerida-casos">Casos que marca hoy: {formatoConteo(s.semilla.n_casos_hoy)}</span>
+              ) : null}
             </div>
             <PulsoButton
               variant="secondary"

@@ -327,10 +327,22 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
   if (!is.null(survey)) {
     props <- c(props, reglas_semilla_rango_numerico(data, survey, reglas_existentes))
     props <- c(props, reglas_semilla_fecha_declarada(data, survey, reglas_existentes))
+    # Lo que el formulario declara y el plan no revisa (ítem 28).
+    props <- c(props, reglas_semilla_formulario(data, survey, reglas_existentes))
   }
   # Todo lo que sale de un sembrador queda marcado: la pestaña necesita
-  # distinguirlo de lo que una persona escribió con criterio propio.
-  lapply(props, function(p) { p$origen <- "sembrado"; p })
+  # distinguirlo de lo que una persona escribió con criterio propio. Donde los
+  # casos afectados son exactamente los que la regla marcaría, se publican como
+  # "casos que marca hoy"; en los demás no se adivina.
+  exactos <- c("procedencia", "dominio", "rango_numerico")
+  lapply(props, function(p) {
+    p$origen <- "sembrado"
+    if (is.null(p$semilla$n_casos_hoy) && (p$semilla$origen %||% "") %in% exactos &&
+        !is.null(p$semilla$n_casos_afectados)) {
+      p$semilla$n_casos_hoy <- as.integer(p$semilla$n_casos_afectados)
+    }
+    p
+  })
 }
 
 # --- Identidad del caso y del agente -----------------------------------------
@@ -868,6 +880,8 @@ reglas_semilla_fecha_declarada <- function(data, survey, reglas_existentes = lis
         referencia = ref_col,
         cierre = as.character(cierre),
         n_casos_afectados = as.integer(length(posteriores)),
+        # La regla compara contra el cierre del campo, no contra el envío de cada caso.
+        n_casos_hoy = as.integer(sum(!is.na(f) & f > cierre)),
         n_casos = as.integer(sum(!is.na(f))),
         porque = sprintf(
           paste("%d de %d respuestas declaran una fecha posterior a la de su propio",

@@ -1,0 +1,137 @@
+/* Selector de pregunta con búsqueda del panel de regla (ítem 9). Misma caja,
+   radio, sombra y opción que el desplegable del kit (`kit-inputs.css`,
+   `.pulso-select-content`); la lista vive dentro del panel, no en portal. */
+
+.pulso-regla-buscador {
+  position: relative;
+  min-width: 0;
+}
+
+.pulso-regla-buscador-disparador {
+  width: 100%;
+}
+
+/* Marca el origen del bloque que contiene a la lista fija (la ventana o un panel transformado). */
+.pulso-regla-buscador-origen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.pulso-regla-buscador-caja {
+  position: fixed;
+  z-index: calc(var(--pulso-z-modal, 1500) + 10);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: min(36rem, calc(100vw - 32px));
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+}
+
+.pulso-regla-buscador-campo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 11px;
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-regla-buscador-campo > input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  outline: none;
+}
+
+.pulso-regla-buscador-campo:focus-within {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-regla-buscador-campo > input::placeholder {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-regla-buscador-lista {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+
+.pulso-regla-buscador-opcion {
+  display: grid;
+  grid-template-columns: 8px auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  min-height: 30px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pulso-regla-buscador-opcion[data-activa] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-regla-buscador-opcion[aria-selected="true"] {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-regla-buscador-opcion > code {
+  color: var(--pulso-text-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-micro-size);
+}
+
+.pulso-regla-buscador-textos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* El ítem es lo que distingue la pregunta: va entero en su línea. */
+.pulso-regla-buscador-item {
+  overflow: hidden;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El enunciado común de la batería, debajo y en tono bajo. */
+.pulso-regla-buscador-enunciado {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-regla-buscador-opcion[data-activa] .pulso-regla-buscador-enunciado {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.pulso-regla-buscador-vacio {
+  padding: 10px 9px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}

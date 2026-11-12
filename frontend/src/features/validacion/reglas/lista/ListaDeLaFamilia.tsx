@@ -61,6 +61,7 @@ export function ListaDeLaFamilia({
   onNuevaRegla,
   onLeerFormulario,
   leerFormularioDeshabilitado,
+  leyendoPlan = false,
   onExcluir,
 }: {
   familia: EntradaDeFamilia;
@@ -77,6 +78,8 @@ export function ListaDeLaFamilia({
   onNuevaRegla: () => void;
   onLeerFormulario: () => void;
   leerFormularioDeshabilitado: boolean;
+  /** El plan se está leyendo: el vacío no dice "todavía no se leyó" (ítem 26). */
+  leyendoPlan?: boolean;
   onExcluir: (variable: string, excluir: boolean) => void;
 }) {
   const [todas, setTodas] = useState<string | null>(null);
@@ -96,6 +99,8 @@ export function ListaDeLaFamilia({
         onExcluir={onExcluir}
       />
     );
+  } else if (familia.clave === FAMILIA_PLAN_SIN_LEER && leyendoPlan) {
+    cuerpo = <EstadoVacio icono={<ListTree size={20} />} titulo="Leyendo el plan del formulario" />;
   } else if (familia.clave === FAMILIA_PLAN_SIN_LEER) {
     cuerpo = (
       <EstadoVacio

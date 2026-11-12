@@ -173,6 +173,8 @@ export type ReglaSemillaMeta = {
   origen: string; // "procedencia" | "dominio" | …
   porque: string; // explicación en prosa, lista para mostrar
   n_casos_afectados?: number;
+  /** Casos que la regla marcaría sobre la base cargada; solo donde el motor lo mide exacto. */
+  n_casos_hoy?: number;
   [k: string]: unknown; // cada sembrador agrega lo suyo
 };
 

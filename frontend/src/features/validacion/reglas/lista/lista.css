@@ -363,6 +363,13 @@
   font-size: var(--pulso-type-caption-size);
 }
 
+/* La cifra de la sugerida: se lee aparte de su porqué. */
+.pulso-rl-sugerida-texto .pulso-rl-sugerida-casos {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
 /* ---------- Ficha ---------- */
 
 /* Con la columna angosta (264 hasta 1400 de ventana) las dos acciones del pie

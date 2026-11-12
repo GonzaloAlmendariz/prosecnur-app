@@ -89,7 +89,7 @@ export default function PestanaReglas() {
       <PanelesDelOperativo
         inst={inst}
         onReleer={() => {
-          void inst.onBuildPlan().then(() => mesa.recargar());
+          void mesa.leerFormulario(inst.onBuildPlan);
         }}
       />
       <PanelRegla

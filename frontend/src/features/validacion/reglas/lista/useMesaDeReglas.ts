@@ -43,6 +43,9 @@ import type { ReglaPropiaAGuardar } from "../tiposDelMotor";
 
 import type { CatalogoCompleto, ReglaDelCatalogo } from "./modeloCatalogo";
 
+/** El rótulo de espera mientras se lee el plan del formulario y su catálogo. */
+export const LEYENDO_EL_PLAN = "Leyendo el plan del formulario";
+
 export type LecturaDeReglas =
   | { fase: "cargando" }
   | { fase: "error"; mensaje: string }
@@ -85,6 +88,10 @@ export function useMesaDeReglas({ alTerminarAuditoriaDelPanel }: { alTerminarAud
 
   const recargar = useCallback(async () => {
     const pedido = ++secuencia.current;
+    // El catálogo va primero: el motor atiende los pedidos en orden y es lo
+    // único que la mesa espera. Pedido al final, quedaba detrás de las cinco
+    // lecturas que lo acompañan (ítem 26).
+    const catalogoPedido = pedirCatalogoCompleto(baseNombre);
     // Cada complemento entra cuando llega, si sigue siendo de esta lectura.
     const complemento = <K extends keyof ComplementosDeReglas>(clave: K, promesa: Promise<ComplementosDeReglas[K]>) => {
       promesa.then(
@@ -102,7 +109,7 @@ export function useMesaDeReglas({ alTerminarAuditoriaDelPanel }: { alTerminarAud
     complemento("excluidas", apiV2InstrumentoVariablesExcluidas(baseNombre));
     complemento("inventario", pedirInventario(baseNombre));
     try {
-      const catalogo = await pedirCatalogoCompleto(baseNombre);
+      const catalogo = await catalogoPedido;
       if (pedido !== secuencia.current) return;
       setLectura({ fase: "lista", catalogo: catalogo.completo, catalogoDelPanel: catalogo.ligero });
     } catch (e) {
@@ -133,6 +140,17 @@ export function useMesaDeReglas({ alTerminarAuditoriaDelPanel }: { alTerminarAud
       }
     },
     [recargar],
+  );
+
+  /**
+   * "Leer el formulario" (o "Aplicar y reconstruir el plan"): construye el plan
+   * y vuelve a leer la mesa bajo un solo rótulo de espera. El rótulo dura hasta
+   * que llega el catálogo nuevo; antes se soltaba al responder el POST y la
+   * mesa seguía mostrando el catálogo sin plan como si fuera el vigente.
+   */
+  const leerFormulario = useCallback(
+    (construir: () => Promise<unknown>) => escribir(LEYENDO_EL_PLAN, construir),
+    [escribir],
   );
 
   /** Activa o desactiva una regla: las propias por su PUT, las del formulario y del operativo por su PATCH. */
@@ -235,6 +253,8 @@ export function useMesaDeReglas({ alTerminarAuditoriaDelPanel }: { alTerminarAud
     error,
     setError,
     recargar,
+    leerFormulario,
+    leyendoPlan: ocupado === LEYENDO_EL_PLAN,
     alternarActiva,
     eliminarPropia,
     excluirPregunta,

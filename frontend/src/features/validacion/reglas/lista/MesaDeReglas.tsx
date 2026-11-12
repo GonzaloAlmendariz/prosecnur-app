@@ -118,10 +118,8 @@ export function MesaDeReglas({
       ? "No hay reglas activas que auditar."
       : undefined;
 
-  const releer = async () => {
-    await inst.onBuildPlan();
-    await mesa.recargar();
-  };
+  // El rótulo de espera dura hasta tener el catálogo nuevo (ítem 26).
+  const releer = () => mesa.leerFormulario(inst.onBuildPlan);
   const importar = async (archivo: File) => {
     await inst.onImport(archivo);
     await mesa.recargar();
@@ -289,6 +287,7 @@ export function MesaDeReglas({
           onNuevaRegla={() => panel.abrirNueva()}
           onLeerFormulario={() => void releer()}
           leerFormularioDeshabilitado={ocupada || !inst.operationalValid}
+          leyendoPlan={mesa.leyendoPlan}
           onExcluir={excluir}
         />
         {ficha ?? <FichaVacia />}

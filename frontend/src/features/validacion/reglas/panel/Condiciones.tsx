@@ -85,7 +85,7 @@ function SelectorDeOperador({
  * Las preguntas que el tipo puede revisar. Un rango de números sobre una
  * pregunta de texto cuenta 0 sin avisar (el motor no lo dice): no se ofrece.
  * La pregunta ya guardada se sigue viendo aunque no sea del tipo
- * (`opcionesDePregunta`).
+ * (`BuscadorDePregunta`).
  */
 export function preguntasDelTipo(tipo: Borrador["tipo"], variables: readonly ExploradorVariable[]): readonly ExploradorVariable[] {
   switch (tipo) {

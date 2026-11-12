@@ -33,6 +33,7 @@ const rel = (f: string) => path.relative(aqui, f).split(path.sep).join("/");
 /** Desplegables que abren una lista de opciones: no esconden contenido de la vista. */
 const SELECTORES: Record<string, string> = {
   "components/RepeatDimensionBar.tsx": "elige el servicio analizado de una lista",
+  "reglas/campos/BuscadorDePregunta.tsx": "elige la pregunta de una regla de una lista con búsqueda (ítem 9)",
 };
 
 /** Acordeones en una línea de código. */
