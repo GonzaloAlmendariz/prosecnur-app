@@ -90,8 +90,11 @@
 # Una decisión con casos guardados por número de fila de la tabla principal y
 # sin la marca de la numeración del archivo recibido: la contaron sobre la
 # tabla auditada.
+# Vale igual para la lista congelada de una decisión sobre la regla entera
+# (D-F2): un registro hecho antes de la fila de origen contó la tabla auditada.
 .limpieza_decision_numeracion_anterior <- function(d) {
   explicitos <- .limpieza_ids_explicitos(d)
+  if (!length(explicitos)) explicitos <- .limpieza_casos_congelados(d) %||% character(0)
   if (!length(explicitos) || !any(.limpieza_ids_por_numero_de_fila(explicitos))) return(FALSE)
   !identical(as.character((d$identificacion_casos %||% list())$numeracion %||% "")[1],
              .LIMPIEZA_NUMERACION_ORIGEN)

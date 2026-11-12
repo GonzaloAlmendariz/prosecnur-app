@@ -441,8 +441,12 @@
     "roster_set_cmp" =
       c(.vrf_t("las opciones marcadas en "), q(x$host_sm_var), .vrf_t(" no coinciden con los registros de "),
         q(x$source_table)),
-    "if_then" =
-      c(.vrf_t("si "), .vrf_cond(x$condition, ctx), .vrf_t(", "), .vrf_cond(x$consequence, ctx)),
+    # Marca la condición con la consecuencia incumplida (`.c_if_then`): "X y no Y".
+    "if_then" = if (isTRUE(negar)) {
+      c(.vrf_cond(x$condition, ctx, negar = TRUE), .vrf_t(" o "), .vrf_cond(x$consequence, ctx))
+    } else {
+      c(.vrf_cond(x$condition, ctx), .vrf_t(" y "), .vrf_cond(x$consequence, ctx, negar = TRUE))
+    },
     "and" = .vrf_unir(x$args, "and", ctx),
     "or" = .vrf_unir(x$args, "or", ctx),
     "always_true" = .vrf_t(if (negar) "nunca" else "siempre"),

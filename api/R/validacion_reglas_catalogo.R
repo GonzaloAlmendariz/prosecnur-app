@@ -310,6 +310,8 @@
     frase_completa = !isTRUE(rctx$estado$incompleta),
     clase = .vrc_clase(kind),
     hallazgo_kind = kind,
+    # La única severidad de la regla (validacion_narrativa_regla.R).
+    severidad = validacion_severidad_regla(rule, propia),
     tratamiento_previsto = if (identical(origen, "propia")) {
       list(accion = .regla_tratamiento(propia), alcance = .regla_alcance_tratamiento(propia))
     } else list(accion = NA_character_, alcance = NA_character_),
@@ -352,6 +354,8 @@
     frase_completa = TRUE,
     clase = "inconsistencia",
     hallazgo_kind = "inconsistencia_xlsform",
+    # No llegó a ser regla: no tiene severidad declarada.
+    severidad = NA_character_,
     tratamiento_previsto = list(accion = NA_character_, alcance = NA_character_),
     activa = TRUE,
     motivo_desactivada = NA_character_,
@@ -593,7 +597,9 @@ validacion_reglas_catalogo <- function(sid, base = NULL, variable = NULL) {
 }
 
 # El catálogo entero de una base, sin filtrar.
-.vrc_construir <- function(sid, base_eff, scope) {
+# `con_auditoria = FALSE` arma solo nombre, frase y clasificación (sin bases ni
+# avisos de la auditoría): es lo que pide la narrativa de la cola y del caso.
+.vrc_construir <- function(sid, base_eff, scope, con_auditoria = TRUE) {
   lectura <- .vrc_instrumento(sid, base_eff)
   ctx <- .vrf_contexto(lectura$inst)
   survey <- if (is.list(lectura$inst)) lectura$inst$survey else NULL
@@ -648,6 +654,7 @@ validacion_reglas_catalogo <- function(sid, base = NULL, variable = NULL) {
       fila$frase <- .vrf_t("La regla no se puede escribir porque no se pudo traducir al motor.")
       fila$hallazgo_kind <- as.character(p$hallazgo_kind %||% "caso_validar")
       fila$clase <- .vrc_clase(fila$hallazgo_kind)
+      fila$severidad <- validacion_severidad_regla(propia = p)
       agregar(fila, NULL, p)
       next
     }
@@ -669,10 +676,12 @@ validacion_reglas_catalogo <- function(sid, base = NULL, variable = NULL) {
 
   filas <- .vrc_ids_unicos(filas, lapply(reglas, `[[`, "rule"))
   filas <- .vrc_parejas(filas)
-  aud <- .vrc_auditoria(filas, reglas, scope, sid, base_eff, ctx)
-  filas <- aud$filas
-  avisos <- c(avisos, .vrc_avisos_fuera_de_opciones(filas, ctx), aud$avisos,
-              validacion_avisos_condicion(sid, base_eff, scope$evaluacion, scope$reglas_custom %||% list()))
+  if (isTRUE(con_auditoria)) {
+    aud <- .vrc_auditoria(filas, reglas, scope, sid, base_eff, ctx)
+    filas <- aud$filas
+    avisos <- c(avisos, .vrc_avisos_fuera_de_opciones(filas, ctx), aud$avisos,
+                validacion_avisos_condicion(sid, base_eff, scope$evaluacion, scope$reglas_custom %||% list()))
+  }
   filas <- lapply(filas, function(f) { f$.fuera_de_opciones <- NULL; f })
   list(filas = filas, avisos = avisos,
        preguntas = if (is.data.frame(survey)) as.character(survey$name) else character(0))

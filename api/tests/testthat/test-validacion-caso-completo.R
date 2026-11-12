@@ -40,7 +40,10 @@ test_that("el caso completo trae sus respuestas por sección y sus hallazgos", {
   expect_setequal(ids, c("RC_001", "RC_002"))
   expect_identical(b$n_hallazgos, 2L)
   h2 <- b$hallazgos[[which(ids == "RC_002")]]
-  expect_identical(h2$clase, "caso_validar")
+  # M4: la clase es la del catálogo de reglas; el valor del motor va en
+  # `hallazgo_kind`, como en la cola.
+  expect_identical(h2$clase, "caso_a_revisar")
+  expect_identical(h2$hallazgo_kind, "caso_validar")
   expect_identical(h2$tipo_regla, "coherence")
   expect_identical(h2$anomalia_tipo, "contradiccion")
   expect_setequal(vapply(h2$variables, `[[`, "", "variable"), c("p4", "p21"))

@@ -791,6 +791,13 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
+    # Efecto previsto de una decisión, sin guardarla (limpieza_efecto_previsto.R).
+    # Cuerpo: el mismo de POST /limpieza/decision. Solo lee.
+    plumber::pr_post("/api/validacion/v2/limpieza/decision/efecto", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      limpieza_efecto_previsto(sid, .get_base_nombre(req), .validacion_request_json(req))
+    })) |>
+
     # Sin `id` formal: el id vale solo el de la ruta (ver `.validacion_id_de_ruta`).
     plumber::pr_delete("/api/validacion/v2/limpieza/decision/<id>", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -1466,7 +1473,7 @@ mount_validacion <- function(pr) {
       # de la misma función que la cola y GET /caso (validacion_caso_completo.R).
       casos_df <- if (length(aud$casos) > 0L) aud$casos[[1]] else NULL
       detalle_casos <- .validacion_drill_detalle_casos(scope, id_regla, casos_df,
-                                                       variable_roles, inst)
+                                                       variable_roles, inst, sid = sid, base = base)
       case_ids <- detalle_casos$case_ids
       uuid_col <- detalle_casos$uuid_col
       value_label_vars <- unique(c(
@@ -1481,7 +1488,9 @@ mount_validacion <- function(pr) {
       value_labels <- .drill_choice_value_labels(inst, value_label_vars)
       other_context <- .drill_other_context(variable_roles, value_labels)
 
-      list(
+      # M4: nombre, frase y severidad del catálogo, y columnas de contexto por
+      # caso (validacion_caso_completo.R, `validacion_detalle_regla_publico`).
+      validacion_detalle_regla_publico(list(
         ok = TRUE,
         regla = list(
           id = id_regla,
@@ -1513,7 +1522,7 @@ mount_validacion <- function(pr) {
         # Solo en la regla de respuestas casi iguales: con quién coincide cada
         # caso de `casos`, en el mismo orden. NA si no aplica.
         coincide_con = detalle_casos$coincide_con
-      )
+      ), detalle_casos)
     })) |>
 
     # --- Instrumento: toggle activar/desactivar una regla --------------------

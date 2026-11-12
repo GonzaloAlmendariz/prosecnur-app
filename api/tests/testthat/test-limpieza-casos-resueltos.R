@@ -2,8 +2,9 @@
 #
 # Una decisión "para todos los casos que marcó la regla" no guarda lista de
 # casos y el motor los resuelve contra la última auditoría. Al pasar a lista,
-# ahora registra cuáles eran en `target_case_ids_resueltos`. El registro no
-# cambia qué casos afecta la decisión: eso sigue saliendo de la auditoría.
+# ahora registra cuáles eran en `target_case_ids_resueltos`. Desde M4 (D-F2),
+# en las acciones que cambian datos esa lista es la que se aplica; "ignorar la
+# regla" sigue saliendo de la auditoría (test-limpieza-alcance-decision.R).
 
 .m2_sesion_auditada <- function(dir) {
   sid <- .m1_sesion(dir)
@@ -29,7 +30,9 @@ test_that("al pasar a lista sin casos explícitos registra los casos que resolv�
   expect_identical(unlist(guardada$target_case_ids_resueltos), c("u01", "u04", "u08"))
 })
 
-test_that("el registro no cambia qué casos afecta la decisión", {
+# D-F2 (M4): desde M4 el registro SÍ es la lista que se aplica en las acciones
+# que cambian datos; antes la decisión seguía a la última auditoría.
+test_that("D-F2: una exclusión de la regla entera queda en los casos que tenía al pasar a lista", {
   dir <- withr::local_tempdir()
   sid <- .m2_sesion_auditada(dir)
   withr::defer(session_delete(sid))
@@ -46,9 +49,9 @@ test_that("el registro no cambia qué casos afecta la decisión", {
   scope <- validacion_scope_get(sid, "Personas")
   d <- scope$limpieza_draft[[1]]
   expect_identical(unlist(d$target_case_ids_resueltos), c("u01", "u04", "u08"))
-  expect_identical(.limpieza_target_case_ids(d, scope), "u01")
+  expect_identical(.limpieza_target_case_ids(d, scope), c("u01", "u04", "u08"))
   out <- .limpieza_apply_decisions_to_data(.m1_datos(), scope, list(d))
-  expect_identical(nrow(out$data), 9L)
+  expect_identical(nrow(out$data), 7L)
 })
 
 test_that("guardar otra vez una decisión lista conserva el registro de cuando pasó a lista", {

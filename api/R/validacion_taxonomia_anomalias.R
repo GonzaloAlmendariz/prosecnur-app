@@ -33,7 +33,7 @@
   valor_invalido = list(
     slug = "valor_invalido",
     etiqueta = "Valor inválido",
-    descripcion = "El valor no existe entre las opciones de su pregunta.",
+    descripcion = "El valor está fuera de lo que admite su pregunta: opciones, rango o restricción.",
     corrige = "dato",
     orden = 2L
   ),
@@ -151,103 +151,8 @@ validacion_anomalia_corrige_dato <- function(slug) {
   identical(.VALIDACION_ANOMALIAS[[s]]$corrige, "dato")
 }
 
-# =============================================================================
-# Enunciado del hallazgo
-# =============================================================================
-# Lo que Validación muestra hoy describe LA REGLA: un enunciado universal,
-# negado y sin sujeto —"Si NO se cumple que (X es alguna de A, B, C y…),
-# entonces P no debe responderse"—. Es correcto y obliga a deshacer una doble
-# negación mental para entender qué pasó, y aun así no dice a quién le pasó.
-#
-# Lo que hace falta es describir EL HECHO: sujeto, qué respondió, con qué choca,
-# qué hacer. La materia prima ya se calcula — `variable_roles` trae target,
-# drivers y las etiquetas humanas de cada variable. Faltaba redactarlo.
-
-.enun_etiqueta <- function(roles, var) {
-  labs <- roles$labels %||% list()
-  et <- as.character(labs[[var]] %||% "")[1]
-  if (is.na(et) || !nzchar(et) || identical(et, var)) sprintf("«%s»", var)
-  else sprintf("«%s» (%s)", et, var)
-}
-
-.enun_valor <- function(valor, etiquetas = NULL) {
-  v <- trimws(as.character(valor %||% "")[1])
-  if (is.na(v) || !nzchar(v) || v == "NA") return("sin respuesta")
-  # Misma regla que el resto de la app: la etiqueta primero, el código detrás.
-  # Un «4» no dice nada; «No estoy trabajando» (4) sí.
-  et <- if (!is.null(etiquetas)) as.character(etiquetas[[v]] %||% "")[1] else ""
-  if (!is.na(et) && nzchar(et)) sprintf("«%s» (%s)", et, v) else sprintf("«%s»", v)
-}
-
-#' Redactar el hallazgo de un caso
-#'
-#' Cuatro piezas fijas y en este orden: quién, qué hizo, con qué choca, qué
-#' hacer. El sujeto va primero porque es lo que el equipo necesita para ir a
-#' buscar el caso; la acción va al final porque es lo que se decide después de
-#' entender.
-#'
-#' @param anomalia slug del tipo (`validacion_anomalia_tipo()`).
-#' @param roles `variable_roles` de la regla: target, drivers y labels.
-#' @param caso identificador del caso — código de campo o uuid.
-#' @param valores lista nombrada con el valor observado de cada variable.
-#' @param accion acción sugerida, ya en texto.
-#' @param etiquetas_valor lista por variable con el mapa código → etiqueta de su
-#'   lista de opciones, para que el enunciado diga «No estoy trabajando» (4) y
-#'   no «4».
-#' @return lista con `sujeto`, `hecho`, `choque`, `accion` y `texto` armado.
-#' @family validacion
-#' @export
-validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
-                                          valores = list(), accion = NULL,
-                                          etiquetas_valor = list()) {
-  roles <- roles %||% list()
-  target <- as.character(roles$target %||% "")[1]
-  drivers <- as.character(unlist(roles$drivers %||% list()))
-  # El gate del salto incluye variables de contexto —consentimiento, ruta del
-  # estudio— que se cumplen en casi todos los casos y no explican nada. El
-  # driver que importa es el que cambió de valor en ESTE caso, y ese es el que
-  # trae un valor observado.
-  drivers <- drivers[drivers != target & drivers %in% names(valores)]
-
-  sujeto <- as.character(caso %||% "")[1]
-  hecho <- if (nzchar(target)) {
-    sprintf("Respondió %s en %s",
-            .enun_valor(valores[[target]], etiquetas_valor[[target]]),
-            .enun_etiqueta(roles, target))
-  } else ""
-
-  choque <- switch(
-    as.character(anomalia %||% ""),
-    contradiccion = if (length(drivers)) {
-      sprintf("pero había declarado %s en %s",
-              .enun_valor(valores[[drivers[1]]], etiquetas_valor[[drivers[1]]]),
-              .enun_etiqueta(roles, drivers[1]))
-    } else "pero contradice otro dato del mismo caso",
-    valor_invalido = "y ese valor no está entre las opciones de la pregunta",
-    faltante = "y la pregunta debía responderse",
-    procedencia = "y el caso no se recolectó como el estudio declaró",
-    ""
-  )
-  if (identical(as.character(anomalia %||% ""), "faltante") && nzchar(target)) {
-    hecho <- sprintf("Dejó vacía %s", .enun_etiqueta(roles, target))
-    choque <- "y debía responderse"
-  }
-
-  acc <- as.character(accion %||% "")[1]
-  if (is.na(acc) || !nzchar(acc)) {
-    acc <- if (identical(as.character(anomalia %||% ""), "procedencia")) {
-      "Confirmar con campo antes de decidir si el caso entra."
-    } else "Revisar y corregir en Limpieza."
-  }
-
-  texto <- paste0(
-    if (nzchar(sujeto)) paste0(sujeto, " · ") else "",
-    hecho,
-    if (nzchar(choque)) paste0(" ", choque) else "",
-    ". ", acc
-  )
-  list(sujeto = sujeto, hecho = hecho, choque = choque, accion = acc, texto = texto)
-}
+# El enunciado del hallazgo de un caso vive en validacion_enunciado_hallazgo.R
+# (M4): se redacta por subtipo de regla, no solo por tipo de anomalía.
 
 # =============================================================================
 # Estado del dato vs estado de la regla

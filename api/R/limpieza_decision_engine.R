@@ -587,8 +587,10 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   list(ids = ids, aplicable = TRUE, motivo = NA_character_)
 }
 
+# `[[ exact = TRUE ]]`: con `$`, una decisión sin `target_case_ids` leía por
+# coincidencia parcial `target_case_ids_resueltos` y pasaba por casos elegidos.
 .limpieza_ids_explicitos <- function(d) {
-  ids <- unique(as.character(unlist(d$target_case_ids %||% list(), use.names = FALSE)))
+  ids <- unique(as.character(unlist(d[["target_case_ids", exact = TRUE]] %||% list(), use.names = FALSE)))
   ids[!is.na(ids) & nzchar(ids)]
 }
 
@@ -619,14 +621,30 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     list(filas = rep(FALSE, n), ids_filas = ids, aplicable = FALSE, motivo = motivo)
   }
   explicitos <- .limpieza_ids_explicitos(d)
-  if (length(explicitos)) {
+  # D-F2 (limpieza_alcance_decision.R): una decisión sobre la regla entera que
+  # cambia datos se resuelve con la lista que guardó al pasar a lista, como una
+  # decisión que nombra sus casos; los casos nuevos de la auditoría no le llegan.
+  congelados <- .limpieza_casos_congelados(d)
+  if (!length(explicitos) && !is.null(congelados) && !length(congelados)) {
+    return(no_aplica("sin_casos_al_decidir", .limpieza_make_case_ids(df, table_key,
+                                                                      .limpieza_identidad_caso(scope)$variables)))
+  }
+  if (length(explicitos) || length(congelados)) {
+    lista <- if (length(explicitos)) explicitos else congelados
     r <- .limpieza_ids_por_marca(df, table_key, d$identificacion_casos)
     if (!isTRUE(r$aplicable)) return(no_aplica(r$motivo, r$ids))
+    # Una lista congelada sobre una auditoría sin fila de origen se lee como la
+    # regla entera de antes: solo si la numeración coincide con la recibida.
+    if (!length(explicitos) && any(.limpieza_ids_por_numero_de_fila(congelados, table_key)) &&
+        !.limpieza_tiene_fila_origen(.limpieza_tabla_auditada(scope, table_key)) &&
+        !isTRUE(.limpieza_numeracion_auditada_es_origen(scope, df_aplicar))) {
+      return(no_aplica("auditoria_sin_fila_de_origen", r$ids))
+    }
     if (.limpieza_decision_numeracion_anterior(d) &&
         !isTRUE(.limpieza_numeracion_auditada_es_origen(scope, df_aplicar))) {
       return(no_aplica("numeracion_anterior", r$ids))
     }
-    filas <- r$ids %in% explicitos
+    filas <- r$ids %in% lista
     if (!any(filas)) return(no_aplica("sin_filas_en_principal", r$ids))
     return(list(filas = filas, ids_filas = r$ids, aplicable = TRUE, motivo = NA_character_))
   }
@@ -657,7 +675,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   }
   principal <- .limpieza_tabla_auditada(scope, "principal")
   if (!is.data.frame(principal)) return(list(aplicable = NA, motivo = NA_character_))
-  if (length(.limpieza_ids_explicitos(d))) {
+  if (length(.limpieza_ids_explicitos(d)) || length(.limpieza_casos_congelados(d))) {
     tabla <- .limpieza_tabla_de_regla(scope, d$source_id)
     df <- .limpieza_tabla_auditada(scope, tabla)
     if (is.data.frame(df)) {
@@ -692,6 +710,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     auditoria_sin_fila_de_origen = paste(
       "la última auditoría no conserva el número de fila de la base recibida;",
       "vuelve a correr la auditoría"),
+    sin_casos_al_decidir = "la regla no marcaba casos cuando se dio por lista",
     "el método con que se identificaron sus casos ya no sirve")
 }
 
@@ -804,7 +823,9 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     stop_api(400, "E_LIMPIEZA_STATUS", "status inválido.")
   }
 
-  target_case_ids <- unique(as.character(unlist(payload$target_case_ids %||% list())))
+  # Exacto: un cuerpo que devuelve `target_case_ids_resueltos` sin
+  # `target_case_ids` no se lee como casos elegidos.
+  target_case_ids <- unique(as.character(unlist(payload[["target_case_ids", exact = TRUE]] %||% list())))
   target_case_ids <- target_case_ids[!is.na(target_case_ids) & nzchar(target_case_ids)]
   target_variable <- as.character(payload$target_variable %||% NA_character_)
   if (!nzchar(target_variable)) target_variable <- NA_character_
@@ -873,7 +894,8 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   }
   previa <- if (length(idx)) decisions[[idx[1]]] else NULL
   if (!is.null(scope)) {
-    normalized <- .limpieza_registrar_casos_resueltos(normalized, previa, scope, now)
+    normalized <- .limpieza_registrar_casos_resueltos(
+      normalized, previa, scope, now, incluir_nuevos = isTRUE(payload$incluir_casos_nuevos))
   }
 
   if (length(idx)) {
@@ -884,11 +906,19 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     return(list(decisions = decisions, decision = normalized))
   }
 
-  normalized$id <- if (nzchar(normalized$id)) normalized$id else sprintf("PD_%03d", length(decisions) + 1L)
+  # Máximo + 1, no largo + 1: después de borrar una, largo + 1 repetía el id
+  # de otra decisión viva y la nueva la reemplazaba.
+  normalized$id <- if (nzchar(normalized$id)) normalized$id else .limpieza_id_nuevo(decisions)
   normalized$created_at <- now
   normalized$updated_at <- now
   decisions[[length(decisions) + 1L]] <- normalized
   list(decisions = decisions, decision = normalized)
+}
+
+.limpieza_id_nuevo <- function(decisions) {
+  ids <- vapply(decisions %||% list(), function(d) as.character(d$id %||% ""), character(1))
+  n <- suppressWarnings(as.integer(sub("^PD_", "", ids[grepl("^PD_[0-9]+$", ids)])))
+  sprintf("PD_%03d", max(c(0L, n), na.rm = TRUE) + 1L)
 }
 
 .limpieza_delete_decision <- function(existing, id) {
@@ -975,10 +1005,6 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   catalog$origen <- ifelse(catalog$source_type == "custom_rule", "Personalizada", "Automática")
 
   custom_ids <- vapply(scope$reglas_custom %||% list(), function(r) as.character(r$id %||% ""), character(1))
-  sev_map <- setNames(
-    vapply(scope$reglas_custom %||% list(), function(r) as.character(r$severidad %||% "info"), character(1)),
-    custom_ids
-  )
   kind_map <- setNames(
     vapply(scope$reglas_custom %||% list(), function(r) as.character(r$hallazgo_kind %||% "caso_validar"), character(1)),
     custom_ids
@@ -1031,14 +1057,9 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     "XLSForm"
   )
 
-  catalog$severidad <- vapply(seq_len(nrow(catalog)), function(i) {
-    rid <- as.character(catalog$id_regla[i])
-    if (rid %in% names(sev_map)) return(unname(sev_map[[rid]]))
-    pct <- suppressWarnings(as.numeric(catalog$porcentaje[i] %||% 0))
-    if (is.finite(pct) && pct >= 0.20) return("error")
-    if (is.finite(pct) && pct > 0) return("advertencia")
-    "info"
-  }, character(1))
+  # Una sola severidad por regla, la del catálogo (validacion_narrativa_regla.R):
+  # la que declara la regla, no un porcentaje sobre todas las filas.
+  catalog$severidad <- .validacion_severidad_por_id(scope, catalog$id_regla)
 
   catalog$variables <- lapply(seq_len(nrow(catalog)), function(i) {
     vars <- c(
@@ -1187,18 +1208,19 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
     return(list(covered = 0L, pending = max(0L, total), covers_all = FALSE))
   }
 
-  has_global <- any(vapply(ready_hits, function(d) {
-    ids <- unlist(d$target_case_ids %||% list())
-    !length(ids)
-  }, logical(1)))
+  # Solo una decisión que sigue a la regla (ignorarla, o una anterior al
+  # registro de casos) cubre todo lo que marque la auditoría. Una congelada
+  # (D-F2) cubre su lista, como una que nombra sus casos: lo nuevo queda pendiente.
+  lista_de <- function(d) {
+    ids <- .limpieza_ids_explicitos(d)
+    if (length(ids)) ids else .limpieza_casos_congelados(d)
+  }
+  has_global <- any(vapply(ready_hits, function(d) is.null(lista_de(d)), logical(1)))
   if (isTRUE(has_global)) {
     return(list(covered = total, pending = 0L, covers_all = TRUE))
   }
 
-  explicit_ids <- unique(as.character(unlist(lapply(
-    ready_hits,
-    function(d) d$target_case_ids %||% list()
-  ))))
+  explicit_ids <- unique(as.character(unlist(lapply(ready_hits, lista_de))))
   explicit_ids <- explicit_ids[!is.na(explicit_ids) & nzchar(explicit_ids)]
 
   # Cada decisión cubre los casos de la regla con el método con que se tomó
@@ -1214,7 +1236,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
       # Ids por número de fila de la numeración anterior que ya no se pueden
       # leer: no cubren nada (compararlos con los de hoy cubriría otra fila).
       if (.limpieza_decision_numeracion_anterior(d) && !numeracion_origen) next
-      cubiertas <- cubiertas | (r$ids[mapa$row_idx] %in% .limpieza_ids_explicitos(d))
+      cubiertas <- cubiertas | (r$ids[mapa$row_idx] %in% lista_de(d))
     }
     sum(cubiertas)
   } else {
@@ -1265,7 +1287,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
       hallazgo_kind = as.character(catalog$hallazgo_kind[i] %||% "inconsistencia_xlsform"),
       origen_detalle = as.character(catalog$origen_detalle[i] %||% catalog$origen[i] %||% "XLSForm"),
       # --- Resto ---
-      severidad = as.character(catalog$severidad[i] %||% "info"),
+      severidad = as.character(catalog$severidad[i]),
       variables = as.list(vars),
       n_casos = n_casos,
       n_casos_cubiertos = as.integer(coverage$covered %||% 0L),
@@ -1326,9 +1348,10 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
 }
 
 .limpieza_target_case_ids <- function(decision, scope) {
-  explicit_ids <- unique(as.character(unlist(decision$target_case_ids %||% list())))
-  explicit_ids <- explicit_ids[!is.na(explicit_ids) & nzchar(explicit_ids)]
+  explicit_ids <- .limpieza_ids_explicitos(decision)
   if (length(explicit_ids)) return(explicit_ids)
+  congelados <- .limpieza_casos_congelados(decision)
+  if (!is.null(congelados)) return(congelados)
   .limpieza_rule_case_map(scope$evaluacion, decision$source_id,
                          .limpieza_identidad_caso(scope)$variables)$case_ids
 }

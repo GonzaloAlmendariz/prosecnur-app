@@ -234,6 +234,15 @@ limpieza_payload_publico <- function(limpieza, base_nombre = NULL) {
 build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_override = NULL) {
   decisions <- scope$limpieza_draft %||% list()
   queue <- .limpieza_build_decision_queue(scope, decisions)
+  # M4: la cola habla con el nombre y la frase del catálogo de reglas
+  # (validacion_narrativa_regla.R). Si el catálogo no se puede leer, la cola
+  # sale igual, con `en_catalogo = FALSE` por regla y la causa en `artifacts`.
+  narrativa_error <- NULL
+  narrativa <- if (!is.null(sid) && length(queue)) tryCatch(
+    validacion_narrativa_reglas(sid, base_nombre),
+    error = function(e) { narrativa_error <<- conditionMessage(e); NULL }
+  ) else NULL
+  queue_publica <- validacion_cola_con_narrativa(queue, narrativa, scope)
   preview_error <- NULL
   preview <- if (!is.null(preview_override)) {
     preview_override
@@ -277,6 +286,10 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
   artifacts <- scope$limpieza_artifacts %||% list()
   if (!is.null(preview_error) && nzchar(preview_error)) {
     artifacts$preview_error <- preview_error
+  }
+  if (!is.null(narrativa_error) && nzchar(narrativa_error)) {
+    message(sprintf("[prosecnur-app] catálogo de reglas no leído para la cola: %s", narrativa_error))
+    artifacts$narrativa_error <- "El catálogo de reglas no se pudo leer: la cola muestra el nombre de cada regla sin su frase."
   }
   # ADR 0076: `promocion` describe qué base rige, y eso puede cambiar después
   # del cierre (al revertir). Se lee de la base, no del artefacto guardado.
@@ -329,11 +342,13 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
     identificacion_casos = .limpieza_identificacion_publica(scope) %||% NA,
     top_reglas = .limpieza_top_reglas(scope),
     top_variables = .limpieza_top_variables(scope),
-    decision_queue = queue,
+    decision_queue = queue_publica,
     # Por decisión, `aplicable` y `motivo_no_aplicable` (calculados, no se
     # guardan): una decisión cuyo método de identificación ya no sirve no se
-    # aplica a ningún caso, y la pantalla tiene que poder decirlo.
-    decision_draft = .limpieza_decisiones_con_aplicabilidad(decisions, scope),
+    # aplica a ningún caso, y la pantalla tiene que poder decirlo. Desde M4,
+    # también su seguimiento de la auditoría (limpieza_alcance_decision.R).
+    decision_draft = lapply(.limpieza_decisiones_con_aplicabilidad(decisions, scope),
+                            .limpieza_decision_con_seguimiento, scope = scope),
     module_stats = module_stats,
     before_after_preview = preview,
     artifacts = artifacts

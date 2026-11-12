@@ -120,7 +120,9 @@ test_that("cada tipo dice su propio choque y su propia acción", {
 
   inval <- validacion_enunciado_hallazgo("valor_invalido", roles, "H1010",
                                          list(emp_impact = "7"))
-  expect_true(grepl("no está entre las opciones", inval$texto, fixed = TRUE))
+  # M4: sin la regla (rango, restricción, catálogo) no se afirma que el valor
+  # falte en las opciones; con ella, test-validacion-enunciado-subtipo.R.
+  expect_true(grepl("un valor que la pregunta no admite", inval$texto, fixed = TRUE))
   expect_true(grepl("Limpieza", inval$accion, fixed = TRUE))
 
   # Procedencia no manda a Limpieza: se confirma con campo.
@@ -133,15 +135,15 @@ test_that("cada tipo dice su propio choque y su propia acción", {
 test_that("el faltante se enuncia como vacío, no como respuesta", {
   roles <- list(target = "p1", labels = list(p1 = "¿Cuál es su edad?"))
   out <- validacion_enunciado_hallazgo("faltante", roles, "H1042", list(p1 = ""))
-  expect_true(grepl("Dejó vacía", out$texto, fixed = TRUE))
-  expect_true(grepl("debía responderse", out$texto, fixed = TRUE))
+  expect_true(grepl("dejó vacía", out$texto, fixed = TRUE))
+  expect_true(grepl("que es obligatoria", out$texto, fixed = TRUE))
 })
 
 test_that("sin etiqueta humana el enunciado usa el nombre técnico y no rompe", {
   out <- validacion_enunciado_hallazgo(
     "valor_invalido", list(target = "var_sin_label"), "C1", list(var_sin_label = "9")
   )
-  expect_true(grepl("«var_sin_label»", out$texto, fixed = TRUE))
+  expect_true(grepl("en var_sin_label", out$texto, fixed = TRUE))
 })
 
 # --- L9 · el estado del dato, distinto del estado de la regla ---------------
@@ -174,8 +176,8 @@ test_that("el enunciado dice la etiqueta de la opción, con el código detrás",
       Em_NowWork = list("4" = "No estoy trabajando")
     )
   )
-  expect_true(grepl("«Mi ingreso se mantuvo igual» (2)", out$texto, fixed = TRUE))
-  expect_true(grepl("«No estoy trabajando» (4)", out$texto, fixed = TRUE))
+  expect_true(grepl("\"Mi ingreso se mantuvo igual\" (2)", out$texto, fixed = TRUE))
+  expect_true(grepl("\"No estoy trabajando\" (4)", out$texto, fixed = TRUE))
 })
 
 test_that("sin mapa de etiquetas el enunciado usa el código y no rompe", {
@@ -183,5 +185,5 @@ test_that("sin mapa de etiquetas el enunciado usa el código y no rompe", {
     "contradiccion", .tax_roles(), "H1010",
     valores = list(emp_increase = "2", Em_NowWork = "4")
   )
-  expect_true(grepl("«2»", out$texto, fixed = TRUE))
+  expect_true(grepl("\"2\"", out$texto, fixed = TRUE))
 })

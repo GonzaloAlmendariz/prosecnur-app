@@ -2,11 +2,10 @@
 # Limpieza: casos que guarda una decisión y con qué método se identificaron
 # =============================================================================
 # Una decisión "para todos los casos que marcó la regla" no guarda lista de
-# casos: el motor los resuelve contra la última auditoría cada vez que aplica
-# (`.limpieza_target_case_ids()`). Eso no cambia aquí. Lo que faltaba es el
-# registro de QUÉ casos eran cuando el analista la dio por lista, para que un
-# script de limpieza replicable (o una auditoría posterior) pueda decir sobre
-# qué casos se decidió sin depender de volver a auditar.
+# casos elegidos. Aquí se registra QUÉ casos eran cuando el analista la dio por
+# lista. Desde M4 (D-F2, limpieza_alcance_decision.R) esa lista es la que se
+# aplica en las acciones que cambian datos (excluir, corregir, imputar);
+# "ignorar la regla" sigue resolviéndose contra la última auditoría.
 #
 # Campos que agrega a la decisión:
 #   target_case_ids_resueltos  ids de caso que resolvía al pasar a lista
@@ -25,8 +24,15 @@
 # si algún id no está en la última auditoría, el guardado se rechaza en vez de
 # guardar ids que no apuntan a nadie.
 
+#
+# Desde M4 (D-F2) la lista resuelta de una decisión que cambia datos es la que
+# se aplica (limpieza_alcance_decision.R). Para sumar los casos nuevos que marca
+# una auditoría posterior, el cliente vuelve a guardarla lista con
+# `incluir_casos_nuevos: true`: a la lista se suman los casos que la regla
+# marca hoy; los que ya no marca siguen en ella (lo congelado es congelado).
 .limpieza_registrar_casos_resueltos <- function(decision, previa = NULL, scope = NULL,
-                                                ahora = .limpieza_now_utc()) {
+                                                ahora = .limpieza_now_utc(),
+                                                incluir_nuevos = FALSE) {
   explicitos <- .limpieza_ids_explicitos(decision)
   lista <- identical(as.character(decision$status %||% ""), "ready")
   decision$target_case_ids_resueltos <- NULL
@@ -35,7 +41,9 @@
 
   if (length(explicitos)) {
     previos <- if (is.list(previa)) .limpieza_ids_explicitos(previa) else character(0)
-    if (length(previos) && setequal(previos, explicitos)) {
+    # Misma regla: la marca se tomó en su tabla; con otra regla se valida otra vez.
+    if (length(previos) && setequal(previos, explicitos) &&
+        identical(as.character(previa$source_id %||% ""), as.character(decision$source_id %||% ""))) {
       # Los mismos casos: la marca se queda como se fijó (NULL en decisiones
       # anteriores a la marca, que se resuelven con el método anterior).
       decision$identificacion_casos <- previa$identificacion_casos
@@ -48,12 +56,29 @@
   if (!lista) return(decision)
 
   # Ya estaba lista y con su registro: se conserva el del momento en que pasó
-  # a lista, con su marca, aunque la auditoría haya cambiado después.
+  # a lista, con su marca, aunque la auditoría haya cambiado después. Solo si
+  # es la MISMA decisión: misma regla y misma acción. Con otra regla, la lista
+  # era de otros casos; con otra acción (ignorar que pasa a excluir), la
+  # decisión que cambia datos pasa a lista ahora y se congela con la auditoría
+  # vigente.
   previa_lista <- is.list(previa) && identical(as.character(previa$status %||% ""), "ready")
-  if (previa_lista && !is.null(previa$target_case_ids_resueltos)) {
+  misma <- previa_lista && !is.null(previa$target_case_ids_resueltos) &&
+    identical(as.character(previa$source_id %||% ""), as.character(decision$source_id %||% "")) &&
+    identical(as.character(previa$action_type %||% ""), as.character(decision$action_type %||% ""))
+  if (misma) {
     decision$target_case_ids_resueltos <- previa$target_case_ids_resueltos
     decision$casos_resueltos_en <- previa$casos_resueltos_en %||% ahora
     decision$identificacion_casos <- previa$identificacion_casos
+    if (isTRUE(incluir_nuevos) && !is.null(scope$evaluacion)) {
+      # Congelados más los nuevos, leídos con la marca de la decisión; los que
+      # la regla ya no marca siguen en la lista (decisión del coordinador).
+      hoy <- .limpieza_ids_marcados_con_marca(previa, scope)
+      if (!is.null(hoy)) {
+        previos <- as.character(unlist(previa$target_case_ids_resueltos, use.names = FALSE))
+        decision$target_case_ids_resueltos <- as.list(unique(c(previos, hoy)))
+        decision$casos_resueltos_en <- ahora
+      }
+    }
     return(decision)
   }
 

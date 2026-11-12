@@ -41,14 +41,15 @@
 # (null en JSON) si la regla no tiene tipo de anomalía y por eso no hay
 # enunciado. Los valores se leen de la tabla de la auditoría, por código.
 .validacion_esperado_por_fila <- function(anomalia, roles, df, filas, ids,
-                                          etiquetas_valor = list()) {
+                                          etiquetas_valor = list(), regla = NULL) {
   if (!length(filas)) return(list())
   if (is.na(anomalia) || !nzchar(anomalia) || !is.data.frame(df)) {
     return(rep(list(NA), length(filas)))
   }
   roles <- roles %||% list()
   vars <- unique(c(as.character(unlist(roles$target %||% character(0))),
-                   as.character(unlist(roles$drivers %||% character(0)))))
+                   as.character(unlist(roles$drivers %||% character(0))),
+                   if (is_ast(regla$condicion)) ast_variables(regla$condicion) else character(0)))
   vars <- vars[!is.na(vars) & nzchar(vars) & vars %in% names(df)]
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
@@ -58,7 +59,7 @@
       if (length(x) && !is.na(x)) as.character(x) else NA_character_
     }), vars)
     out <- validacion_enunciado_hallazgo(anomalia, roles, ids[k], valores = valores,
-                                         etiquetas_valor = etiquetas_valor)
+                                         etiquetas_valor = etiquetas_valor, regla = regla)
     c(list(anomalia_tipo = anomalia), out)
   })
 }
@@ -135,7 +136,8 @@
 
 # Hallazgos del caso en la última auditoría: cada regla que lo marca, en
 # cualquier tabla (en una madre con hijas, un registro hijo con el mismo id).
-.validacion_caso_hallazgos <- function(scope, id_caso, identidad, inst) {
+.validacion_caso_hallazgos <- function(scope, id_caso, identidad, inst, narrativa = NULL,
+                                       especiales = character(0)) {
   ev <- scope$evaluacion
   catalogo <- .limpieza_rule_catalog(scope)
   if (!nrow(catalogo)) return(list())
@@ -152,19 +154,28 @@
     mapa <- .limpieza_rule_case_map(ev, rid, identidad, cache)
     if (!(id_caso %in% mapa$case_ids)) next
     vars <- as.character(unlist(catalogo$variables[[k]] %||% list()))
-    h <- list(
+    kind <- as.character(catalogo$hallazgo_kind[k])
+    anomalia <- .validacion_anomalia_de_regla(scope, rid, as.list(catalogo[k, , drop = FALSE]))
+    # M4: el nombre, la frase, la clase y la severidad son las del catálogo de
+    # reglas (validacion_narrativa_regla.R), por id del motor y tabla.
+    e <- .vnr_entrada(narrativa, rid, mapa$table)
+    h <- c(list(
       id_regla = rid,
-      nombre = .validacion_nombre_regla(catalogo$nombre_regla[k], rid),
-      clase = as.character(catalogo$hallazgo_kind[k]),
+      nombre = if (!is.null(e$nombre)) as.character(e$nombre) else .validacion_nombre_regla(catalogo$nombre_regla[k], rid),
+      clase = .vrc_clase(kind),
+      hallazgo_kind = kind,
+      severidad = as.character(catalogo$severidad[k]),
       tipo_regla = as.character(catalogo$tipo_regla[k]),
       categoria = as.character(catalogo$categoria_ux[k]),
-      anomalia_tipo = .validacion_anomalia_de_regla(scope, rid, as.list(catalogo[k, , drop = FALSE])),
+      anomalia_tipo = anomalia,
       tabla = as.character(mapa$table),
       variables = lapply(vars, function(v) list(
         variable = v,
         etiqueta = .validacion_texto_o_na(if (v %in% names(etiquetas)) etiquetas[[v]] else NA)
       ))
-    )
+    ), .vnr_campos_publicos(e)[c("en_catalogo", "id_catalogo", "frase", "frase_completa",
+                                  "familia", "familia_nombre", "origen_regla")])
+    h <- c(h, .validacion_caso_esperado(scope, ev, rid, mapa, id_caso, anomalia, inst, especiales))
     if (identical(rid, "OP_duplicates")) {
       if (is.null(parejas)) parejas <- validacion_parejas_de_evaluacion(ev, rid, identidad) %||% FALSE
       # NA (null): la regla no se pudo reconstruir, o el caso está marcado y
@@ -176,6 +187,28 @@
     out[[length(out) + 1L]] <- h
   }
   out
+}
+
+# Lo esperado del caso en una regla (el mismo enunciado del detalle de la
+# regla) y, en la regla de un grupo repetido, los registros que marca: el caso
+# es el encuestado y cada registro se nombra por su fila en la tabla de la
+# auditoría y su `_index` del export si lo trae.
+.validacion_caso_esperado <- function(scope, ev, rid, mapa, id_caso, anomalia, inst, especiales) {
+  df <- ev$datos_tablas[[mapa$table]] %||% ev$datos
+  filas <- mapa$row_idx[mapa$case_ids == id_caso]
+  rule <- Find(function(r) identical(as.character(r$id %||% ""), rid), ev$bundle$rules %||% list())
+  roles <- (rule %||% list())$variable_roles %||% list()
+  vars <- unique(c(as.character(unlist(roles$target %||% character(0))),
+                   as.character(unlist(roles$drivers %||% character(0)))))
+  ctx <- .validacion_contexto_enunciado(scope, rid, inst, especiales)
+  esperado <- .validacion_esperado_por_fila(anomalia, roles, df, filas, rep(id_caso, length(filas)),
+                                            etiquetas_valor = .drill_choice_value_labels(inst, vars),
+                                            regla = ctx)
+  registros <- if (identical(mapa$table, "principal")) NA else lapply(seq_along(filas), function(k) {
+    idx <- if ("_index" %in% names(df)) suppressWarnings(as.integer(df[["_index"]][filas[k]])) else NA_integer_
+    list(fila = as.integer(filas[k]), indice = idx, esperado = esperado[[k]])
+  })
+  list(esperado = if (length(esperado)) esperado[[1]] else NA, registros = registros)
 }
 
 .validacion_nombre_regla <- function(nombre, id_regla) {
@@ -231,7 +264,16 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
 
   inst <- .validacion_caso_instrumento(sid, base_nombre)
   i <- encontrado$filas[1]
-  hallazgos <- .validacion_caso_hallazgos(scope, id_caso, identidad, inst)
+  especiales <- validacion_codigos_especiales_declarados(sid, base_eff, inst)
+  narrativa <- tryCatch(validacion_narrativa_reglas(sid, base_nombre), error = function(e) {
+    message(sprintf("[prosecnur-app] catálogo de reglas no leído para el caso: %s", conditionMessage(e)))
+    NULL
+  })
+  hallazgos <- .validacion_caso_hallazgos(scope, id_caso, identidad, inst, narrativa, especiales)
+  secciones <- if (is.null(inst)) list() else .validacion_caso_secciones(inst, encontrado$df, i)
+  secciones <- validacion_caso_respuestas_estado(secciones, inst, encontrado$df, i,
+                                                 ev$bundle$choices_map %||% list(), especiales)
+  columnas <- validacion_columnas_contexto(scope, inst, encontrado$df)
   list(
     ok = TRUE,
     base_nombre = base_eff,
@@ -242,7 +284,15 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
     n_filas_con_el_id = length(encontrado$filas),
     en_otras_tablas = en_otras,
     auditada_en = as.character(ev$auditada_en %||% NA_character_)[1],
-    secciones = if (is.null(inst)) list() else .validacion_caso_secciones(inst, encontrado$df, i),
+    secciones = secciones,
+    # M4: el contexto del caso (fecha, recopilador, duración, preguntas
+    # respondidas) solo de columnas declaradas (validacion_contexto_casos.R).
+    contexto = columnas,
+    metadatos = validacion_contexto_por_fila(encontrado$df, i, columnas, inst)[[1]],
+    codigos_especiales_declarados = lapply(names(especiales), function(k) list(
+      codigo = k, etiqueta = if (nzchar(especiales[[k]])) especiales[[k]] else NA_character_)),
+    catalogo_leido = !is.null(narrativa),
+    avisos = Filter(Negate(is.null), list(attr(especiales, "aviso"))),
     instrumento_leido = !is.null(inst),
     n_hallazgos = length(hallazgos),
     hallazgos = hallazgos
@@ -258,19 +308,32 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
 # lleva su id solo si la columna que identifica los casos lo trae y es uno de
 # los que la regla marca; si no, NA (null): una decisión armada con él se
 # rechaza al guardarla en vez de caer en otra fila.
-.validacion_drill_detalle_casos <- function(scope, id_regla, casos_df, variable_roles, inst) {
+.validacion_drill_detalle_casos <- function(scope, id_regla, casos_df, variable_roles, inst,
+                                            sid = NULL, base = NULL) {
   n_casos <- if (is.data.frame(casos_df)) nrow(casos_df) else 0L
   n <- min(n_casos, 500L)
-  out <- list(case_ids = character(0), ids_de_la_llave = FALSE, uuid_col = NA_character_,
-              esperado = rep(list(NA), n), coincide_con = NA)
-  if (!n) {
-    out$esperado <- list()
-    return(out)
-  }
   ev <- scope$evaluacion
   identidad <- .limpieza_identidad_caso(scope)$variables
   mapa <- .limpieza_rule_case_map(ev, id_regla, identidad)
   df <- ev$datos_tablas[[mapa$table]] %||% ev$datos
+  # M4: narrativa y severidad del catálogo, y columnas de contexto declaradas.
+  narrativa <- if (!is.null(sid)) tryCatch(validacion_narrativa_reglas(sid, base), error = function(e) {
+    message(sprintf("[prosecnur-app] catálogo de reglas no leído para el detalle: %s", conditionMessage(e)))
+    NULL
+  }) else NULL
+  especiales <- if (!is.null(sid)) validacion_codigos_especiales_declarados(
+    sid, tryCatch(.validacion_auditoria_base(sid, base), error = function(e) base), inst) else character(0)
+  columnas <- if (is.data.frame(df)) validacion_columnas_contexto(scope, inst, df) else NA
+  out <- list(case_ids = character(0), ids_de_la_llave = FALSE, uuid_col = NA_character_,
+              esperado = rep(list(NA), n), coincide_con = NA,
+              narrativa = .vnr_entrada(narrativa, id_regla, mapa$table),
+              catalogo_leido = !is.null(narrativa),
+              severidad = .validacion_severidad_por_id(scope, id_regla),
+              contexto = columnas, contexto_por_caso = rep(list(NA), n))
+  if (!n) {
+    out$esperado <- list(); out$contexto_por_caso <- list()
+    return(out)
+  }
   filas <- .validacion_filas_de_casos(casos_df, df, mapa$row_idx)
   ident <- .limpieza_identificar_casos(df, mapa$table, identidad)
   ids_tabla <- ident$ids
@@ -290,6 +353,7 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
                       identical(as.character(casos_df[[col]]), out$case_ids)) col else "_pulso_case_id"
   if (all(is.na(filas))) return(out)
   ids <- ids_tabla[utils::head(filas, n)]
+  if (is.list(columnas)) out$contexto_por_caso <- validacion_contexto_por_fila(df, utils::head(filas, n), columnas, inst)
   res <- ev$resumen
   fila <- as.list(res[which(as.character(res$id_regla) == id_regla)[1], , drop = FALSE])
   anomalia <- .validacion_anomalia_de_regla(scope, id_regla, fila)
@@ -298,7 +362,8 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
                          as.character(unlist(roles$drivers %||% character(0)))))
   out$esperado <- .validacion_esperado_por_fila(
     anomalia, roles, df, utils::head(filas, n), ids,
-    etiquetas_valor = .drill_choice_value_labels(inst, vars_roles)
+    etiquetas_valor = .drill_choice_value_labels(inst, vars_roles),
+    regla = .validacion_contexto_enunciado(scope, id_regla, inst, especiales)
   )
   if (identical(id_regla, "OP_duplicates")) {
     parejas <- validacion_parejas_de_evaluacion(ev, id_regla, identidad)
@@ -330,4 +395,26 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
   }
   if (length(row_idx) == n) return(as.integer(row_idx))
   rep(NA_integer_, n)
+}
+
+#' Respuesta pública del detalle de una regla (POST /instrumento/regla)
+#'
+#' Suma a la respuesta que arma el router lo que M4 pide del motor: el nombre
+#' del catálogo en `regla.nombre` (una sola narrativa por regla), y en `regla`
+#' `frase`, `frase_completa`, `familia`, `familia_nombre`, `origen_regla`,
+#' `clase`, `severidad`, `en_catalogo` e `id_catalogo`; arriba, `contexto`
+#' (columnas declaradas de fecha, recopilador, envío, inicio y fin) y
+#' `contexto_por_caso` (mismo largo y orden que `casos`).
+#'
+#' @param resp lista que arma el router.
+#' @param detalle salida de `.validacion_drill_detalle_casos()`.
+#' @keywords internal
+validacion_detalle_regla_publico <- function(resp, detalle) {
+  e <- detalle$narrativa
+  if (!is.null(e$nombre) && !is.na(e$nombre)) resp$regla$nombre <- as.character(e$nombre)
+  resp$regla <- c(resp$regla, .vnr_campos_publicos(e), list(severidad = detalle$severidad))
+  resp$catalogo_leido <- isTRUE(detalle$catalogo_leido)
+  resp$contexto <- detalle$contexto
+  resp$contexto_por_caso <- detalle$contexto_por_caso
+  resp
 }
