@@ -209,7 +209,8 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   estado <- as.character(fila$estado_dinamico[1] %||% "no_evaluada")
   if (!nrow(fila) || !identical(estado, "correcta") || is.na(fila$n_inconsistencias[1])) {
     # En castellano llano: el detalle del motor puede traer el mensaje de R.
-    motivo <- .vrc_motivo_llano(estado, fila$issue_code[1] %||% NA_character_, fila$detalle[1] %||% NA_character_)
+    motivo <- .vrc_motivo_llano(estado, fila$issue_code[1] %||% NA_character_, fila$detalle[1] %||% NA_character_,
+                                compara_preguntas = !is.null(.vra_par_comparado(rule$predicate)))
     return(.probar_respuesta(
       base_eff, regla, evaluada = FALSE, estado = estado,
       motivo = motivo,

@@ -159,39 +159,73 @@ ast_to_r <- function(x) {
   }
 }
 
+# Comparación de una pregunta con otra, fila por fila. Se escribe como función
+# para leerla y probarla; el compilador la incrusta en la expresión (no depende
+# de buscarla por nombre en el entorno del trabajo).
+#
+#   1. Número contra número. Un texto con coma decimal ("1,5") se lee como
+#      número, salvo que tenga exactamente tres cifras tras la coma ("1,500"
+#      puede ser mil quinientos): ese queda como texto. Un factor se compara por
+#      su valor, no por el índice de su nivel. Los códigos especiales (98, 99)
+#      cuentan como números, igual que en la comparación con un valor fijo
+#      (`.c_cmp_const`); queda para la revisión metodológica.
+#   2. Fecha contra fecha, solo con año-mes-día completo al inicio
+#      (`aaaa-mm-dd` o `aaaa/mm/dd`). "05-01-2024" o "11/05/2026" no se leen
+#      como fecha: quedan indeterminados (otro formato exige conocer el tipo y
+#      el formato de la columna, que el compilador no tiene). Si los dos lados
+#      traen hora, se compara también la hora.
+#   3. Texto contra texto, solo con "=" y "!=", cuando ningún lado es número
+#      ni fecha.
+#   Cualquier otra mezcla (texto contra fecha, texto con ">") queda NA:
+#   indeterminada, no marca. Ninguna conversión lanza error.
+.vd_cmp_vars_impl <- function(a, b, op) {
+  como_texto <- function(x) {
+    if (is.factor(x)) x <- as.character(x)
+    if (inherits(x, "POSIXt")) return(format(x, "%Y-%m-%d %H:%M:%S"))
+    if (inherits(x, "Date")) return(format(x, "%Y-%m-%d"))
+    trimws(as.character(x))
+  }
+  como_numero <- function(t) {
+    t2 <- ifelse(grepl("^-?[0-9]+,[0-9]+$", t) & !grepl(",[0-9]{3}$", t), sub(",", ".", t, fixed = TRUE), t)
+    suppressWarnings(as.numeric(t2))
+  }
+  patron_fecha <- "^[0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}"
+  como_fecha <- function(t) {
+    ok <- !is.na(t) & grepl(patron_fecha, t)
+    d <- rep(as.Date(NA), length(t))
+    d[ok] <- as.Date(gsub("/", "-", substr(t[ok], 1L, regexpr("[ T]|$", t[ok]) - 1L)), format = "%Y-%m-%d")
+    d
+  }
+  con_hora <- function(t) !is.na(t) & grepl(paste0(patron_fecha, "[ T][0-9]{1,2}:[0-9]{2}"), t)
+  como_instante <- function(t) {
+    u <- gsub("/", "-", sub("T", " ", t, fixed = TRUE))
+    x <- as.POSIXct(u, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+    f <- is.na(x)
+    x[f] <- as.POSIXct(u[f], format = "%Y-%m-%d %H:%M", tz = "UTC")
+    as.numeric(x)
+  }
+  cmp <- function(x, y) switch(op, "==" = x == y, "!=" = x != y, ">" = x > y, ">=" = x >= y,
+                               "<" = x < y, "<=" = x <= y, rep(NA, length(x)))
+  at <- como_texto(a); bt <- como_texto(b)
+  an <- como_numero(at); bn <- como_numero(bt)
+  ad <- como_fecha(at); bd <- como_fecha(bt)
+  ok_num <- !is.na(an) & !is.na(bn)
+  ok_dt <- !ok_num & !is.na(ad) & !is.na(bd)
+  ok_hora <- ok_dt & con_hora(at) & con_hora(bt)
+  ok_txt <- !is.na(at) & nzchar(at) & !is.na(bt) & nzchar(bt) &
+    is.na(an) & is.na(bn) & is.na(ad) & is.na(bd) & op %in% c("==", "!=")
+  out <- rep(NA, length(at))
+  if (any(ok_num)) out[ok_num] <- cmp(an[ok_num], bn[ok_num])
+  solo_dia <- ok_dt & !ok_hora
+  if (any(solo_dia)) out[solo_dia] <- cmp(as.numeric(ad[solo_dia]), as.numeric(bd[solo_dia]))
+  if (any(ok_hora)) out[ok_hora] <- cmp(como_instante(at[ok_hora]), como_instante(bt[ok_hora]))
+  if (any(ok_txt)) out[ok_txt] <- cmp(at[ok_txt], bt[ok_txt])
+  out
+}
+
 .c_cmp_vars <- function(va, op, vb) {
-  # ODK coerce implícito, fila por fila: número contra número; si no, fecha
-  # contra fecha (texto ISO "aaaa-mm-dd" o "aaaa/mm/dd", con o sin hora); si
-  # ninguno de los dos lados es número ni fecha, texto contra texto (solo "=" y
-  # "!=", que son las comparaciones con sentido entre textos). Cualquier otra
-  # mezcla (fecha contra texto, número contra texto) queda indeterminada (NA).
-  # Cierra el gap de ESPP date_residing vs date_ppl, donde as.numeric(fecha) =
-  # NA daba falso negativo.
-  # La fecha se lee con formatos explícitos: `as.Date()` sin formato adivina por
-  # el primer valor y, ante un texto que no es fecha, lanza "character string
-  # is not in a standard unambiguous format", que `suppressWarnings` no atrapa
-  # y tumbaba la regla entera.
-  va_b <- .backtick(va)
-  vb_b <- .backtick(vb)
-  texto <- if (op %in% c("==", "!=")) sprintf("ifelse(.ok_txt, .a_t %s .b_t, NA)", op) else "NA"
-  sprintf(
-    paste0(
-      "{ .fecha <- function(x) { x <- trimws(as.character(x)); ",
-      "d <- as.Date(x, format = '%%Y-%%m-%%d'); f <- is.na(d) & !is.na(x); ",
-      "d[f] <- as.Date(x[f], format = '%%Y/%%m/%%d'); d }; ",
-      ".a_n <- suppressWarnings(as.numeric(%s)); ",
-      ".b_n <- suppressWarnings(as.numeric(%s)); ",
-      ".ok_num <- !is.na(.a_n) & !is.na(.b_n); ",
-      ".a_d <- .fecha(%s); .b_d <- .fecha(%s); ",
-      ".ok_dt <- !.ok_num & !is.na(.a_d) & !is.na(.b_d); ",
-      ".a_t <- trimws(as.character(%s)); .b_t <- trimws(as.character(%s)); ",
-      ".ok_txt <- !is.na(.a_t) & nzchar(.a_t) & !is.na(.b_t) & nzchar(.b_t) & ",
-      "is.na(.a_n) & is.na(.b_n) & is.na(.a_d) & is.na(.b_d); ",
-      "ifelse(.ok_num, .a_n %s .b_n, ",
-      "ifelse(.ok_dt, .a_d %s .b_d, %s)) }"
-    ),
-    va_b, vb_b, va_b, vb_b, va_b, vb_b, op, op, texto
-  )
+  cuerpo <- paste(deparse(.vd_cmp_vars_impl, width.cutoff = 500L), collapse = "\n")
+  sprintf("(%s)(%s, %s, %s)", cuerpo, .backtick(va), .backtick(vb), .lit_str(op))
 }
 
 .c_selected <- function(var, value) {

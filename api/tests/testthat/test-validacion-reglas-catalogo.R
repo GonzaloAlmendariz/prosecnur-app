@@ -602,7 +602,7 @@ test_that("la auditoría avisa cuando la condición de una regla no se pudo eval
   validacion_auditoria_lanzar(sid, "Personas")
   debe <- .m3_regla(validacion_reglas_catalogo(sid, "Personas"), "salto", "debe")
 
-  esperado <- "La base guarda textos donde el formulario espera códigos en la pregunta \"¿Trabaja actualmente?\": la condición de la regla no se pudo evaluar en 426 de 426 casos y la regla no marcó ninguno."
+  esperado <- "La base guarda textos donde el formulario espera códigos en la pregunta \"¿Trabaja actualmente?\": la regla no se pudo evaluar en 426 de 426 casos que debía revisar y no marcó ninguno."
   av_job <- Filter(function(a) identical(a$id_regla, debe$id_motor), resultado$avisos)
   expect_length(av_job, 1L)
   expect_identical(av_job[[1]]$texto, esperado)
@@ -617,4 +617,143 @@ test_that("la auditoría avisa cuando la condición de una regla no se pudo eval
   expect_true(debe$id_motor %in% vapply(res$body$avisos, function(a) a$id_regla, ""))
   # La restricción de edad no depende de p8: sin aviso.
   expect_false(.m3_regla(validacion_reglas_catalogo(sid, "Personas"), "restriccion")$id_motor %in% ids)
+})
+
+# --- Tercera entrega (verificación M3B) ---------------------------------------
+
+.m3_auditar_etiquetas <- function(sid, base) {
+  testthat::local_mocked_bindings(job_submit = function(sid, kind, func, args = list(), on_complete = NULL, ...) {
+    inst <- leer_xlsform_limpieza(args$xlsform_path, verbose = FALSE)
+    d <- read_validation_data_ast(args$data_path, args$data_ext, instrumento = inst)
+    ev <- evaluate_validation_bundle(args$bundle, d, strict = FALSE)
+    on_complete(list(sid = sid, result_data = list(ev = ev, total = NA_integer_)))
+    "job"
+  })
+  validacion_auditoria_lanzar(sid, base)
+}
+
+.m3_aviso_de <- function(avisos, id) {
+  hit <- Filter(function(a) identical(a$id_regla, id), avisos)
+  if (length(hit)) hit[[1]] else NULL
+}
+
+test_that("aviso sobre las filas que la regla debía revisar: 12 de 12, aunque la tabla tenga 426", {
+  survey <- rbind(.m3_survey(), data.frame(type = "integer", name = "p11", label = "Ingreso mensual",
+    required = "", relevant = "${p8} = '1'", constraint = ". >= 0", stringsAsFactors = FALSE))
+  datos <- .m3_datos()
+  datos$p11 <- NA_integer_
+  datos$p11[1:12] <- c(-1L, -1L, -1L, rep(500L, 9))
+  datos$p8 <- ifelse(datos$p8 == 1L, "Sí", "No")
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir, datos_personas = datos, survey = survey)
+  .m3_plan(sid, "Personas")
+  .m3_auditar_etiquetas(sid, "Personas")
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  p11 <- Filter(function(f) identical(f$variable_revisada, "p11") && identical(f$familia, "restriccion"), cat$reglas)[[1]]
+  est <- validacion_auditoria_estado(sid, "Personas")
+  a <- .m3_aviso_de(est$avisos, p11$id_motor)
+  expect_false(is.null(a))
+  expect_identical(a$codigo, "condicion_indeterminada")
+  expect_identical(a$n_a_revisar, 12L)
+  expect_identical(a$n_indeterminadas, 12L)
+})
+
+test_that("cuenta incompleta entre 10 % y 90 %, y el aviso dice cuántos casos marcó", {
+  datos <- .m3_datos()
+  datos$p8 <- as.character(datos$p8)
+  datos$p8[200:426] <- "No"
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir, datos_personas = datos)
+  .m3_plan(sid, "Personas")
+  .m3_auditar_etiquetas(sid, "Personas")
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  est <- validacion_auditoria_estado(sid, "Personas")
+  nodebe <- .m3_aviso_de(est$avisos, .m3_regla(cat, "salto", "nodebe")$id_motor)
+  expect_identical(nodebe$codigo, "cuenta_incompleta")
+  expect_identical(nodebe$texto,
+    "La base guarda textos donde el formulario espera códigos en la pregunta \"¿Trabaja actualmente?\": la regla no se pudo evaluar en 227 de 414 casos que debía revisar; su conteo de 2 casos puede quedarse corto.")
+  debe <- .m3_aviso_de(est$avisos, .m3_regla(cat, "salto", "debe")$id_motor)
+  expect_identical(debe$codigo, "condicion_indeterminada")
+  expect_match(debe$texto, "227 de 239 casos que debía revisar y marcó 3 casos\\.$")
+})
+
+test_that("una regla propia cuya comparación no se puede decidir en ninguna fila avisa con su causa", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  r <- .m1_regla("RC_009", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "caso", op = ">", variable_comparada = "edad"))))
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(r))
+  .m2_auditar(sid, "Personas")
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  propia <- Filter(function(f) identical(f$id_motor, "RC_009"), cat$reglas)[[1]]
+  expect_identical(propia$ultima_auditoria$n_casos, 0L)
+  expect_identical(propia$ultima_auditoria$n_casos_indeterminados, 426L)
+  a <- .m3_aviso_de(validacion_auditoria_estado(sid, "Personas")$avisos, "RC_009")
+  expect_identical(a$texto,
+    "La regla compara \"Código del caso\" con \"Edad\", que no tienen el mismo tipo de valor (número, fecha o texto): la regla no se pudo evaluar en 426 de 426 casos que debía revisar y no marcó ninguno.")
+})
+
+test_that("la caché de bases no mezcla dos hermanas iguales auditadas en el mismo segundo", {
+  hogares <- .m3_datos()
+  hogares$p8[300:307] <- 1L
+  hogares$p10[300:307] <- "Comercio"
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir, datos_personas = .m3_datos(), datos_hogares = hogares)
+  for (b in c("Personas", "Hogares")) { .m3_plan(sid, b); .m2_auditar(sid, b) }
+  for (b in c("Personas", "Hogares")) {
+    ev <- validacion_scope_get(sid, b)$evaluacion
+    ev$auditada_en <- "2026-11-11T12:00:00Z"
+    validacion_scope_set(sid, b, "evaluacion", ev)
+  }
+  expect_identical(validacion_scope_get(sid, "Personas")$evaluacion$resumen$n_inconsistencias,
+                   validacion_scope_get(sid, "Hogares")$evaluacion$resumen$n_inconsistencias)
+  personas <- .m3_regla(validacion_reglas_catalogo(sid, "Personas"), "salto", "debe")$ultima_auditoria
+  hogares_c <- .m3_regla(validacion_reglas_catalogo(sid, "Hogares"), "salto", "debe")$ultima_auditoria
+  expect_identical(personas$n_base, 12L)
+  expect_identical(hogares_c$n_base, 20L)
+})
+
+test_that("la base de la cantidad de registros de un grupo son los casos de la tabla principal", {
+  regla <- rule_repeat_length("hijos", "${n_hijos}")
+  regla$tabla <- "hijos"
+  expect_identical(.vrb_tabla_de(regla), "principal")
+  ev <- list(datos_tablas = list(principal = data.frame(x = 1:5), hijos = data.frame(y = 1:9)),
+             bundle = list(rules = list(regla)))
+  b <- .vrb_bases(ev, list(list(id = regla$id, rule = regla, propia = NULL)))
+  expect_identical(b[[regla$id]]$n_base, 5L)
+  expect_identical(b[[regla$id]]$tabla, "principal")
+})
+
+test_that("el motivo dice la causa real y una causa sin rótulo no muestra el código", {
+  expect_identical(.vrc_motivo_llano("incorrecta_ejecucion", "runtime_error", "x"), "La regla falló al evaluarse.")
+  expect_identical(.vrc_motivo_llano("incorrecta_ejecucion", "runtime_error", "x", compara_preguntas = TRUE),
+                   "La regla falló al evaluarse. Revisa que las preguntas que compara sean del mismo tipo (número, fecha o texto).")
+  expect_identical(.vrf_causa("algo_nuevo_del_motor"), "La regla no se pudo evaluar sobre esta base")
+  expect_false(grepl("algo_nuevo", .vrc_motivo_llano("no_evaluada", "algo_nuevo_del_motor")))
+})
+
+test_that("un valor calculado dice su condición de relevancia, solo si la regla la aplica; y un código sin etiqueta sale una vez", {
+  ctx <- .vrf_contexto(NULL)
+  ctx$condiciones <- list(total = ast_compare_const("consent", "==", "1"))
+  con <- list(predicate = ast_odk_raw("(consent == '1') & !eq_num_na(total, a + b)", origin = "legacy_r_expr"))
+  sin <- list(predicate = ast_odk_raw("!eq_num_na(total, a + b)", origin = "legacy_r_expr"))
+  expect_false(is.null(.vrc_condicion_calculo(con, "calculo", "total", ctx)))
+  expect_null(.vrc_condicion_calculo(sin, "calculo", "total", ctx))
+  expect_identical(.vrf_q("current_code", ctx), list(list(texto = "current_code")))
+  ctx$etiquetas <- c(edad = "Edad")
+  expect_identical(.vrf_q("edad", ctx)[[1]]$etiqueta, "Edad")
+})
+
+test_that("la caché ve un cambio de datos después de la fila 50 en la misma base", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  .m2_auditar(sid, "Personas")
+  expect_identical(.m3_regla(validacion_reglas_catalogo(sid, "Personas"), "salto", "debe")$ultima_auditoria$n_base, 12L)
+  ev <- validacion_scope_get(sid, "Personas")$evaluacion
+  ev$datos_tablas$principal$p8[300] <- 1L
+  ev$datos_tablas$principal$p10[300] <- "Comercio"
+  validacion_scope_set(sid, "Personas", "evaluacion", ev)
+  expect_identical(.m3_regla(validacion_reglas_catalogo(sid, "Personas"), "salto", "debe")$ultima_auditoria$n_base, 13L)
 })

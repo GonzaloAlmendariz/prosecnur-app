@@ -118,7 +118,10 @@
 # @param reglas lista de list(id, rule, propia) con la regla auditada.
 # @param exclusiones exclusiones de recolección de la base (las de la auditoría).
 # @param compat perfil de compatibilidad de la base.
-# @return lista con nombre = id: list(n_base, n_base_indeterminada, n_filas, tipo, tabla).
+# @return lista con nombre = id: list(n_base, n_base_indeterminada, n_filas,
+#   n_casos_indeterminados, tipo, tabla). `n_casos_indeterminados`: filas donde
+#   la marca de la regla quedó NA en la auditoría (la comparación no se pudo
+#   decidir).
 .vrb_bases <- function(ev, reglas, exclusiones = list(), compat = NULL) {
   out <- list()
   tablas <- ev$datos_tablas %||% list()
@@ -155,7 +158,12 @@
     cond <- tipos[[r$id]]
     tabla <- .vrb_tabla_de(r$rule)
     n_filas <- if (is.data.frame(tablas[[tabla]])) nrow(tablas[[tabla]]) else NA_integer_
+    # Filas donde lo que la regla compara salió NA (la marca de la auditoría):
+    # la regla no pudo decidir si fallaba, aunque su condición sí se evaluó.
+    marca <- (tablas[[tabla]] %||% list())[[as.character(r$rule$flag_name %||% "")]]
+    n_marca_na <- if (is.null(marca)) NA_integer_ else as.integer(sum(is.na(marca)))
     vacio <- list(n_base = NA_integer_, n_base_indeterminada = NA_integer_, n_filas = as.integer(n_filas),
+                  n_casos_indeterminados = n_marca_na,
                   tipo = if (is.null(cond)) NA_character_ else cond$tipo, tabla = tabla)
     if (is.null(cond)) { out[[r$id]] <- vacio; next }
     if (identical(as.character(r$rule$tipo_regla), "repeat_length")) {
@@ -218,17 +226,17 @@
        auditada_en = ev$auditada_en %||% NA_character_,
        huella = (ev$huella_reglas %||% list())$conjunto %||% NA_character_,
        tablas = lapply(ev$datos_tablas %||% list(), function(d) if (is.data.frame(d)) dim(d) else NULL),
-       datos = digest::digest(lapply(ev$datos_tablas %||% list(), function(d) {
-         if (is.data.frame(d)) utils::head(d, 50L) else NULL
-       }), algo = "xxhash64"),
+       # Huella de los datos completos: con solo las primeras filas, dos bases
+       # hermanas con la misma forma auditadas en el mismo segundo se mezclaban.
+       datos = digest::digest(ev$datos_tablas %||% list(), algo = "xxhash64"),
        opciones = digest::digest(ev$bundle$choices_map %||% list(), algo = "xxhash64"))
 }
 
 # Bases con caché: las piden el catálogo, el estado de la auditoría y su
 # resultado; se cuentan una vez por evaluación.
-.vrb_bases_cached <- function(ev, reglas, exclusiones = list(), compat = NULL) {
+.vrb_bases_cached <- function(ev, reglas, exclusiones = list(), compat = NULL, sid = NULL, base = NULL) {
   clave <- tryCatch(digest::digest(list(
-    "bases", .vrb_huella_evaluacion(ev),
+    "bases", sid, base, .vrb_huella_evaluacion(ev),
     lapply(reglas, function(r) list(r$id, .validacion_huella_regla(r$rule), r$propia)),
     exclusiones, compat), algo = "xxhash64"),
     # Sin firma se cuenta sin caché: la caché es una optimización, nunca un error.

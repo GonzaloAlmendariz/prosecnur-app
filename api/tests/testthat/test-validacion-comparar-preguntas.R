@@ -107,6 +107,44 @@ test_that("si una regla no se puede evaluar, el motivo va en castellano llano", 
   expect_false(b$evaluada)
   expect_identical(b$motivo, "La pregunta no está en la base: no_existe.")
   expect_identical(.vrc_motivo_llano("incorrecta_ejecucion", "runtime_error",
-                                     "character string is not in a standard unambiguous format"),
+                                     "character string is not in a standard unambiguous format",
+                                     compara_preguntas = TRUE),
                    "La regla falló al evaluarse. Revisa que las preguntas que compara sean del mismo tipo (número, fecha o texto).")
+})
+
+# --- Tercera entrega: casos adversariales de la comparación -------------------
+
+.cp_cmp <- function(a, op, b) {
+  e <- new.env()
+  e$a <- a; e$b <- b
+  eval(parse(text = .c_cmp_vars("a", op, "b")), e)
+}
+
+test_that("una fecha solo se lee con año-mes-día completo al inicio", {
+  expect_true(is.na(.cp_cmp("05-01-2024", ">", "03-02-2024")))
+  expect_true(is.na(.cp_cmp("11/05/2026", "<", "2026-01-01")))
+  expect_true(.cp_cmp("2026/01/05", ">", "2026-01-03"))
+})
+
+test_that("texto con > y texto contra fecha quedan indeterminados", {
+  expect_true(is.na(.cp_cmp("Lima", ">", "Cusco")))
+  expect_true(is.na(.cp_cmp("2026-01-05", "==", "Lima")))
+  expect_true(is.na(.cp_cmp("2026-01-05", "!=", "Lima")))
+  expect_true(.cp_cmp("Lima", "!=", "Cusco"))
+})
+
+test_that("la hora cuenta cuando los dos lados la traen", {
+  expect_true(.cp_cmp("2026-06-30 10:00", ">", "2026-06-30T09:15:00"))
+  expect_false(.cp_cmp("2026-06-30 08:00", ">", "2026-06-30 09:15"))
+  expect_false(.cp_cmp("2026-06-30", ">", "2026-06-30 09:15"))
+})
+
+test_that("decimal con coma, factor y fechas con tipo de R", {
+  expect_true(.cp_cmp("1,5", "==", "1,50"))
+  expect_true(.cp_cmp("1,5", "<", "2"))
+  expect_true(is.na(.cp_cmp("1,500", ">", "2")))
+  expect_identical(.cp_cmp(factor(c("10", "2")), ">", c("9", "3")), c(TRUE, FALSE))
+  expect_true(.cp_cmp(as.Date("2026-01-02"), "<", as.POSIXct("2026-01-03 10:00", tz = "UTC")))
+  # Los códigos especiales cuentan como número, igual que en `.c_cmp_const`.
+  expect_true(.cp_cmp("98", ">", "45"))
 })

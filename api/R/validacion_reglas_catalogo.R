@@ -137,7 +137,7 @@
 # Motivo en castellano llano de una regla que el motor no evaluó, para el
 # cliente. Nunca devuelve el mensaje de R (en inglés) ni la jerga del motor
 # ("drivers", "gate"): la causa por código y, si faltan preguntas, cuáles.
-.vrc_motivo_llano <- function(estado, issue, detalle = NA_character_) {
+.vrc_motivo_llano <- function(estado, issue, detalle = NA_character_, compara_preguntas = FALSE) {
   causa <- .vrc_causa_auditoria(estado, issue)
   if (is.na(causa)) causa <- "error_al_evaluar"
   txt <- .vrf_causa(causa)
@@ -145,7 +145,8 @@
     m <- regmatches(as.character(detalle %||% ""), regexec("Columnas ausentes: ([^|]+)", as.character(detalle %||% "")))[[1]]
     if (length(m) == 2L) return(sprintf("%s: %s.", txt, trimws(m[2])))
   }
-  if (identical(causa, "error_al_evaluar")) {
+  # La sugerencia de tipos solo vale si la regla compara una pregunta con otra.
+  if (identical(causa, "error_al_evaluar") && isTRUE(compara_preguntas)) {
     return(paste0(txt, ". Revisa que las preguntas que compara sean del mismo tipo (número, fecha o texto)."))
   }
   paste0(txt, ".")
@@ -170,6 +171,22 @@
     if (any(quitar) && any(!quitar)) return(ast_normalize(ast_and(args[!quitar])))
   }
   pred
+}
+
+# Condición de relevancia de un valor calculado (la de su grupo y su
+# `relevant`). La expresión del plan ya la aplica, pero no la guarda aparte; se
+# nombra en la frase solo si cada pregunta de la condición aparece en la
+# expresión que evalúa la regla, para no afirmar un filtro que no se aplica.
+.vrc_condicion_calculo <- function(rule, familia, target, ctx) {
+  if (!identical(familia, "calculo")) return(NULL)
+  g <- (ctx$condiciones %||% list())[[target]]
+  if (is.null(g)) return(NULL)
+  expr <- paste(as.character(unlist(rule$predicate$expression %||% "")), collapse = " ")
+  vars <- ast_variables(g)
+  if (!length(vars) || !all(vapply(vars, function(v) grepl(paste0("\\b", v, "\\b"), expr, perl = TRUE), logical(1)))) {
+    return(NULL)
+  }
+  g
 }
 
 .vrc_buscar_rango <- function(x) {
@@ -276,7 +293,8 @@
   limites <- .vrc_limites(cuerpo, familia, ctx)
   info <- list(origen = origen, familia = familia, direccion = direccion, target = target,
                tabla = .normalize_rule_table(rule$tabla), condicion = cond_salto, cuerpo = cuerpo,
-               filtro = rule$gate, limites = limites, propia = propia,
+               filtro = rule$gate %||% .vrc_condicion_calculo(rule, familia, target, ctx),
+               limites = limites, propia = propia,
                sin_evaluar_expresion = identical(as.character(rule$tipo_regla), "odk_raw") &&
                  length(.vrc_raw_origenes(rule)) > 0L)
   frase <- .vrf_frase(info, rctx)
@@ -417,7 +435,7 @@
   a_contar <- .vrb_reglas_evaluadas(ev, propias)
   bases <- .vrb_bases_cached(ev, a_contar,
                       exclusiones = .validacion_mb_collection_exclusions_for_base(sid, base_eff),
-                      compat = validation_profile_for_base(base_eff))
+                      compat = validation_profile_for_base(base_eff), sid = sid, base = base_eff)
   sin_base <- character(0); indeterminadas <- character(0)
   for (i in seq_along(filas)) {
     f <- filas[[i]]
@@ -453,6 +471,8 @@
       n_casos = n_casos,
       n_base = n_base,
       n_base_indeterminada = b$n_base_indeterminada,
+      # Filas donde lo que la regla compara no se pudo decidir (marca NA).
+      n_casos_indeterminados = b$n_casos_indeterminados %||% NA_integer_,
       base_tipo = b$tipo,
       base_definicion = if (is.na(n_base)) NA_character_ else .vrb_base_texto(b$tipo, tipo_regla, b$tabla,
                                                                                         familia = f$familia,

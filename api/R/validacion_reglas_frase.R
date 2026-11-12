@@ -46,11 +46,38 @@
       opciones <- list()
     }
   }
+  condiciones <- .vrf_condiciones_de_preguntas(survey)
   estado <- new.env(parent = emptyenv())
   estado$incompleta <- FALSE
   estado$fuera_de_opciones <- list()
-  list(etiquetas = etiquetas, tipos = tipos, opciones = opciones,
+  list(etiquetas = etiquetas, tipos = tipos, opciones = opciones, condiciones = condiciones,
        roles = list(), estado = estado, aviso = aviso)
+}
+
+# Condición bajo la que el formulario muestra cada pregunta: la de sus grupos y
+# su `relevant` propio, como árbol. Se usa para decir "Solo se revisa cuando" en
+# los valores calculados, cuya expresión del plan ya la incluye pero no la
+# guarda aparte. Si el formulario no se puede recorrer, no hay condiciones (y
+# las frases de cálculo no la nombran).
+.vrf_condiciones_de_preguntas <- function(survey) {
+  if (!is.data.frame(survey) || !nrow(survey) || !("name" %in% names(survey))) return(list())
+  mapa <- tryCatch(build_group_gate_map(survey), error = function(e) list())
+  out <- list()
+  for (e in mapa) {
+    v <- as.character(e$name %||% "")
+    if (!nzchar(v)) next
+    g <- e$gate
+    i <- e$row_index
+    rel <- if ("relevant" %in% names(survey) && !is.null(i)) as.character(survey$relevant[i]) else ""
+    if (length(rel) && !is.na(rel) && nzchar(trimws(rel))) {
+      parsed <- tryCatch(odk_parse_to_ast(rel, context = "relevant"), error = function(e) NULL)
+      if (!is.null(parsed) && !isTRUE(parsed$degraded_to_raw)) {
+        g <- if (is.null(g)) parsed$ast else ast_normalize(ast_and(g, parsed$ast))
+      }
+    }
+    if (!is.null(g)) out[[v]] <- g
+  }
+  out
 }
 
 .vrf_tipo_pregunta <- function(tipo_base) {
@@ -86,12 +113,14 @@
 # Rótulo propio de una pregunta (formulario, luego papeles de la regla), sin
 # resolver marcadores; "" si no tiene.
 .vrf_rotulo_crudo <- function(v, ctx) {
+  # Una "etiqueta" igual al código no es etiqueta.
   if (v %in% names(ctx$etiquetas)) {
     lab <- as.character(ctx$etiquetas[[v]])
-    if (length(lab) && !is.na(lab) && nzchar(trimws(lab))) return(trimws(lab))
+    if (length(lab) && !is.na(lab) && nzchar(trimws(lab)) && !identical(trimws(lab), v)) return(trimws(lab))
   }
   lab <- ctx$roles[[v]]
-  if (!is.null(lab) && length(lab) && !is.na(lab[1]) && nzchar(trimws(as.character(lab[1])))) {
+  if (!is.null(lab) && length(lab) && !is.na(lab[1]) && nzchar(trimws(as.character(lab[1]))) &&
+      !identical(trimws(as.character(lab[1])), v)) {
     return(trimws(as.character(lab[1])))
   }
   ""
@@ -149,7 +178,11 @@
 .vrf_q <- function(var, ctx) {
   v <- as.character(var %||% "")[1]
   tipo <- if (v %in% names(ctx$tipos)) unname(ctx$tipos[[v]]) else "texto"
-  list(list(pregunta = v, etiqueta = .vrf_etiqueta(v, ctx), tipo = tipo))
+  et <- .vrf_etiqueta(v, ctx)
+  # Sin etiqueta: el código una sola vez, como texto (una ficha repetiría el
+  # código como código y como etiqueta).
+  if (identical(et, v)) return(list(list(texto = v)))
+  list(list(pregunta = v, etiqueta = et, tipo = tipo))
 }
 
 .vrf_v <- function(valor, var = NULL, ctx = NULL) {
@@ -474,7 +507,7 @@
   tabla <- .VRF_FAMILIAS[[origen]] %||% character(0)
   if (familia %in% names(tabla)) return(unname(tabla[[familia]]))
   # Un tipo que la lista no conoce se nombra por su código y se dice.
-  sprintf("Otro tipo (%s)", familia)
+  "Otro tipo de regla"
 }
 
 # Causa en llano de una regla sin evaluar, por código.
@@ -495,7 +528,9 @@
 .vrf_causa <- function(codigo) {
   if (is.null(codigo) || is.na(codigo)) return(NA_character_)
   if (codigo %in% names(.VRF_CAUSAS)) return(unname(.VRF_CAUSAS[[codigo]]))
-  sprintf("Causa sin rótulo (%s)", codigo)
+  # Una causa que la lista no conoce: texto genérico; el código va en
+  # `causa_codigo`, aparte, nunca dentro del texto.
+  "La regla no se pudo evaluar sobre esta base"
 }
 
 # --- Nombre y frase de una regla ---------------------------------------------
