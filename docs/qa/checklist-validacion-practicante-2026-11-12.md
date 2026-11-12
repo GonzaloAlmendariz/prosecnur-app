@@ -16,20 +16,22 @@ commitea ni se sube a ningún servicio):
   con qué tipo de regla, casos de la app frente a la referencia y la causa) y los defectos con su archivo.
 - `INVENTARIO_CHEQUEOS.md`: los chequeos hechos a mano, con su regla exacta y su conteo.
 - `cap/`: capturas 01 a 40 del recorrido.
-- `datos/`: la base digitada (con y sin etiquetas), el Excel de 552 observaciones de referencia, el Word de
-  reglas del practicante, y el XLSForm armado a mano para poder cargarla (`ser_adolescente_xlsform.xlsx`, con
-  `mapa_columnas.csv`) más las respuestas con encabezados renombrados.
 - `scripts/`: lo usado para crear reglas por la API y comparar contra la referencia.
+
+Los datos NO están ahí. La base digitada (con y sin etiquetas), el Excel de 552 observaciones de referencia y el
+Word de reglas del practicante viven en la carpeta Digitación del estudio, en el Drive del equipo: pídele la ruta
+a Gonzalo. El XLSForm que se armó a mano para poder cargarla no se conservó; `INVENTARIO_CHEQUEOS.md` explica
+cómo se arma desde la hoja "Codigo" de la base (emparejar las listas por orden, porque la numeración tiene huecos).
 
 ## Cómo repetir la prueba
 
 1. Levanta una pila propia (nunca el puerto 8787, que es de Gonzalo): backend con `load_all` del árbol y Vite,
    como en el skill `/ver-ui`. Una sola corrida pesada a la vez.
-2. Crea un proyecto y carga `datos/ser_adolescente_xlsform.xlsx` y `datos/ser_adolescente_respuestas.xlsx`
-   (sin ese XLSForm armado a mano la app no deja entrar: ítem 4).
+2. Crea un proyecto y carga la base con un XLSForm armado desde su hoja "Codigo" y los encabezados renombrados
+   a `name` (sin ese paso la app no deja entrar: ítem 4).
 3. En Validación escribe las reglas del inventario, audita y recorre Hallazgos y Cierre, abriendo cada
    desplegable, panel y diálogo a 1366x768 y 1024x600.
-4. Compara lo que marca la app contra `datos/observaciones.xlsx`. La meta es cubrir las 552, o decir con causa
+4. Compara lo que marca la app contra el Excel de observaciones de referencia. La meta es cubrir las 552, o decir con causa
    por qué alguna no se puede.
 
 Truco que hoy usa el practicante y la interfaz no enseña: la regla "Dos respuestas que deben cuadrar" también
