@@ -1,7 +1,0 @@
-/* Orden de categorías (6 nov 2026): el panel es dueño de su scroll. En ventanas bajas el catálogo de listas no
-   cabe y el panel, con overflow oculto, dejaba lo de abajo inalcanzable. */
-.analitica-orden-panel {
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}

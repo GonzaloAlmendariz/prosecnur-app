@@ -36,12 +36,10 @@ const rotulosEnMayusculas = (fuente: string) =>
     .filter((rotulo) => /\p{L}{5,}/u.test(rotulo) && rotulo === rotulo.toLocaleUpperCase("es"));
 
 const USOS = [
-  "panes/CodebookPane.tsx",
   "panes/DimensionesPane.tsx",
   "panes/DataReviewPane.tsx",
   "panes/CrucesPane.tsx",
   "panes/ComparativosPane.tsx",
-  "panes/BasesPane.tsx",
   "ponderacion/BandaPonderacion.tsx",
   "tablas/BandaDeFrecuencias.tsx",
   "cruces/BandaDeCruces.tsx",

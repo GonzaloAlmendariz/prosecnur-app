@@ -284,7 +284,6 @@ describe("audit-ready route root contract", () => {
         "features/codificacion/CodificarWizard.tsx",
         "features/codificacion/RespuestasCodificador.tsx",
         "features/codificacion/IntegerCodificador.tsx",
-        "features/codificacion/CodingConfigActions.tsx",
         "features/codificacion/AdaptarPane.tsx",
       ], "codificacion-"),
       // ADR 0142, rebanada V2 de P6: cuatro pestañas (Explorar, Reglas, Hallazgos, Cierre). Explorar publica su
@@ -300,7 +299,6 @@ describe("audit-ready route root contract", () => {
       codificacion: [
         "codificacion-adaptar",
         "codificacion-codificar",
-        "codificacion-matrices",
         "codificacion-organizar",
       ],
       validacion: [
@@ -327,10 +325,6 @@ describe("audit-ready route root contract", () => {
       integer: terminalReadinessCount(
         "features/codificacion/IntegerCodificador.tsx",
         "codificacion-codificar",
-      ),
-      matrices: terminalReadinessCount(
-        "features/codificacion/CodingConfigActions.tsx",
-        "codificacion-matrices",
       ),
       adaptar: terminalReadinessCount(
         "features/codificacion/AdaptarPane.tsx",
@@ -361,7 +355,6 @@ describe("audit-ready route root contract", () => {
       wizard: 2,
       respuestas: 1,
       integer: 1,
-      matrices: 1,
       adaptar: 1,
       explorar: 2,
       reglas: 1,

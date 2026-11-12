@@ -149,8 +149,6 @@ const FALSE_TRANSITORIO: Record<string, string> = {
     "esqueleto de Equivalencias: lo reemplaza la superficie al terminar la lectura de la declaración y el catálogo; en error publica true",
   "features/carga/FuentesEmparejamientoPanel.tsx":
     "panel «Ver preguntas»: cargando el endpoint o resolviendo la base; en error publica true",
-  "features/analitica/panes/FichaTecnicaPane.tsx":
-    "espera de la Ficha técnica (FichaLoadingState, 6 nov 2026): sólo mientras lee la evidencia; con el dato o con el error se desmonta y la Ficha publica la suya",
   "features/analitica/panes/DataReviewPane.tsx":
     "`loading` de la revisión de datos; el error es terminal y publica true",
   "features/carga/MapaBasesPanel.tsx":

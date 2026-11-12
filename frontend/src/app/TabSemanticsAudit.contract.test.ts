@@ -257,12 +257,8 @@ function auditTabset(spec: TabsetCase): string[] {
 }
 
 const SELECTORS_WITHOUT_PANELS: readonly SelectorCase[] = [
-  {
-    name: "A01 FichaTecnicaPane · formato",
-    file: "features/analitica/panes/FichaTecnicaPane.tsx",
-    rootMarker: 'aria-label="Formato de ficha"',
-    semantics: "radio",
-  },
+  // A01 «FichaTecnicaPane · formato» RETIRADA: la Ficha técnica pasó a Analítica › Entrega (ADR 0144) y su
+  // formato es un GlidingRadioGroup del kit, que ya trae la semántica de radio.
   // A02 «CalcMuestra · rail con destinos compartidos» RETIRADA, no perdida, por
   // la misma razón que B08 y B11: en 9f80662fd (L16) todos los escritorios de
   // Cálculo pasaron al rail compartido `ContextTabRail` y el rail propio

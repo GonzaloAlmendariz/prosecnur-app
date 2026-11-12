@@ -30,11 +30,9 @@ const rel = (f: string) => path.relative(aqui, f).split(path.sep).join("/");
 
 /** Foto del 4 nov 2026. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
-  "analitica-v2.css": 37,
+  "analitica-v2.css": 26,
   "cifrasPestana.css": 1,
-  "panes/CodebookPane.css": 1,
-  "panes/ComparativosPane.css": 10,
-  "panes/DataReviewPane.css": 2,
+  "panes/ComparativosPane.css": 9,
   "panes/PesoPorColumna.css": 2,
   "panes/PonderacionPane.css": 1,
   "variablesExcluidas.css": 4,

@@ -12,7 +12,6 @@ const leer = (rel: string) => fs.readFileSync(fileURLToPath(new URL(rel, import.
 const casillas = (src: string) => (src.match(/type="checkbox"/gu) ?? []).length;
 
 const CASILLAS_PERMITIDAS: Record<string, number> = {
-  "./CodingConfigActions.tsx": 2, // variables a exportar en la matriz · filas de la matriz importada a usar
   "./RespuestasCodificador.tsx": 1, // respuestas que se meten o sacan del grupo activo
   "./AgruparCategoriasCodificador.tsx": 0,
   "./PreguntasLanding.tsx": 0,
