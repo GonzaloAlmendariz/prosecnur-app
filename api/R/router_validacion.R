@@ -1221,6 +1221,13 @@ mount_validacion <- function(pr) {
       validacion_auditoria_estado(sid, .get_base_nombre(req))
     })) |>
 
+    # --- Catálogo de reglas de la base (solo lectura; validacion_reglas_catalogo.R)
+    plumber::pr_get("/api/validacion/v2/reglas/catalogo", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      variable <- req$args$variable %||% req$QUERY$variable
+      validacion_reglas_catalogo(sid, .get_base_nombre(req), variable = variable)
+    })) |>
+
     # --- Instrumento: auditoría async (scoped) -------------------------------
     # Compatibilidad: exige el plan del formulario, como antes, pero audita el
     # paquete completo; ya no borra los hallazgos de las reglas propias.
