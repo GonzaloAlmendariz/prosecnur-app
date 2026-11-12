@@ -14,17 +14,12 @@ import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../components/States";
-import { splitErrorDetail } from "../../../components/errorPresentation";
+import { causaDelError, identificadorDelError } from "../../../components/errorPresentation";
 import { RefreshCw } from "../../../vendor/lucide-react";
 import { Segmentado } from "../reglas/panel/Segmentado";
 import { conteo } from "./modeloHallazgos";
 
 export type ModoDelCentro = "casos" | "distribucion";
-
-/** El identificador de un error interno del motor ("ref. 34B57041"), para copiarlo. */
-export function identificadorDelError(mensaje: string): string | undefined {
-  return /ref\.\s*([0-9A-F]{6,})/i.exec(mensaje)?.[1];
-}
 
 export function CentroDelHallazgo({
   titulo,
@@ -78,7 +73,7 @@ export function CentroDelHallazgo({
         <div className="pulso-hz-error">
           <ErrorBlock
             label="No se pudieron cargar los casos de este hallazgo"
-            causa={mensajeError ? splitErrorDetail(mensajeError).message : undefined}
+            causa={mensajeError ? causaDelError(mensajeError) : undefined}
             queda="La cola y las decisiones ya guardadas no cambiaron."
             identificador={mensajeError ? identificadorDelError(mensajeError) : undefined}
             acciones={(

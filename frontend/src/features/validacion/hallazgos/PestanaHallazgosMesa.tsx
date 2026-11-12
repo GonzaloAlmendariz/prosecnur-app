@@ -18,7 +18,7 @@ import { MesaDePestana } from "../../../components/procesamiento/MesaDePestana";
 import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ErrorBlock } from "../../../components/States";
-import { splitErrorDetail } from "../../../components/errorPresentation";
+import { causaDelError, identificadorDelError } from "../../../components/errorPresentation";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { searchConPanel, usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { useDireccion } from "../../../lib/navegacion/useDireccion";
@@ -33,6 +33,8 @@ import { Cola } from "./Cola";
 import { Decision, type AlcanceDeDecision, type AvisosDeDecision } from "./Decision";
 import { DecisionVacia, EsqueletoDeHallazgos, RevisionPorFamilia } from "./EstadosDeHallazgos";
 import { PanelCaso } from "./PanelCaso";
+import { notaDelResultadoAnterior } from "./modeloFranjaDeAuditoria";
+import { useFranjaDeAuditoria } from "./useFranjaDeAuditoria";
 import { DistribucionDelHallazgo } from "./vistas/DistribucionDelHallazgo";
 import { HallazgoCasiIguales } from "./vistas/HallazgoCasiIguales";
 import { SentidosDelSalto } from "./vistas/SentidosDelSalto";
@@ -95,6 +97,7 @@ export function PestanaHallazgosMesa() {
 
   const elegirHallazgo = useCallback((id: string) => seleccion.elegir({ foco: id }), [seleccion]);
   const h = useHallazgos({ foco: delAlias ? direccion?.foco ?? null : focoDelHallazgo, onElegir: elegirHallazgo });
+  const avanceDeAuditoria = useFranjaDeAuditoria(h.auditando, h.auditoriaInicio, h.auditoriaAvance);
   const elegidoId = h.elegido?.id ?? null;
   useEffect(() => {
     if (elegidoId && !panelCaso.abierto) setRecordado(elegidoId);
@@ -370,7 +373,9 @@ export function PestanaHallazgosMesa() {
   const franja = h.auditando ? (
     <FranjaDeTrabajo
       titulo="Auditando la base"
-      nota={fase.tipo === "con-hallazgos" ? "Abajo sigue el resultado anterior, solo para leer." : null}
+      detalle={avanceDeAuditoria.detalle}
+      porcentaje={avanceDeAuditoria.porcentaje}
+      nota={fase.tipo === "con-hallazgos" ? notaDelResultadoAnterior(fechaCorta(h.catalogo?.completo.auditada_en ?? null)) : null}
       onCancelar={() => void h.cancelarAuditoria()}
     />
   ) : undefined;
@@ -389,9 +394,15 @@ export function PestanaHallazgosMesa() {
         <div className="pulso-hz-error pulso-hz-error--mesa">
           <ErrorBlock
             label="No se pudo leer la cola de hallazgos"
-            causa={splitErrorDetail(fase.mensaje).message}
+            causa={causaDelError(fase.mensaje)}
             queda="Las decisiones ya guardadas no cambiaron."
-            acciones={<PulsoButton variant="primary" size="lg" onClick={() => void h.recargar()}>Reintentar</PulsoButton>}
+            identificador={identificadorDelError(fase.mensaje)}
+            acciones={(
+              <PulsoButton variant="primary" size="lg" onClick={() => void h.recargar()}>
+                <RefreshCw size={14} aria-hidden="true" />
+                Reintentar
+              </PulsoButton>
+            )}
           />
         </div>
       </MesaDePestana>

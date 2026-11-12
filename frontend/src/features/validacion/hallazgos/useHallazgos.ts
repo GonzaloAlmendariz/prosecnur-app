@@ -412,6 +412,9 @@ export function useHallazgos({ foco, onElegir }: {
     omitir,
     auditar,
     auditando: !!trabajo,
+    // Para la franja: desde cuándo corre y el avance, si el motor lo publica.
+    auditoriaInicio: trabajo ? job.snapshot?.started_at ?? null : null,
+    auditoriaAvance: trabajo ? job.snapshot?.progress ?? null : null,
     cancelarAuditoria: job.cancel,
     controlesSinAplicar,
     recargar,

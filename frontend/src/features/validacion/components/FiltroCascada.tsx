@@ -359,7 +359,7 @@ function FiltroPicker({
       </div>
 
       {loading && (
-        <LoadingBlock variant="inline" minHeight={40} label="Cargando opciones…" />
+        <LoadingBlock variant="inline" minHeight={40} label="Leyendo las opciones" />
       )}
 
       {!loading && esRango && valores?.rango && (

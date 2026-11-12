@@ -42,3 +42,24 @@ export function splitErrorDetail(detail: string): SplitErrorDetail {
 
   return { message: trimmed, code: null };
 }
+
+// La causa de un error en llano, para la forma con causa de ErrorBlock (ADR 0142,
+// etapa P7). Dos mensajes no le dicen nada a quien procesa: el del navegador
+// cuando el motor no contesta ("Failed to fetch") y el de un error interno del
+// motor ("Error interno del servidor (ref. 7F3A21C4)."), cuya referencia va
+// aparte con `identificadorDelError`. Los demás mensajes del motor ya son la
+// causa y pasan sin el código.
+export const CAUSA_SIN_MOTOR = "El motor de la app no respondió.";
+export const CAUSA_ERROR_INTERNO = "Es un error inesperado de la app, no de tus datos.";
+
+export function causaDelError(detail: string): string {
+  const { message, code } = splitErrorDetail(detail);
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(message)) return CAUSA_SIN_MOTOR;
+  if (code === "E_INTERNAL") return CAUSA_ERROR_INTERNO;
+  return message;
+}
+
+/** La referencia de un error interno (`ref. 7F3A21C4` en el mensaje del motor), para soporte. */
+export function identificadorDelError(detail: string): string | undefined {
+  return /ref\.\s*([0-9A-F]{6,})/i.exec(detail)?.[1];
+}

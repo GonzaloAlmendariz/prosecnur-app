@@ -1,0 +1,22 @@
+/* Procesamiento sin motor (ADR 0142, etapa P7; `pp-panel--estado` del prototipo):
+   la cabecera arriba y, debajo, un contenedor que llega al pie con el aviso
+   centrado. El vacío alrededor del aviso es del contenedor (ErrorBlock lo
+   declara como capacidad propia). */
+
+.pulso-sin-motor-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pulso-sin-motor-espera {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+}

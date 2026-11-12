@@ -157,7 +157,7 @@ export function useInstrumento({
       setError("Completa los controles operativos activos antes de construir el plan.");
       return;
     }
-    setBusy("Construyendo plan desde el XLSForm…");
+    setBusy("Leyendo el plan del formulario");
     setError("");
     try {
       const plan = await apiV2InstrumentoBuildPlan(baseNombre, undefined, operationalConfig);
@@ -188,7 +188,7 @@ export function useInstrumento({
   }
 
   async function onImport(file: File) {
-    setBusy(`Importando ${file.name}…`);
+    setBusy(`Importando ${file.name}`);
     setError("");
     try {
       const up = await apiUpload(file, "plan_limpieza");
@@ -224,7 +224,7 @@ export function useInstrumento({
     const next = checked
       ? uniqueStrings([...current, variable])
       : current.filter((item) => item !== variable);
-    setBusy(checked ? "Excluyendo variable…" : "Reactivando variable…");
+    setBusy(checked ? "Excluyendo la variable" : "Reactivando la variable");
     setError("");
     try {
       // Vara V5: el motivo viaja sólo para la que se agrega ahora; el backend
@@ -248,7 +248,7 @@ export function useInstrumento({
   }
 
   async function loadDrill(id: string) {
-    setBusy(`Cargando casos de ${id}…`);
+    setBusy(`Leyendo los casos de ${id}`);
     setError("");
     try {
       const out = await apiV2InstrumentoDrill(id, baseNombre);
@@ -290,7 +290,7 @@ export function useInstrumento({
   async function onToggleReglaActiva(activa: boolean, ruleId?: string, motivo?: string) {
     const id = ruleId ?? drill?.regla.id;
     if (!id) return;
-    setBusy(activa ? "Reactivando regla…" : "Ignorando regla…");
+    setBusy(activa ? "Reactivando la regla" : "Ignorando la regla");
     try {
       await apiV2InstrumentoReglaToggleActiva(id, activa, baseNombre, motivo);
       if (drill && drill.regla.id === id) {

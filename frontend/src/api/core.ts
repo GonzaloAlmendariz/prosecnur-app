@@ -3,6 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import type { RepeatGrain } from "../lib/repeatIdentity";
+import { notificarFallo, notificarRespuesta } from "./motorDisponible";
 
 export type { RepeatGrain } from "../lib/repeatIdentity";
 
@@ -44,10 +45,15 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
       for (const invalidate of monitoreoMutationInvalidators) invalidate();
     }
   }
-  if (typeof input === "string") {
-    return globalThis.fetch(apiPath(input), init);
+  // Cada respuesta y cada fallo de red dicen si el motor responde (motorDisponible.ts).
+  try {
+    const res = await globalThis.fetch(typeof input === "string" ? apiPath(input) : input, init);
+    notificarRespuesta(res);
+    return res;
+  } catch (e) {
+    notificarFallo(e);
+    throw e;
   }
-  return globalThis.fetch(input, init);
 }
 
 export function getSession(): string | null {

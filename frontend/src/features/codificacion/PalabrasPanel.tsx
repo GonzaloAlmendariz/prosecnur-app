@@ -164,7 +164,7 @@ export function PalabrasBarra({ estado, despachar, onGuardar }: BarraProps) {
           {cambios && !guardando && <span className="pulso-cv2-pal-pendiente">Cambios sin guardar</span>}
           <PulsoButton variant="primary" size="sm" disabled={!cambios || guardando} onClick={onGuardar}>
             <Save size={14} aria-hidden="true" />
-            {guardando ? "Guardando…" : "Guardar"}
+            {guardando ? "Guardando" : "Guardar"}
           </PulsoButton>
         </div>
       )}
@@ -187,7 +187,7 @@ export function PalabrasCuerpo({ estado, despachar }: CuerpoProps) {
   if (l.fase === "cargando") {
     return (
       <div data-qa-geometry-capacity="owned">
-        <LoadingBlock label="Leyendo las palabras de esta pregunta…" variant="inline" />
+        <LoadingBlock label="Leyendo las palabras de esta pregunta" variant="inline" />
       </div>
     );
   }

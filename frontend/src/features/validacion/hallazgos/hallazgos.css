@@ -1291,3 +1291,11 @@ button.pulso-hz-sentido:hover {
     transition: none;
   }
 }
+
+/* Mientras se audita, la mesa es el resultado anterior (`data-anterior` del prototipo
+   `validacion-hallazgos-auditando`): se atenúa para que no se lea como el nuevo, pero
+   sigue desplazable para leerlo. Guardar ya queda deshabilitado en Decisión. */
+.pulso-mesa-pestana-marco:has(> .pulso-franja-trabajo) > [data-qa-geometry-group="validacion/hallazgos-mesa"] > * {
+  opacity: 0.55;
+  filter: saturate(0.6);
+}

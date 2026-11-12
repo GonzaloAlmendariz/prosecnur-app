@@ -26,6 +26,7 @@ import { ModuleCommandBar } from "../components/ModuleCommandBar";
 import { BandejaEntregables } from "../components/entregables/BandejaEntregables";
 import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
 import { CasosQueCuentanEnBanda, EstadoDelEstudioEnBanda } from "../features/procesamiento/banda/BandaDeProcesamiento";
+import { GuardaDelMotor } from "../features/procesamiento/sinMotor/SinMotor";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 import {
@@ -627,7 +628,8 @@ export default function Layout() {
           >
             <ModuleWarmupBoundary>
               <Suspense fallback={<RouteLoadingFallback />}>
-                <Outlet />
+                {/* Con el motor caído, Procesamiento dice la causa una vez en lugar de un error por pestaña. */}
+                {isProcessing ? <GuardaDelMotor><Outlet /></GuardaDelMotor> : <Outlet />}
               </Suspense>
             </ModuleWarmupBoundary>
           </div>

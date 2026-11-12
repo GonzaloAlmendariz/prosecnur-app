@@ -49,7 +49,7 @@ export function FocoSinIncluirAviso({ resolucion, incluyendo, error, onIncluir, 
           <div className="pulso-cv2-foco-aviso-acciones">
             {incluible && (
               <PulsoButton variant="primary" size="sm" onClick={onIncluir} disabled={incluyendo}>
-                <ListPlus size={13} aria-hidden="true" /> {incluyendo ? "Incluyendo…" : "Incluir en codificación"}
+                <ListPlus size={13} aria-hidden="true" /> {incluyendo ? "Incluyendo" : "Incluir en codificación"}
               </PulsoButton>
             )}
             {volver}

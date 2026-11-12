@@ -190,8 +190,8 @@ export function IntegerCodificador({ parent }: Props) {
     });
   }
 
-  if (error) return <ErrorBlock label="Error cargando valores" detail={error} />;
-  if (!respuestas) return <LoadingBlock variant="inline" label="Cargando valores…" />;
+  if (error) return <ErrorBlock label="No se pudieron leer los valores" detail={error} />;
+  if (!respuestas) return <LoadingBlock variant="inline" label="Leyendo los valores" />;
 
   return (
     <div data-audit-ready="codificacion-codificar">

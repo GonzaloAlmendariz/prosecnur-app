@@ -149,7 +149,7 @@ export function AgruparCategoriasCodificador({ parent, base }: { parent: string;
     : borrador.categorias.length > 0;
 
   if (remoto.errorCarga) return <ErrorBlock label="No se pudo cargar la agrupación" detail={remoto.errorCarga} />;
-  if (!datos) return <LoadingBlock variant="inline" label="Cargando categorías…" />;
+  if (!datos) return <LoadingBlock variant="inline" label="Leyendo las categorías" />;
 
   const saveState: SaveState = remoto.guardando ? "saving"
     : remoto.errorGuardar ? "error"

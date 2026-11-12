@@ -265,7 +265,7 @@ export default function ExplorarTab({
       return;
     }
     let cancel = false;
-    setBusy(`Cargando ${selected.name}…`);
+    setBusy(`Leyendo ${selected.name}`);
     setError("");
     setUni(null);
     apiV2ExplorarUnivariado(selected.name, baseNombre, effectiveFiltros, fuente)
@@ -299,7 +299,7 @@ export default function ExplorarTab({
     // Retira el cruce anterior antes de pedir el nuevo corte; evita mostrar
     // una matriz de otro servicio mientras llega la respuesta actual.
     setBiv(null);
-    setBusy(`Cruzando ${selected.name} × ${cruzar}…`);
+    setBusy(`Cruzando ${selected.name} con ${cruzar}`);
     apiV2ExplorarBivariado(selected.name, cruzar, baseNombre, effectiveFiltros, fuente)
       .then((b) => {
         if (!cancel) setBiv(b);
@@ -616,7 +616,7 @@ export default function ExplorarTab({
           </p>
         )}
         {busy && <LoadingBlock variant="inline" label={busy} />}
-        {error && <ErrorBlock label="Error" detail={error} />}
+        {error && <ErrorBlock label="No se pudo leer la pregunta" detail={error} />}
       </div>
     </PanelDeMesa>
   );

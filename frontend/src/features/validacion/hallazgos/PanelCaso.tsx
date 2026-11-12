@@ -16,7 +16,7 @@ import { Sideover } from "../../../components/Sideover";
 import { Panel } from "../../../components/Panel";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { ErrorBlock } from "../../../components/States";
-import { splitErrorDetail } from "../../../components/errorPresentation";
+import { causaDelError, identificadorDelError } from "../../../components/errorPresentation";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import type { VariableDelCaso } from "../../../api/validacionAuditoria";
@@ -113,8 +113,9 @@ export function PanelCaso({
         {lectura.fase === "error" ? (
           <ErrorBlock
             label="No se pudo leer el caso"
-            causa={splitErrorDetail(lectura.mensaje).message}
+            causa={causaDelError(lectura.mensaje)}
             queda="Las decisiones guardadas no cambiaron."
+            identificador={identificadorDelError(lectura.mensaje)}
             acciones={<PulsoButton variant="primary" onClick={lectura.reintentar}>Reintentar</PulsoButton>}
           />
         ) : null}
