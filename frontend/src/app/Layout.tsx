@@ -25,6 +25,7 @@ import { SectionPillbar } from "../components/SectionPillbar";
 import { ModuleCommandBar } from "../components/ModuleCommandBar";
 import { BandejaEntregables } from "../components/entregables/BandejaEntregables";
 import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
+import { CasosQueCuentanEnBanda, EstadoDelEstudioEnBanda } from "../features/procesamiento/banda/BandaDeProcesamiento";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 import {
@@ -156,6 +157,8 @@ function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
         label: it.label,
         href: it.to,
         done: it.done,
+        // El ✓ del prototipo: la sección quedó hecha para el estudio (no para una base).
+        lista: it.done,
         lockedReason: it.blockedReason ?? undefined,
         nota: it.faltaReason ?? (it.done ? "Sección lista" : undefined),
       }))}
@@ -574,7 +577,8 @@ export default function Layout() {
         <div className="pulso-app-header-spacer" />
         <div className="pulso-app-header-actions">
           {/* Lo generado en la sesión (ADR 0133, fase 4): aparece con la primera generación. */}
-          <BandejaEntregables />
+          {/* En Procesamiento la bandeja baja a su banda, como en el prototipo. */}
+          {!showFases && <BandejaEntregables />}
           {projectIndicator}
           <SessionErrorChip />
         </div>
@@ -587,12 +591,20 @@ export default function Layout() {
           modulo="procesamiento"
           className="pulso-processing-phase-row"
           ariaLabel="Chrome de procesamiento"
-          contexto={<ChromeSlotHost zona="contexto" />}
+          contexto={
+            <>
+              <ChromeSlotHost zona="contexto" />
+              {/* Con el informe consolidado de Gráficos la cifra de una base no aplica. */}
+              <CasosQueCuentanEnBanda visible={reportScope === "active"} />
+            </>
+          }
           secciones={<ProcessingPhaseDock items={items} />}
           herramientas={
             <>
               <VisorBases visible={showFases} reportScope={reportScope} />
               <ChromeSlotHost zona="acciones" />
+              <EstadoDelEstudioEnBanda />
+              <BandejaEntregables />
             </>
           }
         />

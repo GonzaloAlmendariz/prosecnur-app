@@ -1,0 +1,57 @@
+/* Piezas propias de la banda de Procesamiento. Geometría del prototipo
+ * (`tmp/revamp-procesamiento/proto.css`, `.pp-ctx-casos`): la cifra va junto al
+ * selector de base, separada por una línea, con el número en negrita y la frase en
+ * texto suave. Se compacta por el ancho de la banda (contenedor `pulso-chrome`),
+ * nunca envuelve: la banda no crece de alto. */
+
+.pulso-banda-casos {
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 0 auto;
+  gap: 6px;
+  align-self: center;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+/* La línea separa la cifra del selector solo cuando hay selector delante. */
+.pulso-chrome-slot:not(:empty) + .pulso-banda-casos {
+  margin-left: var(--pulso-space-2);
+  padding-left: var(--pulso-space-3);
+  border-left: 1px solid var(--pulso-border);
+}
+
+.pulso-chrome-slot:empty + .pulso-banda-casos {
+  padding-left: var(--pulso-space-2);
+}
+
+.pulso-banda-casos b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-banda-estado {
+  flex: 0 0 auto;
+}
+
+.pulso-banda-estado.is-active {
+  border-color: var(--module-accent-border, var(--pulso-module-processing-border));
+  background: var(--module-accent-soft, var(--pulso-module-processing-soft));
+}
+
+/* Banda apretada: la frase cede antes que la cifra; "Estado del estudio" queda en
+ * su ícono con el nombre en el `title`. */
+@container pulso-chrome (max-width: 1180px) {
+  .pulso-banda-casos-resto,
+  .pulso-banda-estado-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
