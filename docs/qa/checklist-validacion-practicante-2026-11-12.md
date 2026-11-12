@@ -52,7 +52,7 @@ analizarlas".
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| 1 | El error de carga se dibuja detrás del velo del diálogo: el usuario no ve nada | `frontend/src/features/carga/pestanas/AvisosDeCarga.tsx` | Pendiente |
+| 1 | El error de carga se dibuja detrás del velo del diálogo: el usuario no ve nada | `carga/pestanas/bases/AgregarBase.tsx` (recibe el error), `PestanaBases.tsx`, `CargaPage.tsx` | Hecho, por confirmar (72f79360b): con "Agregar base" abierto el error va dentro del diálogo y la pila de la página no lo repite. Comprobado con `AgregarBase.render.test.tsx`, visto en rojo antes, y en la huella del escenario "respuestas sin formulario" (aviso una vez, dentro del diálogo). Con el ítem 2, subir la base como formulario ya muestra la causa. Sin captura en la app |
 | 2 | Subir un archivo sin hoja `survey` como formulario responde 500 `E_INTERNAL` en lugar de un 400 con causa | `api/R/codificacion_flujo_hibrido.R` (`leer_instrumento_xlsform`) | Hecho, por confirmar (c2a224007): responde 400 `E_XLSFORM_SURVEY_INVALIDO` con las hojas que trae el archivo. Comprobado con `test-carga-instrumento-sin-survey.R`, visto en rojo ("Sheet 'survey' not found") antes del arreglo. Falta verlo en la UI, que depende del ítem 1 |
 | 3 | Un intento de carga fallido deja registrada como datos la hoja equivocada | Carga (motor) | Pendiente |
 | 4 | Emparejar las columnas de la base por `label` además de por `name` (los encabezados de la base digitada son el texto de la pregunta). Cargar sin XLSForm baja de prioridad: el practicante ya armó el formulario con el editor de la plataforma; falta probar la carga con ese formulario | Carga (motor + UI) | Pendiente; primero repetir la carga con el XLSForm del practicante |
