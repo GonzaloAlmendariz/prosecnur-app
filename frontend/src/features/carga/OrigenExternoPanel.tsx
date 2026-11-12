@@ -175,7 +175,7 @@ export function OrigenExternoVista({
       <div className="pulso-origen-externo-cuerpo">
         <div className="pulso-origen-externo-resultado" data-qa-geometry-capacity="owned">
           {carga.tipo === "leyendo" ? (
-            <LoadingBlock variant="inline" label="Leyendo la declaración de la base…" />
+            <LoadingBlock variant="inline" label="Leyendo la declaración de la base" />
           ) : carga.tipo === "error" ? (
             <p className="pulso-origen-externo-error" role="alert">{carga.mensaje}</p>
           ) : !datos?.bloque ? (
@@ -283,7 +283,7 @@ export function OrigenExternoVista({
               {enviando
                 ? <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
                 : <Upload size={14} aria-hidden="true" />}
-              {enviando ? "Declarando…" : "Declarar"}
+              {enviando ? "Declarando" : "Declarar"}
             </PulsoButton>
           </div>
           {envio.tipo === "error" && (
@@ -303,7 +303,7 @@ type VariablesFaltantesProps = {
 
 function VariablesFaltantes({ carga, motivos, onMotivo }: VariablesFaltantesProps) {
   if (carga.tipo === "leyendo") {
-    return <LoadingBlock variant="inline" label="Leyendo las variables del instrumento…" />;
+    return <LoadingBlock variant="inline" label="Leyendo las variables del instrumento" />;
   }
   if (carga.tipo === "error") {
     return <p className="pulso-origen-externo-nota">No se pudo comparar la base con el instrumento.</p>;

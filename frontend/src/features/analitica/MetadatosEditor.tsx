@@ -69,7 +69,7 @@ export function MetadatosEditor() {
   }, [variables, query]);
 
   if (loading) {
-    return <LoadingBlock variant="inline" label="Cargando metadatos…" />;
+    return <LoadingBlock variant="inline" label="Cargando metadatos" />;
   }
 
   if (error) {

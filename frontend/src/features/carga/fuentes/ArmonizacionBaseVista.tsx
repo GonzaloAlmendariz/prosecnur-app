@@ -21,7 +21,7 @@ export function ArmonizacionBaseVista({ carga }: { carga: CargaArmonizacion }) {
   if (carga.tipo === "cargando") {
     return (
       <div data-qa-geometry-capacity="owned">
-        <LoadingBlock variant="inline" label="Leyendo la armonización guardada…" />
+        <LoadingBlock variant="inline" label="Leyendo la armonización guardada" />
       </div>
     );
   }

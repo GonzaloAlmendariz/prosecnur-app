@@ -226,7 +226,7 @@ export function FuentesEmparejamientoVista({
 
   let cuerpo: ReactNode;
   if (carga.tipo === "cargando") {
-    cuerpo = <LoadingBlock label="Leyendo cómo se emparejaron las preguntas…" />;
+    cuerpo = <LoadingBlock label="Leyendo cómo se emparejaron las preguntas" />;
   } else if (carga.tipo === "error") {
     cuerpo = <ErrorBlock label="No se pudo leer el emparejamiento de las preguntas" detail={carga.mensaje} />;
   } else if (carga.tipo === "fuera-del-estudio") {

@@ -290,7 +290,7 @@ function Recodificar({
             />
           )}
           {lectura.tipo === "cargando" && (
-            <LoadingBlock variant="inline" label={`Leyendo los valores de ${r.variable}…`} />
+            <LoadingBlock variant="inline" label={`Leyendo los valores de ${r.variable}`} />
           )}
           {lectura.tipo === "error" && (
             // C5 categoría 3: queda la lista del instrumento.

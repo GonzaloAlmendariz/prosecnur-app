@@ -77,7 +77,7 @@ export function PanelUniverso() {
             {error ? (
               <ErrorBlock label="No se pudo leer el universo de análisis" detail={error} />
             ) : !bases ? (
-              <LoadingBlock label="Leyendo las bases…" />
+              <LoadingBlock label="Leyendo las bases" />
             ) : (
               bases.map((b) => {
                 const c = criterios[b.base] ?? { enabled: false, condiciones: [] };

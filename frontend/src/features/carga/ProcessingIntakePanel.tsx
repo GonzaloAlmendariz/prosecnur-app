@@ -242,7 +242,7 @@ export function ProcessingIntakePanel({ sessionId, suggestions = [], onPlanSaved
   if (loading && !payload) {
     return (
       <section className="pulso-processing-intake is-loading" aria-label="Plan de ingreso de instrumentos">
-        <LoadingBlock variant="inline" label="Leyendo instrumentos publicados…" />
+        <LoadingBlock variant="inline" label="Leyendo instrumentos publicados" />
       </section>
     );
   }
@@ -461,7 +461,7 @@ export function ProcessingIntakePanel({ sessionId, suggestions = [], onPlanSaved
                     aria-invalid={revisionInvalid}
                     aria-describedby={revisionInvalid ? `${fieldId}-revision-error` : undefined}
                   >
-                    <option value="">Selecciona un formulario…</option>
+                    <option value="">Selecciona un formulario</option>
                     {revisions.map((revision) => (
                       <option
                         value={revision.revision_id}

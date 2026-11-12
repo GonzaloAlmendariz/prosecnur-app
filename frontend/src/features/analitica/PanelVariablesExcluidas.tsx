@@ -199,7 +199,7 @@ export function PanelVariablesExcluidas() {
 
           <div className="pulso-excluidas-cuerpo">
             {!hydrated || carga.tipo === "cargando" ? (
-              <LoadingBlock label="Cargando variables…" />
+              <LoadingBlock label="Cargando variables" />
             ) : carga.tipo === "error" ? (
               <ErrorBlock label="No se pudieron leer las variables de la base" detail={carga.detalle} />
             ) : (

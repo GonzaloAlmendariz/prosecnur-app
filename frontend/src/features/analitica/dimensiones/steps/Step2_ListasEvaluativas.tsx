@@ -146,7 +146,7 @@ export function Step2_ListasEvaluativas() {
         </div>
       )}
 
-      {!escalas && !error && <LoadingBlock label="Escaneando instrumento…" />}
+      {!escalas && !error && <LoadingBlock label="Escaneando instrumento" />}
 
       {escalas && escalas.length === 0 && (
         <div

@@ -49,7 +49,7 @@ export function CompararFuentesVista({ carga }: { carga: CargaComparacion }) {
   if (carga.tipo === "cargando") {
     return (
       <div data-qa-geometry-capacity="owned">
-        <LoadingBlock variant="inline" label="Comparando las dos fuentes…" />
+        <LoadingBlock variant="inline" label="Comparando las dos fuentes" />
       </div>
     );
   }

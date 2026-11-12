@@ -204,7 +204,7 @@ export function Step3_Bloques() {
     setBloques(draft.subindices.map((b) => (b.nombre === nombre ? { ...b, etiqueta } : b)));
   }
 
-  if (!variables && !error) return <LoadingBlock label="Cargando variables del instrumento…" />;
+  if (!variables && !error) return <LoadingBlock label="Cargando variables del instrumento" />;
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>

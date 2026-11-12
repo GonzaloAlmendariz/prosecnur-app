@@ -189,7 +189,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
       </header>
 
       {loading ? (
-        <LoadingBlock variant="inline" label="Leyendo configuración de la base…" />
+        <LoadingBlock variant="inline" label="Leyendo configuración de la base" />
       ) : sinBase && !state ? (
         <EstadoVacio icono={<Inbox size={16} />} titulo="Todavía no hay una base registrada" descripcion="Carga una base para configurar el universo de análisis." />
       ) : error && !state ? (
@@ -236,7 +236,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
                         });
                       }}
                     >
-                      <option value="">Selecciona una variable…</option>
+                      <option value="">Selecciona una variable</option>
                       {rankedVariables.map((variable, index) => (
                         <option key={variable.variable} value={variable.variable}>
                           {index < 3 && isUniverseVariableSuggested(variable) ? "Prioridad sugerida: " : ""}
@@ -266,7 +266,7 @@ export function CargaUniverseFilter({ baseNombre, disabled = false, onApplied, o
                       {!previewing && observedValues.length === 0 && (
                         <EstadoVacio icono={<Search size={16} />} titulo="No se encontraron valores observados para esta variable" />
                       )}
-                      {previewing && <div className="pulso-carga-universe-previewing" role="status"><Loader2 size={12} className="pulso-spin" /> Actualizando conteos…</div>}
+                      {previewing && <div className="pulso-carga-universe-previewing" role="status"><Loader2 size={12} className="pulso-spin" /> Actualizando conteos</div>}
                     </fieldset>
                   )}
                 </div>
