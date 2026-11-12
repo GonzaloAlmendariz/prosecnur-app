@@ -10,7 +10,8 @@ Estados: **pendiente**, **en curso**, **resuelto** (test y vista revisada), **bl
 | 2 | UI sobria y elegante para el menú de plantillas | `PestanaPlantillas.tsx`, `plantillas.css` | resuelto: menú más angosto, filas compactas con miniatura chica y nombre en letra de cuerpo; la elegida en semibold sobre el fondo suave. Visto en vivo a 1440x1000 con el RMS |
 | 3 | Plantillas es la última pestaña de Gráficos (Gonzalo eligió "moverla al final") | `lib/navegacion/catalogos/procesamiento.ts` | resuelto: última del riel; test de orden actualizado |
 | 4 | Avisar antes de cambiar la identidad: estilo y plantilla de PowerPoint, marca (logos) y paletas de colores | `plantillas/identidadDePlantilla.ts` (nuevo) + panel | resuelto: el panel "Identidad del informe" lista, antes de crear, el cambio de estilo, las paletas que se agregan, reemplazan, quitan o conservan, los tipos de gráfico cuyo estilo cambia y si los logos propios dejan de ir en la portada. Si algo del proyecto se pisa, "Crear láminas" pide confirmar ("Crear y cambiar la identidad" o "Cancelar"). Visto en vivo de Pulso a ACNUR y de ACNUR a Pulso |
-| 5 | Todo validado: cada acción dice lo que cambia o por qué no se puede | panel y modelo | resuelto: ver V1 a V4 abajo |
+| 5 | Todo validado: cada acción dice lo que cambia o por qué no se puede | panel y modelo | resuelto: ver V1 a V5 abajo |
+| 6 | Una plantilla siempre reemplaza el informe (Gonzalo, al preguntarle si "Agregar al final" podía cambiar el estilo de las láminas existentes) | `PestanaPlantillas.tsx` | resuelto: se quitó "Agregar al final"; queda "Crear láminas" o "Reemplazar las N láminas" |
 
 ## Lo encontrado antes de tocar código
 

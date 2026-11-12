@@ -111,7 +111,7 @@ export default function PestanaPlantillas() {
   const [errorCrear, setErrorCrear] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [nombreNueva, setNombreNueva] = useState("");
-  const [porConfirmar, setPorConfirmar] = useState<"reemplazar" | "agregar" | null>(null);
+  const [porConfirmar, setPorConfirmar] = useState(false);
   const pedido = useRef(0);
 
   // La estructura depende sólo de la plantilla: encender o apagar preguntas no la vuelve a pedir (cada pedido arma el
@@ -140,7 +140,7 @@ export default function PestanaPlantillas() {
     [identidadPendiente, presets, paletas, overridesReusables, reglas, perfilActual, perfilNuevo, logosPropios, plantilla.enBlanco],
   );
   const pisaIdentidad = cambiosIdentidad.some((c) => c.pisa);
-  useEffect(() => { setPorConfirmar(null); }, [plantilla.id]);
+  useEffect(() => { setPorConfirmar(false); }, [plantilla.id]);
 
   const secciones = useMemo(
     () => (carga.fase === "lista" ? conSeleccion(carga.estructura, exclusiones, graficos) : []),
@@ -171,13 +171,14 @@ export default function PestanaPlantillas() {
     });
   }
 
-  function pedirCrear(modo: "reemplazar" | "agregar") {
-    if (pisaIdentidad) setPorConfirmar(modo);
-    else void crearLaminas(modo);
+  // Una plantilla siempre reemplaza el informe (Gonzalo, 2026-11-11): no se agregan láminas de otra plantilla al final.
+  function pedirCrear() {
+    if (pisaIdentidad) setPorConfirmar(true);
+    else void crearLaminas();
   }
 
-  async function crearLaminas(modo: "reemplazar" | "agregar") {
-    setPorConfirmar(null);
+  async function crearLaminas() {
+    setPorConfirmar(false);
     setCreando(true);
     setErrorCrear("");
     try {
@@ -201,7 +202,7 @@ export default function PestanaPlantillas() {
       if (multi) plan = { ...plan, slides: conBaseFijada(plan.slides, variables, relacionBases).slides };
       const cambiaEstilo = !plantilla.enBlanco && nombreDeEstilo(perfilVigente(reglas)) !== nombreDeEstilo(idPerfilNuevo);
       aplicarPlanSugerido({
-        plan: modo === "agregar" ? { slides: [...planActual.slides, ...plan.slides] } : plan,
+        plan,
         perfil,
         identidad,
         perfilQueSale: cambiaEstilo ? perfilActual : null,
@@ -315,12 +316,7 @@ export default function PestanaPlantillas() {
                       <Plus size={14} aria-hidden="true" /> Guardar como plantilla
                     </PulsoButton>
                   )}
-                  {hayLaminas && (
-                    <PulsoButton variant="secondary" size="sm" onClick={() => pedirCrear("agregar")} disabled={!puedeCrear}>
-                      Agregar al final
-                    </PulsoButton>
-                  )}
-                  <PulsoButton variant="primary" size="sm" onClick={() => pedirCrear("reemplazar")} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
+                  <PulsoButton variant="primary" size="sm" onClick={pedirCrear} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
                     {creando && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
                     {hayLaminas ? `Reemplazar las ${formatoConteo(planActual.slides.length)} láminas` : "Crear láminas"}
                   </PulsoButton>
@@ -342,8 +338,8 @@ export default function PestanaPlantillas() {
                     kind={porConfirmar ? "warn" : "info"}
                     acciones={porConfirmar ? (
                       <>
-                        <PulsoButton variant="primary" size="sm" autoFocus onClick={() => void crearLaminas(porConfirmar)}>Crear y cambiar la identidad</PulsoButton>
-                        <PulsoButton variant="ghost" size="sm" onClick={() => setPorConfirmar(null)}>Cancelar</PulsoButton>
+                        <PulsoButton variant="primary" size="sm" autoFocus onClick={() => void crearLaminas()}>Crear y cambiar la identidad</PulsoButton>
+                        <PulsoButton variant="ghost" size="sm" onClick={() => setPorConfirmar(false)}>Cancelar</PulsoButton>
                       </>
                     ) : undefined}
                   >
