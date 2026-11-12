@@ -757,7 +757,7 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
-    plumber::pr_get("/api/validacion/v2/limpieza/decisions", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/validacion/v2/limpieza/decisions", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -819,7 +819,7 @@ mount_validacion <- function(pr) {
       validacion_caso_completo(sid, .get_base_nombre(req), id)
     })) |>
 
-    plumber::pr_get("/api/validacion/v2/limpieza/preview", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/validacion/v2/limpieza/preview", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -828,7 +828,7 @@ mount_validacion <- function(pr) {
       list(ok = TRUE, base_nombre = base %||% NA_character_, before_after_preview = .limpieza_preview_public(preview))
     })) |>
 
-    plumber::pr_post("/api/validacion/v2/limpieza/finalize", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/v2/limpieza/finalize", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -839,7 +839,7 @@ mount_validacion <- function(pr) {
 
     # ADR 0076 — promover es reversible. Devuelve la base a la que regía antes
     # del cierre sin tocar las decisiones tomadas.
-    plumber::pr_post("/api/validacion/v2/limpieza/revertir-promocion", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/v2/limpieza/revertir-promocion", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       linaje <- limpieza_revertir_promocion(sid = sid, base_nombre = base)
@@ -852,7 +852,7 @@ mount_validacion <- function(pr) {
     # custom. Queda guardado en el file store para descarga vía
     # /api/files/<file_id>/download?sid=... — igual patrón que el resto de
     # exports del API.
-    plumber::pr_post("/api/validacion/v2/report/html", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/v2/report/html", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -884,7 +884,7 @@ mount_validacion <- function(pr) {
     # --- Reporte metodologico PDF -------------------------------------------
     # Inventario exhaustivo del plan efectivo. Se genera como job porque un
     # instrumento grande puede producir decenas de paginas con formulas largas.
-    plumber::pr_post("/api/validacion/v2/report/methodology/pdf", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/v2/report/methodology/pdf", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -919,7 +919,7 @@ mount_validacion <- function(pr) {
     # Conserva el endpoint PDF individual y agrega un ZIP generado desde el
     # mismo modelo canonico. El resultado vive en el contrato comun de jobs y
     # no modifica ni persiste artefactos dentro del proyecto .pulso.
-    plumber::pr_post("/api/validacion/v2/report/methodology/bundle", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/v2/report/methodology/bundle", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -952,7 +952,7 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Instrumento: estado general (HEAD-like) -----------------------------
-    plumber::pr_get("/api/validacion/v2/instrumento/estado", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/validacion/v2/instrumento/estado", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -978,7 +978,7 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Instrumento: variables excluidas de auditoría -----------------------
-    plumber::pr_get("/api/validacion/v2/instrumento/variables-excluidas", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/validacion/v2/instrumento/variables-excluidas", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -1151,7 +1151,7 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Instrumento: exportar plan a Excel (scoped) -------------------------
-    plumber::pr_post("/api/validacion/v2/instrumento/plan/export", wrap_endpoint(function(req, res) {
+    plumber::pr_post("/api/validacion/v2/instrumento/plan/export", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -1806,7 +1806,7 @@ mount_validacion <- function(pr) {
     })) |>
 
     # --- Reglas custom: listar -----------------------------------------------
-    plumber::pr_get("/api/validacion/v2/reglas_custom", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/validacion/v2/reglas_custom", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -1823,7 +1823,7 @@ mount_validacion <- function(pr) {
     # es hostil, así que la app perfila la base y propone candidatos con su
     # evidencia. Read-only: declarar sigue siendo un acto del analista.
     plumber::pr_get("/api/validacion/v2/roles/sugerencias",
-      wrap_endpoint(function(req, res) {
+      wrap_endpoint(function(req, res, ...) {
         sid <- session_header(req)
         base <- .get_base_nombre(req)
         scope <- .get_base_scope(sid, base)
@@ -1884,7 +1884,7 @@ mount_validacion <- function(pr) {
     # puede guardar tal cual. No persiste nada — el sembrado propone, la persona
     # decide. Ya cubiertos por un criterio existente no se vuelven a proponer.
     plumber::pr_get("/api/validacion/v2/reglas_custom/semillas",
-      wrap_endpoint(function(req, res) {
+      wrap_endpoint(function(req, res, ...) {
         sid <- session_header(req)
         base <- .get_base_nombre(req)
         scope <- .get_base_scope(sid, base)
