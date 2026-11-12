@@ -51,6 +51,13 @@ describe("casosQueCuentan", () => {
     expect(casosQueCuentan(cadena({ cuadra: false }))?.detalle).toMatch(/no cuadra/);
   });
 
+  it("separa la proporción de la frase, para que la banda apretada conserve \"de N\"", () => {
+    const r = casosQueCuentan(cadena({ momento: "prevista", recibidos: 1000, cuentan: 1000 }));
+    expect(r?.deRecibidos).toMatch(/^de 1\D?000$/);
+    expect(`${r?.deRecibidos} ${r?.cola}`).toBe(r?.resto);
+    expect(r?.cola).toBe("casos quedarían en la base limpia");
+  });
+
   it("con la base sin cerrar no dice que los casos están en la base limpia", () => {
     expect(casosQueCuentan(cadena({ momento: "prevista" }))?.resto).toBe("de 115 casos quedarían en la base limpia");
     expect(casosQueCuentan(cadena({ momento: null }))?.resto).toBe("de 115 casos quedarían en la base limpia");

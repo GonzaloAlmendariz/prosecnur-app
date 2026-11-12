@@ -67,11 +67,12 @@ function useCasosQueCuentan(habilitado: boolean): Lectura {
 export function CasosQueCuentanEnBanda({ visible }: { visible: boolean }) {
   const lectura = useCasosQueCuentan(visible);
   if (!visible || lectura.fase !== "lista" || !lectura.casos) return null;
-  const { cuentanTexto, resto, detalle } = lectura.casos;
+  const { cuentanTexto, deRecibidos, cola, detalle } = lectura.casos;
   return (
     <span className="pulso-banda-casos" role="status" title={detalle} aria-label={detalle} data-banda-casos="lista">
       <b aria-hidden="true">{cuentanTexto}</b>
-      <span className="pulso-banda-casos-resto" aria-hidden="true">{resto}</span>
+      <span className="pulso-banda-casos-de" aria-hidden="true">{deRecibidos}</span>
+      <span className="pulso-banda-casos-resto" aria-hidden="true">{cola}</span>
     </span>
   );
 }

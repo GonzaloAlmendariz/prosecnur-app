@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
@@ -47,8 +49,21 @@ describe("banda de Procesamiento", () => {
     await pintar(<CasosQueCuentanEnBanda visible />);
     expect(api.apiV2Limpieza).toHaveBeenCalledWith("docentes");
     const pieza = host.querySelector(".pulso-banda-casos");
-    expect(pieza?.textContent).toBe("112de 115 casos en la base limpia");
+    expect(pieza?.textContent).toBe("112de 115casos en la base limpia");
     expect(pieza?.getAttribute("aria-label")).toMatch(/base activa/);
+  });
+
+  test("en la banda apretada la frase cede pero la proporción queda a la vista", async () => {
+    api.apiV2Limpieza.mockResolvedValue(cierre(112, 115));
+    await pintar(<CasosQueCuentanEnBanda visible />);
+    const pieza = host.querySelector(".pulso-banda-casos");
+    // Lo que se oculta a 1180 px o menos es solo la frase: "de 115" no puede ir dentro.
+    expect(pieza?.querySelector(".pulso-banda-casos-de")?.textContent).toBe("de 115");
+    expect(pieza?.querySelector(".pulso-banda-casos-resto")?.textContent).toBe("casos en la base limpia");
+    const css = readFileSync(resolve(__dirname, "banda.css"), "utf8");
+    const compacta = css.slice(css.indexOf("@container pulso-chrome"));
+    expect(compacta).toMatch(/\.pulso-banda-casos-resto/);
+    expect(compacta).not.toMatch(/\.pulso-banda-casos-de\b/);
   });
 
   test("sin cadena no dibuja nada, y con el informe consolidado ni siquiera la pide", async () => {

@@ -42,8 +42,9 @@
   background: var(--module-accent-soft, var(--pulso-module-processing-soft));
 }
 
-/* Banda apretada: la frase cede antes que la cifra; "Estado del estudio" queda en
- * su ícono con el nombre en el `title`. */
+/* Banda apretada: la frase cede antes que la cifra, que queda como proporción
+ * ("112 de 115") con la frase completa en el `title`; "Estado del estudio" queda
+ * en su ícono con el nombre en el `title`. */
 @container pulso-chrome (max-width: 1180px) {
   .pulso-banda-casos-resto,
   .pulso-banda-estado-texto {

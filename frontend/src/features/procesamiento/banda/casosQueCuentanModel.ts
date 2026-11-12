@@ -19,8 +19,12 @@ export type CasosQueCuentan = {
   recibidos: number;
   /** "112" */
   cuentanTexto: string;
-  /** "de 115 casos en la base limpia" */
+  /** "de 115 casos en la base limpia" (es `deRecibidos` + " " + `cola`). */
   resto: string;
+  /** "de 115": la proporción, que la banda apretada conserva. */
+  deRecibidos: string;
+  /** "casos en la base limpia" o, con la base abierta, "casos quedarían en la base limpia". */
+  cola: string;
   /** Para `title` y lector de pantalla: qué mide la cifra y sobre qué base. */
   detalle: string;
 };
@@ -37,9 +41,11 @@ export function casosQueCuentan(cadena: CadenaDeCasos | null | undefined): Casos
   // cifra es la base limpia, así que dice eso. El sustantivo concuerda con los recibidos.
   // Solo una base cerrada tiene base limpia; antes la cifra es lo que quedaría al cerrar.
   const cerrada = cadena.momento === "al_cerrar";
-  const resto = `de ${recibidosTexto} ${recibidos === 1 ? "caso" : "casos"} ${cerrada ? "en" : "quedarían en"} la base limpia`;
+  const deRecibidos = `de ${recibidosTexto}`;
+  const cola = `${recibidos === 1 ? "caso" : "casos"} ${cerrada ? "en" : "quedarían en"} la base limpia`;
+  const resto = `${deRecibidos} ${cola}`;
   const momento = cadena.momento === "prevista" ? " Vista previa: la base sigue abierta." : "";
   const cuadra = cadena.cuadra === false ? " La resta de la cadena no cuadra; revisa Validación, Cierre." : "";
   const detalle = `${cuentanTexto} de ${recibidosTexto} casos recibidos en la base activa quedan para el análisis después de la limpieza.${momento}${cuadra}`;
-  return { cuentan, recibidos, cuentanTexto, resto, detalle };
+  return { cuentan, recibidos, cuentanTexto, resto, deRecibidos, cola, detalle };
 }
