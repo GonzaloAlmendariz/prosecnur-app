@@ -6,6 +6,10 @@ import { ApiError, apiFetch, handle, headers } from "./core";
 import { normalizarCambiosDeRespuestas, type EstudioBase, type EstudioLogicSyncResult, type EstudioPayload } from "./estudio";
 import { type AsyncJobStart, type CamposDeEntregable, camposDeEntregable, jobResultDomainError, type JobStart } from "./jobs";
 import { normalizeShareArray } from "./graficos";
+import { normalizeCargaReviewOpcionesSinLeer, type CargaReviewOpcionesSinLeer } from "./cargaReviewOpcionesSinLeer";
+export type { CargaReviewOpcionSinLeer, CargaReviewOpcionesSinLeer } from "./cargaReviewOpcionesSinLeer";
+import { normalizeDatoPersonal, type DatoPersonal } from "./reconciliacionDatoPersonal";
+export type { DatoPersonal } from "./reconciliacionDatoPersonal";
 import { type DeclaracionLogicaExterna, normalizeLogicaExternaSource } from "./xlsformLogicaExterna";
 import type { MonitoreoKoboAssetItem, MonitoreoProcessingHandoffPromoteResult } from "./monitoreo";
 import { type EditorPayloadWithHallazgos, type Hallazgo, normalizeEditorPayload, normalizePersistedXlsformWorkbook, type SurveyMonkeyLogicState, type SurveyMonkeyVisualLogicAction, type SurveyMonkeyVisualLogicRule, type XlsformEditorPayload, type XlsformEditorWorkbook, type XlsformFormSource, type XlsformFueraDelFormularioItem, type XlsformSourceRecord, type XlsformSourceValue } from "./multiIntegrado";
@@ -2232,6 +2236,8 @@ export type CargaReviewReconciliationExtra = {
   kind: "con_datos" | "vacia";
   incluida: boolean;
   decision: string;
+  /** Dato potencialmente personal: viene sin marcar por defecto. */
+  personal?: DatoPersonal;
 };
 
 export type CargaReviewReconciliation = {
@@ -2330,6 +2336,8 @@ export type CargaReviewPayload = {
   procedencia: CargaReviewProcedencia | null;
   orden_editor: CargaReviewOrdenEditor | null;
   fuentes: CargaReviewFuentes | null;
+  /** Columnas de opción múltiple que no se pudieron leer; `null` si no hay. */
+  opciones_sin_leer: CargaReviewOpcionesSinLeer | null;
   ready: boolean;
 };
 
@@ -2495,6 +2503,7 @@ function normalizeCargaReviewPayload(raw: unknown): CargaReviewPayload {
         kind: entry.kind === "vacia" ? "vacia" : "con_datos",
         incluida: reviewBoolean(entry.incluida) || decision === "include",
         decision,
+        personal: normalizeDatoPersonal(entry.personal),
       };
     });
   const missingColumns = reviewStrings(rawCompatibility.missing_columns);
@@ -2564,6 +2573,7 @@ function normalizeCargaReviewPayload(raw: unknown): CargaReviewPayload {
     procedencia: normalizeCargaReviewProcedencia(root.procedencia),
     orden_editor: normalizeCargaReviewOrdenEditor(root.orden_editor),
     fuentes: normalizeCargaReviewFuentes(root.fuentes),
+    opciones_sin_leer: normalizeCargaReviewOpcionesSinLeer(root.opciones_sin_leer),
     ready: reviewBoolean(root.ready)
       && !incompatible
       && !choiceMapping.pending
@@ -2668,6 +2678,8 @@ export type ReconciliacionExtra = {
   n_fill: number;
   kind: ReconciliacionExtraKind;
   incluida: boolean;
+  /** Dato potencialmente personal: viene sin marcar por defecto. */
+  personal?: DatoPersonal;
 };
 
 export type ReconciliacionInfo = {
@@ -2698,6 +2710,7 @@ function normalizeReconciliacionInfo(raw: unknown): ReconciliacionInfo {
       n_fill: reconNumber(row.n_fill),
       kind: row.kind === "vacia" ? "vacia" : "con_datos",
       incluida: Boolean(row.incluida),
+      personal: normalizeDatoPersonal(row.personal),
     };
   });
   return {

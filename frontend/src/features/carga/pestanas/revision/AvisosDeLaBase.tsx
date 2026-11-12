@@ -9,15 +9,37 @@ import "../../CargaReviewSummary.css";
  * tabla: cómo se emparejó cada fuente de una base que junta encuestas (con
  * "Ver preguntas"), las versiones del formulario con que se recolectó y el
  * orden de opciones del editor. Mismo contenido que el resumen anterior de
- * Revisión, ahora en el detalle de su comprobación.
+ * Revisión, ahora en el detalle de su comprobación. También las columnas de
+ * opción múltiple que no se pudieron leer, cada una con su causa.
  */
 export function AvisosDeLaBase({
   clave,
   revision,
 }: {
-  clave: "fuentes" | "versiones" | "orden";
+  clave: "fuentes" | "versiones" | "orden" | "opciones-sin-leer";
   revision: CargaReviewPayload;
 }) {
+  if (clave === "opciones-sin-leer") {
+    const sinLeer = revision.opciones_sin_leer;
+    if (!sinLeer) return null;
+    return (
+      <dl className="pulso-revision-ficha">
+        <dt>Columnas</dt>
+        <dd>
+          <ul className="pulso-revision-motivos" aria-label="Columnas de opción sin leer">
+            {sinLeer.columnas.map((c) => (
+              <li key={c.columna}>
+                <code>{c.columna}</code>
+                <span>{`${c.causa} ${formatoConteo(c.n_con_dato)} ${c.n_con_dato === 1 ? "caso" : "casos"} con dato en ${c.variable}.`}</span>
+              </li>
+            ))}
+          </ul>
+        </dd>
+        <dt>Qué pasa</dt>
+        <dd>No entran a su pregunta y quedan en la base como columnas aparte. Corrige la base y vuelve a cargarla.</dd>
+      </dl>
+    );
+  }
   if (clave === "fuentes") {
     return (
       <ul

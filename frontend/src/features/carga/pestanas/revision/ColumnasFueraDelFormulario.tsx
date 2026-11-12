@@ -11,6 +11,8 @@ import {
   rotuloConDato,
   type FiltroDeColumnas,
 } from "./comprobacionesModel";
+import { avisoDatoPersonal } from "../../reconciliacionModel";
+import "../../reconciliacionDatoPersonal.css";
 
 const FILTROS: readonly { clave: FiltroDeColumnas; rotulo: string }[] = [
   { clave: "pendiente", rotulo: "Por decidir" },
@@ -63,7 +65,26 @@ export function ColumnasFueraDelFormulario({
         />
       ),
     },
-    { id: "columna", encabezado: "Columna", ancho: 220, valor: (e) => e.name, celda: (e) => <code className="pulso-revision-codigo">{e.name}</code> },
+    {
+      id: "columna",
+      encabezado: "Columna",
+      ancho: 220,
+      valor: (e) => e.name,
+      celda: (e) => {
+        const personal = avisoDatoPersonal(e);
+        return (
+          <>
+            <code className="pulso-revision-codigo">{e.name}</code>
+            {personal ? (
+              <p className="pulso-recon-personal">
+                <strong>{personal.rotulo}</strong>
+                {personal.causa ? `. ${personal.causa}.` : "."}
+              </p>
+            ) : null}
+          </>
+        );
+      },
+    },
     {
       id: "dato",
       encabezado: "Con dato",

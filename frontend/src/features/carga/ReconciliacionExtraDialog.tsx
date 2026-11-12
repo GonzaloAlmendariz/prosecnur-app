@@ -4,18 +4,21 @@ import { Dialog } from "../../components/Dialog";
 import { PulsoButton } from "../../components/PulsoButton";
 import type { ReconciliacionInfo } from "../../api/client";
 import {
+  avisoDatoPersonal,
   dialogTitle,
   fillLabel,
   initialIncluidas,
   toggleIncluida,
 } from "./reconciliacionModel";
+import "./reconciliacionDatoPersonal.css";
 import { formatoConteo } from "../../lib/formatoNumero";
 
 // Diálogo de reconciliación de variables data ↔ XLSForm.
 //
 // Se muestra cuando la data trae variables que ya no existen en el formulario
 // (restos de versiones anteriores del XLSForm o columnas agregadas a propósito).
-// Las completas vienen marcadas si aún no hay decisión (`initialIncluidas`). `onSave` persiste la
+// Si aún no hay decisión vienen marcadas las que tienen dato en más de la mitad de
+// los casos (`initialIncluidas`, regla `vieneMarcadaPorDefecto`). `onSave` persiste la
 // decisión (POST) y devuelve el estado fresco; el diálogo maneja su propio
 // estado de guardado y de error para que la página no cargue con eso.
 export function ReconciliacionExtraDialog({
@@ -85,9 +88,9 @@ export function ReconciliacionExtraDialog({
       <div className="pulso-recon-explain">
         <Info size={16} aria-hidden="true" />
         <p>
-          Vienen en las respuestas pero no son preguntas del formulario. Las completas suelen
-          agregarse a propósito, como una marca de selección, y vienen marcadas; las que tienen
-          datos sólo en parte suelen ser restos de una versión anterior.
+          Vienen en las respuestas pero no son preguntas del formulario. Vienen marcadas las que
+          tienen dato en más de la mitad de los casos, salvo las que parecen datos personales; las
+          demás suelen ser restos de una versión anterior. Puedes cambiar cualquiera.
         </p>
       </div>
 
@@ -101,6 +104,7 @@ export function ReconciliacionExtraDialog({
           const checked = includedSet.has(extra.name);
           const isEmpty = extra.kind === "vacia";
           const rowId = `pulso-recon-row-${extra.name}`;
+          const personal = avisoDatoPersonal(extra);
           return (
             <li
               key={extra.name}
@@ -134,6 +138,12 @@ export function ReconciliacionExtraDialog({
                   {fillLabel(extra)}
                 </span>
               </label>
+              {personal ? (
+                <p className="pulso-recon-personal">
+                  <strong>{personal.rotulo}</strong>
+                  {personal.causa ? `. ${personal.causa}.` : "."}
+                </p>
+              ) : null}
             </li>
           );
         })}

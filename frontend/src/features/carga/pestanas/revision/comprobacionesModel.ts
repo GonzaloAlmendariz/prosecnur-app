@@ -11,6 +11,7 @@ import type {
 import type { EstadoDePestana } from "../../../../components/procesamiento/CabeceraDePestana";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { cargaReviewFuentesHallazgos } from "../../cargaReviewFuentesModel";
+import { textoPorcentajeConDato, vieneMarcadaPorDefecto } from "../../reconciliacionModel";
 
 export type TonoDeComprobacion = "ok" | "aviso" | "error" | "info" | "neutro";
 
@@ -23,6 +24,7 @@ export type ClaveDeComprobacion =
   | "fuentes"
   | "versiones"
   | "orden"
+  | "opciones-sin-leer"
   | "universo"
   | "origen-externo";
 
@@ -155,6 +157,17 @@ export function comprobacionesDeRevision(entrada: EntradaDeRevision): Comprobaci
         grupo: "comprobacion",
       });
     }
+    const sinLeer = revision.opciones_sin_leer;
+    if (sinLeer && sinLeer.n > 0) {
+      lista.push({
+        clave: "opciones-sin-leer",
+        titulo: "Columnas de opción sin leer",
+        detalle: `${plural(sinLeer.n, "columna no entró", "columnas no entraron")} a su pregunta`,
+        tono: "aviso",
+        pendientes: sinLeer.n,
+        grupo: "comprobacion",
+      });
+    }
     const orden = revision.orden_editor;
     if (orden) {
       const omitidas = orden.omitidas.length;
@@ -256,13 +269,13 @@ export function columnasDelFiltro(
 
 /**
  * Las marcadas al abrir: las que ya se incorporaron; si todavía no se decidió
- * ninguna, las que traen dato en todos los casos (la misma regla que el diálogo
- * de variables extra, `reconciliacionModel.initialIncluidas`).
+ * ninguna, las que traen dato en más de la mitad de los casos (la regla única
+ * `reconciliacionModel.vieneMarcadaPorDefecto`, la misma del diálogo).
  */
 export function marcadasIniciales(extras: readonly CargaReviewReconciliationExtra[]): string[] {
   const incluidas = extras.filter((e) => decisionDeColumna(e) === "include");
   if (incluidas.length > 0) return incluidas.map((e) => e.name);
-  return extras.filter((e) => e.kind === "con_datos" && e.fill_pct >= 100).map((e) => e.name);
+  return extras.filter(vieneMarcadaPorDefecto).map((e) => e.name);
 }
 
 /**
@@ -286,7 +299,5 @@ export function hayCambiosPorGuardar(extras: readonly CargaReviewReconciliationE
 /** El dato que trae la columna: "48 (40 %)" o "Vacía". */
 export function rotuloConDato(extra: CargaReviewReconciliationExtra): string {
   if (extra.kind === "vacia" || extra.n_fill <= 0) return "Vacía";
-  const pct = Math.max(0, Math.min(100, extra.fill_pct));
-  const texto = pct > 0 && pct < 1 ? "menos de 1" : String(Math.round(pct));
-  return `${formatoConteo(extra.n_fill)} (${texto} %)`;
+  return `${formatoConteo(extra.n_fill)} (${textoPorcentajeConDato(extra.fill_pct)} %)`;
 }

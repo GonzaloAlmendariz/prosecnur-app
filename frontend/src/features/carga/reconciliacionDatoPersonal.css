@@ -1,0 +1,20 @@
+/* Aviso de dato potencialmente personal en una columna fuera del formulario
+   (diálogo de variables extra y Carga > Revisión). Es un aviso del equipo: texto
+   en el tono de aviso, sin íconos. */
+.pulso-recon-personal {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-recon-personal strong {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* En el diálogo la línea va bajo el nombre, alineada con él (casilla de 16 px + 10 px). */
+.pulso-recon-row .pulso-recon-personal {
+  padding: 0 12px 10px 38px;
+  margin-top: -4px;
+}

@@ -247,7 +247,8 @@ test_that("GET reconciliación: contrato del payload de la base activa", {
 
   # Shape de cada entry: name, fill_pct, n_fill, kind, incluida.
   e1 <- info$extra[[1]]
-  expect_setequal(names(e1), c("name", "fill_pct", "n_fill", "kind", "incluida"))
+  # `personal` (ítem 21, ronda 2): sospecha de dato personal y su causa.
+  expect_setequal(names(e1), c("name", "fill_pct", "n_fill", "kind", "incluida", "personal"))
   expect_false(e1$incluida)  # ninguna incluida por defecto
   expect_equal(e1$name, "dim_servicio")  # orden por fill desc
 })

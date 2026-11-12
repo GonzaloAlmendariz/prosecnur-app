@@ -196,8 +196,10 @@ library(testthat)
     # que un import por API haya adoptado u omitido el orden del editor.
     # `fuentes` (ADR 0099): igual, NULL salvo que la base junte encuestas
     # emparejadas por pregunta.
+    # `opciones_sin_leer` (ítem 20 del checklist de Validación 2026-11-12):
+    # columnas de opción múltiple que no se pudieron leer; NULL si no hay.
     c("base_nombre", "compatibility", "choice_mapping", "reconciliation",
-      "procedencia", "orden_editor", "fuentes", "ready")
+      "procedencia", "orden_editor", "fuentes", "opciones_sin_leer", "ready")
   )
   expect_setequal(
     names(payload$reconciliation),
@@ -210,7 +212,7 @@ library(testthat)
   if (length(payload$reconciliation$extra)) {
     expect_setequal(
       names(payload$reconciliation$extra[[1]]),
-      c("name", "fill_pct", "n_fill", "kind", "decision")
+      c("name", "fill_pct", "n_fill", "kind", "decision", "personal")
     )
   }
 }

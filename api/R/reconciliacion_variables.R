@@ -73,8 +73,17 @@
     fill_pct = numeric(0),
     n_fill = integer(0),
     kind = character(0),
+    personal_sospecha = logical(0),
+    personal_causa = character(0),
     stringsAsFactors = FALSE
   )
+}
+
+# Bloque `personal` de una fila del cubo, para los payloads (diálogo y Revisión).
+.reconciliacion_personal_payload <- function(extra_df, i) {
+  sospecha <- if ("personal_sospecha" %in% names(extra_df)) isTRUE(extra_df$personal_sospecha[[i]]) else FALSE
+  causa <- if (sospecha && "personal_causa" %in% names(extra_df)) as.character(extra_df$personal_causa[[i]]) else ""
+  list(sospecha = sospecha, causa = causa)
 }
 
 # Cuenta filas NO vacías de una columna. Trata NA, `""` (tras trim) y `"[]"`
@@ -164,11 +173,15 @@
 
   rows <- lapply(extra, function(nm) {
     f <- .reconciliacion_col_fill(data[[nm]])
+    # Dato potencialmente personal (ronda 2 del ítem 21): viene sin marcar.
+    personal <- .reconciliacion_dato_personal(nm, data[[nm]])
     data.frame(
       name = nm,
       fill_pct = f$fill_pct,
       n_fill = f$n_fill,
       kind = if (f$n_fill > 0L) "con_datos" else "vacia",
+      personal_sospecha = isTRUE(personal$sospecha),
+      personal_causa = as.character(personal$causa),
       stringsAsFactors = FALSE
     )
   })
@@ -210,7 +223,8 @@
       fill_pct = extra_df$fill_pct[i],
       n_fill = as.integer(extra_df$n_fill[i]),
       kind = extra_df$kind[i],
-      incluida = nm %in% incluidas
+      incluida = nm %in% incluidas,
+      personal = .reconciliacion_personal_payload(extra_df, i)
     )
   })
   list(

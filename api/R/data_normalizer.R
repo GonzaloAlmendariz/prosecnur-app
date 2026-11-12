@@ -190,7 +190,8 @@
         parent,
         ch,
         choice_map = preferred_map,
-        protected_names = .dn_survey_protected_dummy_names(survey, parent, ch, ln)
+        protected_names = .dn_survey_protected_dummy_names(survey, parent, ch, ln),
+        admite_codigo = TRUE
       )
       dummies <- dummies[!is.na(dummies) & nzchar(dummies) & dummies %in% names(data)]
       if (!length(dummies)) next
@@ -437,7 +438,12 @@
   paste0(prefix, suffix)
 }
 
-.dn_match_sm_dummy_columns <- function(data, parent, choices_sub, choice_map = NULL, protected_names = character()) {
+# `admite_codigo = TRUE` (normalizador): acepta también columnas marcadas con el
+# código de su opción y devuelve en `attr(, "opciones_sin_leer")` las columnas de
+# opción que no se pudieron leer (ver `data_normalizer_opciones.R`). Los demás
+# llamadores conservan el criterio binario.
+.dn_match_sm_dummy_columns <- function(data, parent, choices_sub, choice_map = NULL, protected_names = character(),
+                                       admite_codigo = FALSE) {
   data_names <- names(data)
   if (!length(data_names) || is.na(parent) || !nzchar(parent)) {
     return(stats::setNames(rep(NA_character_, nrow(choices_sub)), choices_sub$name))
@@ -459,12 +465,6 @@
   # mientras el TEXTO LIBRE `<parent>_other` (cadenas + survey var) queda fuera
   # por AMBAS vías. Esto cierra la clase de bug del falso positivo other-only,
   # que nacía de excluir por el patrón de nombre `_(other|specify|texto)$`.
-  if (length(candidates)) {
-    is_dummy_shaped <- vapply(
-      candidates, function(nm) .dn_is_binary_dummy_col(data[[nm]]), logical(1)
-    )
-    candidates <- candidates[is_dummy_shaped]
-  }
   protected_names <- as.character(protected_names %||% character())
   protected_names <- protected_names[!is.na(protected_names) & nzchar(protected_names)]
   if (length(protected_names)) {
@@ -483,8 +483,32 @@
       grepl("_recod$", suffix_probe, ignore.case = TRUE)
     candidates <- candidates[!is_recod_output]
   }
+  # Forma de cada candidata (binaria, por código o ilegible). Las ilegibles salen
+  # de la pregunta; con `admite_codigo` se avisan con su causa.
+  avisos <- list()
+  formas <- character(0)
+  if (length(candidates)) {
+    codes_cand <- vapply(candidates, .dn_sm_option_code_of, character(1), parent = parent, USE.NAMES = FALSE)
+    formas <- if (isTRUE(admite_codigo)) {
+      vapply(seq_along(candidates), function(k) .dn_sm_option_shape(data[[candidates[k]]], codes_cand[k]), character(1))
+    } else {
+      ifelse(vapply(candidates, function(nm) .dn_is_binary_dummy_col(data[[nm]]), logical(1)), "binaria", "ilegible")
+    }
+    if (isTRUE(admite_codigo)) {
+      for (k in which(formas == "ilegible")) {
+        if (.dn_sm_option_merece_aviso(data[[candidates[k]]], codes_cand[k], choices_sub$name)) {
+          avisos[[length(avisos) + 1L]] <- .dn_sm_option_aviso(parent, candidates[k], codes_cand[k], data[[candidates[k]]], "valores")
+        }
+      }
+    }
+    keep <- formas != "ilegible"
+    candidates <- candidates[keep]
+    formas <- stats::setNames(formas[keep], candidates)
+  }
   if (!length(candidates)) {
-    return(stats::setNames(rep(NA_character_, nrow(choices_sub)), choices_sub$name))
+    out_vacio <- stats::setNames(rep(NA_character_, nrow(choices_sub)), choices_sub$name)
+    if (isTRUE(admite_codigo)) attr(out_vacio, "opciones_sin_leer") <- avisos
+    return(out_vacio)
   }
 
   suffix <- sub(prefix_pat, "\\2", candidates, perl = TRUE)
@@ -529,9 +553,18 @@
     if (length(hit)) out[[i]] <- candidates[hit[1]]
   }
 
-  # 3. Fallback por orden solo para opciones no resueltas.
+  # 3. Fallback por orden solo para opciones no resueltas. Una columna por
+  #    código ya dice qué opción marca: si su código no está en la lista no se
+  #    asigna a otra opción por posición; se avisa.
   remaining_choices <- which(is.na(out) | !nzchar(out))
   remaining_dummies <- setdiff(candidates, out[!is.na(out) & nzchar(out)])
+  por_codigo <- remaining_dummies[formas[remaining_dummies] %in% "codigo"]
+  for (col in por_codigo) {
+    avisos[[length(avisos) + 1L]] <- .dn_sm_option_aviso(
+      parent, col, .dn_sm_option_code_of(col, parent), data[[col]], "fuera_de_lista"
+    )
+  }
+  remaining_dummies <- setdiff(remaining_dummies, por_codigo)
   if (length(remaining_choices) && length(remaining_dummies)) {
     ord_num <- suppressWarnings(as.numeric(sub(prefix_pat, "\\2", remaining_dummies, perl = TRUE)))
     remaining_dummies <- remaining_dummies[order(is.na(ord_num), ord_num, remaining_dummies)]
@@ -539,6 +572,7 @@
     out[remaining_choices[seq_len(n)]] <- remaining_dummies[seq_len(n)]
   }
 
+  if (isTRUE(admite_codigo)) attr(out, "opciones_sin_leer") <- avisos
   out
 }
 
@@ -937,6 +971,7 @@ normalize_data_for_xlsform <- function(data,
     select_one_other_recodes <- select_one_other_recodes[!duplicated(recode_keys)]
   }
   normalized <- list()
+  opciones_sin_leer <- list()
 
   choices_ok <- nrow(choices) > 0L && all(c("list_name", "name") %in% names(choices))
   if (choices_ok) {
@@ -959,13 +994,18 @@ normalize_data_for_xlsform <- function(data,
       parent,
       ch,
       choice_map = choice_code_maps[[parent]],
-      protected_names = .dn_survey_protected_dummy_names(survey, parent, ch, ln)
+      protected_names = .dn_survey_protected_dummy_names(survey, parent, ch, ln),
+      admite_codigo = TRUE
     )
+    opciones_sin_leer <- c(opciones_sin_leer, attr(dummies, "opciones_sin_leer") %||% list())
     dummies <- dummies[!is.na(dummies) & nzchar(dummies) & dummies %in% names(out)]
     if (!length(dummies)) next
 
+    # Cada columna se lee con su forma: 0/1 o el código de SU opción (el del
+    # nombre de la columna, que con un mapa confirmado puede diferir del XLSForm).
     token_mat <- vapply(names(dummies), function(code) {
-      ifelse(.dn_is_selected_dummy(out[[dummies[[code]]]]), code, NA_character_)
+      col <- dummies[[code]]
+      ifelse(.dn_sm_option_selected(out[[col]], .dn_sm_option_code_of(col, parent)), code, NA_character_)
     }, character(nrow(out)))
     if (is.null(dim(token_mat))) {
       token_mat <- matrix(token_mat, ncol = 1L)
@@ -995,7 +1035,7 @@ normalize_data_for_xlsform <- function(data,
   if (isTRUE(add_metadata) &&
       (length(normalized) || length(aliased_combined) ||
        length(single_child_collapses) || length(select_one_other_recodes) ||
-       length(choice_code_maps))) {
+       length(choice_code_maps) || length(opciones_sin_leer))) {
     attr(out, "xlsform_normalized") <- list(
       normalized_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
       select_multiple = normalized,
@@ -1003,6 +1043,8 @@ normalize_data_for_xlsform <- function(data,
       single_child_collapses = single_child_collapses,
       select_one_other_recodes = select_one_other_recodes,
       choice_code_maps = choice_code_maps,
+      # Columnas de opción que no se pudieron leer: se conservan y se avisan.
+      opciones_sin_leer = opciones_sin_leer,
       dropped_columns = if (isTRUE(drop_source_dummies)) dropped else character(0)
     )
   }

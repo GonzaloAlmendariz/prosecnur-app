@@ -130,7 +130,8 @@
       fill_pct = as.numeric(extra_df$fill_pct[[i]]),
       n_fill = as.integer(extra_df$n_fill[[i]]),
       kind = as.character(extra_df$kind[[i]]),
-      decision = decision
+      decision = decision,
+      personal = .reconciliacion_personal_payload(extra_df, i)
     )
   })
   decisions <- if (length(extra)) {
@@ -251,6 +252,26 @@
   )
 }
 
+# Columnas de opción múltiple que el normalizador no pudo leer (ítem 20 del
+# checklist de Validación 2026-11-12): se conservan en la base, no entran a su
+# pregunta y se avisan aquí con su causa. NULL cuando no hay ninguna. No entra en
+# `ready`: avisa, no impide seguir.
+.carga_review_opciones_sin_leer <- function(data) {
+  info <- attr(data, "xlsform_normalized", exact = TRUE) %||% list()
+  avisos <- info$opciones_sin_leer %||% list()
+  if (!length(avisos)) return(NULL)
+  columnas <- lapply(avisos, function(a) list(
+    variable = as.character(a$variable %||% "")[1],
+    columna = as.character(a$columna %||% "")[1],
+    codigo = as.character(a$codigo %||% "")[1],
+    motivo = as.character(a$motivo %||% "")[1],
+    valores = as.list(as.character(a$valores %||% character(0))),
+    n_con_dato = as.integer(a$n_con_dato %||% 0L)[1],
+    causa = as.character(a$causa %||% "")[1]
+  ))
+  list(n = as.integer(length(columnas)), columnas = columnas)
+}
+
 .carga_review_payload <- function(sid, base_nombre = NULL) {
   pair <- .carga_normalized_data_for_export(sid, base_nombre = base_nombre)
   s <- session_get(sid)
@@ -290,6 +311,7 @@
     procedencia = procedencia,
     orden_editor = orden_editor,
     fuentes = fuentes,
+    opciones_sin_leer = .carga_review_opciones_sin_leer(pair$data),
     ready = isTRUE(compatibility$ok) &&
       !isTRUE(choice_mapping$requires_confirmation) &&
       !isTRUE(choice_mapping$pending) &&

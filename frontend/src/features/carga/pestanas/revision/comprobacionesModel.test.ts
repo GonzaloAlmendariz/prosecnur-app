@@ -28,6 +28,7 @@ function revision(cambios: Partial<CargaReviewPayload> = {}): CargaReviewPayload
     procedencia: null,
     orden_editor: null,
     fuentes: null,
+    opciones_sin_leer: null,
     ready: true,
     ...cambios,
   };
@@ -101,8 +102,10 @@ describe("comprobaciones de Revisión", () => {
 describe("columnas fuera del formulario", () => {
   const extras = [extra("a"), extra("b", { fill_pct: 40, n_fill: 34 }), extra("c", { decision: "exclude" })];
 
-  it("marca de inicio las completas si no hay decisión, y las incorporadas si la hay", () => {
+  it("marca de inicio las que tienen dato en más de la mitad de los casos si no hay decisión, y las incorporadas si la hay", () => {
     expect(marcadasIniciales(extras)).toEqual(["a", "c"]);
+    expect(marcadasIniciales([extra("fecha", { fill_pct: 96.4 }), extra("obs", { fill_pct: 12 })])).toEqual(["fecha"]);
+    expect(marcadasIniciales([extra("fecha", { fill_pct: 96.4 }), extra("dni_supervisor", { fill_pct: 77.8, personal: { sospecha: true, causa: "Parece DNI: 8 dígitos en el 100 % de los casos con dato" } })])).toEqual(["fecha"]);
     expect(marcadasIniciales([extra("a", { decision: "exclude" }), extra("b", { decision: "include", incluida: true })])).toEqual(["b"]);
   });
 
@@ -128,5 +131,28 @@ describe("columnas fuera del formulario", () => {
     expect(rotuloConDato(extra("a", { n_fill: 34, fill_pct: 40 }))).toBe("34 (40 %)");
     expect(rotuloConDato(extra("a", { n_fill: 1, fill_pct: 0.4 }))).toBe("1 (menos de 1 %)");
     expect(rotuloConDato(extra("a", { kind: "vacia", n_fill: 0, fill_pct: 0 }))).toBe("Vacía");
+    expect(rotuloConDato(extra("a", { n_fill: 999, fill_pct: 99.9 }))).toBe("999 (99 %)");
+  });
+});
+
+describe("columnas de opción sin leer", () => {
+  const sinLeer = {
+    n: 2,
+    columnas: [
+      { variable: "p10", columna: "p10/3", codigo: "3", motivo: "valores" as const, valores: ["1", "3"], n_con_dato: 590, causa: "Trae los valores 1, 3." },
+      { variable: "p10", columna: "p10/88", codigo: "88", motivo: "fuera_de_lista" as const, valores: ["88"], n_con_dato: 4, causa: "Marca el código 88." },
+    ],
+  };
+
+  it("se avisan con su conteo y piden atención", () => {
+    const lista = comprobacionesDeRevision(entrada({ revision: revision({ opciones_sin_leer: sinLeer }) }));
+    const fila = lista.find((c) => c.clave === "opciones-sin-leer");
+    expect(fila).toMatchObject({ tono: "aviso", pendientes: 2, detalle: "2 columnas no entraron a su pregunta" });
+    expect(comprobacionInicial(lista)).toBe("opciones-sin-leer");
+  });
+
+  it("sin columnas sin leer no aparece la fila", () => {
+    const lista = comprobacionesDeRevision(entrada());
+    expect(lista.some((c) => c.clave === "opciones-sin-leer")).toBe(false);
   });
 });

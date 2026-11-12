@@ -208,7 +208,7 @@ export function MesaDeRevision(props: MesaDeRevisionProps) {
               />
             ) : elegida === "codigos" ? (
               <CodigosPorConfirmar mapas={revision.choice_mapping.pending ? revision.choice_mapping.maps : []} />
-            ) : elegida === "fuentes" || elegida === "versiones" || elegida === "orden" ? (
+            ) : elegida === "fuentes" || elegida === "versiones" || elegida === "orden" || elegida === "opciones-sin-leer" ? (
               <AvisosDeLaBase clave={elegida} revision={revision} />
             ) : elegida === "universo" || elegida === "origen-externo" ? null : (
               <p className="pulso-revision-nada pulso-revision-relleno">{comprobacion?.detalle}</p>
