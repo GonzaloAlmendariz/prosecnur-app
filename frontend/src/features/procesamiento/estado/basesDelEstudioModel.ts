@@ -177,7 +177,7 @@ function datoDelMotor(fase: SeccionId, f: EstadoDeFase, causaLocal: string | nul
   if (f.estado === "desactualizada") return f.causa;
   if (causaLocal) return causaLocal;
   const el = fechaCorta(f.actualizadoEn, hoy);
-  if (!el) return f.estado === "en_curso" && f.motivo !== "sin_registro_de_version" ? f.causa : null;
+  if (!el) return f.estado === "en_curso" ? f.causa : null;
   if (f.estado === "hecha" && fase === "validacion") return `Cierre del ${el}`;
   if (f.estado === "hecha" && fase === "codificacion") return `Aplicada el ${el}`;
   if (f.estado === "hecha" && fase === "carga") return `Cargada el ${el}`;

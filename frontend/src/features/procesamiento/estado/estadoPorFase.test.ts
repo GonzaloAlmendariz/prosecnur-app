@@ -76,6 +76,14 @@ describe("Estado del estudio con el estado del motor", () => {
     const ana = basesDelEstudio(estudio([base("A", motor)], "A"), null, HOY).filas[0].fases?.find((f) => f.fase === "analitica");
     expect(ana?.estado).toBe("Con archivos");
     expect(ana?.estado).not.toBe("Al día");
+    // H7 de la QA final: una fase en curso dice su causa.
+    expect(ana?.causa).toBe("Hay archivos generados.");
+  });
+
+  it("Codificación en curso sin fecha muestra la causa del motor", () => {
+    const motor = fasesMotor({ codificacion: fase("en_curso", { motivo: "sin_aplicar", causa: "Falta aplicar la codificación." }) });
+    const cod = basesDelEstudio(estudio([base("A", motor)], "A"), null, HOY).filas[0].fases?.find((f) => f.fase === "codificacion");
+    expect(cod).toMatchObject({ estado: "En curso", causa: "Falta aplicar la codificación." });
   });
 
   it("sin estado del motor, la fila sigue leyendo los indicadores", () => {

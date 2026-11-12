@@ -148,3 +148,62 @@ test_that("Carga publica la lectura de la plataforma y el estudio la carpeta de 
   expect_false(grepl("{}", json, fixed = TRUE))
   expect_match(json, "\"causa\":null")
 })
+
+# Camino real por el router (QA final, H2): cerrar, cambiar una decisión por el
+# endpoint y leer el estado de fases. El router vacía `limpieza_artifacts` al
+# cambiar una decisión, así que el estado no puede depender de `finalized_at`.
+# Fixture helper-validacion-m1.R: "Personas" y su hermana "Hogares".
+.pef_m1 <- function(dir) {
+  sid <- .m1_sesion(dir)
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(.m1_regla_edad(), .m1_regla_item_alguna()))
+  .m2_auditar(sid, "Personas")
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/decision",
+           body = '{"source_id":"RC_001","action_type":"exclude_cases","status":"ready","rationale":"Edad fuera","base_nombre":"Personas"}')
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/decision",
+           body = '{"source_id":"RC_004","action_type":"ignore_rule","status":"ready","rationale":"Posible","base_nombre":"Personas"}')
+  sid
+}
+
+test_that("cerrar y luego cambiar una decisión por el endpoint deja Validación desactualizada con su causa", {
+  dir <- withr::local_tempdir()
+  sid <- .pef_m1(dir)
+  withr::defer(session_delete(sid))
+  hermana <- .pef_fases(sid, "Hogares")
+  expect_identical(.pef_fases(sid, "Personas")$validacion$estado, "en_curso")
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/finalize", query = "base_nombre=Personas")
+  expect_identical(.pef_fases(sid, "Personas")$validacion$estado, "hecha")
+
+  d <- validacion_scope_get(sid, "Personas", "limpieza_draft")[[2]]
+  # Volver a guardar la misma decisión reabre el cierre sin cambiar nada.
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/decision",
+           body = sprintf('{"id":"%s","source_id":"RC_004","action_type":"ignore_rule","status":"ready","rationale":"Posible","base_nombre":"Personas"}', d$id))
+  igual <- .pef_fases(sid, "Personas")$validacion
+  expect_identical(igual$estado, "en_curso")
+  expect_identical(igual$motivo, "abierta_sin_cambios")
+  expect_false(is.na(igual$causa))
+
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/decision",
+           body = sprintf('{"id":"%s","source_id":"RC_004","action_type":"ignore_rule","status":"ready","rationale":"Otro motivo","base_nombre":"Personas"}', d$id))
+  f <- .pef_fases(sid, "Personas")$validacion
+  expect_identical(f$estado, "desactualizada")
+  expect_identical(f$motivo, "decisiones_cambiaron")
+  expect_match(f$causa, "cambiaron después de cerrar")
+  expect_false(is.na(f$actualizado_en))
+  expect_identical(.pef_fases(sid, "Hogares"), hermana)
+
+  # Volver a cerrar la deja hecha otra vez.
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/finalize", query = "base_nombre=Personas")
+  expect_identical(.pef_fases(sid, "Personas")$validacion$estado, "hecha")
+})
+
+test_that("Codificación en curso dice su causa", {
+  skip_if_not_installed("haven")
+  sid <- .bv_estudio()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$codif_por_base <- list("2026" = list(grupos_recod = list(list(id = "g1"))))
+  .session_env[[sid]] <- s
+  f <- .pef_fases(sid, "2026")$codificacion
+  expect_identical(f$estado, "en_curso")
+  expect_false(is.na(f$causa))
+})

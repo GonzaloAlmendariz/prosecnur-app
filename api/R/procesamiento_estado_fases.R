@@ -138,13 +138,44 @@
   ))
 }
 
+# Qué cambió desde el último cierre según la firma con que se generaron sus
+# archivos (`limpieza_archivos`, que sobrevive a `.limpieza_invalidate_outputs()`).
+.proc_causas_desde_el_cierre <- function(scope) {
+  registro <- Filter(function(rec) is.list(rec) && is.list(rec$firma), scope$limpieza_archivos %||% list())
+  if (!length(registro)) return(character(0))
+  actual <- .limpieza_firma_cierre(scope)
+  unique(unlist(lapply(registro, function(rec) .limpieza_causas_de_firma(rec$firma, actual))))
+}
+
+# La fase cuando la firma dice que algo cambió después del cierre; NULL si no.
+.proc_validacion_por_firma <- function(causas, cerrada_en, scope) {
+  fecha <- .proc_mas_reciente(list(cerrada_en, .proc_fecha_trabajo_validacion(scope)))
+  if ("cambiaron_las_decisiones" %in% causas) {
+    return(.proc_fase("desactualizada", "decisiones_cambiaron",
+                      "Las decisiones de limpieza cambiaron después de cerrar la base: falta volver a cerrarla.", fecha))
+  }
+  if ("cambio_la_auditoria" %in% causas) {
+    return(.proc_fase("desactualizada", "auditoria_cambio",
+                      "La auditoría cambió después de cerrar la base: falta volver a cerrarla.", fecha))
+  }
+  NULL
+}
+
+# Fecha del último cierre cuando `finalized_at` ya se vació: la del registro de
+# sus archivos o la de la promoción de la base limpia.
+.proc_fecha_cierre_previo <- function(scope, linaje) {
+  generados <- lapply(scope$limpieza_archivos %||% list(), function(rec) if (is.list(rec)) rec$generado_en else NULL)
+  .proc_mas_reciente(c(generados, list(if (isTRUE(linaje$enabled)) linaje$applied_at else NULL)))
+}
+
 .proc_fase_validacion <- function(s, meta, nombre) {
   scope <- meta$validacion %||% list()
   artifacts <- scope$limpieza_artifacts %||% list()
   linaje <- meta$limpieza %||% list()
   cerrada_en <- .proc_txt(artifacts$finalized_at)
+  revertida <- .limpieza_promocion_revertida(linaje)
   sin_fecha <- "La validación de esta base no registra fechas."
-  if (nzchar(cerrada_en) && !.limpieza_promocion_revertida(linaje)) {
+  if (nzchar(cerrada_en) && !revertida) {
     vigente <- .proc_txt(meta$data_file_id)
     efectiva <- .proc_txt(linaje$effective_data_file_id)
     es_codificada <- identical(.proc_txt((.proc_archivo(s, vigente) %||% list())$kind), "data_adaptada")
@@ -152,20 +183,8 @@
       return(.proc_fase("desactualizada", "respuestas_cambiaron",
                         "Las respuestas cambiaron después de cerrar la limpieza.", cerrada_en))
     }
-    actual <- .limpieza_firma_cierre(scope)
-    causas <- unique(unlist(lapply(scope$limpieza_archivos %||% list(), function(rec) {
-      if (is.list(rec) && is.list(rec$firma)) .limpieza_causas_de_firma(rec$firma, actual) else NULL
-    })))
-    if ("cambiaron_las_decisiones" %in% causas) {
-      return(.proc_fase("desactualizada", "decisiones_cambiaron",
-                        "Las decisiones de limpieza cambiaron después de cerrar la base.",
-                        .proc_mas_reciente(list(cerrada_en, .proc_fecha_trabajo_validacion(scope)))))
-    }
-    if ("cambio_la_auditoria" %in% causas) {
-      return(.proc_fase("desactualizada", "auditoria_cambio",
-                        "La auditoría cambió después de cerrar la base.",
-                        .proc_mas_reciente(list(cerrada_en, .proc_fecha_trabajo_validacion(scope)))))
-    }
+    por_firma <- .proc_validacion_por_firma(.proc_causas_desde_el_cierre(scope), cerrada_en, scope)
+    if (!is.null(por_firma)) return(por_firma)
     return(.proc_fase("hecha", "cerrada", NA_character_, cerrada_en))
   }
   respaldo <- .proc_respaldo(s, nombre)
@@ -174,9 +193,26 @@
                       "Las respuestas se actualizaron después de cerrar la limpieza: falta volver a auditar y a cerrar la base.",
                       respaldo$creado_en, sin_fecha))
   }
-  if (.limpieza_promocion_revertida(linaje)) {
+  if (revertida) {
     return(.proc_fase("en_curso", "reabierta", "Se reabrió la base después de cerrarla.",
                       linaje$reverted_at, sin_fecha))
+  }
+  # Cambiar una decisión o volver a auditar reabre el cierre y vacía
+  # `limpieza_artifacts` (`.limpieza_invalidate_outputs()`), pero la promoción
+  # de la base limpia y el registro de los archivos del cierre siguen ahí.
+  cierre_previo <- .proc_fecha_cierre_previo(scope, linaje)
+  if (!is.na(cierre_previo) || isTRUE(linaje$enabled)) {
+    por_firma <- .proc_validacion_por_firma(.proc_causas_desde_el_cierre(scope), cierre_previo, scope)
+    if (!is.null(por_firma)) return(por_firma)
+    if (length(scope$limpieza_archivos %||% list())) {
+      return(.proc_fase("en_curso", "abierta_sin_cambios",
+                        "Se reabrió el cierre sin cambiar las decisiones: falta volver a cerrar la base.",
+                        .proc_mas_reciente(list(cierre_previo, .proc_fecha_trabajo_validacion(scope))), sin_fecha))
+    }
+    # Sin registro de archivos (un proyecto anterior a ese registro) no se sabe qué cambió.
+    return(.proc_fase("desactualizada", "cambios_sin_cerrar",
+                      "Hay cambios en la limpieza después de cerrar la base: falta volver a cerrarla.",
+                      .proc_mas_reciente(list(cierre_previo, .proc_fecha_trabajo_validacion(scope))), sin_fecha))
   }
   con_trabajo <- !is.null(scope$evaluacion) || length(scope$limpieza_draft %||% list()) > 0L ||
     length(scope$reglas_custom %||% list()) > 0L
@@ -203,7 +239,11 @@
                       codif$readaptar_desde))
   }
   sin_fecha <- "La codificación sin aplicar no registra fechas."
-  if (isTRUE(status$codificacion)) return(.proc_fase("en_curso", "sin_aplicar", NA_character_, sin_fecha = sin_fecha))
+  if (isTRUE(status$codificacion)) {
+    return(.proc_fase("en_curso", "sin_aplicar",
+                      "Tiene grupos de códigos o plantilla, pero la codificación no se ha aplicado a la base.",
+                      sin_fecha = sin_fecha))
+  }
   .proc_fase("sin_iniciar", "sin_codigos", NA_character_, sin_fecha = "La base no tiene grupos de códigos ni plantilla.")
 }
 
