@@ -523,6 +523,17 @@ leer_instrumento_xlsform <- function(path){
   }
 
   # --- leer crudo tal cual ---
+  # Sin hoja "survey" no es un formulario: lo usual es que se haya subido la
+  # base de datos en su lugar. Se dice así, con las hojas que sí trae.
+  hojas <- tryCatch(readxl::excel_sheets(path), error = function(e) character(0))
+  if (!("survey" %in% hojas)) {
+    stop_api(400, "E_XLSFORM_SURVEY_INVALIDO", if (length(hojas)) {
+      sprintf("El archivo no tiene la hoja \"survey\" de un formulario XLSForm (trae %s). Si es la base de datos, súbela como datos.",
+              paste(sprintf("\"%s\"", hojas), collapse = ", "))
+    } else {
+      "El archivo no se pudo leer como Excel ni tiene la hoja \"survey\" de un formulario XLSForm."
+    })
+  }
   survey_raw  <- suppressWarnings(readxl::read_excel(path, sheet = "survey"))
   choices_raw <- suppressWarnings(readxl::read_excel(path, sheet = "choices"))
 
