@@ -57,7 +57,7 @@ describe("GuardaDelMotor", () => {
 
   test("con la app quieta, el latido nota la caída y muestra el aviso", async () => {
     vi.useFakeTimers();
-    const fetch = vi.fn(() => Promise.reject(new TypeError("Failed to fetch")));
+    const fetch = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => Promise.reject(new TypeError("Failed to fetch")));
     vi.stubGlobal("fetch", fetch);
     montar();
     expect(nodo.textContent).toContain("Sección");
@@ -108,7 +108,7 @@ describe("GuardaDelMotor", () => {
 
   test("solo, a los 4 s vuelve a probar; si falla espera 8", async () => {
     vi.useFakeTimers();
-    const fetch = vi.fn(() => Promise.reject(new TypeError("Failed to fetch")));
+    const fetch = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => Promise.reject(new TypeError("Failed to fetch")));
     vi.stubGlobal("fetch", fetch);
     montar();
     act(() => notificarFallo(new TypeError("Failed to fetch")));
