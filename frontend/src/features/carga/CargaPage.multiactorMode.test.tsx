@@ -11,7 +11,6 @@ const mesa = leer("./pestanas/MesaDeCarga.tsx");
 const bases = leer("./pestanas/PestanaBases.tsx");
 const agregarBase = leer("./pestanas/bases/AgregarBase.tsx");
 const panelMonitoreo = leer("./pestanas/PanelMonitoreoCarga.tsx");
-const origenes = leer("./pestanas/OrigenesDeCarga.tsx");
 const styles = fs.readFileSync(
   fileURLToPath(new URL("./carga-v2.css", import.meta.url)),
   "utf8",
@@ -36,7 +35,6 @@ describe("origen multiactor deliberado en Carga", () => {
     // Monitoreo es un origen de "Agregar base" (Carga › Bases, R2).
     expect(source).toContain("<MesaDeCarga");
     expect(source).toContain("(isMultiBase && estudio)");
-    expect(origenes).toContain('aria-label="Origen de carga"');
     expect(bases).toContain("const panelMonitoreo = <PanelMonitoreoCarga");
     expect(agregarBase).toContain('opcion.id === "monitoreo" ? (\n            panelMonitoreo');
     expect(panelMonitoreo).toContain("<ProcessingIntakePanel");
@@ -50,6 +48,5 @@ describe("origen multiactor deliberado en Carga", () => {
     expect(panelMonitoreo.match(/<ProcessingIntakePanel/g)).toHaveLength(1);
     expect(panelMonitoreo.match(/<AcreditacionBatchPanel/g)).toHaveLength(1);
     expect(panelMonitoreo).toContain('revisado && perfil === "multi_actor"');
-    expect(origenes).toContain("onRovingKeyChange={(key) => onModo(key as SourceMode)}");
   });
 });

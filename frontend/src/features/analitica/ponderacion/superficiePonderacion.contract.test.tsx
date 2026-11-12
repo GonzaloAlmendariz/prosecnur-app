@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 import type { PonderacionConfig } from "../store";
 import { MemoryRouter } from "react-router-dom";
 import type { PonderPreview } from "../../../api/analitica";
-import { BandaPonderacion } from "./BandaPonderacion";
 import { CabeceraDePonderacion } from "./CabeceraDePonderacion";
 import { TablaDeMetas, type GrupoDeLaTabla } from "./TablaDeMetas";
 
@@ -102,28 +101,6 @@ describe("superficie de Ponderación", () => {
     expect(html).toContain("Usar pesos en frecuencias, cruces y dimensiones");
     // El hueco declarado: lo que el prototipo dibuja y el motor no publica.
     expect(html).toContain("data-cifras-pendientes=");
-    for (const delEfecto of ["Tamaño efectivo", "Efecto de diseño", "Peso mínimo", "Peso máximo", ">97<", ">1.15<"]) {
-      expect(html, delEfecto).not.toContain(delEfecto);
-    }
-  });
-
-  it("la banda anterior (sin uso en la pestaña) dice lo declarado y no repite el efecto", () => {
-    const pond: PonderacionConfig = { enabled: true, rake: { margins: [{ var: "sexo", targets: { "1": 61.3, "2": 38.7 } }] } };
-    const html = renderToStaticMarkup(createElement(BandaPonderacion, {
-      pond,
-      preview: {
-        ok: true, rake_applied: true, escala: "expansion", total_poblacion: 486,
-        diagnostics: { n: 112, n_eff: 97, deff: 1.15, cv: 0.4, loss_pct: 13, min: 0.71, max: 1.62, mean: 1, median: 1, ratio_max_min: 2.3 },
-      },
-      onAlternar: () => undefined,
-    }));
-    expect(html).toContain("Variables de ajuste");
-    expect(html).toContain("Suma de pesos");
-    expect(html).not.toContain("Población");
-    expect(html).toContain(">486<");
-    expect(html).toContain('role="switch"');
-    expect(html).toContain('aria-checked="true"');
-    expect(html).toContain("Usar pesos en frecuencias, cruces y dimensiones");
     for (const delEfecto of ["Tamaño efectivo", "Efecto de diseño", "Peso mínimo", "Peso máximo", ">97<", ">1.15<"]) {
       expect(html, delEfecto).not.toContain(delEfecto);
     }

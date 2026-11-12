@@ -181,50 +181,8 @@
   text-align: center;
 }
 
-.pulso-seg-tramos {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pulso-seg-tramos li {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--pulso-space-2);
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-soft);
-}
-
-.pulso-seg-tramos input {
-  width: 8ch;
-  height: 28px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 .pulso-seg-unidad {
   min-width: 4ch;
-}
-
-.pulso-seg-tramo-destino {
-  flex: 1 1 200px;
-  min-width: 0;
-}
-
-.pulso-seg-tramo-destino select {
-  width: 100%;
-  height: 28px;
-}
-
-.pulso-seg-ayuda-pie {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--pulso-space-2);
 }
 
 /* El pie se pega al borde inferior del dueño de scroll (sobre su padding). */

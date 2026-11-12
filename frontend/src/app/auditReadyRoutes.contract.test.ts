@@ -291,7 +291,6 @@ describe("audit-ready route root contract", () => {
       validacion: terminalReadinessKeys([
         "features/validacion/tabs/ExplorarTab.tsx",
         "features/validacion/pestanas/PestanaReglas.tsx",
-        "features/validacion/tabs/ReglasCustomTab.tsx",
         "features/validacion/pestanas/PestanaHallazgos.tsx",
         "features/validacion/pestanas/PestanaCierre.tsx",
       ], "validacion-"),
@@ -338,10 +337,6 @@ describe("audit-ready route root contract", () => {
         "features/validacion/pestanas/PestanaReglas.tsx",
         "validacion-reglas",
       ),
-      reglasPropias: terminalReadinessCount(
-        "features/validacion/tabs/ReglasCustomTab.tsx",
-        "validacion-reglas",
-      ),
       hallazgos: terminalReadinessCount(
         "features/validacion/pestanas/PestanaHallazgos.tsx",
         "validacion-hallazgos",
@@ -358,7 +353,6 @@ describe("audit-ready route root contract", () => {
       adaptar: 1,
       explorar: 2,
       reglas: 1,
-      reglasPropias: 1,
       hallazgos: 1,
       cierre: 1,
     });

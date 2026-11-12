@@ -2,8 +2,8 @@
  * El borrador del panel de regla (rebanada V2 del plan de fidelidad): lo que
  * el analista va armando, cómo cambia y qué cuerpo se guarda.
  *
- * Es el estado que vivía en `components/ReglaEditor.tsx` (el asistente de tres
- * pasos), movido a un reductor puro. La regla de la extracción: para las
+ * Es el estado que vivía en el asistente de tres pasos (`ReglaEditor`, ya
+ * retirado), movido a un reductor puro. La regla de la extracción: para las
  * mismas entradas, `cuerpoAGuardar` entrega el mismo objeto, con las claves en
  * el mismo orden, que el asistente entregaba a `onSubmit`
  * (`caracterizacion/huellas/payloadDeRegla.json`).

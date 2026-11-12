@@ -206,7 +206,7 @@ const HALOS_SOLOS_HEREDADOS: Record<string, number> = {
   "features/calcMuestra/universidad/salidas/salidas.css": 3,
   "features/calcMuestra/universidad/ui/explicacionPlegable.css": 1,
   "features/calcMuestra/universidad/ui/ui.css": 4,
-  "features/carga/carga-v2.css": 12,
+  "features/carga/carga-v2.css": 11,
   "features/codificacion/codificacion-v2.css": 9,
   "features/graficos/v2/styles/editor-v2.css": 1,
   "features/home/home-v2.css": 9,

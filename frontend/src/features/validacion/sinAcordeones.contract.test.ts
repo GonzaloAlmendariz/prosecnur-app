@@ -46,8 +46,6 @@ export function acordeonesEn(linea: string): number {
 /** Foto del 11 nov 2026, tras partir Instrumento y Limpieza. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
   "components/InstrumentoOperationalControls.tsx": 1,
-  "components/VariablePicker.tsx": 1,
-  "instrumento/GruposDeReglas.tsx": 1,
   "tabs/explorar/Cruce.tsx": 1,
 };
 

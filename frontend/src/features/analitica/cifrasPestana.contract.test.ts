@@ -40,9 +40,6 @@ const USOS = [
   "panes/DataReviewPane.tsx",
   "panes/CrucesPane.tsx",
   "panes/ComparativosPane.tsx",
-  "ponderacion/BandaPonderacion.tsx",
-  "tablas/BandaDeFrecuencias.tsx",
-  "cruces/BandaDeCruces.tsx",
 ];
 
 describe("banda de cifras en castellano normal", () => {

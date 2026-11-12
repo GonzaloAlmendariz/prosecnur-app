@@ -72,7 +72,6 @@ const KIT = new Set([
 const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/analitica/dimensiones/shared/CombinarVarsPanel.tsx": 1,
   "features/analitica/panes/ComparativosLista.tsx": 2,
-  "features/analitica/panes/EnumeradoresPane.tsx": 1,
   "features/carga/AcreditacionBatchPanel.tsx": 1,
   "features/carga/ArmonizacionEscalaCompartida.tsx": 2,
   "features/carga/ArmonizacionFilaEditor.tsx": 1,

@@ -29,7 +29,7 @@ const rel = (f: string) => path.relative(aqui, f).split(path.sep).join("/");
 const SNAPSHOT: Record<string, number> = {
   "components/ruleDetail.css": 4,
   "tabs/explorar/explorar.css": 4,
-  "validacion-v2.css": 37,
+  "validacion-v2.css": 29,
 };
 
 describe("cajas propias de Validación", () => {

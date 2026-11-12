@@ -351,25 +351,6 @@
   min-height: 0;
 }
 
-.pulso-cc-barra {
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-2) var(--pulso-space-4);
-  min-height: var(--pulso-control-height-sm);
-}
-
-.pulso-cc-barra-acciones {
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  margin-inline-start: auto;
-}
-
 /* Cifras en una tira con divisores, sin píldoras ni cajas. */
 .pulso-cc-cifras {
   display: flex;

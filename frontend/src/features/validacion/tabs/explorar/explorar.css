@@ -115,22 +115,6 @@
   }
 }
 
-/* ── E1 · Lista de variables ───────────────────────────────────────────── */
-.vx-lista-cab {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-}
-.vx-lista-cab strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
-}
-.vx-lista-cab span {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-}
 /* Rejilla de celdas iguales, cada chip con su nombre entero y el conteo
    alineado a la derecha: dos columnas en la lista, tres en el selector de cruce
    (~430 px: seis en una fila se cortan). */
@@ -193,134 +177,6 @@
   outline-offset: 1px;
 }
 
-.vx-seccion-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-  padding: 10px 6px 6px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--pulso-text-soft);
-  font: inherit;
-  font-size: var(--pulso-type-eyebrow-size);
-  font-weight: var(--pulso-type-eyebrow-weight);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  text-align: left;
-}
-.vx-seccion-btn > span:first-child {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-.vx-seccion-btn > span:last-child {
-  font-weight: var(--pulso-weight-medium);
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.vx-fila-var {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 8px 8px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--pulso-text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.vx-fila-var:hover:not([aria-current="true"]) {
-  background: var(--pulso-surface-3);
-}
-.vx-fila-var[aria-current="true"] {
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 11%, var(--pulso-surface));
-  box-shadow: inset 3px 0 0 var(--module-accent, var(--pulso-primary));
-}
-.vx-fila-var-texto {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.vx-fila-var-texto > span:first-child {
-  overflow: hidden;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-medium);
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.vx-fila-var-texto > span:nth-child(2) {
-  overflow: hidden;
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-caption-size);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.vx-completitud {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-medium);
-  font-variant-numeric: tabular-nums;
-}
-.vx-completitud > i {
-  display: block;
-  width: 40px;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--pulso-surface-3);
-}
-.vx-completitud > i > b {
-  display: block;
-  height: 100%;
-  background: var(--module-accent, var(--pulso-primary));
-}
-.vx-completitud.is-baja > i > b {
-  background: var(--pulso-warn-accent);
-}
-.vx-completitud.is-baja {
-  color: var(--pulso-warn-fg);
-}
-
-/* ── E12 · Riel plegado ────────────────────────────────────────────────── */
-.vx-riel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--pulso-space-1);
-  padding: var(--pulso-space-2);
-  align-self: start;
-}
-.vx-riel-sep {
-  width: 24px;
-  height: 1px;
-  margin: var(--pulso-space-1) 0;
-  background: var(--pulso-border);
-}
-.vx-riel-pos {
-  padding: var(--pulso-space-1) 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-medium);
-  white-space: nowrap;
-}
 @media (max-width: 900px) {
   .vx-riel {
     flex-direction: row;
@@ -331,69 +187,6 @@
     height: 24px;
     margin: 0 var(--pulso-space-1);
   }
-}
-
-/* ── E2 · Cabecera ─────────────────────────────────────────────────────── */
-.vx-cabecera {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pulso-space-4);
-  padding: var(--pulso-space-5) 22px;
-}
-.vx-cabecera-texto {
-  flex: 1 1 420px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-}
-.vx-cabecera-texto .vx-eyebrow {
-  white-space: normal;
-}
-.vx-cabecera h3 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-kpi-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-.vx-cabecera h3 small {
-  color: var(--pulso-text-faint);
-  font-size: inherit;
-  font-weight: var(--pulso-weight-medium);
-}
-.vx-cabecera-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-}
-.vx-codigo {
-  padding: 3px var(--pulso-space-2);
-  border-radius: 6px;
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-caption-size);
-  overflow-wrap: anywhere;
-}
-.vx-sep-punto {
-  color: var(--pulso-border-strong);
-}
-/* Separador entre dos datos de la cabecera: una línea fina, no un «·». */
-.vx-sep-linea {
-  align-self: stretch;
-  width: 1px;
-  background: var(--pulso-border);
-}
-.vx-cabecera-nav {
-  display: flex;
-  gap: var(--pulso-space-2);
 }
 
 /* ── E3 · Barra de lectura ─────────────────────────────────────────────── */
@@ -1341,45 +1134,6 @@
 .vx-leyenda i.vx-muestra.is-punto { border-radius: 50%; }
 .vx-leyenda i.vx-muestra.is-total { width: 2px; height: 13px; border-radius: 0; background: var(--pulso-text-faint); }
 
-/* ── E10/E11 · Paneles laterales ───────────────────────────────────────── */
-.vx-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-3);
-  padding: var(--pulso-space-4) 18px;
-}
-.vx-panel-cab {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-}
-.vx-panel h4 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
-}
-/* E10 + E11 son una sola ficha: una tarjeta, dos secciones con la misma
-   cabecera y la misma rejilla rótulo · valor, separadas por un filete. */
-.vx-ficha {
-  display: flex;
-  flex-direction: column;
-}
-.vx-ficha > .vx-panel + .vx-panel {
-  border-top: 1px solid var(--pulso-border);
-}
-.vx-ficha .vx-panel h4 {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.vx-panel-cab > span {
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-caption-size);
-}
 .vx-enunciado {
   display: flex;
   flex-direction: column;
@@ -1397,33 +1151,6 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   line-height: 1.45;
-}
-.vx-dl {
-  margin: 0;
-  display: grid;
-  /* Misma columna de rótulos en las dos secciones de la ficha. */
-  grid-template-columns: 8.5em minmax(0, 1fr);
-  gap: 7px 14px;
-  font-size: var(--pulso-type-body-size);
-}
-.vx-dl dt {
-  color: var(--pulso-text-soft);
-}
-.vx-dl dd {
-  margin: 0;
-  min-width: 0;
-  color: var(--pulso-text);
-  overflow-wrap: anywhere;
-}
-.vx-dl dd.is-vacio {
-  color: var(--pulso-text-faint);
-}
-.vx-dl dd .vx-mono {
-  font-size: var(--pulso-type-caption-size);
-}
-.vx-dl.is-cifras dd {
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
 }
 .vx-opciones {
   display: flex;
@@ -1505,50 +1232,6 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
-}
-.vx-lectura {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--pulso-surface-3);
-}
-.vx-lectura > i {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  font-size: var(--pulso-type-micro-size);
-  font-style: normal;
-}
-.vx-lectura.is-arriba > i {
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, var(--pulso-surface));
-  color: var(--module-accent, var(--pulso-primary));
-}
-.vx-lectura.is-abajo > i {
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-.vx-lectura > span {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.vx-lectura strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-semibold);
-}
-.vx-lectura small,
-.vx-panel p {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.45;
 }
 .vx-calor-fila > div.is-col-total[role="presentation"] {
   display: flex;

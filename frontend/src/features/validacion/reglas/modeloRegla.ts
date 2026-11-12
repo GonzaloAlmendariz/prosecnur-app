@@ -3,7 +3,7 @@
  * múltiple, parámetros que se mandan al guardar, condiciones previas y
  * tratamiento previsto por tipo.
  *
- * Salieron de `components/ReglaEditor.tsx` (rebanada V1 de P6). La rebanada
+ * Salieron del asistente `ReglaEditor` (ya retirado; rebanada V1 de P6). La rebanada
  * V2 del plan de fidelidad les suma el tipo "Condiciones combinadas" y la
  * comparación con otra pregunta del contrato M1. Lo que entregan al guardar lo
  * fija `payloadDeRegla.test.tsx`.

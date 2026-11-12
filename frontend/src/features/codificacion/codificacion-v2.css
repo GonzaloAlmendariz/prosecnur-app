@@ -203,8 +203,6 @@
   background: color-mix(in srgb, var(--pulso-surface-2) 82%, #fff 18%);
 }
 
-
-
 .pulso-codificacion-matrix-standard strong {
   color: var(--pulso-text);
   font-size: var(--pulso-type-caption-size);
@@ -1464,7 +1462,6 @@ button.pulso-ghost-nav:disabled {
   font-size: var(--pulso-type-caption-size);
 }
 
-
 /* =========================================================================
    Movido desde app/theme.css (refactor 2026-07: theme.css = tokens + kit).
    Bloques byte-idénticos; append: sin solape de selectores con el resto del archivo.
@@ -1596,22 +1593,3 @@ button.pulso-ghost-nav:disabled {
   --pulso-switch-accent-ring: color-mix(in srgb, var(--pulso-switch-accent) 18%, transparent);
 }
 
-/* P6 (4 nov 2026): el chip de decisión es el EstadoChip del kit; su motivo o lo
-   que falta va al lado, en texto apagado, y se recorta antes que el chip. */
-.pulso-codif-decision {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.pulso-codif-decision-coletilla {
-  min-width: 0;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-}

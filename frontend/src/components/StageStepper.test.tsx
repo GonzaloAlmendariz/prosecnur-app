@@ -8,7 +8,6 @@ import {
   commitStageChange,
   resolveStageState,
 } from "./StageStepper";
-import { Stepper } from "./Stepper";
 
 const stages = [
   {
@@ -90,26 +89,6 @@ describe("StageStepper", () => {
     expect(onStageChange).not.toHaveBeenCalled();
     commitStageChange("calculate", "deliver", onStageChange);
     expect(onStageChange).toHaveBeenCalledWith("deliver");
-  });
-
-  it("keeps the legacy Stepper API as a semantic compatibility adapter", () => {
-    const html = renderToStaticMarkup(
-      <Stepper
-        steps={[
-          { key: "prepare", n: 1, label: "Preparar", icon: Layers, hint: "Revisar" },
-          { key: "deliver", n: 2, label: "Entregar", icon: Target, hint: "Publicar" },
-        ]}
-        current="prepare"
-        onChange={() => undefined}
-      />,
-    );
-
-    expect(html).toContain('aria-label="Stepper"');
-    expect(html).toContain("<ol");
-    expect(html).toContain("Revisar");
-    expect(html).toContain("Publicar");
-    expect(html).not.toContain('role="tablist"');
-    expect(html).not.toContain('role="tab"');
   });
 
   it("uses the contextual module accent without hiding stage labels", () => {

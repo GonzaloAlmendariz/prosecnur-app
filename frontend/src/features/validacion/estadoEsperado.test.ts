@@ -68,7 +68,6 @@ describe("las pestañas de Validación comparten el criterio", () => {
 
   it.each([
     ["tabs/ExplorarTab.tsx"],
-    ["tabs/ReglasCustomTab.tsx"],
   ])("%s lo importa en vez de reimplementarlo", (archivo) => {
     const fuente = leer(archivo);
     expect(fuente).toContain("esEstadoInicial");

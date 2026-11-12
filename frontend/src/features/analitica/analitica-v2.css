@@ -2275,10 +2275,6 @@ label.analitica-control-card > input[type="checkbox"] ~ .analitica-control-icon 
   opacity: 0.6;
 }
 
-.analitica-enumeradores-vacias {
-  margin-top: 10px;
-}
-
 .pulso-analitica-frame .analitica-control-grid + .analitica-presentation-note {
   margin-top: var(--pulso-space-2);
 }

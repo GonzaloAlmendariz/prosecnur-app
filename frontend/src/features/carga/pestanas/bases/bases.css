@@ -884,12 +884,6 @@
   gap: var(--pulso-space-2);
 }
 
-/* "Nueva versión" abierta pide su ancho: baja a la línea de abajo. */
-.pulso-bases-fuente-acciones:has(.pulso-bde-version) {
-  grid-column: 1 / -1;
-  align-items: stretch;
-}
-
 .pulso-bases .pulso-bases-otra-fuente {
   justify-content: center;
   width: 100%;

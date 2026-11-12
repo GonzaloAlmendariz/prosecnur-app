@@ -1874,9 +1874,6 @@ function refineContext(
       CargaPage: "Preparar / Ver base",
       ProcessingSheetViewer: "Ver base",
       ExplorarTab: "Explorar respuestas",
-      InstrumentoTab: "Reglas del formulario",
-      ReglasCustomTab: "Criterios de revisión",
-      LimpiezaTab: "Cierre de base",
       PanoramaTab: "Panorama (declarada inactiva)",
       PreguntasLanding: "Preparar",
       CodificarWizard: "Codificar",
@@ -1897,7 +1894,6 @@ function refineContext(
       OrdenCategoriasEditor: "Orden de categorías",
       DimensionesPane: "Dimensiones",
       DimensionesWizard: "Dimensiones",
-      EnumeradoresPane: "Enumeradores (declarada inactiva)",
     };
     for (const [needle, tab] of Object.entries(processingTabs)) {
       if (matchesNamedContext(needle)) next.tab = tab;

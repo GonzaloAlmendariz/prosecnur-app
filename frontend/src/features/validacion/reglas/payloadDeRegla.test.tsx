@@ -2,18 +2,18 @@
 /**
  * Huella de lo que guarda el editor de reglas propias, un escenario por tipo.
  *
- * Monta `ReglaEditor` con una regla inicial válida de cada tipo, la guarda sin
- * tocar nada y fija, en claro, el valor que entrega a `onSubmit`: es el cuerpo
- * exacto del POST o PUT de `/reglas_custom`. Desde la rebanada V2 del plan de
- * fidelidad `ReglaEditor` es el panel de regla (antes, un asistente de tres
- * pasos que se recorría con "Siguiente"): el `guardado` de cada huella es el
- * mismo que con el asistente; el marcado cambió con el panel. Usa el arnés de
- * la caracterización (`../caracterizacion/arnes.tsx`).
+ * Monta el panel de regla con una regla inicial válida de cada tipo, la guarda
+ * sin tocar nada y fija, en claro, el valor que entrega a `onSubmit`: es el
+ * cuerpo exacto del POST o PUT de `/reglas_custom`. El `guardado` de cada
+ * huella es el mismo que entregaba el asistente de tres pasos que el panel
+ * reemplazó. Usa el arnés de la caracterización (`../caracterizacion/arnes.tsx`).
  */
 import { afterAll, beforeAll, describe, expect } from "vitest";
 import { ESPERA_DEL_CONTEO_MS, fijarEsperaDelConteoParaPruebas } from "./panel/conteoPrevio";
-import type { ReglaCustom } from "../types";
-import ReglaEditor from "../components/ReglaEditor";
+import { useMemo } from "react";
+import type { ExploradorVariablesList, ReglaCustom } from "../types";
+import { PanelRegla } from "./panel/PanelRegla";
+import { comoCuerpoDelCliente, comoReglaPropia } from "./tiposDelMotor";
 import { escenario, fijarGuardado, montarSuelto, prepararGrupo, pulsar } from "../caracterizacion/arnes";
 import { INVENTARIO, RUTAS_EXPLORAR, reglaPropia } from "../caracterizacion/escenarios";
 
@@ -27,6 +27,30 @@ beforeAll(() => {
 afterAll(() => {
   fijarEsperaDelConteoParaPruebas(ESPERA_DEL_CONTEO_MS);
 });
+
+type PropsEditor = {
+  inv: ExploradorVariablesList;
+  baseNombre?: string | null;
+  inicial?: ReglaCustom | null;
+  onSubmit: (payload: Omit<ReglaCustom, "id" | "created_at"> & { id?: string }) => Promise<void>;
+  onCancel: () => void;
+};
+
+/** El panel de regla siempre abierto, con la firma que usa el guardado de la pestaña. */
+function EditorDeRegla({ inv, baseNombre, inicial, onSubmit, onCancel }: PropsEditor) {
+  const variables = useMemo(() => inv.secciones.flatMap((s) => s.variables), [inv.secciones]);
+  return (
+    <PanelRegla
+      abierto
+      onCerrar={onCancel}
+      inicial={inicial ? comoReglaPropia(inicial) : null}
+      variables={variables}
+      baseNombre={baseNombre ?? null}
+      semillas={[]}
+      onGuardar={(cuerpo) => onSubmit(comoCuerpoDelCliente(cuerpo))}
+    />
+  );
+}
 
 type Caso = [nombre: string, inicial: ReglaCustom];
 
@@ -64,12 +88,12 @@ const CASOS: Caso[] = [
   ["inactiva-sin-nombre", reglaPropia("RC_113", { activa: false, nombre: "", mensaje: "", hallazgo_kind: undefined, severidad: "info" })],
 ];
 
-describe("ReglaEditor: lo que entrega a onSubmit, por tipo", () => {
+describe("Panel de regla: lo que entrega a onSubmit, por tipo", () => {
   for (const [nombre, inicial] of CASOS) {
     escenario(`regla_${nombre}`, `${inicial.tipo}: abre la regla y la guarda sin cambios`, async () => {
       const enviados: string[] = [];
       await montarSuelto(
-        <ReglaEditor
+        <EditorDeRegla
           inv={INVENTARIO}
           baseNombre="default"
           inicial={inicial}

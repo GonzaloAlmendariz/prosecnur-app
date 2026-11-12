@@ -3,8 +3,6 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { WarmupReloj } from "./WarmupReloj";
-import { VistaSkeleton } from "../components/VistaSkeleton";
-import { PROSECNUR_ACTIVE_MODULES } from "../lib/modules";
 import { SIN_ESTIMACION, normalizarEstimacionWarmup } from "./warmupTiempo";
 
 function fallback(path: string) {
@@ -61,21 +59,5 @@ describe("WarmupReloj", () => {
     expect(html).not.toContain("Restante");
     expect(html).toContain("Apertura anterior");
     expect(html).toContain("1:00");
-  });
-});
-
-describe("VistaSkeleton", () => {
-  it("dibuja tantas secciones como el módulo declara, acotadas", () => {
-    const html = renderToStaticMarkup(<VistaSkeleton secciones={6} />);
-    expect(html.match(/is-pill/g)).toHaveLength(6);
-    expect(renderToStaticMarkup(<VistaSkeleton secciones={40} />).match(/is-pill/g)).toHaveLength(8);
-  });
-
-  it("la variante de inicio es el Home: una tarjeta por módulo activo, con su tono", () => {
-    const html = renderToStaticMarkup(<VistaSkeleton variante="inicio" />);
-    expect(html).toContain('data-vista-skeleton="inicio"');
-    expect(html.match(/pulso-vista-skeleton-card"/g)).toHaveLength(PROSECNUR_ACTIVE_MODULES.length);
-    expect(html.match(/--module-accent:/g)).toHaveLength(PROSECNUR_ACTIVE_MODULES.length);
-    expect(html).toContain("pulso-vista-skeleton-franja");
   });
 });

@@ -1,5 +1,4 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { normalizeArmonizacionBase, normalizeComparacionFuentes, type ComparacionFuentes } from "../../../api/cargaArmonizacion";
 
@@ -8,9 +7,7 @@ vi.mock("../../../api/cargaFormularioPublicado", async (importOriginal) => ({
   apiCargaFormulariosPublicados: vi.fn(async () => []),
 }));
 
-import type { EstudioPayload } from "../../../api/estudio";
 import { ArmonizacionBaseVista } from "./ArmonizacionBaseVista";
-import { BasesDelEstudio } from "./BasesDelEstudio";
 import { CompararFuentesVista } from "./CompararFuentesVista";
 import { readinessArmonizacion } from "./ArmonizacionBasePanel";
 import { readinessComparacion } from "./CompararFuentesPanel";
@@ -130,39 +127,5 @@ describe("readiness de los paneles", () => {
     expect(readinessComparacion({ tipo: "cargando" }, null)).toBe("vacio:sin-par");
     expect(readinessComparacion({ tipo: "error", mensaje: "x" }, { a: "a", b: "b" })).toBe("vacio:error");
     expect(readinessComparacion({ tipo: "listo", datos: COMP }, { a: "a", b: "b" })).toBe("true");
-  });
-});
-
-describe("BasesDelEstudio", () => {
-  const estudio = {
-    bases: {
-      sm: { nombre: "sm", n_filas: 289, n_columnas: 40, source_kind: "formulario_publicado_surveymonkey", instrument_revision_id: "rev-3" },
-      sav: { nombre: "sav", n_filas: 279, n_columnas: 40, source_kind: "formulario_publicado_sav", instrument_revision_id: "rev-3" },
-      manual: { nombre: "manual", n_filas: 10, n_columnas: 4, source_kind: "manual" },
-    },
-  } as unknown as EstudioPayload;
-
-  it('ofrece "Ver armonización" en las bases ligadas y "Comparar fuentes" con dos de la misma revisión', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter initialEntries={["/procesamiento?seccion=carga"]}>
-        <BasesDelEstudio estudio={estudio} onCambio={() => undefined} renderOrigen={() => null} />
-      </MemoryRouter>,
-    );
-    expect(html.match(/<\/svg>Ver armonización/g)).toHaveLength(2);
-    expect(html).toContain("Comparar con sav");
-    expect(html).toContain("Comparar con sm");
-    expect(html).toContain('data-plf-abrir="comparar"');
-    expect(html).toContain('aria-haspopup="dialog"');
-  });
-
-  it("sin una segunda base de la misma revisión no ofrece comparar", () => {
-    const solo = { bases: { sm: estudio.bases.sm, manual: estudio.bases.manual } } as unknown as EstudioPayload;
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <BasesDelEstudio estudio={solo} onCambio={() => undefined} renderOrigen={() => null} />
-      </MemoryRouter>,
-    );
-    expect(html).toContain("Ver armonización");
-    expect(html).not.toContain("Comparar");
   });
 });

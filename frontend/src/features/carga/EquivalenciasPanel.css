@@ -116,79 +116,8 @@
 
 /* La misma marca que pinta la fila (`tr.is-escala-rota`), en miniatura. */
 
-/* El chip dice lo que CABE —la escala corta entera, o cuantas opciones son— y
-   nunca recorta con puntos suspensivos: a 240 px con `text-overflow`, una escala
-   de cinco puntos deformaba la cabecera y lo unico legible era el principio de
-   la primera opcion. La lista entera vive en el globo. */
-.pulso-equiv-chip-escala {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-button.pulso-equiv-chip-escala:hover,
-.pulso-equiv-chip-escala[aria-expanded="true"] {
-  border-color: var(--module-accent);
-  color: var(--module-accent);
-}
-
-.pulso-equiv-chip-escala[aria-expanded="true"] svg { transform: rotate(180deg); }
-.pulso-equiv-chip-escala svg { transition: transform 140ms ease; }
-
-/* El globo es el Popover del kit (components/popover.css pone el portal,
-   `fixed`, la capa, el borde, la sombra y la entrada); aquí solo su medida. */
-.pulso-popover.pulso-equiv-escala-globo {
-  width: 300px;
-  max-height: 320px;
-  overflow-y: auto;
-  padding: var(--pulso-space-2);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .pulso-equiv-chip-escala svg { transition: none; }
-}
-
-.pulso-equiv-escala-globo-head {
-  margin: 0 0 var(--pulso-space-2);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: 600;
-  color: var(--pulso-text-faint);
-}
-
-.pulso-equiv-escala-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text);
-}
-
-.pulso-equiv-escala-lista li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-  line-height: 1.45;
-}
-
-/* El codigo va en ancho fijo y tabular: una escala se reconoce por el orden de
-   sus codigos tanto como por sus etiquetas. */
-.pulso-equiv-escala-codigo {
-  flex-shrink: 0;
-  min-width: 20px;
-  text-align: right;
-  color: var(--pulso-text-faint);
-  font-variant-numeric: tabular-nums;
 }
 
 /* Los avisos DESCRIBEN el estado de la diapositiva; no denuncian un error. Una

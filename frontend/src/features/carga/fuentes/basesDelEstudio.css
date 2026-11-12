@@ -1,161 +1,4 @@
-/* Carga › Fuentes: las bases del estudio como tarjetas y el panel «Agregar base». Sólo tokens existentes. */
 
-.pulso-bde {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-4);
-  min-width: 0;
-}
-
-.pulso-bde-encabezado {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-}
-
-.pulso-bde-encabezado h3 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-semibold);
-}
-
-.pulso-bde-encabezado p {
-  margin: 2px 0 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
-
-/* Contrato `intrinsic` (C2): cada tarjeta mide lo que contiene. Con el `stretch` por defecto de la rejilla, la
-   fila de descarga de una tarjeta estiraba a sus hermanas (24 px a 1440, 42 px a 1024) y el hueco entre las cifras
-   y las acciones crecía de 8 a 32 o 50 px sin que cambiara su contenido. */
-.pulso-bde-grilla {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
-  align-items: start;
-  gap: var(--pulso-space-3);
-}
-
-.pulso-bde-tarjeta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  min-width: 0;
-  padding: var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.pulso-bde-cabecera {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
-}
-
-.pulso-bde-marca {
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--pulso-module-processing-soft);
-  color: var(--pulso-module-processing);
-}
-
-.pulso-bde-nombre {
-  flex: 1;
-  margin: 0;
-  min-width: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-semibold);
-  overflow-wrap: anywhere;
-}
-
-.pulso-bde-origen {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  font-weight: var(--pulso-weight-medium);
-}
-
-.pulso-bde-renombrar {
-  display: flex;
-  flex: 1;
-  gap: 6px;
-  min-width: 0;
-}
-
-.pulso-bde-renombrar input {
-  flex: 1;
-  min-width: 0;
-  height: var(--pulso-control-height-sm);
-  padding: 0 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 8px;
-  font: inherit;
-}
-
-.pulso-bde-fuente {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.4;
-}
-
-/* El nombre del archivo parte tras un `_` y no a media extensión ("…26.xl" arriba y "sx" abajo); con el peso y el
-   tamaño del texto de la tarjeta, no los del nombre del contenedor. */
-.pulso-bde-fuente > .pulso-entregable-nombre {
-  min-width: 0;
-  font-weight: inherit;
-  line-height: inherit;
-}
-
-.pulso-bde-canal {
-  padding: 0 7px;
-  border-radius: 999px;
-  border: 1px solid var(--pulso-border);
-  color: var(--pulso-text-muted);
-  font-size: var(--pulso-type-caption-size);
-}
-
-.pulso-bde-cifras {
-  display: flex;
-  gap: var(--pulso-space-5);
-  margin: 0;
-}
-
-.pulso-bde-cifras div { display: flex; flex-direction: column; }
-.pulso-bde-cifras dt { color: var(--pulso-text-muted); font-size: var(--pulso-type-caption-size); }
-.pulso-bde-cifras dd { margin: 0; color: var(--pulso-text); font-size: var(--pulso-type-kpi-size); font-weight: var(--pulso-weight-semibold); font-variant-numeric: tabular-nums; }
-
-.pulso-bde-acciones,
-.pulso-bde-confirmar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.pulso-bde-confirmar {
-  padding: 8px 10px;
-  border: 1px solid var(--pulso-danger-border);
-  border-radius: 10px;
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-  font-size: var(--pulso-type-body-size);
-}
 
 .pulso-bde-error {
   margin: 0;
@@ -163,50 +6,6 @@
   border-radius: 10px;
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
-}
-
-.pulso-bde-agregar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-3);
-  padding: var(--pulso-space-4);
-  border: 1px solid var(--pulso-primary-border);
-  border-radius: var(--pulso-radius-card);
-  background: color-mix(in srgb, var(--pulso-surface-2) 55%, var(--pulso-surface));
-}
-
-.pulso-bde-agregar-cabecera {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-right: 32px;
-}
-
-.pulso-bde-agregar-cabecera strong { color: var(--pulso-text); font-size: var(--pulso-type-title-size); }
-.pulso-bde-agregar-cabecera span { color: var(--pulso-text-soft); font-size: var(--pulso-type-body-size); }
-
-.pulso-bde-cerrar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--pulso-text-muted);
-  cursor: pointer;
-}
-
-.pulso-bde-cerrar:hover { background: var(--pulso-surface-2); color: var(--pulso-text); }
-
-.pulso-bde-origenes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: var(--pulso-space-2);
 }
 
 .pulso-bde-origen-opcion {
@@ -232,8 +31,6 @@
 .pulso-bde-origen-opcion small { font-size: var(--pulso-type-caption-size); }
 .pulso-bde-origen-opcion:hover { border-color: var(--pulso-border-strong); }
 .pulso-bde-origen-opcion.is-activa { border-color: var(--pulso-primary); box-shadow: 0 0 0 3px var(--pulso-primary-ring); color: var(--pulso-primary); }
-
-.pulso-bde-agregar-cuerpo { min-width: 0; }
 
 .pulso-bde-nueva {
   display: flex;
@@ -289,19 +86,6 @@
 .pulso-bde-archivo.is-listo { border-style: solid; border-color: var(--pulso-success-border); background: var(--pulso-success-bg); }
 .pulso-bde-archivo:focus-within { box-shadow: 0 0 0 3px var(--pulso-primary-ring); }
 
-.pulso-bde-fuentes {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-}
-
-.pulso-bde-fuentes li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-
 .pulso-bde-previa {
   display: flex;
   flex-direction: column;
@@ -317,14 +101,6 @@
 .pulso-bde-previa p { margin: 0; color: var(--pulso-text-soft); }
 .pulso-bde-previa ul { margin: 4px 0 0; padding-left: 18px; }
 .pulso-bde-previa-rotulo { color: var(--pulso-text-muted); font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); }
-
-/* ADR 0102: «Comparar fuentes» junto a «Agregar base». */
-.pulso-bde-encabezado-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
-}
 
 /* «Nueva versión» de las respuestas (ADR 0100 D1): el aviso y el resultado
    ocupan una fila propia bajo las acciones de la tarjeta. */
@@ -350,39 +126,16 @@
   color: var(--pulso-text);
 }
 
-.pulso-bde-version-titulo {
-  margin: 0;
-  font-weight: 600;
-  color: var(--pulso-text);
-}
-
-.pulso-bde-version-ayuda {
-  margin: 0;
-  color: var(--pulso-text-muted);
-  line-height: 1.45;
-}
-
 .pulso-bde-version-acciones {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.pulso-bde-version-elegir {
-  cursor: pointer;
-}
-
-.pulso-bde-version-elegir[aria-disabled="true"] {
-  opacity: 0.6;
-  cursor: progress;
-}
-
 .pulso-bde-version-siguiente {
   font-weight: 600;
   color: var(--pulso-text);
 }
-
-
 
 /* Carga › Fuentes (una base): resumen de las respuestas (RespuestasResumen). */
 .pulso-upload-summary > .pulso-resp-resumen {
