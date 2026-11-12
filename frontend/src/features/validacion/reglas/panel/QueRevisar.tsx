@@ -4,8 +4,8 @@
  * ejemplo, y debajo las sugeridas al mirar la base.
  *
  * - "Combinación fuera de catálogo" se ve deshabilitada con su causa (D-V2).
- * - Los tipos que ya no se crean (obligatoria, valores extremos, fuera de
- *   lista) solo aparecen si la regla que se edita es de ese tipo (D-F11).
+ * - Los valores extremos ya no se crean: solo aparecen si la regla que se
+ *   edita es de ese tipo (D-F11).
  * - "Usar" en una sugerida abre la regla armada con ella.
  */
 import { useId } from "react";

@@ -14,7 +14,7 @@
     ]
   },
   "explorar_nueva-regla-sobre-pregunta": {
-    "marcado": "56f4e13a71790aa93a0e5b3006477055ec7ab3e1c0784fd85889ddc56bbf07d5",
+    "marcado": "b3cd596580b9d0a194521364c7e92713575ab086da062de9f0897cfb5966694b",
     "pedidos": "de15d31433b0de8d3d5e502cb8cebbac49388e6fa010a881c22fc662f4a309fb",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"

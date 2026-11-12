@@ -25,8 +25,11 @@ export type TipoMeta = {
   nVars: number | [number, number];
   grupo: GrupoDeTipo;
   /**
-   * Tipos que el selector ya no ofrece para crear (D-F11): solo aparecen si la
-   * regla que se edita ya es de ese tipo.
+   * Tipos que el selector ya no ofrece para crear (D-F11, hoy solo los valores
+   * extremos): solo aparecen si la regla que se edita ya es de ese tipo.
+   * Respuesta obligatoria y fuera de lista volvieron al selector el 2026-11-12:
+   * sin ellas un practicante no tenía cómo revisar respuestas vacías ni códigos
+   * fuera de la lista.
    */
   legacyHidden?: boolean;
 };
@@ -64,7 +67,6 @@ export const TIPOS: TipoMeta[] = [
     descripcion: "Se marca cuando la pregunta queda vacía.",
     nVars: 1,
     grupo: "respuesta",
-    legacyHidden: true,
   },
   {
     key: "outliers_iqr",
@@ -94,7 +96,6 @@ export const TIPOS: TipoMeta[] = [
     descripcion: "Se marca cuando la respuesta no está en la lista de valores permitidos.",
     nVars: 1,
     grupo: "respuesta",
-    legacyHidden: true,
   },
   {
     key: "coherencia_2v",
