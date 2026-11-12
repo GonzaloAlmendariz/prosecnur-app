@@ -266,7 +266,7 @@ export function ActualizarFuenteContenido({ fila, modo, ocupado, onCambio }: {
 function PasosDeLectura({ archivo, etapa }: { archivo: string; etapa: "subiendo" | "comparando" }) {
   const pasos = [
     { id: "subiendo", rotulo: "Subir el archivo", detalle: archivo },
-    { id: "comparando", rotulo: "Comparar con la base actual", detalle: null },
+    { id: "comparando", rotulo: "Comparar con la base cargada", detalle: null },
   ] as const;
   const actual = pasos.findIndex((p) => p.id === etapa);
   return (

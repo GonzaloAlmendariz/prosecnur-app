@@ -64,10 +64,10 @@ export function cifrasDeCasos(casos: CasosDeActualizacion): CifraDeCasos[] | nul
   ];
 }
 
-/** "40 respuestas en la base actual y 31 en la versión nueva." */
+/** "40 respuestas en la base cargada y 31 en la versión nueva." Se compara con lo cargado, no con la base limpia. */
 export function lineaDeTotales(casos: CasosDeActualizacion): string | null {
   if (casos.antes === null && casos.despues === null) return null;
-  const antes = casos.antes === null ? "la base actual no se pudo leer" : `${formatoConteoDe(casos.antes, "respuesta")} en la base actual`;
+  const antes = casos.antes === null ? "la base cargada no se pudo leer" : `${formatoConteoDe(casos.antes, "respuesta")} en la base cargada`;
   const despues = casos.despues === null ? "la versión nueva no se pudo leer" : `${formatoConteo(casos.despues)} en la versión nueva`;
   return `${antes[0]?.toUpperCase() ?? ""}${antes.slice(1)} y ${despues}.`;
 }

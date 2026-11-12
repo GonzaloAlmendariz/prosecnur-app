@@ -40,7 +40,7 @@ describe("cifras de las respuestas", () => {
     expect(cifrasDeCasos(v.casos)?.map((c) => [c.rotulo, c.valor])).toEqual([
       ["Nueva", "+1"], ["Editada", "1"], ["Ya no vienen", "10"], ["Sin cambios", "29"],
     ]);
-    expect(lineaDeTotales(v.casos)).toBe("40 respuestas en la base actual y 31 en la versión nueva.");
+    expect(lineaDeTotales(v.casos)).toBe("40 respuestas en la base cargada y 31 en la versión nueva.");
   });
   it("sin emparejar no hay cifras: va la causa", () => {
     expect(cifrasDeCasos({ ...v.casos, nuevos: null })).toBeNull();
