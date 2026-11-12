@@ -230,6 +230,11 @@ bridge_regla_custom <- function(r) {
       gate = gate_ast, tipo_regla = "duplicate",
       nombre = nombre, objetivo = objetivo, severidad = sev
     ),
+    # "Patrón en una batería" (validacion_regla_bateria.R).
+    "bateria" = .regla_bateria_rule(
+      vars = vars, params = params, gate = gate_ast,
+      nombre = nombre, objetivo = objetivo, severidad = sev
+    ),
     stop(sprintf("bridge_regla_custom(): tipo '%s' no soportado.", tipo))
   )
 

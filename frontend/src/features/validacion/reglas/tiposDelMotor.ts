@@ -12,7 +12,7 @@
  */
 import type { ReglaCustom, ReglaCustomTipo, ReglaGateCondition } from "../types";
 
-export type TipoReglaPropia = ReglaCustomTipo | "condiciones";
+export type TipoReglaPropia = ReglaCustomTipo | "condiciones" | "bateria";
 
 /** "todas": se marca si se cumplen todas; "alguna": si se cumple al menos una. */
 export type ModoCondiciones = "todas" | "alguna";
@@ -48,6 +48,7 @@ const TIPOS_CONOCIDOS: readonly TipoReglaPropia[] = [
   "select_multiple_cardinality",
   "select_multiple_selection",
   "condiciones",
+  "bateria",
 ];
 
 export function esTipoReglaPropia(valor: unknown): valor is TipoReglaPropia {

@@ -125,6 +125,15 @@ export const TIPOS: TipoMeta[] = [
     grupo: "coherencia",
   },
   {
+    key: "bateria",
+    label: "Patrón en una batería",
+    rotulo: "Patrón en una batería",
+    ejemploCorto: "La misma respuesta en los 14 ítems de una escala",
+    descripcion: "Se marca cuando las preguntas de una batería tienen todas la misma respuesta, repiten un código o quedan vacías.",
+    nVars: [2, 300],
+    grupo: "coherencia",
+  },
+  {
     key: "select_multiple_hierarchy",
     label: "Completar opciones asumidas",
     rotulo: "Opciones que van juntas",

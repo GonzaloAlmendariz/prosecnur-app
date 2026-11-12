@@ -32,6 +32,7 @@ import {
   paramList,
   treatmentActionsForTipo,
   treatmentDefaultFor,
+  validarBateria,
   validarCondiciones,
   validateGateConditions,
   variablesDeCondiciones,
@@ -71,6 +72,7 @@ export type Borrador = {
 function paramsDeArranque(tipo: TipoReglaPropia | null, primera: string): Record<string, unknown> {
   if (tipo === "condiciones") return { modo: "todas", condiciones: [{ variable: primera, op: "", valor: "" }] };
   if (tipo === "select_multiple_selection") return { op: "contains_any" };
+  if (tipo === "bateria") return { patron: "iguales" };
   return {};
 }
 
@@ -197,6 +199,8 @@ export function nombreDelBorrador(b: Borrador, variables: readonly ExploradorVar
     return etiqueta && etiqueta !== p ? `"${etiqueta}"` : p;
   });
   const base = meta?.rotulo ?? "Regla";
+  // Una batería se nombra por su primera y su última pregunta, no por todas.
+  if (b.tipo === "bateria" && nombres.length > 2) return `${base}: ${nombres[0]} a ${nombres[nombres.length - 1]}`;
   return nombres.length ? `${base}: ${nombres.join(" y ")}` : base;
 }
 
@@ -264,6 +268,10 @@ export function validarBorrador(b: Borrador): string {
     const max = nullableNumber(params.max);
     if (min === null && max === null) return "Define mínimo, máximo o ambos.";
     if (min !== null && max !== null && min > max) return "El mínimo no puede ser mayor que el máximo.";
+  }
+  if (tipo === "bateria") {
+    const error = validarBateria(params, b.variables.filter(Boolean).length);
+    if (error) return error;
   }
   if (tipo === "select_multiple_selection") {
     const op = String(params.op ?? "");

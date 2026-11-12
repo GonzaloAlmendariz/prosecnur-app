@@ -15,7 +15,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { PulsoSelect } from "../../../../components/PulsoSelect";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
-import { Plus, X } from "../../../../vendor/lucide-react";
+import { Plus } from "../../../../vendor/lucide-react";
 import type { ExploradorVariable, ReglaGateCondition } from "../../types";
 import type { AccionDeBorrador, Borrador } from "../borradorDeRegla";
 import { CampoOpciones } from "../campos/CampoOpciones";
@@ -34,6 +34,8 @@ import {
 import { opcionesDeOperador, type FormaDelOperador } from "../operadores";
 import { metaDeTipo, rangoDePreguntas } from "../tiposDeRegla";
 import { esOperadorDeComparacion, type CondicionCombinada, type ModoCondiciones, type OperadorDeCondicion } from "../tiposDelMotor";
+import { CamposDeBateria } from "./CamposDeBateria";
+import { Fila } from "./FilaDeRegla";
 import { Segmentado } from "./Segmentado";
 
 type Props = {
@@ -43,35 +45,6 @@ type Props = {
 };
 
 const CAUSA_SIN_COMPARAR = "Con otra pregunta solo se compara con es, no es, mayor o menor";
-
-/** Una fila de la caja: rótulo, campos y, si se puede quitar, la X. */
-function Fila({
-  rotulo,
-  children,
-  quitar,
-  variante = "condicion",
-  clase,
-}: {
-  rotulo: ReactNode;
-  children: ReactNode;
-  quitar?: { etiqueta: string; onQuitar: () => void };
-  variante?: "condicion" | "campo";
-  clase?: string;
-}) {
-  return (
-    <div className={[`pulso-regla-fila pulso-regla-fila--${variante}`, clase].filter(Boolean).join(" ")} data-qa-geometry-member="">
-      <span className="pulso-regla-rotulo">{rotulo}</span>
-      {children}
-      {quitar ? (
-        <PulsoButton variant="icon" size="sm" intent="remove" aria-label={quitar.etiqueta} onClick={quitar.onQuitar}>
-          <X size={13} aria-hidden="true" />
-        </PulsoButton>
-      ) : (
-        <span aria-hidden="true" />
-      )}
-    </div>
-  );
-}
 
 function SelectorDeOperador({
   variable,
@@ -125,6 +98,10 @@ export function preguntasDelTipo(tipo: Borrador["tipo"], variables: readonly Exp
     case "select_multiple_cardinality":
     case "select_multiple_selection":
       return variables.filter((v) => v.tipo === "sm");
+    case "bateria":
+      // Una batería compara respuestas de opción única (o sus códigos): la
+      // opción múltiple reparte la respuesta en columnas y la fecha no repite.
+      return variables.filter((v) => v.tipo !== "sm" && v.tipo !== "fecha");
     default:
       return variables;
   }
@@ -367,6 +344,10 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
           Añadir condición
         </PulsoButton>
       );
+      break;
+    }
+    case "bateria": {
+      filas = <CamposDeBateria borrador={b} despachar={despachar} variables={preguntasDelTipo("bateria", variables)} />;
       break;
     }
     case "duplicados": {

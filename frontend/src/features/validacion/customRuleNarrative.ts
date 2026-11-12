@@ -16,7 +16,14 @@
 
 import type { ReglaGateCondition } from "./types";
 import type { ReglaLike } from "./components/v2";
-import { condicionesDeParams, esOperadorSinValor, modoDeCondiciones, paramList } from "./reglas/modeloRegla";
+import {
+  condicionesDeParams,
+  esOperadorSinValor,
+  minimoDeBateria,
+  modoDeCondiciones,
+  paramList,
+  patronDeBateria,
+} from "./reglas/modeloRegla";
 import { leerOperador, leerOperadorNegado } from "./reglas/operadores";
 import type { CondicionCombinada, ReglaPropia, TipoReglaPropia } from "./reglas/tiposDelMotor";
 
@@ -36,6 +43,7 @@ const CUSTOM_TIPO_TO_AST: Record<TipoReglaPropia, string> = {
   select_multiple_cardinality: "select_multiple_cardinality",
   select_multiple_selection: "select_multiple_cardinality",
   condiciones: "coherence",
+  bateria: "pattern",
 };
 
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
@@ -54,6 +62,7 @@ export const CUSTOM_TIPO_LABEL: Record<TipoReglaPropia, string> = {
   select_multiple_cardinality: "Cantidad de opciones marcada",
   select_multiple_selection: "Opciones esperadas o prohibidas",
   condiciones: "Condiciones combinadas",
+  bateria: "Patrón en una batería",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
@@ -132,6 +141,10 @@ export function describeCustomParams(
       }
       const conector = modoDeCondiciones(params.modo) === "alguna" ? " o " : " y ";
       return `Se marca cuando ${partes.join(conector)}; una pregunta vacía no cumple su condición.`;
+    }
+    case "bateria": {
+      const piezas = fraseDeReglaPropia({ tipo, variables, params });
+      return piezas ? fraseEnTexto(piezas) : "Se marca cuando las preguntas de una batería tienen todas la misma respuesta, repiten un código o quedan vacías.";
     }
     default:
       return "";
@@ -484,11 +497,66 @@ export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leer
       f.pregunta(v1).texto(` ${lectura}`).valor(codigos).texto(".");
       break;
     }
+    case "bateria": {
+      if (!fraseDeBateria(f, regla, leer)) return null;
+      break;
+    }
     default:
       return null;
   }
   filtroEnFrase(f, regla.gate_conditions ?? [], leer);
   return f.piezas;
+}
+
+/**
+ * "Patrón en una batería": las mismas palabras que la frase del catálogo
+ * (`.vrf_frase_bateria()` en el motor). Falso si la regla no está completa.
+ */
+function fraseDeBateria(f: Frase, regla: ReglaParaFrase, leer: LeerValor): boolean {
+  const vars = regla.variables.filter(Boolean);
+  const k = vars.length;
+  if (k < 2) return false;
+  const p = regla.params;
+  const patron = patronDeBateria(p.patron);
+  const m = minimoDeBateria(p, k);
+  if (m === null || !Number.isInteger(m)) return false;
+  const primera = vars[0];
+  const tramo = () => f.texto("de ").pregunta(primera).texto(" a ").pregunta(vars[k - 1]);
+  // La frase reemplaza el "Se marca cuando " con que empieza toda frase.
+  f.piezas.length = 0;
+  if (patron === "iguales") {
+    if (m === k) {
+      f.texto(`Se marca cuando las ${k} preguntas de la batería, `);
+      tramo();
+      f.texto(", tienen la misma respuesta.");
+    } else {
+      f.texto("Se marca cuando todas las respuestas de la batería, ");
+      tramo();
+      f.texto(`, son iguales y hay al menos ${m} de ${k} preguntas respondidas.`);
+    }
+    const noCuentan = paramList(p.no_cuentan);
+    if (noCuentan.length) {
+      const leidos = noCuentan.map((c) => leer(primera, c));
+      const lista = leidos.length === 1 ? leidos[0] : `${leidos.slice(0, -1).join(", ")} y ${leidos[leidos.length - 1]}`;
+      f.texto(" ").valor(lista).texto(noCuentan.length === 1 ? " no cuenta como respuesta." : " no cuentan como respuesta.");
+    }
+    if (p.vacias_cuentan === true) f.texto(" Una pregunta vacía cuenta como una respuesta más.");
+    return true;
+  }
+  if (patron === "codigo") {
+    const codigos = paramList(p.codigos).map((c) => leer(primera, c));
+    if (!codigos.length) return false;
+    const lista = codigos.length === 1 ? codigos[0] : `${codigos.slice(0, -1).join(", ")} o ${codigos[codigos.length - 1]}`;
+    f.texto("Se marca cuando ").valor(lista);
+    f.texto(m === k ? ` aparece en las ${k} preguntas de la batería, ` : ` aparece en al menos ${m} de las ${k} preguntas de la batería, `);
+    tramo();
+    f.texto(".");
+    return true;
+  }
+  f.texto(m === k ? `Se marca cuando las ${k} preguntas de la batería, ` : `Se marca cuando al menos ${m} de las ${k} preguntas de la batería, `);
+  tramo();
+  f.texto(", están vacías.");
+  return true;
 }
 
 /** La frase en texto llano (para un nombre accesible o una prueba). */

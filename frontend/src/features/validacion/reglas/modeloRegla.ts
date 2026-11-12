@@ -29,6 +29,7 @@ export type HierarchyRow = {
 
 export function nombreSugerido(tipoMeta: TipoMeta | null, variables: string[]): string {
   const base = tipoMeta?.label ?? "Criterio";
+  if (tipoMeta?.key === "bateria" && variables.length > 2) return `${base}: ${variables[0]} a ${variables[variables.length - 1]}`;
   return variables.length ? `${base}: ${variables.join(" y ")}` : base;
 }
 
@@ -159,7 +160,52 @@ export function normalizeParamsForSubmit(
   if (tipo === "select_multiple_selection") {
     return { ...rest, op: String(params.op ?? "contains_any"), codes: paramList(params.codes) };
   }
+  if (tipo === "bateria") return paramsDeBateria(params);
   return params;
+}
+
+// --- Patrón en una batería ------------------------------------------------------
+
+export type PatronDeBateria = "iguales" | "codigo" | "vacias";
+
+export function patronDeBateria(valor: unknown): PatronDeBateria {
+  return valor === "codigo" || valor === "vacias" ? valor : "iguales";
+}
+
+/**
+ * El mínimo de la batería: el escrito o, sin escribir, el que el motor toma
+ * (todas las preguntas en "iguales" y "vacias"); `null` en "codigo" sin mínimo.
+ */
+export function minimoDeBateria(params: Record<string, unknown>, nPreguntas: number): number | null {
+  const escrito = nullableNumber(params.minimo);
+  if (escrito !== null) return escrito;
+  return patronDeBateria(params.patron) === "codigo" ? null : nPreguntas;
+}
+
+/** Los parámetros de una batería como los espera el motor: solo los del patrón elegido. */
+export function paramsDeBateria(params: Record<string, unknown>): Record<string, unknown> {
+  const patron = patronDeBateria(params.patron);
+  const minimo = nullableNumber(params.minimo);
+  return {
+    patron,
+    ...(minimo === null ? {} : { minimo }),
+    ...(patron === "codigo" ? { codigos: paramList(params.codigos) } : {}),
+    ...(patron === "iguales" ? { no_cuentan: paramList(params.no_cuentan), vacias_cuentan: params.vacias_cuentan === true } : {}),
+  };
+}
+
+/** El primer problema de una batería, o "" si se puede guardar. Mismos límites que el esquema del motor. */
+export function validarBateria(params: Record<string, unknown>, nPreguntas: number): string {
+  if (nPreguntas < 2) return "Elige al menos 2 preguntas para la batería.";
+  const patron = patronDeBateria(params.patron);
+  if (patron === "codigo" && !paramList(params.codigos).length) return "Elige el código que se cuenta.";
+  const minimo = minimoDeBateria(params, nPreguntas);
+  const inferior = patron === "iguales" ? 2 : 1;
+  if (minimo === null) return "Define en cuántas preguntas debe aparecer el código.";
+  if (!Number.isInteger(minimo) || minimo < inferior || minimo > nPreguntas) {
+    return `El mínimo debe ser un número entero entre ${inferior} y ${nPreguntas}.`;
+  }
+  return "";
 }
 
 export function paramList(value: unknown): string[] {

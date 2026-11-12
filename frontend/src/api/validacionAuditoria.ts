@@ -734,11 +734,55 @@ export type ValorDeEjemplo = {
   falla: boolean;
 };
 
+/** Patrón de una regla de batería: misma respuesta, un código repetido o vacías. */
+export type PatronDeBateria = "iguales" | "codigo" | "vacias";
+
+/**
+ * Lo que mide el motor en un caso marcado por una batería (una fila): preguntas
+ * de la batería, las contadas como respuesta, las vacías, las que tienen el
+ * código y la respuesta común si todas las contadas son la misma.
+ */
+export type ResumenDeBateria = {
+  patron: PatronDeBateria;
+  n_items: number;
+  n_contadas: number;
+  n_vacias: number;
+  n_codigo: number;
+  /** `""` si la respuesta común es la vacía (vacías que cuentan); `null` si no hay una sola. */
+  valor_comun: string | null;
+};
+
 export type EjemploDePrueba = {
   /** `null` si la fila no se pudo identificar. */
   id_caso: string | null;
   valores: ValorDeEjemplo[];
+  /** Solo en una regla de batería. */
+  bateria?: ResumenDeBateria;
 };
+
+const PATRONES_DE_BATERIA: readonly PatronDeBateria[] = ["iguales", "codigo", "vacias"];
+
+function conResumenDeBateria(value: unknown): { bateria?: ResumenDeBateria } {
+  const bateria = normalizarResumenDeBateria(value);
+  return bateria ? { bateria } : {};
+}
+
+/** El resumen de una batería, o `undefined` si no llega o llega incompleto. */
+export function normalizarResumenDeBateria(value: unknown): ResumenDeBateria | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const r = registro(value);
+  const patron = texto(r.patron);
+  const n_items = enteroONulo(r.n_items);
+  if (!(PATRONES_DE_BATERIA as readonly string[]).includes(patron) || n_items === null) return undefined;
+  return {
+    patron: patron as PatronDeBateria,
+    n_items,
+    n_contadas: enteroONulo(r.n_contadas) ?? 0,
+    n_vacias: enteroONulo(r.n_vacias) ?? 0,
+    n_codigo: enteroONulo(r.n_codigo) ?? 0,
+    valor_comun: typeof r.valor_comun === "string" ? r.valor_comun : null,
+  };
+}
 
 export type PruebaDeRegla = {
   estado: EstadoDePrueba;
@@ -777,6 +821,7 @@ export function normalizarPruebaDeRegla(value: unknown): PruebaDeRegla {
     n_casos: enteroONulo(r.n_casos),
     proporcion: numeroONulo(r.proporcion),
     ejemplos: lista(r.ejemplos).map((ej) => ({
+      ...conResumenDeBateria(ej.bateria),
       id_caso: textoONulo(ej.id_caso),
       valores: lista(ej.valores)
         .map((val): ValorDeEjemplo | null => {

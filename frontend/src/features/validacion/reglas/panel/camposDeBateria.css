@@ -1,0 +1,47 @@
+/* "Patrón en una batería": elegir las preguntas y el mínimo (CamposDeBateria.tsx). */
+
+.pulso-regla-bateria {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-regla-bateria-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-regla-bateria-resumen b {
+  color: var(--pulso-text);
+}
+
+.pulso-regla-bateria-resumen code {
+  overflow-wrap: anywhere;
+}
+
+.pulso-regla-bateria-grupos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-regla-bateria-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  column-gap: var(--pulso-space-4);
+}
+
+.pulso-regla-bateria-minimo {
+  display: grid;
+  grid-template-columns: minmax(64px, 96px) minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: center;
+  min-width: 0;
+  color: var(--pulso-text-muted);
+}

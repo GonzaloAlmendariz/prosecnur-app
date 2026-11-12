@@ -18,7 +18,7 @@ import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../../components/States";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { AlertTriangle, Compass, Inbox } from "../../../../vendor/lucide-react";
-import type { EjemploDePrueba, EstadoDePrueba, PruebaDeRegla } from "../../../../api/validacionAuditoria";
+import type { EjemploDePrueba, EstadoDePrueba, PruebaDeRegla, ResumenDeBateria } from "../../../../api/validacionAuditoria";
 import type { ExploradorVariable } from "../../types";
 import { etiquetaDeOpcion, useOpcionesDeVariables } from "../campos/opcionesDeVariable";
 import { tieneOpciones } from "../campos/tipoDeFicha";
@@ -62,6 +62,20 @@ const ANCHO_TABLA = 272;
 const ANCHO_CASO = 112;
 const MAX_COLUMNAS = 3;
 
+/**
+ * Lo que se ve de una batería en un caso: el patrón con su cifra, sobre las
+ * preguntas de la batería ("Mucho en 14 de 14", "88 en 19 de 22", "14 de 14
+ * vacías"). Sale del resumen que mide el motor, no se recuenta aquí.
+ */
+export function textoDeBateria(resumen: ResumenDeBateria, leerValor: (codigo: string) => string): string {
+  const de = `de ${formatoConteo(resumen.n_items)}`;
+  if (resumen.patron === "vacias") return `${formatoConteo(resumen.n_vacias)} ${de} vacías`;
+  if (resumen.patron === "codigo") return `Con el código en ${formatoConteo(resumen.n_codigo)} ${de}`;
+  if (resumen.valor_comun === "") return `${formatoConteo(resumen.n_contadas)} ${de} vacías`;
+  const valor = resumen.valor_comun === null ? "Distintas" : leerValor(resumen.valor_comun);
+  return `${valor} en ${formatoConteo(resumen.n_contadas)} ${de}`;
+}
+
 /** Las preguntas que van de columna: las de la regla, sin las del filtro, en el orden en que llegan. */
 export function columnasDeEjemplos(ejemplos: readonly EjemploDePrueba[]): string[] {
   const vistas: string[] = [];
@@ -76,7 +90,13 @@ export function columnasDeEjemplos(ejemplos: readonly EjemploDePrueba[]): string
 
 function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variables: readonly ExploradorVariable[] }) {
   const porNombre = new Map(variables.map((v) => [v.name, v]));
-  const columnas = columnasDeEjemplos(prueba.ejemplos);
+  // Una batería no cabe en columnas por pregunta: va su resumen por caso.
+  const bateria = prueba.ejemplos.some((ej) => ej.bateria);
+  const columnas = bateria ? [] : columnasDeEjemplos(prueba.ejemplos);
+  const primeraDeLaBateria = bateria ? prueba.ejemplos.find((ej) => ej.bateria)?.valores[0]?.variable ?? null : null;
+  const opcionesDeLaBateria = useOpcionesDeVariables(
+    primeraDeLaBateria && tieneOpciones(porNombre.get(primeraDeLaBateria)?.tipo) ? [primeraDeLaBateria] : [],
+  );
   const opciones = useOpcionesDeVariables(columnas.filter((c) => tieneOpciones(porNombre.get(c)?.tipo)));
   const ancho = Math.floor((ANCHO_TABLA - ANCHO_CASO) / Math.max(columnas.length, 1));
   const definicion: PulsoTableColumna<EjemploDePrueba & { fila: number }>[] = [
@@ -118,6 +138,20 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       };
     }),
   ];
+  if (bateria) {
+    const leerValor = (codigo: string) => {
+      const opcion = primeraDeLaBateria ? opcionesDeLaBateria.get(primeraDeLaBateria)?.find((o) => o.code === codigo) : undefined;
+      return opcion ? opcion.label || codigo : codigo;
+    };
+    definicion.push({
+      id: "bateria",
+      encabezado: "En la batería",
+      ancho: ANCHO_TABLA - ANCHO_CASO,
+      tipo: "texto" as const,
+      celda: (ej: EjemploDePrueba) => (ej.bateria ? <b className="pulso-regla-falla">{textoDeBateria(ej.bateria, leerValor)}</b> : "Sin dato"),
+      valor: (ej: EjemploDePrueba) => (ej.bateria ? textoDeBateria(ej.bateria, leerValor) : "Sin dato"),
+    });
+  }
   return (
     <PulsoTable
       columnas={definicion}

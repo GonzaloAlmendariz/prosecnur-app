@@ -51,6 +51,7 @@
       out
     },
     duplicados = stats::setNames(rep("revisada", length(vars)), vars),
+    bateria = stats::setNames(rep("revisada", length(vars)), vars),
     cruce_identidad = stats::setNames(rep("revisada", length(vars)), vars),
     stats::setNames("revisada", vars[1])
   )
@@ -246,6 +247,7 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   vars_cond <- vapply(conds, function(c) trimws(calc_str(c$variable)), character(1))
   ids <- mapa$case_ids
 
+  es_bateria <- identical(as.character(regla$tipo), "bateria")
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
     valores <- lapply(names(papeles), function(v) {
@@ -262,6 +264,10 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
         falla = isTRUE(falla)
       )
     })
-    list(id_caso = as.character(ids[k]), valores = valores)
+    ejemplo <- list(id_caso = as.character(ids[k]), valores = valores)
+    # En una batería resalta la pregunta que hace el patrón y el ejemplo lleva
+    # su resumen (validacion_regla_bateria.R).
+    if (es_bateria) ejemplo <- .regla_bateria_ejemplo(ejemplo, df, i, regla)
+    ejemplo
   })
 }

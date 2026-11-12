@@ -23,6 +23,8 @@
 #   coherencia    dos respuestas que no son compatibles.
 #   faltante      obligatoria y vacía.
 #   periodo, version, continuidad  procedencia del caso.
+#   bateria       patrón en una batería: qué respondió en cuántas preguntas
+#                 (validacion_regla_bateria.R). No depende del tipo de anomalía.
 #   contradiccion, valor_invalido, procedencia  sin más datos de la regla.
 # Sin tipo de anomalía no hay enunciado (null): no se inventa.
 
@@ -137,6 +139,9 @@
 #' @return código del subtipo, o NA sin anomalía.
 #' @keywords internal
 .validacion_subtipo_hallazgo <- function(anomalia, regla = list()) {
+  # Una batería se redacta por su patrón aunque no tenga tipo de anomalía: el
+  # enunciado dice lo que se midió en el caso, no lo clasifica.
+  if (!is.null(regla$bateria)) return("bateria")
   a <- as.character(anomalia %||% NA_character_)[1]
   if (is.na(a) || !nzchar(a)) return(NA_character_)
   tipo <- as.character(regla$tipo_regla %||% "")[1]
@@ -280,6 +285,11 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
       else "y después falta un envío que el servidor numeró"
     },
     procedencia = { sep <- " "; "y el caso no se recolectó como el estudio declaró" },
+    bateria = {
+      b <- .regla_bateria_enunciado(regla$bateria, valores, etiquetas_valor)
+      hecho <- b$hecho
+      b$choque
+    },
     ""
   )
   if (!nzchar(target) && !(sub %in% c("procedencia"))) hecho <- ""
@@ -321,7 +331,8 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
   if (is.null(rule)) {
     return(list(tipo_regla = as.character(propia$tipo %||% NA_character_), familia = as.character(propia$tipo %||% ""),
                 origen_semilla = (propia$semilla %||% list())$origen %||% NA_character_,
-                especiales = especiales, etiquetas = etiquetas))
+                especiales = especiales, etiquetas = etiquetas,
+                bateria = .regla_bateria_contexto(propia)))
   }
   origen <- .vrc_origen(rule, ids_propias)
   familia <- .vrc_familia(rule, origen, propia = propia)
@@ -343,6 +354,7 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
                                      unlist((propia$params %||% list())$valores %||% list())[1] %||% NA_character_),
     faltantes = semilla$faltantes %||% list(),
     especiales = especiales,
-    etiquetas = etiquetas
+    etiquetas = etiquetas,
+    bateria = .regla_bateria_contexto(propia)
   )
 }

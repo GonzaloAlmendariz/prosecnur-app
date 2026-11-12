@@ -394,6 +394,7 @@
     "continuidad_secuencia" = .regla_expr_continuidad_secuencia(vars[1]),
     "cruce_identidad" = .regla_expr_cruce_identidad(vars),
     "condiciones"    = .regla_expr_condiciones(r$params),
+    "bateria"        = .regla_expr_bateria(vars, r$params),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )
   expr <- .regla_apply_gate(expr, r)

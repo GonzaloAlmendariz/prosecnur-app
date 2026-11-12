@@ -27,6 +27,8 @@
 #   - select_multiple_selection — contiene/no contiene codigos esperados.
 #   - continuidad_secuencia — huecos en una secuencia que el servidor numeró.
 #   - cruce_identidad      — llave compartida + solape temporal en el mismo caso.
+#   - bateria              — patrón en un conjunto de preguntas (misma respuesta,
+#                            un código repetido, vacías); validacion_regla_bateria.R.
 
 .regla_tipos_soportados <- c(
   "no_nulo", "rango_num", "rango_fecha",
@@ -35,7 +37,7 @@
   "select_multiple_hierarchy", "select_multiple_exclusive",
   "select_multiple_cardinality", "select_multiple_selection",
   "continuidad_secuencia", "cruce_identidad",
-  "condiciones"
+  "condiciones", "bateria"
 )
 
 # Comparar con otra pregunta solo admite operadores de comparación: "está
@@ -78,6 +80,7 @@
              "Falta 'variables' (debe incluir al menos 1 variable).")
   }
   params <- r$params %||% list()
+  if (identical(tipo, "bateria")) .regla_bateria_validar(r)
 
   # Helper para coaccionar params opcionales a NA cuando vengan NULL o
   # de largo 0 — sin esto, `is.na(NULL)` devuelve logical(0) y el `&&`

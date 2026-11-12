@@ -43,6 +43,7 @@ import type { CatalogoCompleto, ReglaDelCatalogo } from "../../../api/validacion
 import type { InstrumentoDrillResult } from "../../../api/validacion";
 import type { CifraDePestana } from "../../../components/procesamiento/CifrasDePestana";
 import type { EstadoDePestana } from "../../../components/procesamiento/CabeceraDePestana";
+import { registro } from "../../../api/normalizarR";
 import { conNivel } from "../../../lib/navegacion/direccion";
 import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
 import type { LimpiezaDecision, LimpiezaDecisionActionType, LimpiezaQueueItem, LimpiezaSummary } from "../types";
@@ -538,6 +539,9 @@ export type FilaDeCaso = {
   esperado: EnunciadoEsperado | null;
 };
 
+/** La columna de lo medido en una batería; no es una pregunta de la base. */
+const CLAVE_PATRON_DE_BATERIA = "bateria:patron";
+
 export type ColumnaDeCaso = { clave: string; rotulo: string; tipo: "contexto" | "pregunta" | "falla"; numerica: boolean };
 
 function listaDeRol(valor: string | Array<string | null> | null | undefined): string[] {
@@ -558,6 +562,9 @@ export function valorEscrito(crudo: unknown, etiquetas: Record<string, string | 
  * que el estudio declaró (número de encuesta, recopilador, digitador, fecha de
  * respuesta), las preguntas de la
  * regla que deciden (la condición, la comparada) y, al final, la que falla.
+ * En una batería ("Patrón en una batería") van todas sus preguntas, en el
+ * orden de la regla, y al final lo que el motor midió en el caso (su
+ * enunciado, "respondió "Mucho" (4) en las 14 preguntas de la batería").
  * Las filas se cruzan con los ids por posición dentro de la misma respuesta
  * del motor (`casos`, `case_ids`, `esperado` y `contexto_por_caso` son
  * paralelos por contrato).
@@ -592,11 +599,18 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
   if (contexto.recopilador) columnas.push({ clave: "ctx:recopilador", rotulo: "Recopilador", tipo: "contexto", numerica: false });
   if (contexto.digitador) columnas.push({ clave: "ctx:digitador", rotulo: "Digitador", tipo: "contexto", numerica: false });
   if (contexto.fecha_respuesta) columnas.push({ clave: "ctx:fecha_respuesta", rotulo: "Fecha de respuesta", tipo: "contexto", numerica: false });
-  for (const v of otras.filter(enLaFila)) {
-    columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
-  }
-  if (objetivo) {
-    columnas.push({ clave: objetivo, rotulo: etiquetas[objetivo] || objetivo, tipo: "falla", numerica: enLaFila(objetivo) && numerica(objetivo) });
+  const familia = registro(crudo.regla).familia;
+  if (familia === "bateria") {
+    const items = [...new Set([objetivo ?? "", ...listaDeRol(roles?.compare)])].filter((v) => v && enLaFila(v));
+    for (const v of items) columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
+    columnas.push({ clave: CLAVE_PATRON_DE_BATERIA, rotulo: "En la batería", tipo: "falla", numerica: false });
+  } else {
+    for (const v of otras.filter(enLaFila)) {
+      columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
+    }
+    if (objetivo) {
+      columnas.push({ clave: objetivo, rotulo: etiquetas[objetivo] || objetivo, tipo: "falla", numerica: enLaFila(objetivo) && numerica(objetivo) });
+    }
   }
 
   const filas = casos.map((fila, i): FilaDeCaso => {
@@ -607,6 +621,7 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       else if (c.clave === "ctx:numero_encuesta") valores[c.clave] = ctx?.numero_encuesta ?? "Sin dato";
       else if (c.clave === "ctx:digitador") valores[c.clave] = ctx?.digitador ?? "Sin dato";
       else if (c.clave === "ctx:fecha_respuesta") valores[c.clave] = fechaCorta(ctx?.fecha_respuesta, true) ?? ctx?.fecha_respuesta ?? "Sin dato";
+      else if (c.clave === CLAVE_PATRON_DE_BATERIA) valores[c.clave] = esperado[i]?.hecho ?? "Sin dato";
       else valores[c.clave] = valorEscrito(fila[c.clave], valueLabels?.[c.clave] ?? null);
     }
     const id = ids[i] ?? null;
