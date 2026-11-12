@@ -78,3 +78,7 @@ analizarlas".
 | 24 | Las candidatas de roles se proponen por nombre de columna (propone `fecha_entrevista` como recopilador) | Roles del caso | Pendiente |
 | 25 | El aviso de base que no calza con el formulario ("faltan 187 de 187") debe decir qué columnas trae la base y qué hacer | Carga | Pendiente |
 | 26 | Unos 60 s con "El plan del formulario todavía no se leyó" después de leerlo | Validación | Pendiente |
+| 27 | Qué hacer con cada inconsistencia: por tipo (rango, salto, batería, fecha, código fuera de lista), Hallazgos dice cómo analizarla y qué decisión corresponde, a la altura del prototipo | Hallazgos (enunciado y Decisión) + narrativa del motor | Pendiente (pedido de Gonzalo, 2026-11-12: "que se pueda entender de forma didáctica y visual") |
+| 28 | Reglas sugeridas desde el formulario: rangos, saltos, obligatorias y listas que el XLSForm ya declara, propuestas listas para revisar | Reglas (catálogo) + motor | Pendiente |
+| 29 | Segunda condición en la regla de batería: "y al menos un ítem con respuesta de 1 a 7" (reglas 17 y 18 del Word: 30 y 74 frente a 4 y 5) | `validacion_regla_bateria.R` + panel | Pendiente |
+| 30 | Cierre: revisión visual de Validación entera en la app en la matriz de viewports y medición final contra las 552, con causa para cada una que no se encuentre. Solo Gonzalo da Validación por terminada | QA + `tmp/validacion-practicante/` | Pendiente |
