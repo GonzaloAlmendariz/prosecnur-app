@@ -12,7 +12,9 @@ Esta tanda deja el motor y sus rutas sin estado; guardar la receta del marco en 
 | 4 | Reglas de quién se invita: excluir valores de una columna, excluir sin correo, una sola encuesta por persona entre públicos comparando por correo; embudo con la resta de cada regla | `calc_muestra_marco_invitados` | Hecho |
 | 5 | Rutas `POST /api/calc-muestra/marco-publico/leer` e `/invitados` | `api/R/router_calc_muestra_marco_publico.R`, montado en `plumber_app.R` | Hecho |
 | 6 | Guardar en el estudio la receta del marco (columnas, reglas) y que viaje en el `.pulso` | Fase 7, con D6 y D7 | Pendiente |
-| 7 | Asignación entre públicos (a cuál va una persona que figura en dos) | D9: hoy la ruta recibe el orden en `otros`; la prioridad es una decisión pendiente | Bloqueado: falta decidir D9 (ver Verificación) |
+| 7 | Asignación entre públicos (a cuál va una persona que figura en dos) | D9, acordada el 2026-11-12: el motor ya recibe el orden en `otros`; falta usarlo en la propuesta y en el listado (ítems 8 y 9) | Decidido |
+| 8 | En la propuesta cada público se cuenta con su base completa y el cruce con otros públicos se dice y se muestra, sin descontarlo; si el cruce puede dejar una meta sin alcanzar, se avisa con la respuesta que exigiría | Propuesta (Resultados y PPT), fase 7 | Pendiente |
+| 9 | En el listado de envío se elige, para cada par de públicos, a cuál van las personas compartidas; el listado no se descarga hasta decidir cada cruce | Selección, fase 3 | Pendiente |
 
 ## Verificación
 
@@ -25,4 +27,4 @@ datos, con el encabezado en la fila 1, 7, 11 o 13 según el libro; las dos hojas
 salen como "consulta". El perfil de la base de docentes coincide con el del prototipo (identificador, correo, datos
 personales, cuatro columnas para cuotas, edad y antigüedad como número). El embudo reproduce la cifra del prototipo
 cuando solo un público tiene prioridad; si todos los demás públicos la tienen, los invitados de ese público bajan un 6 %.
-Por eso el ítem 7 queda bloqueado en D9: el orden de prioridad entre públicos cambia cuántos se invitan.
+Como el orden de prioridad cambia cuántos se invitan, D9 separa los dos momentos: en la propuesta el cruce se muestra sin descontar y la asignación se decide con el cliente en el listado de envío.
