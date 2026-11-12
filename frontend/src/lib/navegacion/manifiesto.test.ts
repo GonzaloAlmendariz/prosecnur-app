@@ -64,7 +64,7 @@ describe("manifiesto de navegación", () => {
       expect(vuelta?.modulo, nodo.clave).toBe(nodo.direccion.modulo);
       expect(vuelta?.seccion, nodo.clave).toBe(nodo.direccion.seccion);
       // El parser global normaliza `_` a `-`; la página conserva el id raw en
-      // el query (p. ej. `base_final`) para no romper enlaces existentes.
+      // el query (p. ej. `reglas_custom`) para no romper enlaces existentes.
       expect(vuelta?.pestana, nodo.clave).toBe(
         nodo.direccion.pestana?.replaceAll("_", "-"),
       );
@@ -160,7 +160,15 @@ describe("manifiesto de navegación", () => {
     // A10 W-E (2026-10-11): Gráficos gana «Estilo del informe» (`estilo-informe`). 30 → 31.
     // Retiro del Editor anterior (2026-10-11): sale «clasico» y entra «Word» (y «PowerPoint» pasó a la tarjeta del gráfico). 31.
     // Contrato E4-E7, R4 (2026-10-13): Analítica gana «Comparativos» (`comparativos`). 31 → 32.
-    expect(procesamiento).toHaveLength(32);
+    // Plantillas de Gráficos (2026-11-11, c32077943). 32 → 33.
+    // ADR 0144 (2026-11-12): Analítica pasa de 13 a 10; Base final, Bases e instrumentos, Libro de códigos y Ficha
+    // técnica se leen como alias de Entrega, y Matrices de Codificación como alias de Codificar. 33 → 29.
+    expect(procesamiento).toHaveLength(29);
+    expect(nodoPorClave("procesamiento/codificacion/matrices")).toBeNull();
+    expect(nodoPorClave("procesamiento/analitica/entrega")).not.toBeNull();
+    for (const vieja of ["base-final", "codebook", "bases", "ficha"]) {
+      expect(nodoPorClave(`procesamiento/analitica/${vieja}`)).toBeNull();
+    }
     // ADR 0142 (2026-11-11): Carga pasa de 6 a 6 pestañas con claves nuevas; las viejas sólo se leen como alias. 32.
     expect(nodoPorClave("procesamiento/carga/bases")).not.toBeNull();
     expect(nodoPorClave("procesamiento/carga/variables")).not.toBeNull();

@@ -235,7 +235,7 @@ describe("AdaptarPane: con el plan leído", () => {
     );
     // La acción principal sube a la cabecera de la pestaña (prototipo); el pie conserva las salidas.
     expect([...(pie?.querySelectorAll("button") ?? [])].map((b) => b.textContent?.trim())).toEqual([
-      "Volver a Codificar", "Revisar matrices",
+      "Volver a Codificar",
     ]);
     expect(aplicar()?.closest(".pulso-cabecera-pestana")).not.toBeNull();
     expect(aplicar()?.textContent?.trim()).toBe("Aplicar 2 preguntas");

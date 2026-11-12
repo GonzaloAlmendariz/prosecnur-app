@@ -1,0 +1,248 @@
+/* Analítica › Entrega (ADR 0144, prototipo "Analítica, Entrega"). La cabecera, la
+   mesa y los paneles son del kit; el libro, las dependencias y los archivos usan
+   las hojas del libro. Aquí van la lista de entregables, los ajustes de cada
+   archivo y los campos de la ficha. Sin cajas propias: los marcos son los del Panel. */
+
+/* ---------- Lista de entregables ---------- */
+
+.entrega-lista {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-3);
+}
+
+.entrega-grupo-titulo {
+  margin: 0 0 var(--pulso-space-2);
+  padding-inline: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.entrega-filas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entrega-fila {
+  display: grid;
+  grid-template-areas: "numero texto estado";
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: var(--pulso-space-2);
+  row-gap: var(--pulso-space-1);
+  inline-size: 100%;
+  padding: 10px var(--pulso-space-2);
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.entrega-fila:hover {
+  background: var(--pulso-surface-2);
+}
+
+.entrega-fila:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+.entrega-fila[aria-current="true"] {
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 80%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.entrega-numero {
+  grid-area: numero;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.entrega-texto {
+  grid-area: texto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.entrega-texto b,
+.entrega-texto > span {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.entrega-texto b {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.entrega-texto > span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.entrega-texto > .entrega-causa {
+  color: var(--pulso-warn-fg);
+}
+
+.entrega-estado {
+  grid-area: estado;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+}
+
+.entrega-ir {
+  color: var(--pulso-text-soft);
+}
+
+/* Columna angosta (hasta 1400 de ventana el lateral mide 264): el estado baja bajo el nombre,
+   que así no se parte a media palabra. */
+@container (max-width: 300px) {
+  .entrega-fila {
+    grid-template-areas:
+      "numero texto"
+      ". estado";
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  .entrega-estado:empty {
+    display: none;
+  }
+}
+
+/* La versión de la base en "Se construye con": las dos opciones una sobre otra, para no salirse. */
+.libro-superficie .libro-deps-control .pulso-analitica-source-switch {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-inline-size: 100%;
+  box-sizing: border-box;
+  border-radius: var(--pulso-radius);
+}
+
+/* El editor de la lectura para SPSS es anterior al kit y trae su propio scroll; dentro del panel,
+   el único dueño del scroll es el cuerpo del panel. */
+.entrega-metadatos > div:last-child {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Su cabecera fija va en las celdas, con fondo, y no en la fila. */
+.entrega-metadatos thead tr {
+  position: static !important;
+}
+
+.entrega-metadatos thead th {
+  position: sticky;
+  z-index: 1;
+  inset-block-start: 0;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 -1px 0 var(--pulso-border);
+}
+
+/* ---------- Ajustes de un archivo ---------- */
+
+.entrega-ajustes {
+  display: flex;
+  flex-direction: column;
+}
+
+.entrega-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+.entrega-eleccion {
+  align-self: flex-start;
+  max-inline-size: 100%;
+}
+
+.entrega-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding-inline-start: var(--pulso-space-4);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+}
+
+.entrega-archivo-accion {
+  margin-inline-start: auto;
+}
+
+/* ---------- Campos de la ficha ---------- */
+
+.entrega-campos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+.entrega-campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.entrega-campo-rotulo {
+  display: flex;
+  flex-direction: column;
+}
+
+.entrega-campo-rotulo b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.entrega-campo-rotulo small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* El marco, el relleno y el foco son los del campo de texto de la app (theme.css). */
+.entrega-campo-texto {
+  inline-size: 100%;
+  resize: vertical;
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+}
+
+.entrega-sugerencia {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.entrega-sugerencia > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}

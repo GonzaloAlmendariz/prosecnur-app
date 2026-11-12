@@ -43,6 +43,7 @@ vi.mock("../../../api/analitica", async (original) => ({
   apiAnaliticaDataReview: nunca,
   apiAnaliticaPreparar: nunca,
   apiAnaliticaConfigGet: nunca,
+  apiAnaliticaPanelInfo: nunca,
 }));
 vi.mock("../../../lib/SessionContext", () => ({ useSession: () => ({ state: { ...sesion }, refresh: async () => undefined }) }));
 vi.mock("../useAnaliticaAutosave", () => ({ useAnaliticaAutosave: () => undefined }));
@@ -125,12 +126,15 @@ describe("cabecera de las pestañas con vista previa", () => {
   });
 
   it("las demás pestañas llevan la cabecera común del kit, con la banda de casos debajo y la fuente en las acciones", async () => {
-    await montar("ficha");
+    // ADR 0144: con una base todas las pestañas dibujan la suya; la común queda en las transitorias (Base panel).
+    sesion.n_bases = 2;
+    await montar("panel");
+    sesion.n_bases = 1;
     const tabHeading = cabeceraDeLaPagina()?.querySelector<HTMLElement>(".pulso-tab-heading");
     // Plan 4.7: la cabecera del kit (`CabeceraDePestana`), con el antetítulo "Analítica" y sin "pestaña n de m".
     expect(cabeceraDeLaPagina()?.querySelector(".pulso-cabecera-pestana")).not.toBeNull();
     expect(tabHeading?.querySelector(".pulso-tab-heading-eyebrow")?.textContent).toBe("Analítica");
-    expect(tabHeading?.querySelector("h2")?.textContent).toBe("Ficha técnica");
+    expect(tabHeading?.querySelector("h2")?.textContent).toBe("Base panel");
     expect(cabeceraDeLaPagina()?.textContent).not.toMatch(/[Pp]estaña \d+ de \d+/);
     expect(tabHeading?.querySelector(".pulso-cabecera-pestana-acciones .pulso-analitica-sourcebar")).not.toBeNull();
     expect(cabeceraDeLaPagina()?.querySelector(":scope > .pulso-analitica-universo-banda .pulso-universo")).not.toBeNull();

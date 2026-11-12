@@ -88,8 +88,8 @@ describe("catálogos canónicos de pestañas", () => {
     ]);
   });
 
-  it("fija las 28 pestañas de Procesamiento con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(32); // F6.4 «Estilo del cliente» 29 → 30; A10 W-E «Estilo del informe» 30 → 31; E4-E7 R4 «Comparativos» 31 → 32.
+  it("fija las 29 pestañas de Procesamiento con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(29); // F6.4 «Estilo del cliente» 29 → 30; A10 W-E «Estilo del informe» 30 → 31; E4-E7 R4 «Comparativos» 31 → 32; Plantillas de Gráficos 32 → 33; ADR 0144 Analítica de 13 a 10 y Matrices fuera, 33 → 29.
     // ADR 0142 (2026-11-11): Plan y Fuentes pasan a Bases, Estructura a Formulario y Datos a Respuestas; entra
     // Variables. Las claves viejas se leen como alias en `features/carga/pestanaCarga.ts`. Siguen siendo 6.
     expect(firma(PROCESAMIENTO_PESTANAS.carga)).toEqual([
@@ -116,24 +116,28 @@ describe("catálogos canónicos de pestañas", () => {
     expect(firma(PROCESAMIENTO_PESTANAS.codificacion)).toEqual([
       "organizar:Preguntas",
       "codificar:Codificar",
-      "matrices:Matrices",
+      // ADR 0142 y 0144: Matrices se retira; `matrices` se lee como alias de Codificar.
       "adaptar:Aplicar",
     ]);
+    // ADR 0144 (2026-11-12): el riel sigue al prototipo. Datos y Orden de categorías cambian de rótulo y conservan su
+    // slug; Base final, Bases e instrumentos, Libro de códigos y Ficha técnica pasan a Entrega (alias de lectura).
     expect(firma(PROCESAMIENTO_PESTANAS.analitica)).toEqual([
-      "datos:Datos",
-      "base_final:Base final",
-      "codebook:Libro de códigos",
-      "bases:Bases e instrumentos",
+      "datos:Variables",
+      "orden:Categorías",
+      "dimensiones:Dimensiones",
       "ponderacion:Ponderación",
       "frecuencias:Frecuencias",
-      "multibase:Tablas multibase",
+      "cruces:Cruces",
       // Contrato E4-E7, R4: condicional, sólo con dos o más bases.
       "comparativos:Comparativos",
+      // Transitorias hasta que Comparativos absorba su función (D6).
+      "multibase:Tablas multibase",
       "panel:Base panel",
-      "ficha:Ficha técnica",
-      "cruces:Cruces",
-      "orden:Orden de categorías",
-      "dimensiones:Dimensiones",
+      "entrega:Entrega",
+    ]);
+    // Tres grupos en el riel: el primero sin nombre, Tablas y Entrega.
+    expect(PROCESAMIENTO_PESTANAS.analitica.map((tab) => ("grupo" in tab ? tab.grupo : "-"))).toEqual([
+      "-", "-", "-", "-", "tablas", "tablas", "tablas", "tablas", "tablas", "entrega",
     ]);
     // F6: «Láminas» (por defecto), «Vista general», «Estilo del cliente», «Estilo del informe» y «Word» (PowerPoint pasó a la tarjeta del gráfico).
     // El Editor anterior se retiró (2026-10-11). Rediseño N1 (2026-10-14, D1): Láminas · Word · Informe · Identidad · Reglas.
@@ -143,6 +147,8 @@ describe("catálogos canónicos de pestañas", () => {
       "informe:Informe",
       "identidad:Identidad",
       "reglas:Reglas",
+      // Plantillas (2026-11-11, c32077943): al final.
+      "plantillas:Plantillas",
     ]);
   });
 
@@ -228,14 +234,22 @@ describe("catálogos canónicos de pestañas", () => {
       PROCESAMIENTO_PESTANAS.analitica
         .filter((tab) => tab.disponibilidad === "condicional")
         .map((tab) => tab.id),
-    ).toEqual(["multibase", "comparativos"]);
+    ).toEqual(["comparativos", "multibase", "panel"]);
     expect(
       pestanasAnaliticaDisponibles({
         multibaseDisponible: true,
         basesHermanasIndependientes: false,
         comparativosDisponibles: true,
       }),
-    ).toHaveLength(13);
+    ).toHaveLength(10);
+    // ADR 0144: Base panel pide dos o más mediciones, el mismo predicado que Comparativos.
+    expect(
+      pestanasAnaliticaDisponibles({
+        multibaseDisponible: false,
+        basesHermanasIndependientes: false,
+        comparativosDisponibles: false,
+      }).map((tab) => tab.id),
+    ).toEqual(["datos", "orden", "dimensiones", "ponderacion", "frecuencias", "cruces", "entrega"]);
     expect(
       pestanasAnaliticaDisponibles({
         multibaseDisponible: false,

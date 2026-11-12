@@ -111,8 +111,9 @@ describe("CodificacionPage monta el selector común y conserva el remontaje por 
   });
 
   test("la base activa sigue en la `key` de cada pestaña", () => {
-    expect(sinComentarios).toMatch(/const codifActive = `\$\{codifSource\.active \?\? "default"\}:\$\{importRevision\}`;/);
-    expect(sinComentarios.match(/key=\{codifActive\}/g)?.length).toBe(4);
+    // ADR 0144: sin Matrices ya no hay revisión de importación que sumar a la clave.
+    expect(sinComentarios).toMatch(/const codifActive = codifSource\.active \?\? "default";/);
+    expect(sinComentarios.match(/key=\{codifActive\}/g)?.length).toBe(3);
     expect(sinComentarios).toMatch(/key=\{`\$\{step\}:\$\{codifActive\}`\}/);
   });
 });

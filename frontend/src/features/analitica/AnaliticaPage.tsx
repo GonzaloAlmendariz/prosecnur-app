@@ -8,7 +8,7 @@ import {
   Database,
   FileSpreadsheet,
 } from "lucide-react";
-import { apiAnaliticaBaseSheet, apiAnaliticaPreparar } from "../../api/client";
+import { apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { CargaDeBloque } from "../../components/CargaDeBloque";
@@ -24,20 +24,18 @@ import {
 } from "../../lib/navegacion/catalogos/procesamiento";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
-import { CodebookPane } from "./panes/CodebookPane";
 import { FrecuenciasPane } from "./panes/FrecuenciasPane";
 import { CrucesPane } from "./panes/CrucesPane";
-import { BasesPane } from "./panes/BasesPane";
 import { DimensionesPane } from "./panes/DimensionesPane";
 import { OrdenCategoriasPane } from "./panes/OrdenCategoriasPane";
 import { DataReviewPane } from "./panes/DataReviewPane";
 import { MultibaseTablasPane } from "./panes/MultibaseTablasPane";
 import { PanelBasePane } from "./panes/PanelBasePane";
-import { FichaTecnicaPane } from "./panes/FichaTecnicaPane";
 import { PonderacionPane } from "./panes/PonderacionPane";
 import { ComparativosPane } from "./panes/ComparativosPane";
 import { comparativosDisponibles } from "./panes/comparativosModel";
-import { ProcessingSheetViewer } from "../procesamiento/ProcessingSheetViewer";
+import { PestanaEntrega } from "./entrega/PestanaEntrega";
+import { pestanaPedidaAnalitica, PESTANA_ANALITICA_POR_DEFECTO } from "./pestanaAnalitica";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
 import { PanelVariablesExcluidas } from "./PanelVariablesExcluidas";
@@ -115,18 +113,27 @@ export default function AnaliticaPage() {
   }, [prereqOk, prepOk]);
 
   // Pestaña activa de la sección Analítica (cada reporte es una pestaña).
-  // `?reporte=` es el alias legacy: se lee, no se escribe.
-  // Contrato: `lib/navegacion/direccion.ts`.
-  const analiticaParams = new URLSearchParams(location.search);
-  const raw = analiticaParams.get(PARAMS_DIRECCION.pestana) ?? analiticaParams.get("reporte");
-  const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? "datos";
+  // `?reporte=` y las claves retiradas por el ADR 0144 (`base_final`, `bases`,
+  // `codebook`, `ficha`) se leen como alias en `pestanaAnalitica.ts`: abren
+  // Entrega con su entregable y la dirección se corrige a la canónica.
+  const pedido = pestanaPedidaAnalitica(location.search);
+  const raw = pedido.pestana;
+  const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? PESTANA_ANALITICA_POR_DEFECTO;
+  useEffect(() => {
+    if (!pedido.foco) return;
+    const sp = new URLSearchParams(location.search);
+    sp.delete("reporte");
+    sp.set(PARAMS_DIRECCION.pestana, "entrega");
+    sp.set(PARAMS_DIRECCION.foco, pedido.foco);
+    navigate({ pathname: location.pathname, search: `?${sp}` }, { replace: true });
+  }, [pedido.foco, location.pathname, location.search, navigate]);
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
   // Frecuencias, Cruces y Ponderación dibujan su propia cabecera, con sus cifras
   // y su acción (prototipo del rediseño): la página no pinta la suya y les pasa
   // la pestaña y la barra de fuente, que va a sus ajustes.
-  // Datos, Libro de códigos y Orden de categorías también dibujan la suya
-  // (prototipo "Analítica, Variables", "Entrega" y "Categorías"), Dimensiones y Comparativos.
-  const propia = cabeceraPropia(activeMeta.key) || activeMeta.key === "datos" || activeMeta.key === "codebook" || activeMeta.key === "orden" || activeMeta.key === "dimensiones" || activeMeta.key === "comparativos";
+  // Variables, Categorías, Entrega, Dimensiones y Comparativos también dibujan la suya
+  // (prototipo "Analítica, Variables", "Categorías" y "Entrega").
+  const propia = cabeceraPropia(activeMeta.key) || activeMeta.key === "datos" || activeMeta.key === "entrega" || activeMeta.key === "orden" || activeMeta.key === "dimensiones" || activeMeta.key === "comparativos";
   const fuente = <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />;
   const encabezado = {
     titulo: activeMeta.label,
@@ -147,7 +154,7 @@ export default function AnaliticaPage() {
     const search = params.toString();
     navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
     toast.info(`"${noDisponible.label}" no está en este estudio`, {
-      detalle: "Se ofrece cuando el estudio tiene varias bases. Te dejamos en Datos.",
+      detalle: "Se ofrece cuando el estudio tiene varias bases. Te dejamos en Variables.",
     });
   }, [noDisponible, location.pathname, location.search, navigate]);
 
@@ -182,7 +189,10 @@ export default function AnaliticaPage() {
   function goReporte(next: Reporte) {
     const sp = new URLSearchParams(location.search);
     sp.delete("reporte");
-    if (next === "datos") sp.delete(PARAMS_DIRECCION.pestana);
+    // El foco y el panel son de la pestaña que se deja.
+    sp.delete(PARAMS_DIRECCION.foco);
+    sp.delete(PARAMS_DIRECCION.panel);
+    if (next === PESTANA_ANALITICA_POR_DEFECTO) sp.delete(PARAMS_DIRECCION.pestana);
     else sp.set(PARAMS_DIRECCION.pestana, next);
     navigate({ pathname: "/analitica", search: sp.toString() ? `?${sp}` : "" });
   }
@@ -285,22 +295,12 @@ export default function AnaliticaPage() {
                 ) : prepOk ? (
                   <>
                     {active === "datos"        && <DataReviewPane fuente={fuente} />}
-                    {active === "base_final"   && (
-                      <ProcessingSheetViewer
-                        title="Base final"
-                        sourceLabel="Resultados listos para revisar y exportar"
-                        highlightCoding
-                        load={apiAnaliticaBaseSheet}
-                      />
-                    )}
-                    {active === "codebook"     && <CodebookPane fuente={fuente} />}
-                    {active === "bases"        && <BasesPane />}
                     {active === "ponderacion"  && <PonderacionPane datos={fuente} />}
                     {active === "frecuencias"  && <FrecuenciasPane encabezado={encabezado} datos={fuente} />}
                     {active === "multibase"    && <MultibaseTablasPane />}
                     {active === "comparativos" && <ComparativosPane />}
                     {active === "panel"        && <PanelBasePane />}
-                    {active === "ficha"        && <FichaTecnicaPane />}
+                    {active === "entrega"      && <PestanaEntrega fuente={fuente} />}
                     {active === "cruces"       && <CrucesPane encabezado={encabezado} datos={fuente} />}
                     {active === "orden"        && <OrdenCategoriasPane />}
                     {active === "dimensiones"  && <DimensionesPane />}

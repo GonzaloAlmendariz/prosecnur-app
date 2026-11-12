@@ -38,7 +38,8 @@ type Props = {
   /** Base activa de codificación: los avisos de la última aplicación van por base. */
   base: string | null;
   onBackToCodificar: () => void;
-  onBackToMatrices: () => void;
+  /** Retirado con la pestaña Matrices (ADR 0144); se acepta y no se usa. */
+  onBackToMatrices?: () => void;
   /** El nombre de la base activa cuando la banda no lo muestra. */
   baseActual?: ReactNode;
 };
@@ -48,7 +49,7 @@ const CLASE_DE_PANTALLA = "pulso-codificacion-adaptar pulso-aplicar";
 // El título del prototipo: lo que entra a la base, con sus grupos "Listas" y "En curso".
 const TITULO_DE_PREGUNTAS = "Qué entra a la base";
 
-export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices, baseActual }: Props) {
+export function AdaptarPane({ base, onBackToCodificar, baseActual }: Props) {
   const { sessionId } = useSession();
   const { plan, error, cargando, recargar } = usePlanAplicar();
   // La pregunta elegida para el detalle. Estado efímero de la vista: no va a la dirección.
@@ -202,7 +203,7 @@ export function AdaptarPane({ base, onBackToCodificar, onBackToMatrices, baseAct
             clave={clave}
             nPreguntas={nAplicables}
             onBackToCodificar={onBackToCodificar}
-            onBackToMatrices={onBackToMatrices}
+            base={base}
             yaCodificadaEn={yaCodificada ? base : null}
             yaListadas={resumen.fuera.map((p) => p.parent)}
             botonEnCabecera

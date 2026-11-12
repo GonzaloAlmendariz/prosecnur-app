@@ -4,11 +4,12 @@ import { ContenedorEntregable } from "../../components/entregables/ContenedorEnt
 import { PieConEfecto } from "../../components/procesamiento/PieConEfecto";
 import { PulsoButton } from "../../components/PulsoButton";
 import { useSession } from "../../lib/SessionContext";
-import { ArrowLeft, CheckCircle2, FileSpreadsheet, Play } from "../../vendor/lucide-react";
+import { ArrowLeft, CheckCircle2, Play } from "../../vendor/lucide-react";
 import { efectoDeAplicar } from "./aplicar/modeloAplicar";
 import { AplicarOmitidasAviso, irAlAviso } from "./AplicarOmitidasAviso";
 import { SinRecodificarAviso } from "./SinRecodificarAviso";
 import { AvisoBaseYaCodificada } from "./AvisoBaseYaCodificada";
+import { ArchivosDeCodificacion } from "./aplicar/ArchivosDeCodificacion";
 import { AvisoFuenteAplicar } from "./AvisoFuenteAplicar";
 import {
   type AplicarEntrada,
@@ -38,7 +39,10 @@ type Props = {
   /** Preguntas aplicables del plan: con 0 no hay nada que aplicar. */
   nPreguntas: number;
   onBackToCodificar: () => void;
-  onBackToMatrices: () => void;
+  /** Retirado con la pestaña Matrices (ADR 0144); se acepta y no se usa. */
+  onBackToMatrices?: () => void;
+  /** La base activa: los archivos para entregar se generan con ella. */
+  base?: string | null;
   /** ADR 0106: la base marcada "ya viene codificada"; no se ofrece aplicar. */
   yaCodificadaEn?: string | null;
   /** Preguntas que el bloque de arriba ya lista con sus acciones: no se repiten. */
@@ -66,7 +70,7 @@ export function pulsarAdaptar(pedirFoco: () => void, adaptar: () => void): void 
   adaptar();
 }
 
-export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null, yaListadas = [], children, botonEnCabecera = false, pedidoExterno = 0 }: Props) {
+export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, base = null, yaCodificadaEn = null, yaListadas = [], children, botonEnCabecera = false, pedidoExterno = 0 }: Props) {
   const { refresh } = useSession();
   const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
   const cerrarEntrega = useAplicarAvisosStore((s) => s.cerrarEntrega);
@@ -95,7 +99,7 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
       entrada={entrada}
       nPreguntas={nPreguntas}
       onBackToCodificar={onBackToCodificar}
-      onBackToMatrices={onBackToMatrices}
+      base={base}
       yaCodificadaEn={yaCodificadaEn}
       yaListadas={yaListadas}
       onAdaptar={() => void aplicarCodificacion(clave, apiCodifAplicar)}
@@ -114,7 +118,9 @@ type VistaProps = {
   entrada: AplicarEntrada;
   nPreguntas: number;
   onBackToCodificar: () => void;
-  onBackToMatrices: () => void;
+  /** Retirado con la pestaña Matrices (ADR 0144); se acepta y no se usa. */
+  onBackToMatrices?: () => void;
+  base?: string | null;
   onAdaptar: () => void;
   /** Cancela el job en curso; sin job, no hay "Cancelar". */
   onCancelar?: () => void;
@@ -132,7 +138,7 @@ export function AdaptarAplicacionVista({
   entrada,
   nPreguntas,
   onBackToCodificar,
-  onBackToMatrices,
+  base = null,
   onAdaptar,
   onCancelar,
   onCerrarEntrega,
@@ -204,6 +210,9 @@ export function AdaptarAplicacionVista({
               rehacer. Informa y no frena: bloquear acá se satisfaría desmarcando
               todo, que dejaría el módulo peor que ahora. */}
           <SinRecodificarAviso variables={sinRecodificar} />
+
+          {/* ADR 0144: lo que generaba la pestaña Matrices, retirada. */}
+          {base ? <ArchivosDeCodificacion base={base} /> : null}
         </div>
       </div>
 
@@ -229,9 +238,6 @@ export function AdaptarAplicacionVista({
         <PieConEfecto className="pulso-aplicar-pie" efecto={efectoDeAplicar(nPreguntas, Boolean(yaCodificadaEn))}>
           <PulsoButton variant="ghost" size="lg" onClick={onBackToCodificar}>
             <ArrowLeft size={14} aria-hidden="true" /> Volver a Codificar
-          </PulsoButton>
-          <PulsoButton variant="secondary" size="lg" onClick={onBackToMatrices}>
-            <FileSpreadsheet size={14} aria-hidden="true" /> Revisar matrices
           </PulsoButton>
           {sinBoton && yaCodificadaEn ? (
             <AvisoBaseYaCodificada base={yaCodificadaEn} />

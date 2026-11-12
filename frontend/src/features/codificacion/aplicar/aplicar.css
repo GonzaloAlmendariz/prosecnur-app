@@ -631,3 +631,18 @@
 .pulso-aplicar .pulso-ficha-pregunta-codigo {
   display: inline-block;
 }
+
+/* Archivos para entregar (ADR 0144): vienen de la pestaña Matrices, retirada. Sin caja propia. */
+.pulso-aplicar-salidas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding-block: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-aplicar-salidas-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+}

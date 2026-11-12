@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import { AlertCircle, ChevronDown, Database, FileSpreadsheet, Tags } from "lucide-react";
@@ -18,23 +18,20 @@ import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
 import { useCodifSource } from "./useCodifSource";
-import { CabeceraDeCodificacion } from "./CabeceraDeCodificacion";
 import { useAvances } from "./avanceStore";
-import { CodingConfigActions } from "./CodingConfigActions";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import "./codificacion-v2.css";
 
 type Step = CodificacionTabId;
 
 export default function CodificacionPage() {
-  const { state, refresh: refreshSession } = useSession();
+  const { state } = useSession();
   const location = useLocation();
   const navigate = useNavigate();
-  const [importRevision, setImportRevision] = useState(0);
   // Necesitamos el `active` para forzar remount de los hijos al cambiar
   // de base (ver comentario abajo en los key={codifActive}).
   const codifSource = useCodifSource();
-  const codifActive = `${codifSource.active ?? "default"}:${importRevision}`;
+  const codifActive = codifSource.active ?? "default";
   // El avance compartido de las preguntas es de la base activa: se vacía al cambiarla o al importar.
   useEffect(() => {
     useAvances.getState().vaciar();
@@ -45,13 +42,13 @@ export default function CodificacionPage() {
   const selectorEnBanda = prereqOk && state?.estudio_processing_mode !== "independent_siblings";
 
   // Pestaña de la sección Codificación, persistida en la URL
-  // (?pestana=codificar | matrices | adaptar). `?step=` es el alias legacy:
-  // se lee, no se escribe. Contrato: `lib/navegacion/direccion.ts`.
+  // (?pestana=codificar | adaptar). `?step=` es el alias legacy: se lee, no se
+  // escribe. `matrices`, retirada por el ADR 0144, abre Codificar, donde vive la
+  // vista de tabla que la reemplaza. Contrato: `lib/navegacion/direccion.ts`.
   const codifParams = new URLSearchParams(location.search);
   const rawStep = codifParams.get(PARAMS_DIRECCION.pestana) ?? codifParams.get("step");
   const step: Step =
-    rawStep === "codificar" ? "codificar" :
-    rawStep === "matrices" ? "matrices" :
+    rawStep === "codificar" || rawStep === "matrices" ? "codificar" :
     rawStep === "adaptar" ? "adaptar" :
     "organizar";
   const baseActual = codifSource.active && !(selectorEnBanda && codifSource.options.length > 1) ? (
@@ -88,8 +85,6 @@ export default function CodificacionPage() {
           ? "Empareja las preguntas abiertas y decide cuáles se codifican."
           : step === "codificar"
           ? "Agrupa respuestas similares y asigna códigos pregunta por pregunta."
-          : step === "matrices"
-          ? "Prepara el mapeo Excel de textos abiertos con control por base, variable e ID caso."
           : "Revisa las preguntas y sus códigos antes de aplicarlos a la base."
       }
       notices={
@@ -124,7 +119,7 @@ export default function CodificacionPage() {
       >
         <main
           id="codificacion-panel"
-          className={`pulso-codificacion-content pulso-content-area${prereqOk && step === "matrices" ? " con-cabecera" : ""}`}
+          className={`pulso-codificacion-content pulso-content-area`}
           role="tabpanel"
           aria-labelledby={`codificacion-step-${step}`}
           data-audit-ready={
@@ -153,7 +148,7 @@ export default function CodificacionPage() {
                 },
                 {
                   label: "Codificación",
-                  detail: "Luego podrás organizar, agrupar, mapear en matriz y adaptar códigos.",
+                  detail: "Luego podrás decidir qué se codifica, codificar y aplicar los códigos a la base.",
                   Icon: Tags,
                 },
               ]}
@@ -161,10 +156,8 @@ export default function CodificacionPage() {
           ) : (
             <>
               {/* La cabecera de cada pestaña la monta la pestaña con su estado, sus cifras y su acción
-                  (CabeceraDeCodificacion, la del kit). Matrices, que espera la decisión 5 del plan, lleva
-                  la misma cabecera sin cifras. La base activa va en la cabecera solo cuando la banda no
+                  (CabeceraDeCodificacion, la del kit). La base activa va en la cabecera solo cuando la banda no
                   la nombra en su selector (una base, o bases independientes). */}
-              {step === "matrices" ? <CabeceraDeCodificacion pestana="matrices" acciones={baseActual} /> : null}
               {codifSource.loading && (
                 <LoadingBlock label="Cargando la base de codificación" />
               )}
@@ -180,22 +173,12 @@ export default function CodificacionPage() {
                       nueva sin tener que refactorear 8 archivos con listeners. */}
                   {step === "organizar" && <PreguntasLanding key={codifActive} baseActual={baseActual} />}
                   {step === "codificar" && <CodificarWizard key={codifActive} baseActual={baseActual} onBackToOrganizar={() => goStep("organizar")} />}
-                  {step === "matrices" && (
-                    <CodingConfigActions
-                      key={codifActive}
-                      onImported={() => {
-                        setImportRevision((n) => n + 1);
-                        void refreshSession();
-                      }}
-                    />
-                  )}
                   {step === "adaptar" && (
                     <AdaptarPane
                       key={codifActive}
                       base={codifSource.active}
                       baseActual={baseActual}
                       onBackToCodificar={() => goStep("codificar")}
-                      onBackToMatrices={() => goStep("matrices")}
                     />
                   )}
                 </div>

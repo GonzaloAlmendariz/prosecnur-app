@@ -79,14 +79,14 @@ export function PanelDelLibro({
     >
       <div className="libro-hoja">
         <h4>Variables del libro</h4>
-        {cargando && secciones.length === 0 ? null : <p>{resumenDelLibro(secciones)}, con las etiquetas confirmadas en Datos.</p>}
+        {cargando && secciones.length === 0 ? null : <p>{resumenDelLibro(secciones)}, con las etiquetas confirmadas en Variables.</p>}
         {cargando && secciones.length === 0 ? <CargaDeBloque label="Leyendo las variables de la base" /> : null}
         {error ? <p className="libro-error" role="alert">No se pudieron leer las variables de la base: {error}</p> : null}
         {!cargando && !error && secciones.length === 0 ? (
           <EstadoVacio
             icono={<BookOpen size={16} />}
             titulo="Ninguna variable entra al libro"
-            descripcion="Inclúyelas en Datos: el libro lleva las variables incluidas."
+            descripcion="Inclúyelas en Variables: el libro lleva las variables incluidas."
           />
         ) : null}
         {secciones.length > 0 ? (

@@ -87,6 +87,27 @@ const VIEJAS: readonly Vieja[] = [
     patron: /seccion=validacion&(?:.*&)?pestana=(?:instrumento|reglas_custom|reglas-custom|limpieza)(?:&|$)/,
     lectores: [],
   },
+  // ADR 0144 (2026-11-12): Base final, Bases e instrumentos, Libro de códigos y
+  // Ficha técnica de Analítica pasaron a Entrega. Las lee como alias
+  // `features/analitica/pestanaAnalitica.ts`. Acotados a Analítica porque
+  // `bases` es pestaña de Carga y `ficha` de Monitoreo.
+  {
+    marcador: "/analitica?",
+    patron: /^\/analitica\?(?:.*&)?pestana=(?:base_final|base-final|bases|codebook|ficha)(?:&|$)/,
+    lectores: [],
+  },
+  {
+    marcador: "seccion=analitica",
+    patron: /seccion=analitica&(?:.*&)?pestana=(?:base_final|base-final|bases|codebook|ficha)(?:&|$)/,
+    lectores: [],
+  },
+  // ADR 0142 y 0144: Matrices de Codificación se retiró; la lee como alias de
+  // Codificar `features/codificacion/CodificacionPage.tsx`.
+  {
+    marcador: "/codificacion?",
+    patron: /^\/codificacion\?(?:.*&)?pestana=matrices(?:&|$)/,
+    lectores: [],
+  },
 ];
 
 /** Claves viejas de Validación (ADR 0142, rebanada V2 de P6). */

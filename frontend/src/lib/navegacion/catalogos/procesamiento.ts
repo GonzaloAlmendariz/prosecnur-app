@@ -1,6 +1,5 @@
 import {
   BarChart2,
-  BookOpen,
   ClipboardCheck,
   ClipboardList,
   Columns3,
@@ -20,7 +19,7 @@ import {
   ListChecks,
   ListOrdered,
   ListTree,
-  Network,
+  Package,
   Paintbrush,
   Palette,
   Scale,
@@ -41,13 +40,15 @@ export type DisponibilidadPestanaProcesamiento = "siempre" | "condicional";
 
 /**
  * Grupo del riel: las pestañas de un mismo grupo van juntas y el riel las
- * separa de las anteriores. Hoy solo Carga lo usa (ADR 0142: Formulario y
- * Respuestas son de consulta).
+ * separa de las anteriores. Carga lo usa para Formulario y Respuestas, que son
+ * de consulta (ADR 0142), y Analítica para Tablas y Entrega (ADR 0144).
  */
-export type GrupoPestanaProcesamiento = "consulta";
+export type GrupoPestanaProcesamiento = "consulta" | "tablas" | "entrega";
 
 export const ETIQUETAS_GRUPO_PESTANA: Readonly<Record<GrupoPestanaProcesamiento, string>> = {
   consulta: "Consulta",
+  tablas: "Tablas",
+  entrega: "Entrega",
 };
 
 export type PestanaProcesamiento<Key extends string = string> = {
@@ -130,31 +131,35 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("validacion", "hallazgos", "Hallazgos", "Inconsistencias y casos a revisar, con su decisión", Inbox),
     pestana("validacion", "cierre", "Cierre", "Efecto de las decisiones y base limpia", FileCheck2),
   ],
+  // ADR 0142 y 0144 (2026-11-12): Matrices se retira; se codifica en la vista de tabla de Codificar y sus archivos
+  // (matriz para el cliente, registro y respaldo) se generan en Aplicar. `matrices` se lee como alias de `codificar`
+  // en `features/codificacion/CodificacionPage.tsx` y no se escribe.
   codificacion: [
     pestana("codificacion", "organizar", "Preguntas", "Emparejar y decidir qué se codifica", Layers),
     pestana("codificacion", "codificar", "Codificar", "Agrupar respuestas", Tags),
-    pestana("codificacion", "matrices", "Matrices", "Mapear textos abiertos", Network),
     pestana("codificacion", "adaptar", "Aplicar", "Llevar los códigos a la base", Wand2),
   ],
+  // ADR 0144 (2026-11-12): el riel sigue al prototipo en tres grupos. Datos y Orden de categorías cambian de rótulo
+  // (Variables y Categorías) y conservan su slug. Base final, Bases e instrumentos, Libro de códigos y Ficha técnica
+  // pasan a Entrega; sus claves se leen como alias en `features/analitica/pestanaAnalitica.ts` y no se escriben.
+  // Tablas multibase y Base panel son transitorias hasta que Comparativos absorba su función (D6).
   analitica: [
-    pestana("analitica", "datos", "Datos", "Etiquetas y variables", ClipboardList),
-    pestana("analitica", "base_final", "Base final", "Tabla lista para exportar", Table2),
-    pestana("analitica", "codebook", "Libro de códigos", "Diccionario del estudio", BookOpen),
-    pestana("analitica", "bases", "Bases e instrumentos", "Archivos y versiones", Database),
+    pestana("analitica", "datos", "Variables", "Etiquetas, secciones y qué entra", ClipboardList),
+    pestana("analitica", "orden", "Categorías", "Orden de las respuestas y códigos especiales", ListOrdered, { readinessPropia: true }),
+    pestana("analitica", "dimensiones", "Dimensiones", "Índices y puntajes", Layers),
     pestana("analitica", "ponderacion", "Ponderación", "Representar a la población", Scale),
-    pestana("analitica", "frecuencias", "Frecuencias", "Distribución de respuestas", BarChart2),
-    pestana("analitica", "multibase", "Tablas multibase", "Comparación entre bases", GitBranch, { disponibilidad: "condicional" }),
+    pestana("analitica", "frecuencias", "Frecuencias", "Distribución de respuestas", BarChart2, { grupo: "tablas" }),
+    pestana("analitica", "cruces", "Cruces", "Comparaciones 2D", Grid3X3, { grupo: "tablas" }),
     // Contrato E4-E7, R4: la serie de mediciones armonizada en Carga › Equivalencias. Sólo en estudios con dos o
     // más bases. La pestaña lee la matriz aparte del `preparar`, así que publica su propia readiness.
     pestana("analitica", "comparativos", "Comparativos", "La serie de mediciones armonizada", GitCompare, {
       disponibilidad: "condicional",
       readinessPropia: true,
+      grupo: "tablas",
     }),
-    pestana("analitica", "panel", "Base panel", "Personas y mediciones", GitMerge),
-    pestana("analitica", "ficha", "Ficha técnica", "Metodología e informe", FileText),
-    pestana("analitica", "cruces", "Cruces", "Comparaciones 2D", Grid3X3),
-    pestana("analitica", "orden", "Orden de categorías", "Secuencia de respuestas ordinales", ListOrdered, { readinessPropia: true }),
-    pestana("analitica", "dimensiones", "Dimensiones", "Índices y puntajes", Layers),
+    pestana("analitica", "multibase", "Tablas multibase", "Comparación entre bases", GitBranch, { disponibilidad: "condicional", grupo: "tablas" }),
+    pestana("analitica", "panel", "Base panel", "Personas y mediciones", GitMerge, { disponibilidad: "condicional", grupo: "tablas" }),
+    pestana("analitica", "entrega", "Entrega", "Base final, documentación y tablas", Package, { grupo: "entrega" }),
   ],
   // Rediseño 2026-10-14 (D1): Láminas y Word van primero, uno detrás del otro, y luego lo demás. Las claves viejas
   // (`vista-general`, `estilo`, `estilo-informe`) se leen como alias en `resolverPestanaGraficos` y no se escriben.
@@ -195,7 +200,8 @@ export function pestanasAnaliticaDisponibles({
 }) {
   return PROCESAMIENTO_PESTANAS.analitica.filter((tab) => {
     if (tab.disponibilidad !== "condicional") return true;
-    if (tab.id === "comparativos") return comparativosDisponibles;
+    // Base panel pide dos o más mediciones, como Comparativos (`.analitica_panel_info`, ADR 0144).
+    if (tab.id === "comparativos" || tab.id === "panel") return comparativosDisponibles;
     return multibaseDisponible && !basesHermanasIndependientes;
   });
 }

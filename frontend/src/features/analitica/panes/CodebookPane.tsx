@@ -7,7 +7,7 @@ import { CabeceraDePestana } from "../../../components/procesamiento/CabeceraDeP
 import { MesaDePestana, PilaDeMesa } from "../../../components/procesamiento/MesaDePestana";
 import { useSession } from "../../../lib/SessionContext";
 import { formatoConteo } from "../../../lib/formatoNumero";
-import { PROCESAMIENTO_PESTANAS } from "../../../lib/navegacion/catalogos/procesamiento";
+import { BookOpen } from "../../../vendor/lucide-react";
 import { searchConPanel } from "../../../lib/navegacion/paneles";
 import { seccionesVisibles } from "../estructuraDeSecciones";
 import { PANEL_VARIABLES_EXCLUIDAS } from "../panelesAnalitica";
@@ -92,7 +92,8 @@ export function CodebookPane({ fuente }: {
     });
   }
 
-  const meta = PROCESAMIENTO_PESTANAS.analitica.find((p) => p.key === "codebook") ?? PROCESAMIENTO_PESTANAS.analitica[0];
+  // ADR 0144: sin montar desde que el libro vive en Entrega (`entrega/EntregaDelLibro.tsx`); su borrado espera confirmación.
+  const meta = { label: "Libro de códigos", icon: BookOpen };
   return (
     // La lectura de las variables retiene la vista con la carga del bloque (CargaDeBloque) en el panel del libro.
     <div className="libro-superficie">
