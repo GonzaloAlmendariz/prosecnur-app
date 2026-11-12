@@ -10,6 +10,7 @@
  * no lleva acciones propias. Por defecto enseña las secciones con preguntas de
  * sus hallazgos; "Ver todas las secciones" enseña las demás.
  */
+import { rotuloDeCaso } from "../rotuloDeCaso";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Table2 } from "../../../vendor/lucide-react";
 import { Sideover } from "../../../components/Sideover";
@@ -76,7 +77,7 @@ export function PanelCaso({
       open={abierto}
       onOpenChange={(a) => { if (!a) onCerrar(); }}
       className="pulso-hz-caso"
-      title={idCaso ? `Caso ${idCaso}` : "Caso"}
+      title={idCaso ? `Caso ${rotuloDeCaso(idCaso).texto}` : "Caso"}
       subtitle={caso ? antetituloDelCaso(caso.metadatos) ?? undefined : undefined}
       closeLabel="Cerrar el caso"
       stepper={casos.length > 1 && i >= 0 ? (

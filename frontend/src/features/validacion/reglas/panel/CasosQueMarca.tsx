@@ -8,6 +8,7 @@
  * valor que falla resaltado. Cada estado sin conteo tiene su vacío con la
  * causa (estados no dibujados: contrato M1, sección 1).
  */
+import { rotuloDeCaso } from "../../rotuloDeCaso";
 import { CifraHallazgo } from "../../../../components/procesamiento/CifraHallazgo";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { Panel } from "../../../../components/Panel";
@@ -84,11 +85,11 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       encabezado: "Caso",
       ancho: ANCHO_CASO,
       celda: (ej) => (
-        <code className="pulso-regla-caso" title={ej.id_caso ?? `Fila ${ej.fila}`}>
-          {ej.id_caso ?? `Fila ${ej.fila}`}
+        <code className="pulso-regla-caso" title={ej.id_caso ? rotuloDeCaso(ej.id_caso).titulo : `Fila ${ej.fila}`}>
+          {ej.id_caso ? rotuloDeCaso(ej.id_caso).texto : `Fila ${ej.fila}`}
         </code>
       ),
-      valor: (ej) => ej.id_caso ?? `Fila ${ej.fila}`,
+      valor: (ej) => (ej.id_caso ? rotuloDeCaso(ej.id_caso).texto : `Fila ${ej.fila}`),
     },
     ...columnas.map((nombre) => {
       const meta = porNombre.get(nombre);

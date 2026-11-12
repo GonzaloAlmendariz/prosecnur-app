@@ -16,6 +16,7 @@ import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { ColumnaDeCaso, FilaDeCaso } from "../modeloHallazgos";
+import { rotuloDeCaso } from "../../rotuloDeCaso";
 
 export function TablaDeCasos({
   columnas,
@@ -43,7 +44,12 @@ export function TablaDeCasos({
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return filas;
-    return filas.filter((f) => (f.id ?? "").toLowerCase().includes(q) || Object.values(f.valores).some((v) => v.toLowerCase().includes(q)));
+    return filas.filter(
+      (f) =>
+        (f.id ?? "").toLowerCase().includes(q) ||
+        (f.id ? rotuloDeCaso(f.id).texto.toLowerCase().includes(q) : false) ||
+        Object.values(f.valores).some((v) => v.toLowerCase().includes(q)),
+    );
   }, [busqueda, filas]);
   const marcablesN = filas.filter((f) => f.id !== null).length;
   const nMarcados = filas.filter((f) => f.id !== null && marcados.has(f.id)).length;
@@ -105,15 +111,20 @@ export function TablaDeCasos({
                   type="button"
                   className="pulso-hz-marca"
                   aria-pressed={marcado}
-                  aria-label={f.id ? `Marcar el caso ${f.id}` : "Caso sin identificador"}
+                  aria-label={f.id ? `Marcar el caso ${rotuloDeCaso(f.id).texto}` : "Caso sin identificador"}
                   disabled={!marcable || f.id === null}
                   onClick={() => f.id && onMarcar(f.id)}
                 />
               </span>
               <span role="cell">
                 {f.id ? (
-                  <button type="button" className="pulso-hz-casoid" title="Ver el caso completo" onClick={() => onAbrirCaso(f.id as string)}>
-                    {f.id}
+                  <button
+                    type="button"
+                    className="pulso-hz-casoid"
+                    title={rotuloDeCaso(f.id).texto === f.id ? "Ver el caso completo" : `Ver el caso completo. ${rotuloDeCaso(f.id).titulo}`}
+                    onClick={() => onAbrirCaso(f.id as string)}
+                  >
+                    {rotuloDeCaso(f.id).texto}
                   </button>
                 ) : (
                   <span className="pulso-hz-sin-id">Sin identificador</span>
