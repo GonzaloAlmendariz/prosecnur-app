@@ -5,7 +5,7 @@
 // láminas. Reemplaza al popover "Armar desde" en la base activa.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ChevronDown, ChevronRight, Loader2, Plus, Trash2 } from "../../../vendor/lucide-react";
+import { ChevronDown, ChevronRight, ListChecks, Loader2, Plus, Trash2 } from "../../../vendor/lucide-react";
 import { apiGraficosPlanSugerido, apiGraficosTemplates } from "../../../api/client";
 import { apiPlannerEstado } from "../../../api/planner";
 import { apiGraficosEstructuraInforme, type EstructuraDelInforme, type GraficoPorPregunta, type SeccionDelInforme } from "../../../api/graficosEstructura";
@@ -14,6 +14,8 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Panel } from "../../../components/Panel";
 import { CifrasEnTarjeta } from "../../../components/CifrasEnTarjeta";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
+import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -49,9 +51,11 @@ import {
   sinPlantillaGuardada,
   type FiltroPreguntas,
 } from "./modeloPlantillas";
+import { AdelantoPlantilla } from "./AdelantoPlantilla";
+import { avisoDeReemplazo, seleccionSinLeer } from "./modeloAdelanto";
 import "./plantillas.css";
 
-type Carga = { fase: "cargando" } | { fase: "lista"; estructura: EstructuraDelInforme } | { fase: "error"; mensaje: string };
+type Carga = { fase: "sin-leer" } | { fase: "cargando" } | { fase: "lista"; estructura: EstructuraDelInforme } | { fase: "error"; mensaje: string };
 
 const FILTROS: Array<{ clave: FiltroPreguntas; rotulo: string }> = [
   { clave: "todas", rotulo: "Todas" },
@@ -62,7 +66,7 @@ const FILTROS: Array<{ clave: FiltroPreguntas; rotulo: string }> = [
 const mensajeDeError = (e: unknown) => {
   const raw = (e as Error)?.message || "";
   return /failed to fetch|networkerror|load failed|timeout|aborted/i.test(raw)
-    ? "Se cortó la conexión mientras se leía el cuestionario. Vuelve a elegir la plantilla."
+    ? "Se cortó la conexión con el servidor de la app. Vuelve a intentarlo."
     : raw || "No se pudo leer el cuestionario.";
 };
 
@@ -103,7 +107,11 @@ export default function PestanaPlantillas() {
   const exclusiones = exclusionesDe(reglas);
   const graficos = graficosDe(reglas);
 
-  const [carga, setCarga] = useState<Carga>({ fase: "cargando" });
+  const [carga, setCarga] = useState<Carga>({ fase: "sin-leer" });
+  // Elegir una plantilla sólo muestra su adelanto (Gonzalo, 2026-11-12): el cuestionario se lee cuando el analista pide
+  // elegir secciones y preguntas, y las láminas se crean con el botón de crear. Guarda el id de la plantilla pedida.
+  const [lecturaPedida, setLecturaPedida] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
   const [filtro, setFiltro] = useState<FiltroPreguntas>("todas");
   const [busqueda, setBusqueda] = useState("");
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set());
@@ -111,20 +119,19 @@ export default function PestanaPlantillas() {
   const [errorCrear, setErrorCrear] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [nombreNueva, setNombreNueva] = useState("");
-  const [porConfirmar, setPorConfirmar] = useState(false);
   const pedido = useRef(0);
 
   // La estructura depende sólo de la plantilla: encender o apagar preguntas no la vuelve a pedir (cada pedido arma el
-  // plan completo en el backend, decenas de segundos en un estudio grande).
+  // plan completo en el backend, decenas de segundos en un estudio grande). Cambiar de plantilla vuelve al adelanto.
+  const leer = lecturaPedida === plantilla.id && !plantilla.enBlanco && !esperandoFicha;
   useEffect(() => {
-    if (esperandoFicha) return;
-    if (plantilla.enBlanco) { setCarga({ fase: "lista", estructura: { perfil: "", laminasFijas: 0, secciones: [], avisos: [] } }); return; }
+    if (!leer) { ++pedido.current; setCarga((c) => (c.fase === "sin-leer" ? c : { fase: "sin-leer" })); return; }
     const n = ++pedido.current;
     setCarga({ fase: "cargando" });
     apiGraficosEstructuraInforme(configDePlantilla(buildGraficosConfigFromStore(), plantilla))
       .then((estructura) => { if (n === pedido.current) setCarga({ fase: "lista", estructura }); })
       .catch((e) => { if (n === pedido.current) setCarga({ fase: "error", mensaje: mensajeDeError(e) }); });
-  }, [plantilla.id, plantilla.enBlanco, plantilla.config, esperandoFicha]);
+  }, [leer, intento, plantilla.id, plantilla.config]);
 
   // Identidad (checklist-plantillas-validez, ítem 4): lo que "Crear láminas" cambia en estilo, paletas, ajustes y logos.
   // Mientras no llegan los perfiles de estilo no se sabe qué trae la plantilla: no se puede crear todavía.
@@ -140,7 +147,6 @@ export default function PestanaPlantillas() {
     [identidadPendiente, presets, paletas, overridesReusables, reglas, perfilActual, perfilNuevo, logosPropios, plantilla.enBlanco],
   );
   const pisaIdentidad = cambiosIdentidad.some((c) => c.pisa);
-  useEffect(() => { setPorConfirmar(false); }, [plantilla.id]);
 
   const secciones = useMemo(
     () => (carga.fase === "lista" ? conSeleccion(carga.estructura, exclusiones, graficos) : []),
@@ -172,13 +178,8 @@ export default function PestanaPlantillas() {
   }
 
   // Una plantilla siempre reemplaza el informe (Gonzalo, 2026-11-11): no se agregan láminas de otra plantilla al final.
-  function pedirCrear() {
-    if (pisaIdentidad) setPorConfirmar(true);
-    else void crearLaminas();
-  }
-
+  // El reemplazo y los cambios de identidad se leen junto al botón de crear, que es la única confirmación.
   async function crearLaminas() {
-    setPorConfirmar(false);
     setCreando(true);
     setErrorCrear("");
     try {
@@ -226,9 +227,10 @@ export default function PestanaPlantillas() {
   const hayLaminas = planActual.slides.length > 0;
   // Validación de "Crear láminas" (ítem 5): el botón dice por qué no se puede.
   const motivoNoCrear = creando ? "Creando las láminas."
-    : carga.fase !== "lista" ? "Faltan las secciones y preguntas del cuestionario."
+    : esperandoFicha ? "Falta leer la Ficha del estudio."
+    : carga.fase === "cargando" ? "Faltan las secciones y preguntas del cuestionario."
     : identidadPendiente ? "Falta leer el estilo de la plantilla."
-    : !plantilla.enBlanco && resumen.preguntas === 0 ? "No hay preguntas dentro del informe."
+    : carga.fase === "lista" && !plantilla.enBlanco && resumen.preguntas === 0 ? "No hay preguntas dentro del informe."
     : "";
   const puedeCrear = !motivoNoCrear;
   const nombreRepetido = guardadas.some((g) => g.nombre.trim().toLowerCase() === nombreNueva.trim().toLowerCase() && !!nombreNueva.trim());
@@ -237,7 +239,7 @@ export default function PestanaPlantillas() {
   return (
     <div
       className="pulso-plantillas"
-      data-audit-ready={carga.fase === "cargando" ? "false" : carga.fase === "error" ? "vacio:error" : "graficos-plantillas"}
+      data-audit-ready={esperandoFicha ? "false" : carga.fase === "error" ? "vacio:error" : "graficos-plantillas"}
       data-qa-surface="graficos/plantillas"
     >
       <header className="pulso-plantillas-barra">
@@ -295,7 +297,7 @@ export default function PestanaPlantillas() {
           <section className="pulso-plantillas-contenido" aria-label="Contenido del informe" data-qa-geometry-member>
             <Panel
               className="pulso-plantillas-resumen"
-              title="Contenido del informe"
+              title={plantilla.nombre}
               actions={(
                 <div className="pulso-plantillas-acciones">
                   {guardando ? (
@@ -316,53 +318,72 @@ export default function PestanaPlantillas() {
                       <Plus size={14} aria-hidden="true" /> Guardar como plantilla
                     </PulsoButton>
                   )}
-                  <PulsoButton variant="primary" size="sm" onClick={pedirCrear} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
-                    {creando && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
-                    {hayLaminas ? `Reemplazar las ${formatoConteo(planActual.slides.length)} láminas` : "Crear láminas"}
-                  </PulsoButton>
                 </div>
               )}
             >
-              <CifrasEnTarjeta
-                grupo="graficos/plantillas-cifras"
-                cifras={[
-                  { id: "laminas", rotulo: "Láminas", valor: formatoConteo(resumen.laminas) },
-                  { id: "secciones", rotulo: "Secciones", valor: formatoConteo(resumen.secciones) },
-                  { id: "preguntas", rotulo: "Preguntas", valor: formatoConteo(resumen.preguntas) },
-                  { id: "fuera", rotulo: "Fuera del informe", valor: formatoConteo(resumen.fuera) },
-                ]}
-              />
+              <AdelantoPlantilla plantilla={plantilla} />
               {cambiosIdentidad.length > 0 && (
-                <div className="pulso-plantillas-identidad" role={porConfirmar ? "alertdialog" : "note"} aria-label="Cambios en la identidad del informe">
-                  <Alert
-                    kind={porConfirmar ? "warn" : "info"}
-                    acciones={porConfirmar ? (
-                      <>
-                        <PulsoButton variant="primary" size="sm" autoFocus onClick={() => void crearLaminas()}>Crear y cambiar la identidad</PulsoButton>
-                        <PulsoButton variant="ghost" size="sm" onClick={() => setPorConfirmar(false)}>Cancelar</PulsoButton>
-                      </>
-                    ) : undefined}
-                  >
+                <div className="pulso-plantillas-identidad" role="note" aria-label="Cambios en la identidad del informe">
+                  <Alert kind={pisaIdentidad ? "warn" : "info"}>
                     <p className="pulso-plantillas-identidad-titulo">Identidad del informe</p>
-                    <ul>
+                    <ul data-qa-geometry-group="graficos/plantillas-identidad" data-qa-geometry-contract="intrinsic">
                       {cambiosIdentidad.map((c) => <li key={c.clave} className={c.pisa ? "is-pisa" : undefined}>{c.texto}</li>)}
                     </ul>
                   </Alert>
                 </div>
               )}
+              <div className="pulso-plantillas-generar" role="group" aria-labelledby="pulso-plantillas-generar-pregunta">
+                <div className="pulso-plantillas-generar-texto">
+                  <p id="pulso-plantillas-generar-pregunta" className="pulso-plantillas-generar-pregunta">¿Crear el informe con esta plantilla?</p>
+                  {hayLaminas && <p className="pulso-plantillas-generar-aviso">{avisoDeReemplazo(planActual.slides.length)}</p>}
+                </div>
+                <PulsoButton variant="primary" onClick={() => void crearLaminas()} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
+                  {creando && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
+                  {hayLaminas ? `Reemplazar las ${formatoConteo(planActual.slides.length)} láminas` : "Crear láminas"}
+                </PulsoButton>
+              </div>
             </Panel>
             {errorCrear && <p className="pulso-plantillas-error" role="alert">{errorCrear}</p>}
 
-            {plantilla.enBlanco ? (
-              <p className="pulso-plantillas-estado">La plantilla en blanco no arma preguntas: crea la portada y el índice, y las láminas se agregan en Láminas.</p>
+            {plantilla.enBlanco || esperandoFicha ? null : carga.fase === "sin-leer" ? (
+              <EstadoVacio
+                tamano="compacto"
+                icono={<ListChecks size={18} aria-hidden="true" />}
+                titulo="Secciones y preguntas"
+                descripcion={seleccionSinLeer(exclusiones.size)}
+                accion={(
+                  <PulsoButton variant="secondary" size="sm" onClick={() => setLecturaPedida(plantilla.id)}>
+                    Elegir secciones y preguntas
+                  </PulsoButton>
+                )}
+              />
             ) : carga.fase === "cargando" ? (
-              <p className="pulso-plantillas-estado" role="status"><Loader2 size={16} className="pulso-spin" aria-hidden="true" /> Leyendo las secciones y preguntas del cuestionario. En un estudio grande tarda unos segundos.</p>
+              <CargaDeBloque label="Leyendo las secciones y preguntas del cuestionario" />
             ) : carga.fase === "error" ? (
-              <p className="pulso-plantillas-error" role="alert">{carga.mensaje}</p>
+              <div className="pulso-plantillas-error-lectura">
+                <p className="pulso-plantillas-error" role="alert">{carga.mensaje}</p>
+                <PulsoButton variant="secondary" size="sm" onClick={() => setIntento((i) => i + 1)}>Volver a leer</PulsoButton>
+              </div>
             ) : secciones.length === 0 ? (
-              <p className="pulso-plantillas-estado">La base no tiene preguntas que se puedan graficar.</p>
+              <EstadoVacio
+                tamano="compacto"
+                icono={<ListChecks size={18} aria-hidden="true" />}
+                titulo="Secciones y preguntas"
+                descripcion="La base no tiene preguntas que se puedan graficar."
+              />
             ) : (
               <>
+                <Panel title="Contenido del informe">
+                  <CifrasEnTarjeta
+                    grupo="graficos/plantillas-cifras"
+                    cifras={[
+                      { id: "laminas", rotulo: "Láminas", valor: formatoConteo(resumen.laminas) },
+                      { id: "secciones", rotulo: "Secciones", valor: formatoConteo(resumen.secciones) },
+                      { id: "preguntas", rotulo: "Preguntas", valor: formatoConteo(resumen.preguntas) },
+                      { id: "fuera", rotulo: "Fuera del informe", valor: formatoConteo(resumen.fuera) },
+                    ]}
+                  />
+                </Panel>
                 <div className="pulso-plantillas-herramientas">
                   <PulsoInput
                     className="pulso-plantillas-buscar"
@@ -379,7 +400,7 @@ export default function PestanaPlantillas() {
                     opciones={FILTROS.map((f) => ({ clave: f.clave, rotulo: f.rotulo }))}
                   />
                 </div>
-                <ol className="pulso-plantillas-secciones">
+                <ol className="pulso-plantillas-secciones" data-qa-geometry-group="graficos/plantillas-secciones" data-qa-geometry-contract="intrinsic">
                   {secciones.map((s) => {
                     const visibles = preguntasVisibles(s, filtro, busqueda);
                     if ((filtro !== "todas" || busqueda.trim()) && visibles.length === 0) return null;

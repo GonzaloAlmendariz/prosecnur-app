@@ -222,6 +222,139 @@
 }
 
 
+/* ---- Adelanto de la plantilla: láminas tipo con su identidad, sin leer el estudio ---- */
+
+.pulso-plantillas-adelanto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+}
+
+.pulso-plantillas-laminas {
+  display: grid;
+  /* Cinco columnas fijas (la plantilla con más láminas tipo): el marco no cambia de una plantilla a otra (C2). */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-plantillas-lamina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+/* Lámina 16:9 en miniatura: título y barras en los colores de la plantilla. */
+.pulso-plantillas-lamina-dibujo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  aspect-ratio: 16 / 9;
+  padding: 10% 9%;
+  overflow: hidden;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-plantillas-lamina-dibujo > i,
+.pulso-plantillas-lamina-dibujo > b {
+  display: block;
+  height: 5px;
+  border-radius: 2.5px;
+}
+
+.pulso-plantillas-lamina-dibujo > i.is-titulo { width: 52%; height: 6px; background: var(--lamina-titulo); }
+.pulso-plantillas-lamina-dibujo > i.is-titulo-grande { width: 68%; height: 9px; background: var(--lamina-titulo); }
+.pulso-plantillas-lamina-dibujo > i.is-subtitulo { width: 40%; background: var(--pulso-border-strong); }
+.pulso-plantillas-lamina-dibujo > i.is-linea { width: 60%; height: 3px; background: var(--pulso-border-strong); }
+.pulso-plantillas-lamina-dibujo > i.is-banda { width: 18%; height: 4px; background: var(--lamina-barras); }
+.pulso-plantillas-lamina-dibujo > b { background: var(--lamina-barras); }
+.pulso-plantillas-lamina-dibujo > b:nth-of-type(1) { width: 82%; }
+.pulso-plantillas-lamina-dibujo > b:nth-of-type(2) { width: 58%; }
+.pulso-plantillas-lamina-dibujo > b:nth-of-type(3) { width: 40%; }
+.pulso-plantillas-lamina-dibujo > b:nth-of-type(4) { width: 22%; }
+
+.pulso-plantillas-lamina-dibujo > .is-mapa {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  height: 42%;
+}
+
+.pulso-plantillas-lamina-dibujo > .is-mapa > b {
+  border-radius: 2px;
+  background: var(--lamina-barras);
+}
+
+.pulso-plantillas-lamina-dibujo > .is-mapa > b:nth-child(2) { opacity: 0.35; }
+.pulso-plantillas-lamina-dibujo > .is-mapa > b:nth-child(3) { opacity: 0.65; }
+.pulso-plantillas-lamina-dibujo > .is-mapa > b:nth-child(4) { opacity: 0.2; }
+
+.pulso-plantillas-lamina-rotulo {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+}
+
+.pulso-plantillas-rasgos {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-plantillas-rasgos > div {
+  display: contents;
+}
+
+.pulso-plantillas-rasgos dt {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-plantillas-rasgos dd {
+  margin: 0;
+  color: var(--pulso-text);
+}
+
+/* Confirmación: la pregunta, el aviso de reemplazo y el botón primario en una fila al pie del adelanto. */
+.pulso-plantillas-generar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  margin-top: var(--pulso-space-4);
+  padding-top: var(--pulso-space-4);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-plantillas-generar-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-plantillas-generar-pregunta {
+  margin: 0;
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-type-subtitle-weight);
+  color: var(--pulso-text);
+}
+
+.pulso-plantillas-generar-aviso {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+}
+
 /* ---- Contenido del informe ---- */
 
 .pulso-plantillas-contenido {
@@ -258,6 +391,17 @@
   color: var(--pulso-danger-fg);
   background: var(--pulso-danger-bg);
   border-color: var(--pulso-danger-border);
+}
+
+.pulso-plantillas-error-lectura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-plantillas-error-lectura > .pulso-plantillas-error {
+  margin: 0;
 }
 
 .pulso-plantillas-herramientas {

@@ -128,7 +128,7 @@ describe("el puente y el runner aplican el mismo contrato", () => {
  */
 const FALSE_TRANSITORIO: Record<string, string> = {
   "features/graficos/plantillas/PestanaPlantillas.tsx":
-    "lectura de POST /api/graficos/plan/estructura (pestaña Plantillas): con la estructura publica la marca y con el error vacio:error",
+    "lectura de GET /api/planner para la plantilla de partida (pestaña Plantillas): con la ficha o su error publica la marca; la estructura del cuestionario carga en su propio CargaDeBloque",
   "features/graficos/estilo/RotulosCortos.tsx":
     "lectura de GET /api/graficos/rotulos/ranking (ADR 0141): con el ranking publica la marca y con el error vacio:ranking-ilegible",
   "features/estudio/FichaDelEstudio.tsx":
