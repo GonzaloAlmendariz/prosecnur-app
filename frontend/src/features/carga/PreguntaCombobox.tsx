@@ -1,6 +1,6 @@
 // Selector de la pregunta de una base, con búsqueda por texto (ADR 0104).
 //
-// Reemplaza al `<select>` de la tabla: con 78 opciones «p12_1 · Servicio de…»
+// Reemplaza al `<select>` de la tabla: con 78 opciones "p12_1 · Servicio de…"
 // recortadas a 132 px, encontrar la pregunta equivalente era leer códigos. Aquí
 // se escribe lo que dice la pregunta y la lista se filtra por etiqueta, código
 // y sección; cada opción muestra la etiqueta entera y el código aparte.
@@ -29,13 +29,13 @@ export type PreguntaComboboxProps = {
   /** Nombre de la variable elegida; `""` si la base todavía no tiene pregunta en esta fila. */
   valor: string;
   onElegir: (nombre: string) => void;
-  /** De qué fila se trata, para el nombre accesible («Satisfacción general» o «la fila 3»). */
+  /** De qué fila se trata, para el nombre accesible ("Satisfacción general" o "la fila 3"). */
   contexto: string;
   /** Variables de esta base ya elegidas en OTRA fila: elegirlas aquí las mueve. */
   tomadasEnOtraFila?: ReadonlySet<string>;
 };
 
-/** Una opción de la lista: `""` es «esta base no tiene la pregunta». */
+/** Una opción de la lista: `""` es "esta base no tiene la pregunta". */
 type Opcion = { nombre: string; etiqueta: string; seccion: string };
 
 const ANCHO_POPOVER = 380;
@@ -96,7 +96,7 @@ export function PreguntaCombobox({
 
   const abrir = () => {
     setConsulta("");
-    // Arranca sobre la elegida (detrás de «Ninguna», que va primero) para que
+    // Arranca sobre la elegida (detrás de "Ninguna", que va primero) para que
     // Enter sin moverse no cambie nada.
     const i = valor ? opciones.findIndex((o) => o.name === valor) : -1;
     setCursor(i >= 0 ? i + 1 : 0);
@@ -196,7 +196,7 @@ export function PreguntaCombobox({
               <code className="pulso-preg-codigo">{valor}</code>
             </>
           ) : (
-            <span className="pulso-preg-placeholder">Buscar pregunta…</span>
+            <span className="pulso-preg-placeholder">Buscar pregunta</span>
           )}
         </span>
         <ChevronDown size={12} aria-hidden="true" />
@@ -220,7 +220,7 @@ export function PreguntaCombobox({
               aria-autocomplete="list"
               aria-activedescendant={activa ? `${id}-op-${cursor}` : undefined}
               aria-label={`Buscar la pregunta de ${base} por su texto o su código`}
-              placeholder="Escribe parte de la pregunta…"
+              placeholder="Escribe parte de la pregunta"
               value={consulta}
               onChange={(e) => {
                 setConsulta(e.target.value);

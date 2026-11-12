@@ -3,7 +3,7 @@
 // asignación en masa y tabla que la armonización de una fila. La lógica vive
 // en `segmentosModel`; aquí sólo hay render y eventos. Los valores observados
 // los lee el editor (para todas las bases a la vez) y llegan en `lectura`;
-// «Emparejar todas por etiqueta» vive en la sección de la escala estándar.
+// "Emparejar todas por etiqueta" vive en la sección de la escala estándar.
 
 import { formatoConteo } from "../../../lib/formatoNumero";
 import type { VariableDeBase } from "../../../api/equivalencias";
@@ -35,7 +35,7 @@ import {
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Inbox } from "../../../vendor/lucide-react";
 
-/** Valor del selector que significa «sin dato» explícito (destino `""`). */
+/** Valor del selector que significa "sin dato" explícito (destino `""`). */
 const VALOR_SIN_DATO = "__sin_dato__";
 
 function valorDeDestino(d: DestinoCodigo): string {
@@ -181,7 +181,7 @@ export function SegmentoEnBase({
       </div>
 
       {opciones === null ? (
-        <p className="pulso-armon-nota" role="status">Leyendo las variables de {base}…</p>
+        <p className="pulso-armon-nota" role="status">Leyendo las variables de {base}</p>
       ) : catalogoError ? (
         // C5 categoría 3: el catálogo no llegó.
         <p className="pulso-armon-aviso" role="alert">No se pudieron leer las variables de {base}.</p>
@@ -211,7 +211,7 @@ export function SegmentoEnBase({
             </p>
           )}
           {lectura.tipo === "cargando" && (
-            <p className="pulso-armon-nota" role="status">Leyendo los valores de {origen} en {base}…</p>
+            <p className="pulso-armon-nota" role="status">Leyendo los valores de {origen} en {base}</p>
           )}
           {lectura.tipo === "error" && !ausente && (
             // C5 categoría 3: la lectura falló; queda lo que se conoce del instrumento y de lo guardado.

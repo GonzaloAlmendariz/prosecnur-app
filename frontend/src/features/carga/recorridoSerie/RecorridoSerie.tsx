@@ -2,7 +2,7 @@
 //
 // Una banda de seis pasos numerados: cada uno dice su estado en dos palabras y
 // lleva a donde se resuelve. No es un stepper (`Stepper`/`StageStepper`): no
-// hay paso «actual» ni avance secuencial; es una lista de enlaces con estado.
+// hay paso "actual" ni avance secuencial; es una lista de enlaces con estado.
 // Con los seis hechos se pliega a una línea.
 //
 // La lógica vive en `recorridoSerieModel.ts`; aquí sólo se presenta.
@@ -34,7 +34,9 @@ import {
   type Lectura,
   type PasoRecorrido,
 } from "./recorridoSerieModel";
+import { RecorridoSerieFranja } from "./RecorridoSerieFranja";
 import { useRecorridoSerie } from "./useRecorridoSerie";
+import type { ResumenDeEscalas } from "../pestanas/equivalencias/equivalenciasMesaModel";
 import "./RecorridoSerie.css";
 
 export type RecorridoSerieProps = {
@@ -44,6 +46,10 @@ export type RecorridoSerieProps = {
   ordenEditable: boolean;
   /** Filas guardadas de la matriz. */
   filas: readonly EquivalenciaFila[];
+  /** Lo pendiente de escala con la definición de la tabla de Equivalencias (paso "Matriz"). */
+  escalas?: ResumenDeEscalas;
+  /** `franja`: una línea de pasos sobre la mesa (prototipo "carga-equivalencias"); por defecto, tarjetas. */
+  forma?: "tarjetas" | "franja";
 };
 
 /** Montada en Carga › Equivalencias. Sin router (render aislado) no hay enlaces que resolver. */
@@ -53,7 +59,7 @@ export function RecorridoSerie(props: RecorridoSerieProps) {
   return <RecorridoConLecturas {...props} />;
 }
 
-function RecorridoConLecturas({ bases, ordenDeclarado, ordenEditable, filas }: RecorridoSerieProps) {
+function RecorridoConLecturas({ bases, ordenDeclarado, ordenEditable, filas, escalas, forma = "tarjetas" }: RecorridoSerieProps) {
   const activa = useOptionalSession()?.state?.active_base ?? null;
   const clavesBases = bases.join("|");
   const lecturas = useRecorridoSerie(clavesBases, activa);
@@ -76,16 +82,15 @@ function RecorridoConLecturas({ bases, ordenDeclarado, ordenEditable, filas }: R
       variables: lecturas.variables,
       segmentos: lecturas.segmentos,
       ponderacion,
+      escalas,
     }),
-    [bases, ordenDeclarado, ordenEditable, filas, lecturas.variables, lecturas.segmentos, ponderacion],
+    [bases, ordenDeclarado, ordenEditable, filas, lecturas.variables, lecturas.segmentos, ponderacion, escalas],
   );
 
-  return (
-    <RecorridoSerieBanda
-      pasos={pasos}
-      hrefDe={(p) => hrefDeEnlace(p.enlace, pathname, search)}
-    />
-  );
+  const hrefDe = (p: PasoRecorrido) => hrefDeEnlace(p.enlace, pathname, search);
+  return forma === "franja"
+    ? <RecorridoSerieFranja pasos={pasos} hrefDe={hrefDe} />
+    : <RecorridoSerieBanda pasos={pasos} hrefDe={hrefDe} />;
 }
 
 const ICONO: Record<EstadoPaso, typeof Circle> = {

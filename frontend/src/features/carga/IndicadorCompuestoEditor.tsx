@@ -110,7 +110,7 @@ function PanelConDireccion({ estado, cargandoEstado, bases, variablesPorBase, on
   const vacio = !foco
     ? null
     : !estado
-      ? cargandoEstado ? "Revisando la declaración del estudio…" : "No se pudo leer la declaración del estudio."
+      ? cargandoEstado ? "Revisando la declaración del estudio" : "No se pudo leer la declaración del estudio."
       : !fila
         ? "Esta fila no está en la declaración guardada."
         : !esCompuesta(fila)
@@ -327,7 +327,7 @@ function EditorCompuesto({
           onClick={() => void guardar()}
         >
           <Save size={14} aria-hidden="true" />
-          {envio.guardando ? "Guardando…" : "Guardar indicador"}
+          {envio.guardando ? "Guardando" : "Guardar indicador"}
         </PulsoButton>
       </footer>
     </div>
@@ -402,7 +402,7 @@ export function BaseCompuesta({
             <input
               type="search"
               value={consulta}
-              placeholder="Buscar pregunta…"
+              placeholder="Buscar pregunta"
               onChange={(e) => setConsulta(e.target.value)}
             />
           </label>
@@ -465,7 +465,7 @@ export function BaseCompuesta({
 
 // ---- Botón ------------------------------------------------------------------
 
-/** «Añadir indicador compuesto»: abre el panel sin foco. */
+/** "Añadir indicador compuesto": abre el panel sin foco. */
 export function AnadirIndicadorCompuestoBoton({ onAbrir, size }: { onAbrir: () => void; size?: "sm" }) {
   return (
     <PulsoButton

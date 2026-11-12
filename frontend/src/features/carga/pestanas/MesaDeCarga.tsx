@@ -10,7 +10,7 @@ import {
 import { CabeceraDeCargaContexto, pestanaConCabeceraPropia } from "./bases/contextoDeCabecera";
 
 /** Las pestañas rehechas con `MesaDePestana` del kit: dibujan su cabecera y su mesa. */
-const PESTANAS_CON_MESA_DEL_KIT: ReadonlySet<CargaWorkspaceTab> = new Set<CargaWorkspaceTab>(["revision", "variables", "formulario", "respuestas"]);
+const PESTANAS_CON_MESA_DEL_KIT: ReadonlySet<CargaWorkspaceTab> = new Set<CargaWorkspaceTab>(["revision", "variables", "equivalencias", "formulario", "respuestas"]);
 
 /**
  * Mesa de trabajo de Carga: riel de pestañas, encabezado y panel de la pestaña
@@ -30,13 +30,10 @@ export function MesaDeCarga({
   onCambiar: (pestana: CargaWorkspaceTab) => void;
   children: ReactNode;
 }) {
-  // Pestañas de lectura que crecen con su contenido en escritorio bajo
-  // (CargaWorkbenchBajo.css). Bases no crece:
-  // sus dos marcos (colección e inspector) llegan al borde inferior en todo
-  // tamaño y cada uno desplaza su cuerpo (`pestanas/bases/bases.css`).
-  const crece = activa === "equivalencias";
+  // Ninguna pestaña crece ya con su contenido en escritorio bajo (`pulso-carga-workbench--crece`,
+  // CargaWorkbenchBajo.css): Equivalencias, la última, pasó a la mesa del kit.
   const bases = activa === "bases" ? " pulso-carga-workbench--bases" : "";
-  // Revisión, Variables, Formulario y Respuestas usan la mesa del kit de Procesamiento
+  // Revisión, Variables, Equivalencias, Formulario y Respuestas usan la mesa del kit de Procesamiento
   // (cabecera con cifras y columnas que llegan al pie): no crecen, como Bases
   // (`pestanas/revision/marcoDeMesa.css`).
   const kit = PESTANAS_CON_MESA_DEL_KIT.has(activa) ? " pulso-carga-workbench--kit" : "";
@@ -45,8 +42,8 @@ export function MesaDeCarga({
       ariaLabel={varias ? "Mesa de trabajo de varias bases" : "Mesa de trabajo de carga"}
       railLabel="Pestañas de carga"
       className={varias
-        ? `pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout${crece ? " pulso-carga-workbench--crece" : ""}${bases}${kit}`
-        : `pulso-upload-section pulso-carga-workbench pulso-context-tab-layout${crece ? " pulso-carga-workbench--crece" : ""}${bases}${kit}`}
+        ? `pulso-upload-section pulso-carga-workbench pulso-carga-workbench--multibase pulso-context-tab-layout${bases}${kit}`
+        : `pulso-upload-section pulso-carga-workbench pulso-context-tab-layout${bases}${kit}`}
       rail={(
         <CargaWorkspaceNavigation
           active={activa}

@@ -98,7 +98,7 @@ import { Panel } from "../../components/Panel";
 
 // ---- Abrir sobre una fila ---------------------------------------------------
 //
-// El indicador por fila vive en la columna «Escala» de `EquivalenciasTabla`
+// El indicador por fila vive en la columna "Escala" de `EquivalenciasTabla`
 // (ADR 0104): dice si las escalas coinciden y abre este editor.
 
 /** Abre el editor sobre una fila: escribe `panel` y `foco` en la dirección. */
@@ -216,7 +216,7 @@ function PanelConDireccion({ estado, cargandoEstado, variablesPorBase, filasEdit
                 {estado ? (
                   <EstadoVacio icono={<Inbox size={16} />} titulo="Esta fila no está en la declaración guardada" descripcion="Ábrela desde la tabla de equivalencias." />
                 ) : cargandoEstado ? (
-                  <LoadingBlock variant="inline" label="Revisando la declaración del estudio…" />
+                  <LoadingBlock variant="inline" label="Revisando la declaración del estudio" />
                 ) : (
                   <ErrorBlock label="No se pudo leer la declaración del estudio" detail="Cierra el panel y revisa el aviso de Equivalencias." />
                 )}
@@ -562,7 +562,7 @@ function EditorFila({
               onClick={() => void aplicarACompartidas()}
             >
               <Save size={14} aria-hidden="true" />
-              {guardando ? "Aplicando…" : textoAplicarA(elegidos.size)}
+              {guardando ? "Aplicando" : textoAplicarA(elegidos.size)}
             </PulsoButton>
           </>
         ) : (
@@ -588,7 +588,7 @@ function EditorFila({
           onClick={() => void guardar(false)}
         >
           <Save size={14} aria-hidden="true" />
-          {guardando ? "Guardando…" : "Guardar armonización"}
+          {guardando ? "Guardando" : "Guardar armonización"}
         </PulsoButton>
         </>
         )}
@@ -754,7 +754,7 @@ function MapaDeBase({
   base: string;
   /** Los códigos de la base y de dónde salen sus casos. */
   vista: CodigosDeBase;
-  /** «variable P12», o los componentes de un indicador compuesto (ADR 0105). */
+  /** "variable P12", o los componentes de un indicador compuesto (ADR 0105). */
   rotulo: string;
   /** La variable de la base, para las ayudas del mapa. */
   origen: string;
@@ -857,7 +857,7 @@ function MapaDeBase({
               </PulsoButton>
             )}
             {/* Secundario siempre (P-A5): el único primario del panel es
-                «Guardar armonización». La etiqueta distinta ya la anuncia el
+                "Guardar armonización". La etiqueta distinta ya la anuncia el
                 resumen de al lado, con texto y no con el peso del botón. */}
             {escala.length > 0 && opciones.length > 0 && (
               <PulsoButton
@@ -873,7 +873,7 @@ function MapaDeBase({
               </PulsoButton>
             )}
             {/* Mientras cuenta no se resume: con la tabla vacía el resumen afirmaría
-                «todos caen en su etiqueta» sin haberlo medido. */}
+                "todos caen en su etiqueta" sin haberlo medido. */}
             {vista.fuente !== "cargando" && filas.length > 0 && (
               <span
                 className={`pulso-armon-base-resumen${resumenEsAviso(resumen, vista.conConteos) ? " is-aviso" : ""}`}
@@ -895,7 +895,7 @@ function MapaDeBase({
           )}
 
           {vista.fuente === "cargando" ? (
-            <LoadingBlock variant="inline" label={`Contando casos en ${base}…`} />
+            <LoadingBlock variant="inline" label={`Contando casos en ${base}`} />
           ) : filas.length === 0 ? (
             <EstadoVacio icono={<Inbox size={16} />} titulo={<>{vista.vacio}</>} />
           ) : (

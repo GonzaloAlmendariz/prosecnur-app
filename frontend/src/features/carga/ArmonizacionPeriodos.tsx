@@ -5,7 +5,7 @@
 // NOMBRES DE BASE, no años: es la única clave estable entre la matriz, Analítica
 // y los entregables. Se guarda con la declaración, sin tocar sus filas.
 //
-// M7 (ronda de pulido): la vista lo resume en UNA línea —«b2024 → b2025 → …»— y
+// M7 (ronda de pulido): la vista lo resume en UNA línea ("b2024 → b2025 → ...") y
 // la edición vive en un sideover direccionable (`?panel=orden-serie`). Con siete
 // bases la tira de chips ocupaba tres líneas y, a 1024x600, empujaba la tabla
 // fuera de vista. El resumen mide lo mismo con 3 bases que con 20.
@@ -36,6 +36,12 @@ import { PulsoButton } from "../../components/PulsoButton";
 export type ArmonizacionPeriodosProps = {
   estado: EquivalenciasEstado;
   onGuardado: (out: EquivalenciasImportacion, mensaje: string) => void;
+  /**
+   * Solo el editor (`?panel=orden-serie`), sin la línea de resumen: en la mesa
+   * de Equivalencias el orden se lee y se abre desde el paso "Bases" del
+   * recorrido de la serie, que ya lo resume.
+   */
+  soloEditor?: boolean;
 };
 
 export function ArmonizacionPeriodos(props: ArmonizacionPeriodosProps) {
@@ -43,7 +49,7 @@ export function ArmonizacionPeriodos(props: ArmonizacionPeriodosProps) {
   return useInRouterContext() ? <PeriodosConDireccion {...props} /> : null;
 }
 
-function PeriodosConDireccion({ estado, onGuardado }: ArmonizacionPeriodosProps) {
+function PeriodosConDireccion({ estado, onGuardado, soloEditor = false }: ArmonizacionPeriodosProps) {
   const panel = usePanelDireccionable(PANEL_ORDEN_SERIE);
   const guardado = ordenEfectivo(estado.armonizacion_periodos ?? [], estado.bases);
   const declarado = (estado.armonizacion_periodos ?? []).length > 0;
@@ -51,6 +57,19 @@ function PeriodosConDireccion({ estado, onGuardado }: ArmonizacionPeriodosProps)
   const porAnio = ordenPorAnio(estado.bases) !== null;
 
   if (estado.bases.length < 2) return null;
+
+  const editor = (
+    <EditorOrden
+      abierto={panel.abierto}
+      panelProps={panel.props}
+      onCerrar={panel.cerrar}
+      estado={estado}
+      guardado={guardado}
+      declarado={declarado}
+      onGuardado={onGuardado}
+    />
+  );
+  if (soloEditor) return editor;
 
   return (
     <div className="pulso-armon-periodos" role="group" aria-labelledby="pulso-armon-periodos-titulo">
@@ -76,15 +95,7 @@ function PeriodosConDireccion({ estado, onGuardado }: ArmonizacionPeriodosProps)
         <Pencil size={13} aria-hidden="true" />
         Editar
       </PulsoButton>
-      <EditorOrden
-        abierto={panel.abierto}
-        panelProps={panel.props}
-        onCerrar={panel.cerrar}
-        estado={estado}
-        guardado={guardado}
-        declarado={declarado}
-        onGuardado={onGuardado}
-      />
+      {editor}
     </div>
   );
 }
@@ -114,7 +125,7 @@ function EditorOrden({
   const [guardadoAhora, setGuardadoAhora] = useState(false);
   const [error, setError] = useState("");
   const cambiado = !mismoOrden(orden, guardado);
-  // «Ordenar por año» sólo existe si todas las bases nombran un año (F6).
+  // "Ordenar por año" sólo existe si todas las bases nombran un año (F6).
   const cronologico = ordenPorAnio(orden);
   // Sin declarar también es algo por guardar: el orden propuesto aún no es la serie.
   const pendiente = cambiado || !declarado;

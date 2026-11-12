@@ -1,6 +1,6 @@
 // Editor de un segmento de cruce (ADR 0107): etiqueta y nombre estándar, la
 // escala estándar y, por base, de dónde sale. Mismas secciones, campos y pie
-// que «Variables de la base» y la armonización de una fila. La lógica
+// que "Variables de la base" y la armonización de una fila. La lógica
 // (borrador, validación, cuerpo del POST) vive en `segmentosModel`.
 
 import { useId, useMemo, useReducer, useState } from "react";
@@ -81,7 +81,7 @@ export function SegmentoEditor({
   }, [bases, catalogo, propias, nombresSegmentos]);
 
   // Los valores de cada origen se leen aquí, para todas las bases: cada sección
-  // los pinta y el editor los usa en «Emparejar todas» y en los atajos de «Partir de…».
+  // los pinta y el editor los usa en "Emparejar todas" y en los atajos de "Partir de…".
   const origenes = useMemo(
     () => Object.fromEntries(bases.map((base) => [base, b.porBase[base]?.origen ?? ""])),
     [bases, b.porBase],
@@ -133,7 +133,7 @@ export function SegmentoEditor({
             <span>Etiqueta</span>
             <input
               value={b.etiqueta}
-              placeholder="Edad, Sexo, Facultad…"
+              placeholder="Edad, Sexo, Facultad"
               onChange={(e) => despachar({ tipo: "etiqueta", valor: e.target.value })}
             />
           </label>
@@ -238,7 +238,7 @@ export function SegmentoEditor({
               </button>
             </div>
             {opcionesPorBase[baseDePartida] === null ? (
-              <p className="pulso-armon-nota" role="status">Leyendo las variables de {baseDePartida}…</p>
+              <p className="pulso-armon-nota" role="status">Leyendo las variables de {baseDePartida}</p>
             ) : conLista.length === 0 ? (
               <p className="pulso-armon-nota">{baseDePartida} no tiene variables con lista de respuestas.</p>
             ) : (
@@ -329,7 +329,7 @@ export function SegmentoEditor({
           onClick={() => void guardar()}
         >
           <Save size={14} aria-hidden="true" />
-          {guardando ? "Guardando…" : "Guardar segmento"}
+          {guardando ? "Guardando" : "Guardar segmento"}
         </PulsoButton>
       </div>
     </div>

@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { BaseVariables } from "../../../api/baseVariables";
 import type { EquivalenciaFila } from "../../../api/equivalencias";
 import type { Segmento, SegmentosEstado } from "../../../api/segmentos";
+import type { VariableDeBase } from "../../../api/equivalencias";
+import { aFilasEditor } from "../equivalenciasEditorModel";
+import { nombreDeSerieDeBases } from "../nombreDeSerie";
 import { PANELES_CARGA, PANEL_SEGMENTOS } from "../panelesCarga";
+import { filasDeMesa, resumenDeEscalas } from "../pestanas/equivalencias/equivalenciasMesaModel";
 import {
   filasComparables,
   hrefDeEnlace,
@@ -194,6 +198,28 @@ describe("paso 4, Matriz", () => {
     }));
     expect(paso(pasos, "matriz")).toMatchObject({ estado: "hecho", detalle: "1 fila" });
     expect(paso(pasos, "comparativos")).toMatchObject({ estado: "hecho", detalle: "1 pregunta lista para comparar" });
+  });
+
+  it("con la definición de la tabla: por armonizar son listas distintas, sin lista va aparte, y bajan juntas al armonizar", () => {
+    const v = (name: string, firma: string, conOpciones = true): VariableDeBase => ({
+      name, label: name, seccion: "", firma, opciones: conOpciones ? [{ codigo: "1", etiqueta: "Sí" }, { codigo: "2", etiqueta: "No" }] : [],
+    });
+    const catalogo = {
+      "2024": [v("p1", "A"), v("p2", "", false)],
+      "2025": [v("q1", "B"), v("q2", "", false)],
+      "2026": [],
+    };
+    const guardadas = [fila({ "2024": "p1", "2025": "q1" }), fila({ "2024": "p2", "2025": "q2" })];
+    const detalle = (filas: EquivalenciaFila[]) => {
+      const escalas = resumenDeEscalas(filasDeMesa(aFilasEditor(filas), BASES, catalogo, nombreDeSerieDeBases(BASES)));
+      return { escalas, paso: paso(pasosDelRecorrido(completa({ filas, escalas })), "matriz") };
+    };
+    const antes = detalle(guardadas);
+    expect(antes.escalas).toEqual({ porArmonizar: 1, sinLista: 1 });
+    expect(antes.paso).toMatchObject({ estado: "falta", detalle: "2 filas, 1 por armonizar, 1 sin lista, 2 faltan en alguna base" });
+    const despues = detalle([fila({ "2024": "p1", "2025": "q1" }, armonizada(["2024", "2025"])), guardadas[1]]);
+    expect(despues.escalas).toEqual({ porArmonizar: 0, sinLista: 1 });
+    expect(despues.paso).toMatchObject({ estado: "hecho", detalle: "2 filas, 1 sin lista, 2 faltan en alguna base" });
   });
 
   it("sin filas no está empezada", () => {

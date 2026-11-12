@@ -1,5 +1,5 @@
 // Textos de la fila que imprime el comparativo entre mediciones: el enunciado
-// de la tabla y la línea «Base: …» bajo ella. Se guardan con la armonización.
+// de la tabla y la línea "Base:" bajo ella. Se guardan con la armonización.
 
 import type { TextosInforme } from "./armonizacionModel";
 
@@ -33,7 +33,7 @@ export function ArmonizacionTextosInforme({ textos, nombreEstandar, onCambiar }:
           aria-describedby="pulso-armon-informe-base-ayuda"
           onChange={(e) => onCambiar("baseTexto", e.target.value)}
         />
-        <small id="pulso-armon-informe-base-ayuda">Va bajo la tabla como "Base: …".</small>
+        <small id="pulso-armon-informe-base-ayuda">Va bajo la tabla, después de "Base:".</small>
       </label>
     </section>
   );

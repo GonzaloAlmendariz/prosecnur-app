@@ -66,7 +66,7 @@ export function ImportarBloquesBoton({ disabled }: { disabled?: boolean }) {
       aria-haspopup="dialog"
     >
       <FileSpreadsheet size={14} aria-hidden="true" />
-      Traer una serie de mediciones ya armada
+      Traer una serie ya armada
     </PulsoButton>
   );
 }

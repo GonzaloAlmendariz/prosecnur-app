@@ -1,0 +1,329 @@
+/* Carga › Equivalencias (prototipo "carga-equivalencias"): filtros, buscador y
+ * tabla de la misma pregunta en cada base; la escala y la edición de la fila
+ * elegida. Los marcos son del kit (MesaDePestana, PanelDeMesa, PulsoTable);
+ * esta hoja ordena lo de adentro y no dibuja cajas. Solo tokens. La barra y el
+ * buscador copian los de Formulario.
+ */
+
+/* Contiene a los `pulso-sr-only` absolutos de la tabla dentro del dueño de scroll. */
+.pulso-equiv-raiz {
+  position: relative;
+}
+
+/* ---------- Tabla ---------- */
+
+.pulso-equiv-mesa-barra {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.pulso-equiv-mesa-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-equiv-mesa-buscar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 220px;
+  min-width: 160px;
+}
+
+.pulso-equiv-mesa-buscar > svg {
+  position: absolute;
+  inset-inline-start: 10px;
+  color: var(--pulso-text-faint);
+  pointer-events: none;
+}
+
+.pulso-equiv-mesa-buscar .pulso-input {
+  inline-size: 100%;
+  padding-inline-start: 32px;
+}
+
+/* El nombre baja de línea entre palabras; el código va en una línea (PulsoTable pone el entero en `title`). */
+.pulso-equiv-mesa .pulso-table td:first-child {
+  white-space: normal;
+  overflow-wrap: break-word;
+  padding-block: var(--pulso-space-2);
+  line-height: 1.3;
+}
+
+.pulso-equiv-mesa-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+}
+
+/* El enunciado en dos líneas como mucho; el entero va en el `title` de la celda (PulsoTable). */
+.pulso-equiv-mesa-nombre b {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-equiv-mesa-marca {
+  padding: 1px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-equiv-mesa-codigo {
+  padding: 1px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-equiv-mesa-tenue {
+  color: var(--pulso-text-faint);
+}
+
+/* La fila del inspector, con el tono del módulo. */
+.pulso-equiv-mesa .pulso-table tr[data-selected="true"] td {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-equiv-mesa .pulso-table tbody tr[tabindex] {
+  cursor: pointer;
+}
+
+/* ---------- Inspector ---------- */
+
+.pulso-equiv-mesa-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-equiv-mesa-ficha > section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-equiv-mesa-causa {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  line-height: 1.45;
+}
+
+.pulso-equiv-mesa-h {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.02em;
+}
+
+.pulso-equiv-mesa-escalas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+/* El nombre de la base sobre su escala: en el inspector angosto las categorías caben en una fila. */
+.pulso-equiv-mesa-escala-fila {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-equiv-mesa-escala-fila > b {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* Cada categoría en su pastilla; el filete inferior lleva su posición en la escala (secuencia de datos). */
+.pulso-equiv-mesa-escala {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-equiv-mesa-escala li {
+  flex: 1 1 auto;
+  text-align: center;
+  padding: 2px var(--pulso-space-2) 4px;
+  border-radius: 6px 6px 2px 2px;
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 -3px 0 var(--pulso-equiv-seq, var(--pulso-data-seq-3));
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.pulso-equiv-mesa-escala li[data-seq="1"] { --pulso-equiv-seq: var(--pulso-data-seq-1); }
+.pulso-equiv-mesa-escala li[data-seq="2"] { --pulso-equiv-seq: var(--pulso-data-seq-2); }
+.pulso-equiv-mesa-escala li[data-seq="4"] { --pulso-equiv-seq: var(--pulso-data-seq-4); }
+.pulso-equiv-mesa-escala li[data-seq="5"] { --pulso-equiv-seq: var(--pulso-data-seq-5); }
+
+.pulso-equiv-mesa-escala-fila.is-comun > b {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-equiv-mesa-flecha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+  margin: var(--pulso-space-1) 0;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.02em;
+}
+
+.pulso-equiv-mesa-dl {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.pulso-equiv-mesa-dl > div {
+  display: grid;
+  grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-equiv-mesa-dl dt {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-equiv-mesa-dl dd {
+  margin: 0;
+  min-width: 0;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-equiv-mesa-campos {
+  display: flex;
+  flex-direction: column;
+}
+
+.pulso-equiv-mesa-campo {
+  display: grid;
+  /* El nombre de la base no se parte dentro de la palabra: la columna mide al menos su palabra más larga. */
+  grid-template-columns: minmax(min-content, 34%) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-equiv-mesa-campo > span:first-child,
+.pulso-equiv-mesa-campo > label {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-equiv-mesa-campo > :last-child {
+  min-width: 0;
+}
+
+.pulso-equiv-mesa-campo .pulso-input {
+  inline-size: 100%;
+}
+
+.pulso-equiv-mesa-fijo {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* El pie del inspector apila sus acciones a todo el ancho: la de la escala primero. */
+.pulso-equiv-mesa .pulso-panel-de-mesa--inspector .pulso-panel-de-mesa-pie {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pulso-equiv-mesa .pulso-panel-de-mesa--inspector .pulso-panel-de-mesa-pie > .pulso-button {
+  flex: none;
+}
+
+/* ---------- Avisos ---------- */
+
+.pulso-equiv-mesa-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-equiv-mesa-aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-success-fg);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-equiv-mesa-aviso.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-equiv-mesa-aviso.is-atencion {
+  color: var(--pulso-warn-fg);
+}
+
+/* Las acciones de añadir dentro del estado vacío de la tabla. */
+.pulso-equiv-mesa-anadir {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pulso-space-2);
+}
+
+/* Hasta 1100 de ventana la mesa del kit apila sus columnas y desplaza la pestaña. Equivalencias no:
+   su tabla (virtualizada) necesita ser la dueña de su scroll, y apilada quedaban dos scrolls anidados
+   (área de Carga y tabla). Aquí la pestaña conserva el alto de la ventana, tabla e inspector siguen
+   lado a lado (inspector de 300) y cada contenedor desplaza solo su cuerpo, como a 1366. */
+@media (max-width: 1100px) {
+  :root .pulso-carga-frame .pulso-carga-workbench--kit .pulso-carga-content--framed > .pulso-carga-scrollarea:has(.pulso-equiv-mesa),
+  .pulso-carga-content:not(.pulso-carga-content--framed):has(.pulso-equiv-mesa) {
+    overflow: hidden;
+  }
+
+  .pulso-carga-mesa-kit.pulso-equiv-raiz,
+  .pulso-carga-mesa-kit.pulso-equiv-mesa {
+    flex: 1 1 auto;
+  }
+}
+
+@container mesa-pestana (max-width: 979px) {
+  .pulso-equiv-mesa .pulso-mesa-pestana-marco,
+  .pulso-equiv-mesa .pulso-mesa-pestana {
+    flex: 1 1 auto;
+  }
+
+  .pulso-equiv-mesa .pulso-mesa-pestana[data-columnas="2"] {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .pulso-equiv-mesa .pulso-mesa-pestana > .pulso-panel-de-mesa {
+    max-block-size: none;
+  }
+}

@@ -3,7 +3,7 @@
 //
 // Direccionable: `?panel=mapa-bases` muestra el resumen por base y la matriz con
 // un indicador por base; `?panel=mapa-bases&foco=<base>` muestra las variables
-// de esa base que no están en ninguna fila, con «Añadir a la matriz».
+// de esa base que no están en ninguna fila, con "Añadir a la matriz".
 //
 // Reusa la cáscara del sideover de armonización (`pulso-armon*`): un único
 // dueño de scroll, el cuerpo del panel. La lógica vive en `mapaBasesModel`.
@@ -197,7 +197,7 @@ export type MapaBasesCuerpoProps = {
   foco: string | null;
   onIr: (base: string | null) => void;
   onAnadir: (base: string, variable: string) => void;
-  /** Abre «Variables de la base» (ADR 0106); sin él no se ofrece. */
+  /** Abre "Variables de la base" (ADR 0106); sin él no se ofrece. */
   onVariables?: (base: string) => void;
 };
 
@@ -207,7 +207,7 @@ export function MapaBasesCuerpo({ cargando, bases, filas, variablesPorBase, foco
   const baseActiva = foco && bases.includes(foco) ? foco : null;
   if (cargando) {
     // C5: no es vacío, es la lectura en curso.
-    return <LoadingBlock variant="inline" label="Leyendo la matriz y las variables de cada base…" />;
+    return <LoadingBlock variant="inline" label="Leyendo la matriz y las variables de cada base" />;
   }
   if (bases.length === 0) {
     // C5 categoría 1: vacío legítimo, el estudio no tiene bases separadas.
@@ -257,7 +257,7 @@ function ResumenBases({
   onVariables?: (base: string) => void;
 }) {
   return (
-    // El contrato «equal» iguala las TARJETAS entre sí: va en la lista y no en cada tarjeta, donde comparaba el
+    // El contrato "equal" iguala las TARJETAS entre sí: va en la lista y no en cada tarjeta, donde comparaba el
     // nombre con los totales y los botones (equal-frame-drift con datos, 4 nov 2026). La lista es además miembro del
     // grupo de afuera, y un elemento no puede ser las dos cosas: la envuelve un div que hace de miembro.
     <div data-qa-geometry-member>

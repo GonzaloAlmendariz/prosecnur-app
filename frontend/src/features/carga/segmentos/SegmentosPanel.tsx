@@ -1,9 +1,9 @@
-// Panel «Segmentos de cruce» (ADR 0107). Direccionable: `?panel=segmentos`
+// Panel "Segmentos de cruce" (ADR 0107). Direccionable: `?panel=segmentos`
 // muestra la tabla segmento × base; `?panel=segmentos&foco=<clave>` abre ese
 // segmento en su editor. Se abre desde Equivalencias y desde el recorrido de
 // la serie.
 //
-// Cáscara: `PanelLateralFuentes`, la misma de «Variables de la base» (un único
+// Cáscara: `PanelLateralFuentes`, la misma de "Variables de la base" (un único
 // dueño de scroll, `.pulso-plf-cuerpo`). Secciones, chips de estado y vacíos
 // son los del Mapa de bases y la armonización.
 
@@ -116,7 +116,7 @@ export function SegmentosCuerpo({ control, foco, ordenBases, onIr }: SegmentosCu
   if (lectura.tipo === "cargando") {
     return (
       <div data-qa-geometry-capacity="owned">
-        <LoadingBlock variant="inline" label="Leyendo los segmentos del estudio…" />
+        <LoadingBlock variant="inline" label="Leyendo los segmentos del estudio" />
       </div>
     );
   }

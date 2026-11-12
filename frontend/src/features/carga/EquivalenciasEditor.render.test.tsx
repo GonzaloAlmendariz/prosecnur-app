@@ -45,7 +45,7 @@ describe("editor directo de la matriz (ADR 0104)", () => {
     expect(html).toContain('<code class="pulso-preg-codigo">p13_1</code>');
     expect(html).toContain('aria-label="Pregunta de estudiantes en Uso de salud: ¿Ha usado el servicio de salud? (p11_1)"');
     // La base que todavía no tiene pregunta invita a buscarla.
-    expect(html).toContain("Buscar pregunta…");
+    expect(html).toContain(">Buscar pregunta<");
   });
 
   it('la columna "Escala" dice si coinciden y abre la armonización cuando no', () => {
@@ -76,7 +76,8 @@ describe("editor directo de la matriz (ADR 0104)", () => {
 });
 
 describe("la pestaña ya no ofrece plantilla, subida ni emparejado automático (ADR 0104)", () => {
-  const panel = sinComentarios("./EquivalenciasPanel.tsx");
+  // La pestaña es el panel (esqueleto y paneles) más la mesa que monta (pestanas/equivalencias).
+  const panel = sinComentarios("./EquivalenciasPanel.tsx") + sinComentarios("./pestanas/equivalencias/MesaDeEquivalencias.tsx");
   const bloques = sinComentarios("./ImportarBloquesDialog.tsx");
 
   it('sin "Generar plantilla", "Subir matriz" ni "Proponer emparejados", ni confirmación en bloque', () => {

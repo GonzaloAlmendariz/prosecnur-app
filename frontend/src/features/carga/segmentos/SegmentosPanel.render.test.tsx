@@ -52,7 +52,7 @@ const listo = (segmentos: Segmento[]): Partial<EstadoSegmentos> => ({
 describe("Segmentos de cruce", () => {
   it("leyendo: un solo estado que contiene su vacío", () => {
     const html = cuerpo({});
-    expect(html).toContain("Leyendo los segmentos del estudio…");
+    expect(html).toContain("Leyendo los segmentos del estudio");
     expect(html).toContain('data-qa-geometry-capacity="owned"');
   });
 
@@ -225,7 +225,7 @@ describe("una base del editor con los valores observados", () => {
   });
 
   it("leyendo, lo dice; si falla, lo dice y queda lo conocido", () => {
-    expect(render({ tipo: "cargando" })).toContain("Leyendo los valores de P1 en 2026…");
+    expect(render({ tipo: "cargando" })).toContain("Leyendo los valores de P1 en 2026<");
     const html = render({ tipo: "error", mensaje: "No existe la variable · E_CODIGOS_VARIABLE_NOT_FOUND" });
     expect(html).toContain("No se pudieron leer los valores de P1");
     expect(html).not.toContain(">Casos<");

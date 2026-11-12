@@ -2,14 +2,15 @@
 //
 // Un estudio con varias mediciones se arma en seis pasos que viven en lugares
 // distintos (Bases, Variables de la base, Segmentos, Matriz, Ponderación,
-// Comparativos). La banda responde de un vistazo «qué me falta y dónde se
-// hace»: cada paso trae su estado, un texto corto y concreto, y el enlace a
+// Comparativos). La banda responde de un vistazo "qué me falta y dónde se
+// hace": cada paso trae su estado, un texto corto y concreto, y el enlace a
 // donde se resuelve. Todo sale de lecturas que la app ya hace; aquí sólo se
 // decide.
 //
 // Regla de los textos (C2): con 2 o con 6 bases el paso mide lo mismo. Una
 // lista por base nombra a lo sumo dos y cuenta el resto.
 
+import type { ResumenDeEscalas } from "../pestanas/equivalencias/equivalenciasMesaModel";
 import type { BaseVariables } from "../../../api/baseVariables";
 import type { EquivalenciaFila } from "../../../api/equivalencias";
 import type { SegmentosEstado } from "../../../api/segmentos";
@@ -82,6 +83,13 @@ export type EntradaRecorrido = {
   variables: Readonly<Record<string, Lectura<BaseVariables>>>;
   segmentos: Lectura<SegmentosEstado>;
   ponderacion: Lectura<readonly PonderacionEnSerie[]>;
+  /**
+   * Lo pendiente de escala con la definición de la tabla de Equivalencias
+   * (`resumenDeEscalas`): "por armonizar" son listas que difieren; "sin lista",
+   * preguntas sin opciones que no se armonizan. Sin él, el paso usa la marca
+   * del motor (`misma_escala`) y dice "sin armonizar".
+   */
+  escalas?: ResumenDeEscalas;
 };
 
 /** Bases del estudio. El dueño del enlace es `direccionesDeCarga.ts`. */
@@ -135,7 +143,7 @@ function pasoVariables(e: EntradaRecorrido): PasoRecorrido {
   const lecturas = e.bases.map((b) => ({ base: b, lectura: e.variables[b] ?? { tipo: "cargando" as const } }));
   const primera = e.bases[0] ?? "";
   if (lecturas.some((l) => l.lectura.tipo === "cargando")) {
-    return { ...base, estado: "leyendo", detalle: "Leyendo…", enlace: enlaceVariables(primera) };
+    return { ...base, estado: "leyendo", detalle: "Leyendo", enlace: enlaceVariables(primera) };
   }
   const pendientes: { base: string; texto: string }[] = [];
   const fallidas: string[] = [];
@@ -180,7 +188,7 @@ function pasoSegmentos(e: EntradaRecorrido): PasoRecorrido {
     enlace: { tipo: "panel" as const, panel: PANEL_SEGMENTOS.id, etiqueta: "Segmentos de cruce" },
   };
   const l = e.segmentos;
-  if (l.tipo === "cargando") return { ...base, estado: "leyendo", detalle: "Leyendo…" };
+  if (l.tipo === "cargando") return { ...base, estado: "leyendo", detalle: "Leyendo" };
   if (l.tipo === "error") return { ...base, estado: "sin-lectura", detalle: "No se pudieron leer" };
   const segmentos = l.datos.segmentos;
   if (!segmentos.length) return { ...base, estado: "no-empezado", detalle: "Sin segmentos declarados" };
@@ -218,11 +226,12 @@ function pasoMatriz(e: EntradaRecorrido): PasoRecorrido {
   };
   const n = e.filas.length;
   if (!n) return { ...base, estado: "no-empezado", detalle: "Sin preguntas en la matriz" };
-  const pendientes = e.filas.filter(sinArmonizar).length;
+  const pendientes = e.escalas ? e.escalas.porArmonizar : e.filas.filter(sinArmonizar).length;
   const incompletas = e.filas.filter((f) => e.bases.some((b) => presenciaEnBase(f, b) === "falta")).length;
   const partes = [
     conteo(n, "fila", "filas"),
-    pendientes ? `${formatoConteo(pendientes)} sin armonizar` : "",
+    pendientes ? `${formatoConteo(pendientes)} ${e.escalas ? "por armonizar" : "sin armonizar"}` : "",
+    e.escalas?.sinLista ? `${formatoConteo(e.escalas.sinLista)} sin lista` : "",
     // Faltar en una base puede ser legítimo (no se preguntó ese año): se dice, no se exige.
     incompletas ? `${formatoConteo(incompletas)} ${incompletas === 1 ? "falta" : "faltan"} en alguna base` : "",
   ].filter(Boolean);
@@ -237,7 +246,7 @@ function pasoPonderacion(e: EntradaRecorrido): PasoRecorrido {
     enlace: { tipo: "direccion" as const, href: DIRECCION_PONDERACION_SERIE, etiqueta: "Ponderación" },
   };
   const l = e.ponderacion;
-  if (l.tipo === "cargando") return { ...base, estado: "leyendo", detalle: "Leyendo…" };
+  if (l.tipo === "cargando") return { ...base, estado: "leyendo", detalle: "Leyendo" };
   if (l.tipo === "error") return { ...base, estado: "sin-lectura", detalle: "No se pudo leer" };
   const serie = l.datos;
   // Falta sólo si una base trae columnas de peso sin declarar. Sin columnas de
