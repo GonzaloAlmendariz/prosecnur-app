@@ -291,6 +291,9 @@
   z-index: var(--pulso-z-flyout);
   overflow: hidden;
   min-width: var(--radix-select-trigger-width);
+  /* Sin tope, una opción larga (código y enunciado en una línea) estira la lista de borde a borde
+     del viewport. Tope legible y nunca más allá del espacio disponible; la opción recorta con elipsis. */
+  max-width: min(36rem, var(--radix-select-content-available-width, 100vw));
   max-height: var(--radix-select-content-available-height);
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
@@ -324,6 +327,14 @@
   cursor: pointer;
   user-select: none;
   outline: none;
+}
+
+/* El texto de la opción cabe en el tope de la lista: recorta con elipsis en vez de ensancharla. */
+.pulso-select-item > span:not(.pulso-select-item-indicator) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pulso-select-item[data-highlighted] {
