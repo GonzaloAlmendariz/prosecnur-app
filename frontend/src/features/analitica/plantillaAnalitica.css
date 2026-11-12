@@ -4,3 +4,20 @@
 .pulso-analitica-sourcebar {
   position: relative;
 }
+
+/* En la barra de los paneles (columna angosta, p.ej. "Se construye con" del Libro de códigos) las dos
+   fuentes muestran su nombre siempre. Si la inactiva lo desplegara al pasar el mouse, su ensanche
+   parte la fila, el botón sale de debajo del puntero, se recoge y vuelve: un parpadeo sin fin. Aquí
+   el ancho no cambia con el hover. */
+.pulso-analitica-sourcebar--panel .pulso-analitica-source-option {
+  flex-basis: auto;
+  gap: 7px;
+  justify-content: flex-start;
+}
+
+.pulso-analitica-sourcebar--panel .pulso-analitica-source-option .pulso-analitica-source-option-copy {
+  max-width: 92px;
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
