@@ -1,36 +1,36 @@
 {
   "reglas-propias_adopta-sugerencia": {
-    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
-    "pedidos": "4f7bdd8e1ea358c70437c42ab5dbd3d8e913d857370271e555570d03b6bbe52e",
+    "marcado": "cc9c5aa30ee54f8ea838be791a9b2cf25a769f937a05057a1b7afc9e1765ff54",
+    "pedidos": "bbb65bb7538c1fc2cc1b71a5609f84272c377342880f0429ebc955fd61b8d88c",
     "guardado": [
       "POST /api/validacion/v2/reglas_custom [base=default]\n{\"activa\":true,\"nombre\":\"Duplicados por documento\",\"tipo\":\"duplicados\",\"variables\":[\"dni\"],\"params\":{\"missing_key_policy\":\"ignore_missing\"},\"mensaje\":\"Documento repetido\",\"severidad\":\"advertencia\",\"hallazgo_kind\":\"caso_validar\",\"planned_action_type\":\"exclude_cases\",\"recommended_scope\":\"selected\",\"gate_expr\":\"\",\"gate_conditions\":[],\"origen\":\"sembrado\",\"semilla\":{\"origen\":\"procedencia\",\"porque\":\"La columna dni identifica a cada persona y tiene 3 repetidos.\",\"n_casos_afectados\":3}}"
     ]
   },
   "reglas-propias_con-reglas": {
-    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
-    "pedidos": "52a09841ddbf264bfd2797fa91a31b69d6223134031607e376891de4668023aa"
+    "marcado": "cc9c5aa30ee54f8ea838be791a9b2cf25a769f937a05057a1b7afc9e1765ff54",
+    "pedidos": "601ffb760cc7de251d04538ddb99dcb2c8ca7173a5091734af8ae79a5dc8b1a9"
   },
   "reglas-propias_dos-bases": {
-    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
-    "pedidos": "a94ad6692093fabe8ffa7152d82965f7c9affe17118a19079c4be697a5166d06"
+    "marcado": "cc9c5aa30ee54f8ea838be791a9b2cf25a769f937a05057a1b7afc9e1765ff54",
+    "pedidos": "453973ddd67112bddcb95d46a27b6f91b1081e0580e9c6c479acd7fc6682017c"
   },
   "reglas-propias_edita-y-guarda": {
-    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
-    "pedidos": "7428762803c4e7263b2887c73f895c762d71d4eaccc1788e3edfe5174b2d8b06",
+    "marcado": "cc9c5aa30ee54f8ea838be791a9b2cf25a769f937a05057a1b7afc9e1765ff54",
+    "pedidos": "5fd3e22f06ab9b6590430a5f3005db471a9b8d80f5dcfec5ddb8e25f12d642b2",
     "guardado": [
       "PUT /api/validacion/v2/reglas_custom/RC_001 [base=default]\n{\"id\":\"RC_001\",\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}"
     ]
   },
   "reglas-propias_ejecuta": {
-    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
-    "pedidos": "58b09bbb22cc492d1fe9e91863cc49cd74ed8198b39e42e24205e07225fcb7e0",
+    "marcado": "cc9c5aa30ee54f8ea838be791a9b2cf25a769f937a05057a1b7afc9e1765ff54",
+    "pedidos": "b83598e4d929d37e25aa3147d8d1d6ddd0b8d66e93fe3089d6aa4fe4fa39f9a9",
     "guardado": [
       "POST /api/validacion/v2/auditoria [base=default]\n"
     ]
   },
   "reglas-propias_elimina": {
-    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
-    "pedidos": "a65fee9e57ca56ef07dac75967f3757d2554ed09219862f7bbbb8adf283da2f2",
+    "marcado": "cc9c5aa30ee54f8ea838be791a9b2cf25a769f937a05057a1b7afc9e1765ff54",
+    "pedidos": "409a8901c4249a88e2927a7f3b30e9afa04d7374bd0e7831dca357c9d34c9bf1",
     "guardado": [
       "DELETE /api/validacion/v2/reglas_custom/RC_001 [base=default]\n"
     ]
@@ -40,14 +40,14 @@
     "pedidos": "e592c9959915b20ed7f813b3d9287e627f0accbbf8ff858ec09e2d940849b2ad"
   },
   "reglas-propias_omite": {
-    "marcado": "e9818b9bc3a8ed98dc907056a1b4b416334de60fa7950f39de5ed1a5d92bb70c",
-    "pedidos": "7428762803c4e7263b2887c73f895c762d71d4eaccc1788e3edfe5174b2d8b06",
+    "marcado": "cc9c5aa30ee54f8ea838be791a9b2cf25a769f937a05057a1b7afc9e1765ff54",
+    "pedidos": "5fd3e22f06ab9b6590430a5f3005db471a9b8d80f5dcfec5ddb8e25f12d642b2",
     "guardado": [
       "PUT /api/validacion/v2/reglas_custom/RC_001 [base=default]\n{\"activa\":false}"
     ]
   },
   "reglas-propias_sin-reglas": {
-    "marcado": "befb520c3c703978c3a02e9909acbfeb0d4dd3f9a55ca6de92b7f69a2c73daa6",
-    "pedidos": "52a09841ddbf264bfd2797fa91a31b69d6223134031607e376891de4668023aa"
+    "marcado": "dd7ae8ff1f9f2c60589b7664fb3685065743e9ec291340e8b08c8044b4635b9c",
+    "pedidos": "601ffb760cc7de251d04538ddb99dcb2c8ca7173a5091734af8ae79a5dc8b1a9"
   }
 }

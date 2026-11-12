@@ -65,6 +65,14 @@
   d
 }
 
+# AAAAMMDD con año entre 1900 y 2100 y un día que existe.
+.recon_personal_es_fecha_compacta <- function(d) {
+  ok <- !is.na(d) & nchar(d) == 8L & substring(d, 1L, 2L) %in% c("19", "20", "21")
+  f <- rep(as.Date(NA), length(d))
+  f[ok] <- suppressWarnings(as.Date(d[ok], format = "%Y%m%d"))
+  !is.na(f)
+}
+
 .recon_personal_es_nombre <- function(v) {
   palabras <- strsplit(toupper(v), "[[:space:]]+")
   vapply(palabras, function(p) {
@@ -104,7 +112,8 @@
     detalle <- if (length(largos) == 1L) sprintf("%d dígitos", largos) else sprintf("%d a %d dígitos", min(largos), max(largos))
     return(.recon_personal_causa("teléfono", detalle, k, n))
   }
-  k <- sum(!is.na(d) & largo == 8L)
+  # Una fecha compacta (20260613) también tiene 8 dígitos: no es DNI.
+  k <- sum(!is.na(d) & largo == 8L & !.recon_personal_es_fecha_compacta(d))
   if (alcanza(k)) return(.recon_personal_causa("DNI", "8 dígitos", k, n))
 
   k <- sum(.recon_personal_es_direccion(v))

@@ -61,6 +61,16 @@ export const PANEL_REGISTRO_VALIDACION: PanelDeclarado = {
   clase: "sideover",
 };
 
+/**
+ * Los casos de una sugerencia del detector de consistencia (ítem 31), desde el
+ * bloque "Sugerencias para revisar" de Reglas; `foco` es el id de la sugerencia.
+ */
+export const PANEL_SUGERENCIA_VALIDACION: PanelDeclarado = {
+  id: "sugerencia",
+  label: "Casos de la sugerencia",
+  clase: "dialogo",
+};
+
 export const PANELES_VALIDACION: readonly PanelDeclarado[] = [
   PANEL_REGLA_VALIDACION,
   PANEL_CASO_VALIDACION,
@@ -69,4 +79,5 @@ export const PANELES_VALIDACION: readonly PanelDeclarado[] = [
   PANEL_FUERA_DE_AUDITORIA_VALIDACION,
   PANEL_RESUMEN_VALIDACION,
   PANEL_REGISTRO_VALIDACION,
+  PANEL_SUGERENCIA_VALIDACION,
 ];

@@ -5,7 +5,8 @@
  *   - Una familia de reglas: una fila por regla (`FilaRegla`), las primeras
  *     `FILAS_A_LA_VISTA` y "Ver las N" al pie.
  *   - "Sin evaluar": la tabla "Qué pide el formulario / Pregunta / Por qué no se evaluó".
- *   - Las propias llevan debajo las sugeridas al mirar la base.
+ *   - Las propias llevan debajo las sugeridas al mirar la base y las
+ *     sugerencias para revisar del detector de consistencia.
  *   - "Fuera de la auditoría": las preguntas con su interruptor (D-F7c).
  */
 import { useState, type ReactNode } from "react";
@@ -28,6 +29,7 @@ import {
 } from "./modeloCatalogo";
 import { ListaFueraDeAuditoria, type PreguntaExcluible } from "./ListaFueraDeAuditoria";
 import { SugeridasDeLaBase } from "./SugeridasDeLaBase";
+import { SugerenciasParaRevisar } from "./SugerenciasParaRevisar";
 
 const COLUMNAS_SIN_EVALUAR: readonly PulsoTableColumna<ReglaDelCatalogo>[] = [
   { id: "que-pide", encabezado: "Qué pide el formulario", ancho: 280, celda: (r) => <b>{r.nombre}</b> },
@@ -169,6 +171,7 @@ export function ListaDeLaFamilia({
     >
       {cuerpo}
       {propias ? <SugeridasDeLaBase semillas={semillas} ocupada={ocupada} onAnadir={onAnadirSugerida} /> : null}
+      {propias ? <SugerenciasParaRevisar ocupada={ocupada} onConvertir={onAnadirSugerida} /> : null}
     </PanelDeMesa>
   );
 }

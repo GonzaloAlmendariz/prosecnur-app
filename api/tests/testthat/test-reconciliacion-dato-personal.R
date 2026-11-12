@@ -43,6 +43,9 @@ test_that("no son datos personales: ubigeo, número de encuesta, fechas, horas, 
   expect_false(.dp("ubigeo", c("210610", "80104", "080401", "220401"))$sospecha)
   expect_false(.dp("nro_encuesta", c(239, 495, 396, 802))$sospecha)
   expect_false(.dp("fecha", c("23.10.2026", "08.11.2026", "21.10.2026"))$sospecha)
+  # Fecha compacta AAAAMMDD (export de la plataforma): 8 dígitos, pero no es DNI.
+  expect_false(.dp("kobo_fecha_iso", c("20260613", "20260701", "20260615", "20260630"))$sospecha)
+  expect_true(.dp("documento_x", c("40123456", "07894561", "45678912", "10293847"))$sospecha)
   expect_false(.dp("hora_inicio", c("18.20", "15.15", "07.59"))$sospecha)
   expect_false(.dp("am_pm", c(1, 2, 1, 2))$sospecha)
   expect_false(.dp("distrito", c("ANDAHUAYLILLAS", "YUCAY", "COMAS", "CALCA"))$sospecha)
