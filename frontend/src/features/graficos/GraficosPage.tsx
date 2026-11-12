@@ -33,7 +33,6 @@ import {
   avisosDelResultado, describirFalloDeInforme, ErrorDeInforme, formatoDeExportacion, tituloDeExportacion,
   type FormatoInforme,
 } from "./exportacionInforme";
-import { GraficosHeader } from "./GraficosHeader";
 import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { GraficosReportScopeProvider, parseGraficosReportScope } from "./reportScope";
@@ -319,27 +318,17 @@ export default function GraficosPage() {
             </Alert>
           )}
 
-          {bodyState === "editor" ? (
-            <BarraLaminas
-              onExportPpt={() => onExport("ppt")}
-              onExportWord={() => onExport("word")}
-              generacion={exportacion}
-              pieDelFallo={pieDelFallo}
-              canExport={canExport}
-              isSharedReport={isSharedReport}
-              prepBlocked={!isSharedReport && !prepOk}
-            />
-          ) : (
-            <GraficosHeader
-              onExportPpt={() => onExport("ppt")}
-              onExportWord={() => onExport("word")}
-              generacion={exportacion}
-              pieDelFallo={pieDelFallo}
-              canExport={canExport}
-              prepReady={prepOk}
-              reportScope={reportScope}
-            />
-          )}
+          {/* Una sola barra, la de Láminas, también mientras carga o con los datos bloqueados: la barra del
+              Editor anterior (`GraficosHeader`) ya no se monta. La barra lee `hydrated` y se adapta. */}
+          <BarraLaminas
+            onExportPpt={() => onExport("ppt")}
+            onExportWord={() => onExport("word")}
+            generacion={exportacion}
+            pieDelFallo={pieDelFallo}
+            canExport={canExport && bodyState === "editor"}
+            isSharedReport={isSharedReport}
+            prepBlocked={!isSharedReport && !prepOk}
+          />
 
           <ResumenAvisosExportacion motor={avisosDelMotor.length} previos={warns.length} onVer={() => panelAvisos.abrir()} />
         </>
