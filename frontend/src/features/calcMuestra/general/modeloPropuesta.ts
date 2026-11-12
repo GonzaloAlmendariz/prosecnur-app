@@ -139,6 +139,20 @@ export function lecturaMeta(n: number, fila: FilaPropuesta): LecturaMeta {
   };
 }
 
+/**
+ * Escala común de las barras de respuesta del inspector: la mayor entre la respuesta que exige alguna meta y la
+ * esperada de algún actor, en cualquier propuesta, más un margen para que la marca de la esperada no quede pegada
+ * al borde. Común a todas las propuestas para que al cambiar de una a otra las barras se comparen a ojo.
+ */
+export function escalaDeRespuesta(estado: EstadoPropuesta, filas: readonly FilaPropuesta[]): number {
+  let tope = 0;
+  for (const f of filas) {
+    tope = Math.max(tope, f.respuestaEsperada ?? 0);
+    for (const e of estado.escenarios) tope = Math.max(tope, lecturaMeta(e.metas[f.id] ?? 0, f).respuestaNecesaria ?? 0);
+  }
+  return tope > 0 ? Math.min(1, tope * 1.1) : 1;
+}
+
 /** "9.6 %": un decimal con punto, como en el PPT. */
 export function fmtPorcentaje(x: number): string {
   return `${(x * 100).toFixed(1)} %`;

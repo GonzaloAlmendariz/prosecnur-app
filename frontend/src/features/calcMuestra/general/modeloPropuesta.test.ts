@@ -3,6 +3,7 @@ import type { CalcMuestraComponente } from "../../../api/calcMuestra";
 import {
   actoresDePropuesta,
   agregarPropuesta,
+  escalaDeRespuesta,
   fijarMeta,
   lecturaMeta,
   margenReferencia,
@@ -87,5 +88,16 @@ describe("propuestas de muestra de un barrido", () => {
     expect(p.incluir_portada).toBe(false);
     expect(p.solicitante).toBe("Solicitante: DCI");
     expect(payloadPropuesta("xlsx", { ...estado, solicitante: "" }, filas).solicitante).toBeUndefined();
+  });
+
+  it("las barras de respuesta comparten escala entre propuestas: la mayor exigida o esperada, con holgura", () => {
+    const filas = actoresDePropuesta(comps);
+    const estado = propuestaVigente({ escenarios: [
+      { nombre: "Propuesta A", metas: { doc: 650, egr: 450 } },
+      { nombre: "Propuesta B", metas: { doc: 450, egr: 380 } },
+    ], solicitante: "", incluir_portada: true, incluir_diseno: true }, comps);
+    // Docentes A exige 650 / 2,599 = 25.0 %, más que su esperada (22.1 %): manda la escala.
+    expect(escalaDeRespuesta(estado, filas)).toBeCloseTo((650 / 2599) * 1.1, 6);
+    expect(escalaDeRespuesta({ ...estado, escenarios: [{ nombre: "A", metas: {} }] }, [])).toBe(1);
   });
 });

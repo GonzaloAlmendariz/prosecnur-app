@@ -1,46 +1,41 @@
-/* Acreditación › Resultados › Propuesta (PropuestaEscenarios.tsx). Solo tokens del tema. */
-.cmg-propuesta {
+/* Acreditación › Resultados: propuestas de muestra (PropuestaEscenarios.tsx e InspectorPropuesta.tsx).
+   Geometría de Codificación › Aplicar: centro libre e inspector de 380; bajo 1100 de ancho de la mesa, una columna.
+   Solo tokens del tema. */
+.cmg-propuesta-mesa {
+  container-type: inline-size;
   display: grid;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: stretch;
+  gap: var(--pulso-space-4);
 }
-.cmg-propuesta-titulo {
-  margin: 0;
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: 600;
-  color: var(--pulso-text);
+@container (max-width: 1100px) {
+  .cmg-propuesta-mesa > * {
+    grid-column: 1 / -1;
+  }
 }
-.cmg-propuesta-vacio {
-  margin: 0;
-  color: var(--pulso-text-muted);
+@supports not (container-type: inline-size) {
+  .cmg-propuesta-mesa {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
-.cmg-propuesta-opciones {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 20px;
-}
-.cmg-propuesta-solicitante {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 260px;
-  flex: 1 1 260px;
-}
-.cmg-propuesta-solicitante > span {
-  white-space: nowrap;
-  font-size: var(--pulso-type-caption-size);
-  color: var(--pulso-text-muted);
-}
-.cmg-propuesta-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-/* Cada meta con su lectura debajo: margen de referencia y respuesta que exige. */
+
+/* La meta con su margen debajo, a la derecha como el resto de cifras. */
 .cmg-propuesta-celda {
   display: grid;
   justify-items: end;
   gap: 2px;
+}
+.cmg-propuesta-celda .cmv2-number-cell {
+  width: 96px;
+}
+.cmg-propuesta-celda .cmv2-number-cell input {
+  width: 100%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* La columna de la propuesta que se ve en el inspector. */
+.cmg-propuesta-celda[data-activa="true"] .cmv2-number-cell input {
+  border-color: var(--module-accent, var(--pulso-primary));
 }
 .cmg-propuesta-lectura {
   font-size: var(--pulso-type-caption-size);
@@ -52,26 +47,136 @@
   color: var(--pulso-danger-fg);
   font-weight: 600;
 }
+.cmg-propuesta-total {
+  font-variant-numeric: tabular-nums;
+}
 .cmg-propuesta-nota {
-  margin: 0;
   font-size: var(--pulso-type-caption-size);
   color: var(--pulso-text-muted);
 }
 .cmg-propuesta-aviso {
   margin: 0;
-  padding: 8px 12px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
   border: 1px solid var(--pulso-danger-border);
   border-radius: 8px;
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
   font-size: var(--pulso-type-caption-size);
 }
-/* La meta se lee alineada con su lectura, a la derecha, como el resto de cifras de la tabla. */
-.cmg-propuesta-celda .cmv2-number-cell {
-  width: 104px;
+.cmg-propuesta-solicitante {
+  display: grid;
+  gap: 4px;
 }
-.cmg-propuesta-celda .cmv2-number-cell input {
-  width: 100%;
-  text-align: right;
+.cmg-propuesta-solicitante > span {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+}
+
+/* ---------- Inspector ---------- */
+.cmg-insp-cifras {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--pulso-space-5);
+  margin: 0;
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+.cmg-insp-cifras > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  min-width: 0;
+}
+.cmg-insp-cifras dt {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+}
+.cmg-insp-cifras dd {
+  margin: 0;
+  font-size: var(--pulso-type-title-size);
+  font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.cmg-insp-seccion {
+  display: grid;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+.cmg-insp-seccion + .cmg-insp-seccion {
+  border-top: 1px solid var(--pulso-border);
+}
+.cmg-insp-seccion > h4 {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: 600;
+  color: var(--pulso-text-muted);
+}
+.cmg-insp-actores {
+  display: grid;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cmg-insp-actores > li {
+  display: grid;
+  gap: 4px;
+}
+.cmg-insp-actor-cab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+}
+.cmg-insp-actor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--pulso-type-body-size);
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+.cmg-insp-margen,
+.cmg-insp-actor-cifras {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Barra: el relleno es la respuesta que exige la meta; la marca, la esperada del actor. Escala común a las propuestas. */
+.cmg-insp-barra {
+  position: relative;
+  block-size: 8px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+.cmg-insp-barra-relleno {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: max(2px, calc(var(--cmg-necesaria, 0) * 100%));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-data-seq-4);
+}
+.cmg-insp-barra-marca {
+  position: absolute;
+  inset-block: -3px;
+  inset-inline-start: calc(var(--cmg-esperada, 0) * 100%);
+  inline-size: 2px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+.cmg-insp-actores > li[data-excede="true"] .cmg-insp-barra-relleno {
+  background: var(--pulso-danger-solid);
+}
+.cmg-insp-actores > li[data-excede="true"] .cmg-insp-actor-cifras {
+  color: var(--pulso-danger-fg);
+  font-weight: 600;
+}
+.cmg-insp-opciones {
+  display: grid;
+  gap: var(--pulso-space-3);
 }
