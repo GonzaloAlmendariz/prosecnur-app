@@ -477,6 +477,10 @@ export type InstrumentoOperationalConfig = {
     enabled: boolean;
     variables: string[];
     agent_variable: string;
+    /** Número de encuesta o de ficha: solo para leer el caso en Hallazgos, no es la llave. */
+    survey_number_variable: string;
+    /** Quién digitó la ficha. */
+    typist_variable: string;
   };
   /**
    * Qué hace que un caso cuente. En la práctica todo estudio ya lo tiene, pero

@@ -30,7 +30,7 @@ describe("operational controls model", () => {
       },
       // Los roles del estudio nacen apagados y vacíos: declarar es un acto del
       // analista, y un proyecto que ya existía no debe reetiquetarse solo.
-      identity: { enabled: false, variables: [], agent_variable: "" },
+      identity: { enabled: false, variables: [], agent_variable: "", survey_number_variable: "", typist_variable: "" },
       caso_valido: { enabled: false, condiciones: [] },
       abiertas: { enabled: false, variables: [] },
     });
@@ -39,9 +39,14 @@ describe("operational controls model", () => {
   it("no inventa roles cuando el backend los omite", () => {
     // Un `.pulso` guardado antes de que estos roles existieran llega sin ellos.
     const normalized = normalizeOperationalConfig({ version: 2 });
-    expect(normalized.identity).toEqual({ enabled: false, variables: [], agent_variable: "" });
+    expect(normalized.identity).toEqual({ enabled: false, variables: [], agent_variable: "", survey_number_variable: "", typist_variable: "" });
     expect(normalized.caso_valido).toEqual({ enabled: false, condiciones: [] });
     expect(normalized.abiertas).toEqual({ enabled: false, variables: [] });
+  });
+
+  it("conserva el número de encuesta y el digitador declarados", () => {
+    const n = normalizeOperationalConfig({ version: 2, identity: { survey_number_variable: " nro_encuesta ", typist_variable: "digitador" } } as never);
+    expect([n.identity.survey_number_variable, n.identity.typist_variable]).toEqual(["nro_encuesta", "digitador"]);
   });
 
   it("descarta condiciones de validez incompletas en vez de guardarlas rotas", () => {

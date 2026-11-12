@@ -204,6 +204,21 @@ describe("el hallazgo abierto", () => {
     expect(tablaDeCasos(conRoles, null).filas[0].valores["ctx:recopilador"]).toBe("Sin dato");
   });
 
+  it("el número de encuesta va primero y el digitador junto al recopilador, con su valor por caso", () => {
+    const columna = (variable: string) => ({ variable, etiqueta: null, fuente: "rol_declarado" });
+    const ctx = (numero: string, digitador: string) => ({
+      fecha_respuesta: null, recopilador: "Ana", numero_encuesta: numero, digitador, fecha_envio: null, duracion_min: null, n_respondidas: null, n_preguntas: null,
+    });
+    const conFicha = {
+      ...DETALLE_REAL,
+      contexto: { recopilador: columna("enc"), numero_encuesta: columna("nro"), digitador: columna("dig") },
+      contexto_por_caso: [ctx("412", "Luis"), ctx("413", "Rosa")],
+    } as unknown as InstrumentoDrillResult;
+    const t = tablaDeCasos(conFicha, null);
+    expect(t.columnas.map((c) => c.rotulo)).toEqual(["N.º de encuesta", "Recopilador", "Digitador", "Edad"]);
+    expect(t.filas.map((f) => [f.valores["ctx:numero_encuesta"], f.valores["ctx:digitador"]])).toEqual([["412", "Luis"], ["413", "Rosa"]]);
+  });
+
   it("la vista según la regla: rango con límites, salto por familia, casi iguales por sus parejas", () => {
     const narrativa = { nombre: null, frase: [], frase_completa: true, clase: null, familia: null, familia_nombre: null, origen_regla: null, severidad: null, en_catalogo: null, id_catalogo: null, detalle: null };
     const limites = { tipo: "numero", min: "18", max: "80", inclusive_min: true, inclusive_max: true, restriccion: null };
@@ -339,9 +354,11 @@ describe("la decisión", () => {
 
 describe("el caso completo y su dirección", () => {
   it("el antetítulo solo con lo que el motor publicó", () => {
-    expect(antetituloDelCaso({ fecha_respuesta: null, recopilador: null, fecha_envio: null, duracion_min: null, n_respondidas: 21, n_preguntas: 23 })).toBeNull();
-    expect(antetituloDelCaso({ fecha_respuesta: "2026-11-03T15:00:00", recopilador: "Correo, 1.ª invitación", fecha_envio: null, duracion_min: 14, n_respondidas: 6, n_preguntas: 6 }))
+    expect(antetituloDelCaso({ fecha_respuesta: null, recopilador: null, numero_encuesta: null, digitador: null, fecha_envio: null, duracion_min: null, n_respondidas: 21, n_preguntas: 23 })).toBeNull();
+    expect(antetituloDelCaso({ fecha_respuesta: "2026-11-03T15:00:00", recopilador: "Correo, 1.ª invitación", numero_encuesta: null, digitador: null, fecha_envio: null, duracion_min: 14, n_respondidas: 6, n_preguntas: 6 }))
       .toBe("Correo, 1.ª invitación. Respondió el 3 nov 2026 en 14 minutos");
+    expect(antetituloDelCaso({ fecha_respuesta: null, recopilador: "Ana", numero_encuesta: "412", digitador: "Luis", fecha_envio: null, duracion_min: null, n_respondidas: null, n_preguntas: null }))
+      .toBe("Encuesta 412. Ana. Digitó Luis");
   });
 
   it("respondidas por sección y el estado de una vacía", () => {

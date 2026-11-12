@@ -26,7 +26,11 @@
     identity = list(
       enabled = FALSE,
       variables = character(0),
-      agent_variable = ""
+      agent_variable = "",
+      # Solo para leer el caso en Hallazgos (buscar la ficha física): no son
+      # la llave del caso ni cambian cómo se guardan las decisiones.
+      survey_number_variable = "",
+      typist_variable = ""
     ),
     # Qué hace que un caso cuente. Hoy este criterio existe pero repetido en el
     # `relevant` de cada pregunta: en un estudio real, una misma variable de
@@ -209,7 +213,9 @@ normalize_validation_operational_config <- function(config = NULL,
   id <- list(
     enabled = isTRUE(id_in$enabled),
     variables = .validation_operational_chr(id_in$variables),
-    agent_variable = .validation_operational_scalar(id_in$agent_variable)
+    agent_variable = .validation_operational_scalar(id_in$agent_variable),
+    survey_number_variable = .validation_operational_scalar(id_in$survey_number_variable),
+    typist_variable = .validation_operational_scalar(id_in$typist_variable)
   )
   if (id$enabled && !length(id$variables)) {
     stop_api(400, "E_OPERATIONAL_IDENTITY_INCOMPLETE",
@@ -237,6 +243,7 @@ normalize_validation_operational_config <- function(config = NULL,
       if (du$enabled) du$variables else NULL,
       if (id$enabled) id$variables else NULL,
       if (id$enabled) id$agent_variable else NULL,
+      id$survey_number_variable, id$typist_variable,
       if (ab$enabled) ab$variables else NULL,
       if (cv$enabled) vapply(cv$condiciones, function(c1) c1$variable, character(1)) else NULL
     )
@@ -253,6 +260,8 @@ normalize_validation_operational_config <- function(config = NULL,
   # `universe_filter` legacy se ignora deliberadamente: el universo efectivo
   # se materializa en Carga y nunca vuelve a filtrarse dentro de Validacion.
   id$agent_variable <- id$agent_variable %||% ""
+  id$survey_number_variable <- id$survey_number_variable %||% ""
+  id$typist_variable <- id$typist_variable %||% ""
   list(version = 2L, field_period = fp, duplicates = du, identity = id,
        caso_valido = cv, abiertas = ab)
 }

@@ -1,9 +1,10 @@
 import { useEffect, useId, useState } from "react";
-import { Check, KeyRound, ListChecks, MessageSquare, Sparkles, User } from "lucide-react";
+import { Check, FileText, KeyRound, ListChecks, MessageSquare, Sparkles, User } from "lucide-react";
 import { apiV2RolesSugerencias } from "../../../api/client";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import type { InstrumentoOperationalConfig, RolesSugerencias } from "../types";
 import { textoCondicion } from "../casoValidoManualModel";
+import { FichaDelCaso } from "./FichaDelCaso";
 
 // =============================================================================
 // RolesDeclarados — qué es un caso, quién lo recolectó y cuál cuenta
@@ -129,6 +130,26 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
             disabled={disabled}
           />
         ) : null}
+      </RolBloque>
+
+      {/* --- Ficha del caso: para buscar la ficha física desde Hallazgos --- */}
+      <RolBloque
+        icono={<FileText size={13} aria-hidden="true" focusable="false" />}
+        titulo="Ficha del caso"
+        ayuda="El número de encuesta y quién la digitó. Salen en la tabla de casos de Hallazgos y en el caso completo."
+        activo={Boolean(identidad.survey_number_variable || identidad.typist_variable)}
+        onToggle={() => undefined}
+        disabled={disabled}
+        resumen={[identidad.survey_number_variable, identidad.typist_variable].filter(Boolean).join(" + ") || "sin declarar"}
+        sinToggle
+      >
+        <FichaDelCaso
+          baseNombre={baseNombre}
+          numero={identidad.survey_number_variable}
+          digitador={identidad.typist_variable}
+          disabled={disabled}
+          onChange={setIdentidad}
+        />
       </RolBloque>
 
       {/* --- Qué caso cuenta: se define en Analítica (Gonzalo, 2026-10-16:

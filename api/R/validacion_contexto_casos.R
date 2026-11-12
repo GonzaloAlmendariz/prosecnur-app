@@ -9,6 +9,10 @@
 #                    (`operational_config$field_period$variable`).
 #   recopilador      la variable del agente que recolecta
 #                    (`operational_config$identity$agent_variable`).
+#   numero_encuesta  el número de encuesta o de ficha
+#                    (`operational_config$identity$survey_number_variable`).
+#   digitador        quién digitó la ficha
+#                    (`operational_config$identity$typist_variable`).
 #   fecha_envio      la pregunta de tipo `end` del formulario y, si no hay, la
 #                    columna `_submission_time` del servidor (export de la
 #                    plataforma); `fuente` dice cuál.
@@ -65,8 +69,8 @@ validacion_origen_pregunta <- function(tipo) {
 #' @param scope scope de la base.
 #' @param inst instrumento (o NULL).
 #' @param df tabla de la auditoría donde viven los casos.
-#' @return lista `fecha_respuesta`, `recopilador`, `fecha_envio`, `inicio`,
-#'   `fin`: cada una `{variable, etiqueta, fuente}` o NA si no se declara.
+#' @return lista `fecha_respuesta`, `recopilador`, `numero_encuesta`,
+#'   `digitador`, `fecha_envio`, `inicio`, `fin`: cada una `{variable, etiqueta, fuente}` o NA si no se declara.
 #' @keywords internal
 validacion_columnas_contexto <- function(scope, inst, df) {
   cfg <- tryCatch(normalize_validation_operational_config(scope$operational_config), error = function(e) NULL)
@@ -79,6 +83,8 @@ validacion_columnas_contexto <- function(scope, inst, df) {
   list(
     fecha_respuesta = .vcc_rol(en_df((cfg$field_period %||% list())$variable), "periodo_de_campo", etiquetas),
     recopilador = .vcc_rol(en_df((cfg$identity %||% list())$agent_variable), "agente_declarado", etiquetas),
+    numero_encuesta = .vcc_rol(en_df((cfg$identity %||% list())$survey_number_variable), "rol_declarado", etiquetas),
+    digitador = .vcc_rol(en_df((cfg$identity %||% list())$typist_variable), "rol_declarado", etiquetas),
     fecha_envio = envio,
     inicio = .vcc_rol(.vcc_pregunta_de_tipo(sv, "start", df), "formulario", etiquetas),
     fin = .vcc_rol(fin, "formulario", etiquetas)
@@ -149,6 +155,8 @@ validacion_contexto_por_fila <- function(df, filas, columnas, inst = NULL) {
     list(
       fecha_respuesta = leer(columnas$fecha_respuesta, i),
       recopilador = leer(columnas$recopilador, i),
+      numero_encuesta = leer(columnas$numero_encuesta, i),
+      digitador = leer(columnas$digitador, i),
       fecha_envio = leer(columnas$fecha_envio, i),
       duracion_min = if (is.na(d) || d < 0) NA_real_ else round(d, 1),
       n_respondidas = if (length(preg)) as.integer(n_resp) else NA_integer_,

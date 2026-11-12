@@ -160,3 +160,39 @@ test_that("O8: si los rótulos de los códigos especiales no se leen, se marcan 
   expect_true(.cr_vars(b2)$edad$especial)
   expect_identical(vapply(b2$avisos, `[[`, "", "codigo"), "rotulos_especiales_ilegibles")
 })
+
+test_that("el número de encuesta y el digitador declarados salen como contexto del caso", {
+  dir <- withr::local_tempdir()
+  sid <- .cr_sesion(dir)
+  withr::defer(session_delete(sid))
+  cfg <- normalize_validation_operational_config(list(
+    version = 2L, identity = list(enabled = FALSE, agent_variable = "caso",
+                                  survey_number_variable = "respondent_id", typist_variable = "caso")),
+    available_variables = names(.cr_datos()))
+  expect_identical(cfg$identity$survey_number_variable, "respondent_id")
+  expect_identical(cfg$identity$typist_variable, "caso")
+  expect_error(normalize_validation_operational_config(list(identity = list(typist_variable = "no_existe")),
+                                                       available_variables = names(.cr_datos())),
+               class = "api_error")
+  validacion_scope_set(sid, "Personas", "operational_config", cfg)
+  pr <- .m1_router()
+  b1 <- .m1_http(pr, sid, "GET", "/api/validacion/v2/caso", query = "id=u01&base_nombre=Personas")$body
+  expect_identical(b1$contexto$numero_encuesta$variable, "respondent_id")
+  expect_identical(b1$contexto$digitador$variable, "caso")
+  expect_identical(b1$metadatos$numero_encuesta, "u01")
+  expect_identical(b1$metadatos$digitador, "Ana")
+  det <- .m1_http(pr, sid, "POST", "/api/validacion/v2/instrumento/regla",
+                  body = '{"id_regla":"RC_001","base_nombre":"Personas"}')$body
+  k <- match("u04", unlist(det$case_ids))
+  expect_identical(det$contexto_por_caso[[k]]$numero_encuesta, "u04")
+  expect_identical(det$contexto_por_caso[[k]]$digitador, "Beto")
+})
+
+test_that("sin declararlos, el número de encuesta y el digitador no salen", {
+  dir <- withr::local_tempdir()
+  sid <- .cr_sesion(dir)
+  withr::defer(session_delete(sid))
+  b1 <- .m1_http(.m1_router(), sid, "GET", "/api/validacion/v2/caso", query = "id=u01&base_nombre=Personas")$body
+  expect_null(b1$contexto$numero_encuesta)
+  expect_null(b1$metadatos$digitador)
+})

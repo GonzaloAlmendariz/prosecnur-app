@@ -25,18 +25,18 @@
     "marcado": "fdeea5c0f22a26a5e10701629dc20f58de9a57d2aa2f27594c21657fe4e8a6fa",
     "pedidos": "44927d75ac2a3fba1312716b91380ddd97a57cd854a940da6bff0d3419c85b77",
     "guardado": [
-      "POST /api/validacion/v2/instrumento/plan [base=default]\n{\"operational_config\":{\"version\":2,\"field_period\":{\"enabled\":false,\"variable\":\"\",\"start_date\":\"\",\"end_date\":\"\",\"timezone\":\"America/Lima\"},\"duplicates\":{\"enabled\":false,\"variables\":[],\"matching_method\":\"response_similarity\",\"similarity_threshold\":0.9,\"minimum_coverage\":0.8},\"identity\":{\"enabled\":false,\"variables\":[],\"agent_variable\":\"\"},\"caso_valido\":{\"enabled\":false,\"condiciones\":[]},\"abiertas\":{\"enabled\":false,\"variables\":[]}}}"
+      "POST /api/validacion/v2/instrumento/plan [base=default]\n{\"operational_config\":{\"version\":2,\"field_period\":{\"enabled\":false,\"variable\":\"\",\"start_date\":\"\",\"end_date\":\"\",\"timezone\":\"America/Lima\"},\"duplicates\":{\"enabled\":false,\"variables\":[],\"matching_method\":\"response_similarity\",\"similarity_threshold\":0.9,\"minimum_coverage\":0.8},\"identity\":{\"enabled\":false,\"variables\":[],\"agent_variable\":\"\",\"survey_number_variable\":\"\",\"typist_variable\":\"\"},\"caso_valido\":{\"enabled\":false,\"condiciones\":[]},\"abiertas\":{\"enabled\":false,\"variables\":[]}}}"
     ]
   },
   "instrumento_controles-sin-aplicar-entre-pestanas": {
-    "marcado": "11197038dadbc2e9766259a343a23301f634e33f7802a397f22a06ecd17a586d",
+    "marcado": "f5594150affb41196ba2e232fb4e001eefc024f746dad8400108e4145e9cde93",
     "pedidos": "cf1112028f30c659ce13e7f9b77587f26a31753885d3956b45943e8340c45970",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "instrumento_controles-sin-aplicar-por-base": {
-    "marcado": "848a15fe3124fab0a43d582d5212a43118940ef00020ce61f7c5eb2208591c73",
+    "marcado": "bcfc935e0e33aea8351a2922c3ad839725756ff1699fa223ac8493779f89f043",
     "pedidos": "333f16ea185517accc756b8e3dd2fccce5289862154974c69bd7e65a00f6cc20"
   },
   "instrumento_dos-bases": {

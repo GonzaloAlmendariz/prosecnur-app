@@ -1675,6 +1675,31 @@
 .pulso-rol-bloque-copy small {
   display: block; margin-top: 2px; font-size: var(--pulso-type-caption-size); line-height: 1.4; color: var(--pulso-text-soft);
 }
+.pulso-rol-ficha {
+  display: grid;
+  gap: var(--pulso-space-2);
+  margin-top: var(--pulso-space-3);
+}
+
+.pulso-rol-ficha-fila {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-rol-ficha-rotulo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-rol-ficha-campo {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .pulso-rol-bloque-resumen {
   display: inline-block;
   margin-top: 5px;

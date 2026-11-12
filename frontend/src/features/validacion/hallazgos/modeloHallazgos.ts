@@ -555,7 +555,8 @@ export function valorEscrito(crudo: unknown, etiquetas: Record<string, string | 
 
 /**
  * Las columnas y filas de la tabla de casos: el caso, las columnas de contexto
- * que el estudio declaró (recopilador, fecha de respuesta), las preguntas de la
+ * que el estudio declaró (número de encuesta, recopilador, digitador, fecha de
+ * respuesta), las preguntas de la
  * regla que deciden (la condición, la comparada) y, al final, la que falla.
  * Las filas se cruzan con los ids por posición dentro de la misma respuesta
  * del motor (`casos`, `case_ids`, `esperado` y `contexto_por_caso` son
@@ -587,7 +588,9 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
   });
 
   const columnas: ColumnaDeCaso[] = [];
+  if (contexto.numero_encuesta) columnas.push({ clave: "ctx:numero_encuesta", rotulo: "N.º de encuesta", tipo: "contexto", numerica: false });
   if (contexto.recopilador) columnas.push({ clave: "ctx:recopilador", rotulo: "Recopilador", tipo: "contexto", numerica: false });
+  if (contexto.digitador) columnas.push({ clave: "ctx:digitador", rotulo: "Digitador", tipo: "contexto", numerica: false });
   if (contexto.fecha_respuesta) columnas.push({ clave: "ctx:fecha_respuesta", rotulo: "Fecha de respuesta", tipo: "contexto", numerica: false });
   for (const v of otras.filter(enLaFila)) {
     columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
@@ -601,6 +604,8 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
     const ctx = contextoPorCaso[i];
     for (const c of columnas) {
       if (c.clave === "ctx:recopilador") valores[c.clave] = ctx?.recopilador ?? "Sin dato";
+      else if (c.clave === "ctx:numero_encuesta") valores[c.clave] = ctx?.numero_encuesta ?? "Sin dato";
+      else if (c.clave === "ctx:digitador") valores[c.clave] = ctx?.digitador ?? "Sin dato";
       else if (c.clave === "ctx:fecha_respuesta") valores[c.clave] = fechaCorta(ctx?.fecha_respuesta, true) ?? ctx?.fecha_respuesta ?? "Sin dato";
       else valores[c.clave] = valorEscrito(fila[c.clave], valueLabels?.[c.clave] ?? null);
     }
@@ -952,7 +957,9 @@ export function lineaDeEfecto(efecto: EfectoDeDecision, opciones: { etiquetaPreg
 export function antetituloDelCaso(metadatos: ContextoDeCaso | null): string | null {
   if (!metadatos) return null;
   const partes: string[] = [];
+  if (metadatos.numero_encuesta) partes.push(`Encuesta ${metadatos.numero_encuesta}.`);
   if (metadatos.recopilador) partes.push(`${metadatos.recopilador}.`);
+  if (metadatos.digitador) partes.push(`Digitó ${metadatos.digitador}.`);
   const fecha = fechaCorta(metadatos.fecha_respuesta ?? metadatos.fecha_envio, true);
   const duracion = metadatos.duracion_min !== null
     ? ` en ${formatoDecimal(metadatos.duracion_min, metadatos.duracion_min % 1 === 0 ? 0 : 1)} ${metadatos.duracion_min === 1 ? "minuto" : "minutos"}`

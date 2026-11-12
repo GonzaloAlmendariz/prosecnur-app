@@ -25,7 +25,7 @@ export function defaultOperationalConfig(): InstrumentoOperationalConfig {
       similarity_threshold: DEFAULT_DUPLICATE_SIMILARITY_THRESHOLD,
       minimum_coverage: DEFAULT_DUPLICATE_MINIMUM_COVERAGE,
     },
-    identity: { enabled: false, variables: [], agent_variable: "" },
+    identity: { enabled: false, variables: [], agent_variable: "", survey_number_variable: "", typist_variable: "" },
     caso_valido: { enabled: false, condiciones: [] },
     abiertas: { enabled: false, variables: [] },
   };
@@ -63,6 +63,8 @@ export function normalizeOperationalConfig(
       enabled: input?.identity?.enabled === true,
       variables: uniqueStrings(input?.identity?.variables),
       agent_variable: cleanString(input?.identity?.agent_variable),
+      survey_number_variable: cleanString(input?.identity?.survey_number_variable),
+      typist_variable: cleanString(input?.identity?.typist_variable),
     },
     caso_valido: {
       enabled: input?.caso_valido?.enabled === true,

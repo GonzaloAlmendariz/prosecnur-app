@@ -569,6 +569,8 @@ export type ColumnaDeContexto = { variable: string; etiqueta: string | null; fue
 export type ColumnasDeContexto = {
   fecha_respuesta: ColumnaDeContexto;
   recopilador: ColumnaDeContexto;
+  numero_encuesta: ColumnaDeContexto;
+  digitador: ColumnaDeContexto;
   fecha_envio: ColumnaDeContexto;
   inicio: ColumnaDeContexto;
   fin: ColumnaDeContexto;
@@ -578,6 +580,8 @@ export type ColumnasDeContexto = {
 export type ContextoDeCaso = {
   fecha_respuesta: string | null;
   recopilador: string | null;
+  numero_encuesta: string | null;
+  digitador: string | null;
   fecha_envio: string | null;
   /** Minutos de inicio a fin, con un decimal; `null` si falta uno o sale negativa. */
   duracion_min: number | null;
@@ -598,6 +602,8 @@ export function normalizarColumnasDeContexto(value: unknown): ColumnasDeContexto
   return {
     fecha_respuesta: columnaDeContexto(r.fecha_respuesta),
     recopilador: columnaDeContexto(r.recopilador),
+    numero_encuesta: columnaDeContexto(r.numero_encuesta),
+    digitador: columnaDeContexto(r.digitador),
     fecha_envio: columnaDeContexto(r.fecha_envio),
     inicio: columnaDeContexto(r.inicio),
     fin: columnaDeContexto(r.fin),
@@ -610,6 +616,8 @@ export function normalizarContextoDeCaso(value: unknown): ContextoDeCaso | null 
   return {
     fecha_respuesta: textoONulo(r.fecha_respuesta),
     recopilador: textoONulo(r.recopilador),
+    numero_encuesta: textoONulo(r.numero_encuesta),
+    digitador: textoONulo(r.digitador),
     fecha_envio: textoONulo(r.fecha_envio),
     duracion_min: numeroONulo(r.duracion_min),
     n_respondidas: enteroONulo(r.n_respondidas),
