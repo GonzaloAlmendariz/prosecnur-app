@@ -1,9 +1,9 @@
 import { EstadoVacio } from "../../../components/EstadoVacio";
-import { Panel } from "../../../components/Panel";
+import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Skeleton } from "../../../components/Skeleton";
 import { ErrorBlock } from "../../../components/States";
-import { Database } from "../../../vendor/lucide-react";
+import { Database, LayoutGrid } from "../../../vendor/lucide-react";
 import type { BasesDelEstudio } from "./basesDelEstudioModel";
 import { FilaBase } from "./FilaBase";
 import { NOMBRE_DE_SECCION, SECCIONES_EN_ORDEN } from "./queSigueModel";
@@ -22,7 +22,7 @@ export type PanelBasesProps = {
 
 const FILAS_DE_ESPERA = 4;
 
-/** Panel principal de Estado del estudio: una fila por base con sus cinco fases. */
+/** "Avance por base y por fase": una fila por base con sus cinco fases y la causa de cada una. */
 export function PanelBases({
   bases,
   errorDeLectura,
@@ -36,18 +36,14 @@ export function PanelBases({
   const destino = activandoA ? bases?.filas.find((fila) => fila.nombre === activandoA) : undefined;
 
   return (
-    <Panel
-      title={
-        <>
-          <Database size={16} aria-hidden="true" />
-          <span>Bases del estudio</span>
-        </>
-      }
-      noPadding
-      className="pulso-estado-estudio-panel"
+    <PanelDeMesa
+      zona="estado-avance"
+      titulo="Avance por base y por fase"
+      icono={<LayoutGrid size={16} />}
+      ocupado={activandoA !== null}
     >
       {errorDeLectura !== null ? (
-        <div className="pulso-estado-estudio-cuerpo" data-qa-geometry-capacity="owned">
+        <div className="pulso-estado-estudio-cuerpo">
           <ErrorBlock
             label="No se pudieron leer las bases del estudio"
             detail={errorDeLectura}
@@ -64,7 +60,6 @@ export function PanelBases({
           className="pulso-estado-estudio-cuerpo pulso-estado-estudio-espera"
           role="status"
           aria-busy="true"
-          data-qa-geometry-capacity="owned"
         >
           <span className="pulso-sr-only">Cargando las bases del estudio</span>
           {Array.from({ length: FILAS_DE_ESPERA }, (_, i) => (
@@ -72,7 +67,7 @@ export function PanelBases({
           ))}
         </div>
       ) : bases.filas.length === 0 ? (
-        <div className="pulso-estado-estudio-cuerpo" data-qa-geometry-capacity="owned">
+        <div className="pulso-estado-estudio-cuerpo">
           <EstadoVacio
             tamano="normal"
             icono={<Database size={20} />}
@@ -97,7 +92,6 @@ export function PanelBases({
             aria-label="Bases del estudio y sus fases"
             className="pulso-estado-bases"
             data-con-accion={conAccion ? "" : undefined}
-            data-qa-geometry-capacity="owned"
           >
             <div role="rowgroup" className="pulso-estado-bases-encabezado">
               <div role="row" className="pulso-estado-bases-cabecera">
@@ -137,6 +131,6 @@ export function PanelBases({
           </span>
         </>
       )}
-    </Panel>
+    </PanelDeMesa>
   );
 }

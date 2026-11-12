@@ -30,7 +30,7 @@ export type FilaBaseProps = {
   onActivar: (nombre: string) => void;
 };
 
-/** Una base del estudio: de dónde viene, cuánto mide y en qué va cada fase. */
+/** Una base del estudio: cuánto mide, de dónde viene y en qué va cada fase, con su causa. */
 export function FilaBase({ fila, conAccion, activandoA, onActivar }: FilaBaseProps) {
   const IconoOrigen = ICONO_DE_ORIGEN[fila.origen];
   const activandoEsta = activandoA === fila.nombre;
@@ -48,25 +48,34 @@ export function FilaBase({ fila, conAccion, activandoA, onActivar }: FilaBasePro
     >
       <div role="rowheader" className="pulso-estado-base-nombre">
         <span className="pulso-estado-base-etiqueta">{fila.etiqueta}</span>
-        <span className="pulso-estado-base-datos">
-          <span
-            className="pulso-estado-base-origen"
-            title={fila.madre ? `Grupo repetido de ${fila.madre}` : undefined}
-          >
-            <IconoOrigen size={12} aria-hidden="true" />
-            {fila.origen}
+        {/* Las filas de un grupo repetido son instancias, no respuestas. */}
+        {fila.filas != null ? (
+          <span className="pulso-estado-base-tamano">
+            {fila.madre ? formatoConteoDe(fila.filas, "fila") : formatoConteoDe(fila.filas, "respuesta")}
           </span>
-          {fila.filas != null ? <span>{formatoConteoDe(fila.filas, "fila")}</span> : null}
-          {fila.columnas != null ? <span>{formatoConteoDe(fila.columnas, "columna")}</span> : null}
+        ) : null}
+        <span
+          className="pulso-estado-base-origen"
+          title={fila.madre ? `Grupo repetido de ${fila.madre}` : undefined}
+        >
+          <IconoOrigen size={12} aria-hidden="true" />
+          {fila.origen}
         </span>
       </div>
 
       {fila.fases ? (
         fila.fases.map((fase) => (
-          <div role="cell" key={fase.fase} className="pulso-estado-base-fase" data-qa-geometry-member="">
+          <div
+            role="cell"
+            key={fase.fase}
+            className="pulso-estado-base-fase"
+            data-qa-geometry-member=""
+            data-causa-pendiente={fase.causaPendiente ?? undefined}
+          >
             {/* El nombre de la fase sólo se ve cuando la fila se apila y la cabecera de columnas se retira. */}
             <span className="pulso-estado-base-fase-nombre">{fase.nombre}</span>
             <EstadoChip label={fase.estado} tone={fase.tono} detail={`${fase.nombre}: ${fase.detalle}`} />
+            {fase.causa ? <span className="pulso-estado-base-causa">{fase.causa}</span> : null}
           </div>
         ))
       ) : (

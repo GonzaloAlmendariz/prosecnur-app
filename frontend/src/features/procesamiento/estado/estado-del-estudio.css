@@ -1,70 +1,18 @@
-/* Estado del estudio (`/procesamiento`, etapa P2 del ADR 0142).
+/* Estado del estudio (`/procesamiento`, etapa P2 del ADR 0142; fidelidad al
+ * prototipo "estado").
  *
- * Composición: cabecera de pestaña, y debajo dos paneles lado a lado que llegan
- * al borde inferior. El vacío queda dentro de cada panel (C3). El cuerpo del
- * PageFrame es el único dueño del scroll (C4): con muchas bases, o en una
- * ventana baja, se desplaza la página entera y no un panel dentro de otro.
+ * Composición: la cabecera de pestaña del kit y la mesa de dos columnas del kit
+ * (`MesaDePestana`). A la izquierda "Avance por base y por fase" y "Archivos del
+ * estudio"; a la derecha "Por hacer" y "Cambios recientes". Cada contenedor es
+ * `PanelDeMesa`: llega al pie, guarda su vacío y desplaza su cuerpo (C3, C4).
+ * Hasta 1100 de ventana la mesa pasa a una columna y se desplaza la pestaña.
  *
- * Los marcos son el `Panel` del kit. Aquí sólo hay filas separadas por una
- * línea: ninguna regla dibuja una caja propia.
+ * Esta hoja no dibuja cajas: los marcos son del kit. Aquí solo hay filas
+ * separadas por una línea, puntos de estado y la ficha del número de cada tarea.
  */
 
-.pulso-estado-estudio {
-  display: flex;
-  flex: 1 0 auto;
-  flex-direction: column;
-  gap: var(--pulso-space-5);
-  min-width: 0;
-}
+/* ---------- Avance por base y por fase ---------- */
 
-/* El Panel suelto trae margen inferior; aquí separa la rejilla. */
-.pulso-estado-estudio .pulso-panel {
-  margin-bottom: 0;
-}
-
-.pulso-estado-estudio-cabecera {
-  flex: none;
-}
-
-/* La cabecera de pestaña vive dentro de su propio Panel: el filete inferior y
-   el fondo del TabHeading sobran porque el marco ya es del Panel. */
-.pulso-estado-estudio-cabecera .pulso-tab-heading {
-  padding-inline: var(--pulso-space-5);
-  border-bottom: 0;
-  background: transparent;
-}
-
-.pulso-estado-estudio-mesa {
-  display: grid;
-  flex: 1 0 auto;
-  grid-template-columns: minmax(0, 1fr) 400px;
-  gap: var(--pulso-space-5);
-  align-items: stretch;
-  min-width: 0;
-}
-
-.pulso-estado-estudio-panel {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.pulso-estado-estudio-panel .pulso-panel-title > svg {
-  flex: none;
-  color: var(--module-accent, var(--pulso-primary));
-}
-
-.pulso-estado-estudio-panel > .pulso-panel-header {
-  box-sizing: border-box;
-  flex: none;
-  align-items: center;
-  min-height: var(--pulso-panel-head-h);
-  margin-bottom: 0;
-  padding: var(--pulso-space-3) var(--pulso-space-5);
-  border-bottom: 1px solid var(--pulso-border);
-}
-
-/* Cuerpo de un panel sin tabla: espera, error y vacío. Posee el alto libre. */
 .pulso-estado-estudio-cuerpo {
   display: flex;
   flex: 1 1 auto;
@@ -83,23 +31,21 @@
   padding: var(--pulso-space-3) var(--pulso-space-5) 0;
 }
 
-/* ---------- Bases del estudio: una fila por base, cinco fases ---------- */
-
-/* Las fases nunca bajan del ancho de su chip (108 px) y el nombre se lleva algo
-   más del doble del ancho libre: en un panel justo, un nombre largo no se parte
-   por dejarle aire a un chip; en uno ancho, las columnas se reparten. */
+/* Las fases nunca bajan de 112 px (el chip más ancho, "Desactualizada") y la
+   base se lleva algo más que una fase: en un panel justo, un nombre largo no se
+   parte por dejarle aire a un chip; en uno ancho, las columnas se reparten. A
+   1366 la tabla con la columna de activar cabe sin desplazarse (924 px). */
 .pulso-estado-bases {
-  --estado-columnas: minmax(160px, 2.2fr) repeat(5, minmax(108px, 1fr));
+  --estado-columnas: minmax(160px, 1.25fr) repeat(5, minmax(112px, 1fr));
   container-name: estado-bases;
   container-type: inline-size;
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
 }
 
 .pulso-estado-bases[data-con-accion] {
-  --estado-columnas: minmax(160px, 2.2fr) repeat(5, minmax(108px, 1fr)) 80px;
+  --estado-columnas: minmax(160px, 1.25fr) repeat(5, minmax(112px, 1fr)) 80px;
 }
 
 .pulso-estado-bases-cabecera,
@@ -108,12 +54,19 @@
   display: grid;
   grid-template-columns: var(--estado-columnas);
   column-gap: var(--pulso-space-3);
-  align-items: center;
   padding-inline: var(--pulso-space-5);
   border-bottom: 1px solid var(--pulso-border);
 }
 
+/* La cabecera de columnas queda fija arriba mientras el cuerpo del panel se desplaza. */
+.pulso-estado-bases-encabezado {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .pulso-estado-bases-cabecera {
+  align-items: center;
   min-height: 36px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
@@ -122,9 +75,14 @@
   letter-spacing: 0.02em;
 }
 
-/* Alto intrínseco: lo fija el bloque del nombre, sin un mínimo que deje aire sin dueño. */
+/* Alto intrínseco: lo fija la celda más alta; las cinco fases comparten ese alto (C2). */
 .pulso-estado-base {
-  padding-block: var(--pulso-space-3);
+  align-items: start;
+  padding-block: var(--pulso-space-4);
+}
+
+.pulso-estado-base:last-child {
+  border-bottom: 0;
 }
 
 /* La base activa se distingue con un relleno suave del acento, sin franja lateral. */
@@ -135,6 +93,7 @@
 .pulso-estado-base-nombre {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--pulso-space-1);
   min-width: 0;
 }
@@ -152,22 +111,24 @@
   line-height: 1.3;
 }
 
-.pulso-estado-base-datos {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--pulso-space-3);
-  row-gap: 2px;
+.pulso-estado-base-tamano {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
 }
 
+/* El origen como etiqueta de relleno, sin marco. */
 .pulso-estado-base-origen {
   display: inline-flex;
   align-items: center;
   gap: var(--pulso-space-1);
+  margin-top: 2px;
+  padding: 2px var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
@@ -181,8 +142,16 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--pulso-space-1);
+  align-self: stretch;
+  gap: var(--pulso-space-2);
   min-width: 0;
+}
+
+.pulso-estado-base-causa {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 /* Con la cabecera de columnas a la vista, el nombre de la fase no se repite en la celda. */
@@ -224,9 +193,8 @@
   }
 
   .pulso-estado-base {
-    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     row-gap: var(--pulso-space-3);
-    align-items: start;
   }
 
   .pulso-estado-base-nombre {
@@ -252,59 +220,143 @@
   }
 }
 
-/* ---------- Qué sigue ---------- */
+/* ---------- Archivos del estudio ---------- */
 
-.pulso-estado-sigue {
+/* Bajo el ancho mínimo de sus siete columnas, la tabla se desplaza dentro del panel. */
+.pulso-estado-archivos {
+  --estado-archivos-columnas: minmax(150px, 1.25fr) repeat(6, minmax(96px, 1fr));
   display: flex;
-  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: calc(150px + 6 * 96px + 6 * var(--pulso-space-3) + 2 * var(--pulso-space-5));
+}
+
+.pulso-estado-archivos-cabecera,
+.pulso-estado-archivos-fila {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--estado-archivos-columnas);
+  column-gap: var(--pulso-space-3);
+  padding-inline: var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-estado-archivos-encabezado {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.pulso-estado-archivos-cabecera {
+  align-items: center;
+  min-height: 36px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+.pulso-estado-archivos-fila {
+  align-items: start;
+  padding-block: var(--pulso-space-3);
+}
+
+.pulso-estado-archivos-fila:last-child {
+  border-bottom: 0;
+}
+
+.pulso-estado-archivos-base {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
+.pulso-estado-archivo {
+  display: flex;
+  align-items: baseline;
+  align-self: stretch;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-estado-archivo-punto {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pulso-text-faint);
+}
+
+.pulso-estado-archivo[data-estado="generado"] .pulso-estado-archivo-punto {
+  background: var(--pulso-success-fg);
+}
+
+/* Sin dato: un aro, no un punto; no es un estado del archivo sino la falta de uno. */
+.pulso-estado-archivo[data-estado="sin-dato"] .pulso-estado-archivo-punto {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--pulso-text-faint);
+}
+
+.pulso-estado-archivo-texto {
+  display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.pulso-estado-sigue-paso {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-5);
-}
-
-.pulso-estado-sigue-titulo {
-  margin: 0;
+.pulso-estado-archivo-estado {
   color: var(--pulso-text);
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.25;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.4;
 }
 
-.pulso-estado-sigue-causa {
-  margin: 0;
+.pulso-estado-archivo[data-estado="sin-dato"] .pulso-estado-archivo-estado {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-estado-archivo-detalle {
   color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.45;
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
 }
 
-/* La acción principal ocupa el ancho del panel, centrada. */
-.pulso-estado-sigue-accion {
-  justify-content: center;
-  width: 100%;
-  margin-top: var(--pulso-space-2);
-}
+/* ---------- Por hacer ---------- */
 
 .pulso-estado-sigue-pendientes {
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--pulso-border);
   list-style: none;
 }
 
 .pulso-estado-sigue-pendiente {
+  box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--pulso-space-3);
   align-items: center;
   padding: var(--pulso-space-3) var(--pulso-space-5);
   border-bottom: 1px solid var(--pulso-border);
-  box-sizing: border-box;
+}
+
+.pulso-estado-sigue-pendiente:last-child {
+  border-bottom: 0;
+}
+
+.pulso-estado-sigue-numero {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
 }
 
 .pulso-estado-sigue-pendiente-texto {
@@ -316,8 +368,9 @@
 
 .pulso-estado-sigue-pendiente-nombre {
   color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-semibold);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
 }
 
 .pulso-estado-sigue-pendiente-motivo {
@@ -326,19 +379,87 @@
   line-height: 1.35;
 }
 
+/* ---------- Cambios recientes ---------- */
+
+.pulso-estado-cambios {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-5);
+  list-style: none;
+}
+
+.pulso-estado-cambio {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  padding-block: var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.pulso-estado-cambio:last-child {
+  border-bottom: 0;
+}
+
+.pulso-estado-cambio-fecha {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pulso-estado-cambio-texto {
+  min-width: 0;
+  color: var(--pulso-text);
+}
+
+/* ---------- Reparto de las pilas ---------- */
+
+/* El avance y "Por hacer" miden lo suyo; "Archivos del estudio" y "Cambios
+   recientes" se quedan con lo que sobra y desplazan su cuerpo. Con base 0 el
+   último no le quita alto al primero por tener mucho contenido; con su mínimo,
+   siempre se ve algo de él. */
+.pulso-estado-estudio-frame .pulso-mesa-pestana-pila > .pulso-panel-de-mesa.pulso-panel-de-mesa--estado-archivos,
+.pulso-estado-estudio-frame .pulso-mesa-pestana-pila > .pulso-panel-de-mesa.pulso-panel-de-mesa--estado-cambios {
+  flex: 1 1 0;
+  min-block-size: 168px;
+}
+
 /* ---------- Tamaños ---------- */
 
-@media (max-width: 1400px) {
-  .pulso-estado-estudio-mesa {
-    grid-template-columns: minmax(0, 1fr) 330px;
+/* Hasta 1100 de ventana (sin riel, la mesa mide lo mismo que la ventana) la
+   mesa pasa a una columna, como en el prototipo a 1024, y se desplaza la
+   pestaña: el cuerpo del marco es el dueño de ese scroll. Cada contenedor
+   tiene un alto que cabe en la ventana y su propio scroll, como en la mesa del
+   kit cuando apila. */
+@container mesa-pestana (max-width: 1099px) {
+  .pulso-estado-estudio-frame .pulso-mesa-pestana-marco {
+    flex: none;
+  }
+
+  .pulso-estado-estudio-frame .pulso-mesa-pestana[data-columnas="2"] {
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .pulso-estado-estudio-frame .pulso-mesa-pestana-pila > .pulso-panel-de-mesa.pulso-panel-de-mesa {
+    flex: none;
+    /* Cabe entero en el área que se desplaza (la ventana menos el cromo y el aire). */
+    max-block-size: min(520px, calc(100dvh - 180px));
+  }
+
+  .pulso-estado-estudio-frame .pulso-panel-de-mesa-cuerpo {
+    overscroll-behavior: auto;
   }
 }
 
-/* Ventana angosta: una columna. El último panel se queda con el alto libre para
-   que el vacío siga dentro de un contenedor. */
 @media (max-width: 1100px) {
-  .pulso-estado-estudio-mesa {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
+  :root:root .pulso-estado-estudio-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body.pulso-page-frame-body--fill {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .pulso-estado-estudio-frame .pulso-mesa-pestana-superficie {
+    flex: none;
   }
 }

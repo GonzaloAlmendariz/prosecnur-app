@@ -16,6 +16,8 @@
 
 import type { EstudioBase, EstudioPayload } from "../../../api/estudio";
 import type { ChromeStatusTone } from "../../../components/ModuleCommandBar";
+import type { Aprobaciones } from "./aprobacionesModel";
+import { CAUSA_PENDIENTE, causasDeBase, type CausasDeBase } from "./causaDeFaseModel";
 import { NOMBRE_DE_SECCION, SECCIONES_EN_ORDEN, type SeccionId } from "./queSigueModel";
 
 export type OrigenDeBase =
@@ -35,6 +37,10 @@ export type FaseDeBase = {
   tono: ChromeStatusTone;
   /** Qué significa ese estado, para el `title` del chip. */
   detalle: string;
+  /** Por qué la fase de ESTA base está así, si el motor lo publica (`causaDeFaseModel`). */
+  causa: string | null;
+  /** Sin causa: lo que falta pedir al motor para escribirla. */
+  causaPendiente: string | null;
 };
 
 export type FilaDeBase = {
@@ -124,20 +130,29 @@ function lecturaDeFase(fase: SeccionId, status: NonNullable<EstudioBase["status"
     : { estado: "Sin informe", tono: "neutral", detalle: "Sin informe generado en PowerPoint ni en Word." };
 }
 
-export function fasesDeBase(status: EstudioBase["status"]): FaseDeBase[] | null {
+export function fasesDeBase(status: EstudioBase["status"], causas?: CausasDeBase): FaseDeBase[] | null {
   if (!status) return null;
-  return SECCIONES_EN_ORDEN.map((fase) => ({
-    fase,
-    nombre: NOMBRE_DE_SECCION[fase],
-    ...lecturaDeFase(fase, status),
-  }));
+  return SECCIONES_EN_ORDEN.map((fase) => {
+    const causa = causas?.[fase] ?? null;
+    return {
+      fase,
+      nombre: NOMBRE_DE_SECCION[fase],
+      ...lecturaDeFase(fase, status),
+      causa,
+      causaPendiente: causa ? null : CAUSA_PENDIENTE[fase],
+    };
+  });
 }
 
 /**
  * Las bases en el orden del estudio, con cada grupo repetido debajo de su
  * madre. Un grupo cuya madre no está en el estudio queda al final, sin anidar.
  */
-export function basesDelEstudio(estudio: EstudioPayload): BasesDelEstudio {
+export function basesDelEstudio(
+  estudio: EstudioPayload,
+  aprobaciones: Aprobaciones | null = null,
+  hoy: Date = new Date(),
+): BasesDelEstudio {
   const todas = Object.entries(estudio.bases ?? {}).map(([clave, base]) => ({
     ...base,
     nombre: base.nombre || clave,
@@ -160,8 +175,13 @@ export function basesDelEstudio(estudio: EstudioPayload): BasesDelEstudio {
   }
   for (const hija of hijas) if (!colocadas.has(hija.nombre)) ordenadas.push(hija);
 
+  const etiquetaDe = (nombre: string) => {
+    const base = porNombre.get(nombre);
+    return base ? etiquetaDeBase(base) : nombre;
+  };
   const filas = ordenadas.map<FilaDeBase>((base) => {
     const madre = esGrupoRepetido(base) ? porNombre.get(texto(base.parent_base)) : undefined;
+    const causas = causasDeBase(base, etiquetaDe, aprobaciones?.porBase.get(base.nombre), hoy);
     return {
       nombre: base.nombre,
       etiqueta: etiquetaDeBase(base),
@@ -170,7 +190,7 @@ export function basesDelEstudio(estudio: EstudioPayload): BasesDelEstudio {
       filas: entero(base.n_filas),
       columnas: entero(base.n_columnas),
       madre: madre ? etiquetaDeBase(madre) : null,
-      fases: fasesDeBase(base.status),
+      fases: fasesDeBase(base.status, causas),
     };
   });
 

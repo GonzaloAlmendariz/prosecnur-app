@@ -1,90 +1,92 @@
 import { EstadoChip } from "../../../components/EstadoChip";
-import { Panel } from "../../../components/Panel";
+import { EstadoVacio } from "../../../components/EstadoVacio";
+import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { Skeleton } from "../../../components/Skeleton";
-import { ListChecks } from "../../../vendor/lucide-react";
-import type { QueSigue } from "./queSigueModel";
-
-const TITULO = (
-  <>
-    <ListChecks size={16} aria-hidden="true" />
-    <span>Por hacer</span>
-  </>
-);
+import { CheckCircle2, ListChecks } from "../../../vendor/lucide-react";
+import type { TareaPorHacer } from "./porHacerModel";
+import type { PasoSiguiente } from "./queSigueModel";
 
 export type PanelQueSigueProps = {
   /** `null` mientras la sesión no se ha leído: sin ella no se sabe qué sigue. */
-  sigue: QueSigue | null;
+  tareas: readonly TareaPorHacer[] | null;
+  /** El paso del estudio: sin tareas, su destino es la acción del vacío. */
+  paso: PasoSiguiente | null;
+  /** Clave de la tarea que está activando su base antes de ir. */
+  yendo: string | null;
+  onIr: (tarea: TareaPorHacer) => void;
   onAbrir: (to: string) => void;
 };
 
 /**
- * El siguiente paso del estudio, con su causa, y las secciones que la banda ya
- * marca como bloqueadas o incompletas. Lee el estado de la sesión: describe el
- * estudio, no una base.
+ * "Por hacer": el siguiente paso del estudio, las bases que esperan su
+ * aprobación y las secciones que la banda marca como bloqueadas o incompletas,
+ * numerados y cada uno con su "Ir".
  */
-export function PanelQueSigue({ sigue, onAbrir }: PanelQueSigueProps) {
-  if (!sigue) {
-    return (
-      <Panel title={TITULO} noPadding className="pulso-estado-estudio-panel">
-        <div
-          className="pulso-estado-estudio-cuerpo pulso-estado-estudio-espera"
-          role="status"
-          aria-busy="true"
-          data-qa-geometry-capacity="owned"
-        >
+export function PanelQueSigue({ tareas, paso, yendo, onIr, onAbrir }: PanelQueSigueProps) {
+  return (
+    <PanelDeMesa
+      zona="estado-por-hacer"
+      titulo="Por hacer"
+      icono={<ListChecks size={16} />}
+      conteo={tareas && tareas.length > 0 ? tareas.length : undefined}
+    >
+      {tareas === null ? (
+        <div className="pulso-estado-estudio-cuerpo pulso-estado-estudio-espera" role="status" aria-busy="true">
           <span className="pulso-sr-only">Cargando el estado del estudio</span>
           <Skeleton forma="titulo" ancho="70%" />
           <Skeleton forma="texto" ancho="88%" />
           <Skeleton forma="fila" />
         </div>
-      </Panel>
-    );
-  }
-  const { paso, pendientes } = sigue;
-
-  return (
-    <Panel title={TITULO} noPadding className="pulso-estado-estudio-panel">
-      <div className="pulso-estado-sigue" data-qa-geometry-capacity="owned">
-        <div className="pulso-estado-sigue-paso">
-          <p className="pulso-estado-sigue-titulo">{paso.titulo}</p>
-          {paso.causa ? <p className="pulso-estado-sigue-causa">{paso.causa}</p> : null}
-          <PulsoButton
-            variant={sigue.completo ? "secondary" : "primary"}
-            size="lg"
-            nav
-            className="pulso-estado-sigue-accion"
-            onClick={() => onAbrir(paso.to)}
-          >
-            {paso.accion}
-          </PulsoButton>
+      ) : tareas.length === 0 ? (
+        <div className="pulso-estado-estudio-cuerpo">
+          <EstadoVacio
+            tamano="compacto"
+            icono={<CheckCircle2 size={18} />}
+            titulo="Sin pasos pendientes"
+            accion={
+              paso ? (
+                <PulsoButton variant="secondary" size="sm" nav onClick={() => onAbrir(paso.to)}>
+                  {paso.accion}
+                </PulsoButton>
+              ) : undefined
+            }
+          />
         </div>
-
-        {pendientes.length > 0 ? (
-          <ul
-            className="pulso-estado-sigue-pendientes"
-            aria-label="Secciones pendientes"
-            data-qa-geometry-group="estado-estudio-pendientes"
-            data-qa-geometry-contract="intrinsic"
-          >
-            {pendientes.map((pendiente) => (
-              <li key={pendiente.seccion} className="pulso-estado-sigue-pendiente">
-                <div className="pulso-estado-sigue-pendiente-texto">
-                  <span className="pulso-estado-sigue-pendiente-nombre">{pendiente.nombre}</span>
-                  <span className="pulso-estado-sigue-pendiente-motivo">{pendiente.motivo}</span>
-                </div>
-                {pendiente.estado === "bloqueada" ? (
-                  <EstadoChip label="Bloqueada" tone="neutral" detail={pendiente.motivo} />
-                ) : (
-                  <PulsoButton variant="secondary" size="sm" nav onClick={() => onAbrir(pendiente.to)}>
-                    {`Abrir ${pendiente.nombre}`}
-                  </PulsoButton>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-    </Panel>
+      ) : (
+        <ol
+          className="pulso-estado-sigue-pendientes"
+          aria-label="Pasos pendientes"
+          data-qa-geometry-group="estado-estudio-pendientes"
+          data-qa-geometry-contract="intrinsic"
+        >
+          {tareas.map((tarea, i) => (
+            <li key={tarea.clave} className="pulso-estado-sigue-pendiente">
+              <span className="pulso-estado-sigue-numero" aria-hidden="true">
+                {i + 1}
+              </span>
+              <div className="pulso-estado-sigue-pendiente-texto">
+                <span className="pulso-estado-sigue-pendiente-nombre">{tarea.titulo}</span>
+                {tarea.detalle ? <span className="pulso-estado-sigue-pendiente-motivo">{tarea.detalle}</span> : null}
+              </div>
+              {tarea.bloqueada ? (
+                <EstadoChip label="Bloqueada" tone="neutral" detail={tarea.detalle ?? undefined} />
+              ) : (
+                <PulsoButton
+                  variant="secondary"
+                  size="sm"
+                  nav
+                  disabled={yendo !== null}
+                  aria-label={`Ir a ${tarea.destino}: ${tarea.titulo}`}
+                  onClick={() => onIr(tarea)}
+                >
+                  Ir
+                </PulsoButton>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </PanelDeMesa>
   );
 }

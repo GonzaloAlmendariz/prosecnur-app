@@ -11,12 +11,14 @@ const api = vi.hoisted(() => ({
   apiEstudioGet: vi.fn(),
   apiEstudioActiveBaseSet: vi.fn(),
 }));
+const aprobacion = vi.hoisted(() => ({ apiProcessingReleases: vi.fn() }));
 const sesion = vi.hoisted(() => ({
   state: null as SessionState | null,
   refresh: vi.fn(async () => undefined),
 }));
 
 vi.mock("../../../api/estudio", () => api);
+vi.mock("../../../api/xlsformEditor", () => aprobacion);
 vi.mock("../../../lib/SessionContext", () => ({
   useSession: () => ({ state: sesion.state, refresh: sesion.refresh }),
 }));
@@ -65,6 +67,7 @@ describe("Estado del estudio", () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     api.apiEstudioGet.mockReset();
     api.apiEstudioActiveBaseSet.mockReset();
+    aprobacion.apiProcessingReleases.mockReset();
     sesion.refresh.mockClear();
     sesion.state = { xlsform: true, data: true, n_bases: 3 } as SessionState;
     contenedor = document.createElement("div");
@@ -124,8 +127,9 @@ describe("Estado del estudio", () => {
     const texto = filas()[0].textContent ?? "";
     expect(texto).toContain("Base única");
     expect(texto).toContain("Archivo");
-    expect(texto).toContain("293 filas");
-    expect(texto).toContain("61 columnas");
+    expect(texto).toContain("293 respuestas");
+    // Las columnas no van: el archivo recibido no es la base que se procesa.
+    expect(texto).not.toContain("columnas");
   });
 
   test("cada fila muestra el estado que el motor da de ESA base, también las no activas", async () => {
@@ -141,10 +145,9 @@ describe("Estado del estudio", () => {
     ]);
     // Origen en llano y concordancia de número.
     expect(filas()[0].textContent).toContain("SurveyMonkey");
-    expect(filas()[1].textContent).toContain("1 fila");
-    expect(filas()[1].textContent).toContain("1 columna");
+    expect(filas()[1].textContent).toContain("1 respuesta");
     expect(filas()[2].textContent).toContain("Kobo");
-    expect(filas()[2].textContent).toContain("1,283 filas");
+    expect(filas()[2].textContent).toContain("1,283 respuestas");
     expect(contenedor.textContent).not.toMatch(/kobo_api|surveymonkey|manual/);
   });
 
@@ -229,8 +232,9 @@ describe("Estado del estudio", () => {
     api.apiEstudioGet.mockResolvedValue(estudio([], null));
     await montar();
     expect(contenedor.querySelector("[data-estado-vacio]")?.textContent).toContain("Sin bases");
-    // La cabecera no publica un conteo de cero bases.
-    expect(contenedor.querySelector(".pulso-tab-heading-chips")).toBeNull();
+    // La cabecera no publica un conteo de cero bases; su estado lo dice.
+    expect(contenedor.querySelector(".pulso-cifra-pestana")).toBeNull();
+    expect(contenedor.querySelector(".pulso-cabecera-pestana-estado")?.textContent).toBe("Sin bases");
     const abrir = Array.from(contenedor.querySelectorAll("[data-estado-vacio] button"))[0];
     await act(async () => {
       abrir?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -238,19 +242,19 @@ describe("Estado del estudio", () => {
     expect(contenedor.querySelector("[data-testid='ruta']")?.textContent).toBe("/carga");
   });
 
-  test("Por hacer lleva a la sección que antes elegía el redirect y lista lo bloqueado", async () => {
+  test("Por hacer numera el paso del estudio y lo bloqueado; Ir lleva a la sección que antes elegía el redirect", async () => {
     sesion.state = { xlsform: true, data: true, auditoria_run: false, n_bases: 3 } as SessionState;
     api.apiEstudioGet.mockResolvedValue(estudio(TRES, "egresados"));
     await montar();
-    expect(contenedor.querySelector(".pulso-estado-sigue-titulo")?.textContent).toBe("Auditar las respuestas");
-    expect(contenedor.querySelector(".pulso-estado-sigue-causa")?.textContent).toBe(
-      "Todavía no se ha ejecutado la auditoría.",
-    );
-    const pendientes = Array.from(contenedor.querySelectorAll(".pulso-estado-sigue-pendiente")).map((li) => li.textContent);
-    expect(pendientes).toEqual(["GráficosPrepara Analítica.Bloqueada"]);
-
+    const tareas = Array.from(contenedor.querySelectorAll(".pulso-estado-sigue-pendiente")).map((li) => li.textContent);
+    expect(tareas).toEqual([
+      "1Auditar las respuestasTodavía no se ha ejecutado la auditoría.Ir",
+      "2GráficosPrepara Analítica.Bloqueada",
+    ]);
+    const ir = contenedor.querySelector<HTMLButtonElement>("button[aria-label='Ir a Validación: Auditar las respuestas']");
+    expect(ir?.textContent).toBe("Ir");
     await act(async () => {
-      boton("Abrir Validación")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      ir?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(contenedor.querySelector("[data-testid='ruta']")?.textContent).toBe("/validacion");
   });
@@ -266,15 +270,19 @@ describe("Estado del estudio", () => {
       ),
     );
     await montar();
-    const chips = Array.from(contenedor.querySelectorAll(".pulso-tab-heading-chip")).map((c) => c.textContent);
-    expect(chips).toEqual(["1base", "1grupo repetido"]);
+    const cifras = Array.from(contenedor.querySelectorAll(".pulso-cifra-pestana")).map((c) => c.textContent);
+    // Las filas del grupo repetido son instancias: no suman respuestas.
+    expect(cifras).toEqual(["base1", "grupo repetido1", "respuestas100", "con informe0/1"]);
     expect(filas()[1].hasAttribute("data-grupo-repetido")).toBe(true);
     expect(filas()[1].textContent).toContain("Grupo repetido");
+    expect(filas()[1].textContent).toContain("100 filas");
     // El título del panel no repite la cifra de la cabecera.
-    expect(contenedor.querySelector(".pulso-estado-estudio-panel .pulso-panel-title")?.textContent).toBe("Bases del estudio");
+    expect(contenedor.querySelector(".pulso-panel-de-mesa--estado-avance .pulso-panel-de-mesa-titulo")?.textContent).toBe(
+      "Avance por base y por fase",
+    );
   });
 
-  test("declara su geometría: dos paneles, las filas de base y los pendientes", async () => {
+  test("declara su geometría: la mesa, sus dos pilas, las filas de base, las fases y los archivos", async () => {
     api.apiEstudioGet.mockResolvedValue(estudio(TRES, "egresados"));
     await montar();
     const grupos = Array.from(contenedor.querySelectorAll("[data-qa-geometry-group]")).map((g) => [
@@ -283,16 +291,120 @@ describe("Estado del estudio", () => {
     ]);
     expect(grupos).toEqual(
       expect.arrayContaining([
-        ["estado-estudio-paneles", "intrinsic"],
+        ["estado-estudio-mesa", "intrinsic"],
+        ["estado-estudio-bases-pila", "intrinsic"],
+        ["estado-estudio-seguimiento-pila", "intrinsic"],
         ["estado-estudio-bases", "intrinsic"],
         ["estado-estudio-fases", "equal"],
+        ["estado-estudio-archivos", "intrinsic"],
+        ["estado-estudio-archivos-celdas", "equal"],
         ["estado-estudio-pendientes", "intrinsic"],
+        ["estado-estudio-cambios", "intrinsic"],
       ]),
     );
-    // Cada fila declara sus cinco fases como pares.
+    // Cada fila declara sus cinco fases como pares, y cada fila de archivos sus seis entregables.
     expect(contenedor.querySelectorAll("[data-qa-geometry-group='estado-estudio-fases']")).toHaveLength(3);
     expect(filas()[0].querySelectorAll("[data-qa-geometry-member]")).toHaveLength(5);
-    expect(contenedor.querySelectorAll(".pulso-estado-estudio-mesa > .pulso-panel")).toHaveLength(2);
-    expect(contenedor.querySelectorAll("[data-qa-geometry-capacity='owned']").length).toBeGreaterThanOrEqual(2);
+    expect(contenedor.querySelectorAll(".pulso-estado-archivos-fila")[0].querySelectorAll("[data-qa-geometry-member]")).toHaveLength(6);
+    // Cuatro contenedores del kit; cada uno es dueño de su vacío y de su scroll.
+    expect(contenedor.querySelectorAll(".pulso-mesa-pestana-pila > .pulso-panel-de-mesa")).toHaveLength(4);
+    const cuerpos = Array.from(contenedor.querySelectorAll(".pulso-panel-de-mesa-cuerpo"));
+    expect(cuerpos).toHaveLength(4);
+    expect(cuerpos.every((c) => c.getAttribute("data-qa-geometry-capacity") === "owned")).toBe(true);
+    // Nada dentro de un cuerpo reclama el vacío otra vez.
+    expect(cuerpos.some((c) => c.querySelector("[data-qa-geometry-capacity]"))).toBe(false);
+  });
+
+  test("cada celda dice su causa cuando el motor la publica y, si no, declara el pedido", async () => {
+    const leida = base({
+      nombre: "estudiantes",
+      source_alias: "Estudiantes",
+      source_kind: "surveymonkey",
+      surveymonkey_last_refresh: { refreshed_at: "2026-11-09T19:00:00Z", n_new: 14 },
+      status: { imported: true, codificacion: true, shared_logic_from: "docentes" },
+    });
+    const docentes = base({ nombre: "docentes", source_alias: "Docentes", status: { imported: true } });
+    const sinRespuestas = base({ nombre: "egresados", source_alias: "Egresados", data_file_id: "", status: { imported: false } });
+    api.apiEstudioGet.mockResolvedValue(estudio([leida, docentes, sinRespuestas], "estudiantes"));
+    await montar();
+    const causas = (i: number) => Array.from(filas()[i].querySelectorAll("[role='cell']")).map((c) => c.querySelector(".pulso-estado-base-causa")?.textContent ?? null);
+    expect(causas(0).slice(0, 5)).toEqual([
+      "Leída de SurveyMonkey el 9 nov, 14 respuestas nuevas",
+      null,
+      "Codificación copiada de Docentes",
+      null,
+      null,
+    ]);
+    expect(causas(2)[0]).toBe("Faltan las respuestas");
+    // Sin causa, el hueco queda declarado en el marcado con su pedido al motor.
+    const validacion = filas()[0].querySelectorAll("[role='cell']")[1];
+    expect(validacion.getAttribute("data-causa-pendiente")).toMatch(/^M8: hallazgos por decidir/);
+    expect(filas()[0].querySelectorAll("[role='cell']")[0].hasAttribute("data-causa-pendiente")).toBe(false);
+    // El mismo hecho, con su fecha, en Cambios recientes.
+    const cambios = Array.from(contenedor.querySelectorAll(".pulso-estado-cambio")).map((li) => li.textContent);
+    expect(cambios[0]).toBe("9 novEstudiantes: lectura de SurveyMonkey, 14 respuestas nuevas.");
+    // Sin aprobación por base, la cabecera declara el hueco de esas cifras.
+    expect(contenedor.querySelector("[data-cifras-pendientes]")?.getAttribute("data-cifras-pendientes")).toMatch(/M8/);
+    expect(aprobacion.apiProcessingReleases).not.toHaveBeenCalled();
+  });
+
+  test("Archivos del estudio: la base activa con los indicadores de la sesión; las otras, solo el informe", async () => {
+    sesion.state = {
+      xlsform: true, data: true, n_bases: 3, analitica_codebook_ok: true, analitica_frecuencias_ok: true, graficos_ppt_ok: true,
+    } as SessionState;
+    api.apiEstudioGet.mockResolvedValue(estudio(TRES, "egresados"));
+    await montar();
+    const fila = (i: number) => Array.from(contenedor.querySelectorAll(".pulso-estado-archivos-fila")[i].querySelectorAll("[role='cell']")).map((c) => c.textContent);
+    // Docentes, no activa: el informe sale de su estado; lo demás no se publica por base.
+    expect(fila(0)).toEqual(["Sin dato", "Sin dato", "Sin dato", "Sin dato", "Sin dato", "Generado"]);
+    // Egresados, activa.
+    expect(fila(1)).toEqual(["Por generar", "Generado", "Generado", "Por generar", "Por generar", "GeneradoPowerPoint"]);
+    expect(fila(2)[5]).toBe("Por generar");
+  });
+
+  test("bases independientes: la aprobación da cifras, causa de Gráficos y tareas que activan su base antes de ir", async () => {
+    const independientes = { ...estudio(TRES, "egresados"), processing_mode: "independent_siblings" };
+    api.apiEstudioGet.mockResolvedValue(independientes);
+    api.apiEstudioActiveBaseSet.mockResolvedValue({ ok: true, active: "estudiantes", options: [], processing_mode: "independent_siblings" });
+    aprobacion.apiProcessingReleases.mockResolvedValue({
+      ok: true, schema: "processing_release_catalog/v1", detected: true, family_id: "f", active_base: "egresados", all_approved: false,
+      entries: [
+        { base: "docentes", status: "approved", release: { approved_at: "2026-11-07T15:00:00Z" } },
+        { base: "egresados", status: "pending", release: null },
+        { base: "estudiantes", status: "ready", release: null },
+      ],
+    });
+    await montar();
+    expect(aprobacion.apiProcessingReleases).toHaveBeenCalledTimes(1);
+    const cifras = Array.from(contenedor.querySelectorAll(".pulso-cifra-pestana")).map((c) => c.textContent);
+    expect(cifras).toEqual(["bases3", "respuestas1,399", "aprobada para informe1/3"]);
+    expect(contenedor.querySelector("[data-cifras-pendientes]")).toBeNull();
+    expect(filas()[0].querySelectorAll("[role='cell']")[4].querySelector(".pulso-estado-base-causa")?.textContent).toBe(
+      "Aprobada para informe el 7 nov",
+    );
+    const tareas = Array.from(contenedor.querySelectorAll(".pulso-estado-sigue-pendiente-nombre")).map((n) => n.textContent);
+    expect(tareas).toContain("Aprobar para informe");
+
+    const ir = contenedor.querySelector<HTMLButtonElement>("button[aria-label='Ir a Analítica: Aprobar para informe']");
+    await act(async () => {
+      ir?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(api.apiEstudioActiveBaseSet).toHaveBeenCalledWith("estudiantes");
+    expect(contenedor.querySelector("[data-testid='ruta']")?.textContent).toBe("/analitica");
+  });
+
+  test("si la base no se puede activar, Ir no lleva a otra sección y el error queda en el avance", async () => {
+    api.apiEstudioGet.mockResolvedValue({ ...estudio(TRES, "egresados"), processing_mode: "independent_siblings" });
+    api.apiEstudioActiveBaseSet.mockRejectedValue(new Error("La base no existe en el estudio. [E_BASE_NOT_FOUND]"));
+    aprobacion.apiProcessingReleases.mockResolvedValue({
+      ok: true, schema: "processing_release_catalog/v1", detected: true, family_id: "f", active_base: "egresados", all_approved: false,
+      entries: [{ base: "estudiantes", status: "ready", release: null }],
+    });
+    await montar();
+    await act(async () => {
+      contenedor.querySelector("button[aria-label='Ir a Analítica: Aprobar para informe']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(contenedor.querySelector("[data-testid='ruta']")?.textContent).toBe("/procesamiento");
+    expect(contenedor.querySelector("[role='alert']")?.textContent).toContain("No se pudo activar la base");
   });
 });

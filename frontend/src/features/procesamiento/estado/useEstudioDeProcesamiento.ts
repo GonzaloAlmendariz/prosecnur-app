@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiEstudioActiveBaseSet, apiEstudioGet, type EstudioPayload } from "../../../api/estudio";
+import { apiProcessingReleases, type ProcessingReleaseCatalog } from "../../../api/xlsformEditor";
 import { useSession } from "../../../lib/SessionContext";
 
 export type LecturaDelEstudio =
@@ -17,12 +18,19 @@ export type LecturaDelEstudio =
 
 export type EstudioDeProcesamiento = {
   lectura: LecturaDelEstudio;
+  /**
+   * La aprobación para informe por base. El motor solo la calcula en estudios
+   * de bases independientes: en los demás no se pide y queda `null`, igual que
+   * si la lectura falla (la página no la necesita para mostrar el estudio).
+   */
+  catalogoDeAprobaciones: ProcessingReleaseCatalog | null;
   recargar: () => Promise<void>;
   /** Nombre de la base a la que se está cambiando; `null` si no hay cambio en curso. */
   activandoA: string | null;
   /** Por qué falló el último cambio de base; `null` si no falló. */
   errorDeActivar: string | null;
-  activar: (nombre: string) => Promise<void>;
+  /** `true` si la base quedó activa. */
+  activar: (nombre: string) => Promise<boolean>;
 };
 
 function mensaje(error: unknown): string {
@@ -32,6 +40,7 @@ function mensaje(error: unknown): string {
 export function useEstudioDeProcesamiento(): EstudioDeProcesamiento {
   const { refresh } = useSession();
   const [lectura, setLectura] = useState<LecturaDelEstudio>({ fase: "cargando" });
+  const [catalogoDeAprobaciones, setCatalogo] = useState<ProcessingReleaseCatalog | null>(null);
   const [activandoA, setActivandoA] = useState<string | null>(null);
   const [errorDeActivar, setErrorDeActivar] = useState<string | null>(null);
   const montado = useRef(true);
@@ -39,7 +48,20 @@ export function useEstudioDeProcesamiento(): EstudioDeProcesamiento {
   const recargar = useCallback(async () => {
     try {
       const estudio = await apiEstudioGet();
-      if (montado.current) setLectura({ fase: "lista", estudio });
+      // La aprobación se lee antes de dar la vista por lista: sus cifras van en la cabecera.
+      let catalogo: ProcessingReleaseCatalog | null = null;
+      if (estudio.processing_mode === "independent_siblings") {
+        try {
+          catalogo = await apiProcessingReleases();
+        } catch {
+          // Sin aprobación la página sigue: la cabecera vuelve a declarar el hueco de esas cifras.
+          catalogo = null;
+        }
+      }
+      if (montado.current) {
+        setCatalogo(catalogo);
+        setLectura({ fase: "lista", estudio });
+      }
     } catch (error) {
       if (montado.current) setLectura({ fase: "error", detalle: mensaje(error) });
     }
@@ -60,7 +82,7 @@ export function useEstudioDeProcesamiento(): EstudioDeProcesamiento {
 
   const activar = useCallback(
     async (nombre: string) => {
-      if (!nombre || activandoA !== null) return;
+      if (!nombre || activandoA !== null) return false;
       setActivandoA(nombre);
       setErrorDeActivar(null);
       try {
@@ -72,8 +94,10 @@ export function useEstudioDeProcesamiento(): EstudioDeProcesamiento {
           }),
         );
         await recargar();
+        return true;
       } catch (error) {
         if (montado.current) setErrorDeActivar(mensaje(error));
+        return false;
       } finally {
         if (montado.current) setActivandoA(null);
       }
@@ -81,5 +105,5 @@ export function useEstudioDeProcesamiento(): EstudioDeProcesamiento {
     [activandoA, recargar, refresh],
   );
 
-  return { lectura, recargar, activandoA, errorDeActivar, activar };
+  return { lectura, catalogoDeAprobaciones, recargar, activandoA, errorDeActivar, activar };
 }
