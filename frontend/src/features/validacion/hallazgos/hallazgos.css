@@ -1285,13 +1285,33 @@ button.pulso-hz-sentido:hover {
 }
 
 @container mesa-pestana (max-width: 979px) {
-  /* Un solo dueño del scroll (C4): la Decisión, abajo a todo el ancho, mide su contenido y la pestaña se desplaza. */
-  .pulso-mesa-pestana > .pulso-panel.pulso-panel-de-mesa--decision {
+  /* Hallazgos no pasa a dos columnas como las demás mesas: con la Decisión
+     abajo, la pestaña se desplazaba y la cola y el hallazgo se desplazaban
+     dentro de ella (C4, medido a 1024x600: la pestaña se desplazaba 861 px y
+     la Decisión quedaba entera bajo el borde). Las tres columnas siguen lado a
+     lado con el alto de la pestaña;
+     cada cuerpo es el único dueño de su scroll y los pies quedan a la vista. */
+  .pulso-validacion-pestana-hallazgos .pulso-mesa-pestana-marco,
+  .pulso-validacion-pestana-hallazgos .pulso-mesa-pestana {
+    flex: 1 1 auto;
+  }
+
+  .pulso-validacion-pestana-hallazgos .pulso-mesa-pestana[data-columnas="3"] {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: 200px minmax(0, 1fr) 248px;
+  }
+
+  .pulso-validacion-pestana-hallazgos .pulso-mesa-pestana[data-columnas="3"] > :nth-child(3) {
+    grid-column: auto;
+  }
+
+  .pulso-validacion-pestana-hallazgos .pulso-mesa-pestana > .pulso-panel-de-mesa,
+  .pulso-validacion-pestana-hallazgos .pulso-mesa-pestana-pila > .pulso-panel-de-mesa {
     max-block-size: none;
   }
 
-  .pulso-panel-de-mesa--decision > .pulso-panel-de-mesa-cuerpo {
-    overflow: visible;
+  .pulso-validacion-pestana-hallazgos .pulso-panel-de-mesa-cuerpo {
+    overscroll-behavior: contain;
   }
 
   .pulso-hz-sentidos {
