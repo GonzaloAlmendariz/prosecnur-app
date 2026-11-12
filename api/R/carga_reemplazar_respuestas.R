@@ -71,17 +71,24 @@ carga_cambios_contra_archivo_previo <- function(sid, previa, nueva, base = "defa
   out
 }
 
+# Una base sin formulario no recibe una versión nueva de sus respuestas: el
+# formulario es lo que se conserva al reemplazarlas.
+.carga_exigir_formulario <- function(meta, nombre) {
+  xls_id <- as.character(meta$xlsform_file_id %||% "")
+  if (!nzchar(xls_id)) {
+    stop_api(422, "E_BASE_SIN_FORMULARIO",
+             sprintf("La base \"%s\" no tiene formulario; vuelve a crearla con su formulario y sus respuestas.", nombre))
+  }
+  xls_id
+}
+
 #' Reemplaza el archivo de respuestas de una base y devuelve qué cambió.
 #' @keywords internal
 carga_reemplazar_respuestas <- function(sid, nombre, data_file_id) {
   s <- session_get(sid)
   meta <- (s$estudio$bases %||% list())[[nombre]]
   if (is.null(meta)) stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", nombre))
-  xls_id <- as.character(meta$xlsform_file_id %||% "")
-  if (!nzchar(xls_id)) {
-    stop_api(422, "E_BASE_SIN_FORMULARIO",
-             sprintf("La base «%s» no tiene formulario; vuelve a crearla con su formulario y sus respuestas.", nombre))
-  }
+  xls_id <- .carga_exigir_formulario(meta, nombre)
   xls_meta <- get_file(sid, xls_id)
   dat_meta <- get_file(sid, data_file_id)
   data_ext <- tolower(dat_meta$ext %||% tools::file_ext(dat_meta$original_name))

@@ -455,6 +455,9 @@ errores_registrados <- function() {
     "E_ANEXAR_SIN_COLUMNAS",                                "carga_columnas_anexadas.R",       "422",
     "E_ANEXAR_COLUMNA_OCUPADA",                             "carga_columnas_anexadas.R",       "409",
     "E_BASE_SIN_FORMULARIO",                                 "carga_reemplazar_respuestas.R",     "422",
+    # Carga › Actualizar una fuente: identificador de la versión nueva y copia para volver.
+    "E_CARGA_ACTUALIZAR_IDENTIFICADOR",                      "carga_actualizar_comparar.R",       "422",
+    "E_CARGA_ACTUALIZAR_SIN_COPIA",                          "carga_actualizar_respuestas.R",     "409",
     "E_BASE_VARIABLE_DE_SEGMENTO",                           "base_variables_servicio.R",         "409",
     "E_BASE_VARIABLE_TIPO_INVALIDO",                         "base_variables_servicio.R",         "422",
     "E_BASE_VARIABLE_NO_ENCONTRADA",                         "base_variables_servicio.R",         "404",
