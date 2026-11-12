@@ -3,17 +3,24 @@
  * múltiple, parámetros que se mandan al guardar, condiciones previas y
  * tratamiento previsto por tipo.
  *
- * Salieron de `components/ReglaEditor.tsx` sin cambios (rebanada V1 de P6).
- * Lo que entregan al guardar lo fija `payloadDeRegla.test.tsx`.
+ * Salieron de `components/ReglaEditor.tsx` (rebanada V1 de P6). La rebanada
+ * V2 del plan de fidelidad les suma el tipo "Condiciones combinadas" y la
+ * comparación con otra pregunta del contrato M1. Lo que entregan al guardar lo
+ * fija `payloadDeRegla.test.tsx`.
  */
 import type {
   ExploradorVariable,
-  ReglaCustomTipo,
   ReglaGateCondition,
   ReglaTreatmentActionType,
   ReglaTreatmentScope,
 } from "../types";
 import type { TipoMeta } from "./tiposDeRegla";
+import {
+  esOperadorDeComparacion,
+  type CondicionCombinada,
+  type ModoCondiciones,
+  type TipoReglaPropia,
+} from "./tiposDelMotor";
 
 export type HierarchyRow = {
   trigger: string;
@@ -103,8 +110,29 @@ export function parseHierarchyMapText(text: string): { ok: true; value: Record<s
   return { ok: true, value: out };
 }
 
-export function normalizeParamsForSubmit(tipo: ReglaCustomTipo, params: Record<string, unknown>) {
+/** El tipo de una pregunta del inventario, por su nombre; `undefined` si no está. */
+export type TipoDeVariable = (variable: string) => ExploradorVariable["tipo"] | undefined;
+
+export function normalizeParamsForSubmit(
+  tipo: TipoReglaPropia,
+  params: Record<string, unknown>,
+  tipoDeVariable: TipoDeVariable = () => undefined,
+) {
   const rest = { ...params };
+  if (tipo === "condiciones") {
+    return {
+      modo: modoDeCondiciones(params.modo),
+      condiciones: condicionesDeParams(params).map((c) => condicionParaGuardar(c, tipoDeVariable)),
+    };
+  }
+  if (tipo === "coherencia_2v" && "valor_y_variable" in params) {
+    // Comparar con otra pregunta reemplaza al valor (contrato M1, sección 5):
+    // las dos cosas a la vez son un 400. Sin la clave, la regla se guarda
+    // como siempre.
+    const comparada = String(params.valor_y_variable ?? "").trim();
+    const { valor_y: _valorY, valor_y_variable: _comparada, ...sinLadoY } = rest;
+    return comparada ? { ...sinLadoY, valor_y_variable: comparada } : { ...sinLadoY, ...(params.valor_y === undefined ? {} : { valor_y: params.valor_y }) };
+  }
   if (tipo === "rango_fecha") {
     return { ...rest, timezone: String(params.timezone ?? "America/Lima").trim() || "America/Lima" };
   }
@@ -310,7 +338,7 @@ export const TREATMENT_SCOPES: Array<{
   },
 ];
 
-export function treatmentActionsForTipo(tipo: ReglaCustomTipo): TreatmentActionMeta[] {
+export function treatmentActionsForTipo(tipo: TipoReglaPropia): TreatmentActionMeta[] {
   const values: ReglaTreatmentActionType[] =
     tipo === "select_multiple_hierarchy"
       ? ["complete_select_multiple_hierarchy", "adjust_select_multiple", "ignore_rule", "nullify_fields", "exclude_cases"]
@@ -326,7 +354,7 @@ export function treatmentActionsForTipo(tipo: ReglaCustomTipo): TreatmentActionM
   return values.map((value) => TREATMENT_ACTIONS[value]);
 }
 
-export function treatmentDefaultFor(tipo: ReglaCustomTipo | null): {
+export function treatmentDefaultFor(tipo: TipoReglaPropia | null): {
   action: ReglaTreatmentActionType;
   scope: ReglaTreatmentScope;
 } {
@@ -407,3 +435,90 @@ export function gateConditionToExpr(cond: ReglaGateCondition): string {
 export function quoteGateValue(value: string): string {
   return `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
+
+// --- Condiciones combinadas (contrato M1, sección 5) ---------------------------
+
+export function modoDeCondiciones(valor: unknown): ModoCondiciones {
+  return valor === "alguna" ? "alguna" : "todas";
+}
+
+/** Las condiciones guardadas en `params`, sin las que no son objetos. */
+export function condicionesDeParams(params: Record<string, unknown>): CondicionCombinada[] {
+  const crudas = Array.isArray(params.condiciones) ? params.condiciones : [];
+  return crudas
+    .filter((c): c is Record<string, unknown> => !!c && typeof c === "object" && !Array.isArray(c))
+    .map((c) => {
+      const comparada = typeof c.variable_comparada === "string" ? c.variable_comparada : "";
+      const op = String(c.op ?? "") as CondicionCombinada["op"];
+      const base: CondicionCombinada = { variable: String(c.variable ?? ""), op };
+      if (comparada) return { ...base, variable_comparada: comparada };
+      const valor = c.valor;
+      if (Array.isArray(valor)) return { ...base, valor: valor.map((v) => String(v)) };
+      if (typeof valor === "number" || typeof valor === "string") return { ...base, valor };
+      return { ...base, valor: "" };
+    });
+}
+
+/**
+ * Una condición como la espera el motor: con `valor` o con
+ * `variable_comparada`. En una pregunta numérica el valor de una comparación
+ * viaja como número; con texto, R compararía letra por letra.
+ */
+export function condicionParaGuardar(c: CondicionCombinada, tipoDeVariable: TipoDeVariable): CondicionCombinada {
+  const variable = c.variable.trim();
+  const comparada = (c.variable_comparada ?? "").trim();
+  if (comparada) return { variable, op: c.op, variable_comparada: comparada };
+  if (c.op && isListOperator(c.op)) return { variable, op: c.op, valor: paramList(c.valor) };
+  const escalar = Array.isArray(c.valor) ? (c.valor[0] ?? "") : (c.valor ?? "");
+  if (typeof escalar === "number") return { variable, op: c.op, valor: escalar };
+  const texto = escalar.trim();
+  const numero = Number(texto);
+  const esNumerica = tipoDeVariable(variable) === "num";
+  return { variable, op: c.op, valor: esNumerica && texto !== "" && Number.isFinite(numero) ? numero : texto };
+}
+
+/** Las preguntas que usa una regla de condiciones: las revisadas y las comparadas, sin repetir. */
+export function variablesDeCondiciones(condiciones: readonly CondicionCombinada[]): string[] {
+  const vistas: string[] = [];
+  for (const c of condiciones) {
+    for (const v of [c.variable, c.variable_comparada ?? ""]) {
+      const limpia = v.trim();
+      if (limpia && !vistas.includes(limpia)) vistas.push(limpia);
+    }
+  }
+  return vistas;
+}
+
+/** El primer problema de las condiciones, o "" si están completas. Los mensajes dicen el número de la condición. */
+export function validarCondiciones(condiciones: readonly CondicionCombinada[]): string {
+  if (!condiciones.length) return "Agrega al menos una condición.";
+  for (const [i, c] of condiciones.entries()) {
+    const n = i + 1;
+    if (!c.variable.trim()) return `La condición ${n} no tiene pregunta.`;
+    if (!c.op) return `La condición ${n} no tiene operador.`;
+    const comparada = (c.variable_comparada ?? "").trim();
+    if (comparada) {
+      if (comparada === c.variable.trim()) return `La condición ${n} compara una pregunta consigo misma.`;
+      if (!esOperadorDeComparacion(c.op)) return `La condición ${n} compara con otra pregunta: usa es, no es, mayor o menor.`;
+      continue;
+    }
+    if (!paramList(c.valor).length) return `La condición ${n} no tiene valor.`;
+  }
+  return "";
+}
+
+/**
+ * El tratamiento previsto como lo nombra el panel de regla (prototipo: "Sin
+ * propuesta", "Vaciar la respuesta", "Corregir el valor"), con las palabras de
+ * la columna "Qué hacer" de Hallazgos.
+ */
+export const ROTULO_DE_TRATAMIENTO: Record<ReglaTreatmentActionType, string> = {
+  ignore_rule: "Sin propuesta",
+  nullify_fields: "Vaciar la respuesta",
+  replace_value: "Corregir el valor",
+  set_value: "Asignar un valor",
+  exclude_cases: "Excluir los casos",
+  recode_map: "Recodificar",
+  complete_select_multiple_hierarchy: "Completar las opciones",
+  adjust_select_multiple: "Agregar o quitar opciones",
+};

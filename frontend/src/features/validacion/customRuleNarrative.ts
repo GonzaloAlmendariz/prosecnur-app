@@ -11,15 +11,18 @@
 //
 // Así una regla custom no terminada (sólo tipo + variables) ya muestra una
 // narrativa útil en el preview del editor — y al guardarse, la card de la
-// lista se lee como: «variable» debe estar dentro del rango permitido.
+// lista se lee como: "variable" debe estar dentro del rango permitido.
 // =============================================================================
 
-import type { ReglaCustom, ReglaCustomTipo } from "./types";
+import type { ReglaGateCondition } from "./types";
 import type { ReglaLike } from "./components/v2";
+import { condicionesDeParams, modoDeCondiciones, paramList } from "./reglas/modeloRegla";
+import { leerOperador, leerOperadorNegado } from "./reglas/operadores";
+import type { CondicionCombinada, ReglaPropia, TipoReglaPropia } from "./reglas/tiposDelMotor";
 
 // Mapea el `tipo` de la regla custom al `tipo_regla` que reconoce el
 // builder narrativo del AST engine.
-const CUSTOM_TIPO_TO_AST: Record<ReglaCustomTipo, string> = {
+const CUSTOM_TIPO_TO_AST: Record<TipoReglaPropia, string> = {
   no_nulo: "required",
   rango_num: "range",
   rango_fecha: "range",
@@ -32,11 +35,12 @@ const CUSTOM_TIPO_TO_AST: Record<ReglaCustomTipo, string> = {
   select_multiple_exclusive: "select_multiple_cardinality",
   select_multiple_cardinality: "select_multiple_cardinality",
   select_multiple_selection: "select_multiple_cardinality",
+  condiciones: "coherence",
 };
 
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
 // de la lista.
-export const CUSTOM_TIPO_LABEL: Record<ReglaCustomTipo, string> = {
+export const CUSTOM_TIPO_LABEL: Record<TipoReglaPropia, string> = {
   no_nulo: "Respuesta obligatoria",
   rango_num: "Valor fuera de rango",
   rango_fecha: "Fecha fuera del operativo",
@@ -49,12 +53,13 @@ export const CUSTOM_TIPO_LABEL: Record<ReglaCustomTipo, string> = {
   select_multiple_exclusive: "Opciones incompatibles",
   select_multiple_cardinality: "Cantidad de opciones marcada",
   select_multiple_selection: "Opciones esperadas o prohibidas",
+  condiciones: "Condiciones combinadas",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
 // la regla aún no tiene nombre (preview en vivo del editor).
 export function describeCustomParams(
-  tipo: ReglaCustomTipo,
+  tipo: TipoReglaPropia,
   params: Record<string, unknown>,
   variables: string[] = [],
 ): string {
@@ -95,7 +100,8 @@ export function describeCustomParams(
         : "Define la lista de opciones esperadas.";
     case "coherencia_2v": {
       const x = condicionLegible(params.op_x, params.valor_x);
-      const y = condicionLegible(params.op_y, params.valor_y);
+      const comparada = typeof params.valor_y_variable === "string" ? params.valor_y_variable.trim() : "";
+      const y = comparada ? condicionLegible(params.op_y, comparada) : condicionLegible(params.op_y, params.valor_y);
       if (x && y && variables.length >= 2) {
         return `Se marca cuando ${variables[0]} ${x} y ${variables[1]} no cumple "${y}".`;
       }
@@ -114,6 +120,19 @@ export function describeCustomParams(
       return "Detecta respuestas con menos o más opciones marcadas que el rango esperado.";
     case "select_multiple_selection":
       return "Detecta respuestas de selección múltiple que no cumplen el patrón de opciones esperado.";
+    case "condiciones": {
+      const condiciones = condicionesDeParams(params);
+      const partes = condiciones.map((c) => {
+        const otra = (c.variable_comparada ?? "").trim();
+        const lado = otra ? condicionLegible(c.op, otra) : condicionLegible(c.op, c.valor);
+        return c.variable && lado ? `${c.variable} ${lado}` : "";
+      });
+      if (!partes.length || partes.some((p) => !p)) {
+        return "Se marca cuando se cumplen las condiciones elegidas; una pregunta vacía no cumple su condición.";
+      }
+      const conector = modoDeCondiciones(params.modo) === "alguna" ? " o " : " y ";
+      return `Se marca cuando ${partes.join(conector)}; una pregunta vacía no cumple su condición.`;
+    }
     default:
       return "";
   }
@@ -147,7 +166,7 @@ function condicionLegible(op: unknown, valor: unknown): string {
 }
 
 // Convierte una ReglaCustom completa (ya guardada) al shape ReglaLike.
-export function customRuleToRule(r: ReglaCustom): ReglaLike {
+export function customRuleToRule(r: ReglaPropia): ReglaLike {
   const target = r.variables[0] ?? null;
   const gateVars = (r.gate_conditions ?? []).map((c) => c.variable).filter(Boolean);
   const gate = r.tipo === "coherencia_2v" && r.variables[1]
@@ -181,13 +200,13 @@ export function customRuleToRule(r: ReglaCustom): ReglaLike {
 // Útil para el preview en vivo — no requiere id ni mensaje, pero sí al
 // menos un tipo y una variable.
 export function draftCustomToRule(input: {
-  tipo: ReglaCustomTipo | null;
+  tipo: TipoReglaPropia | null;
   variables: string[];
   nombre: string;
   mensaje: string;
   params: Record<string, unknown>;
-  hallazgo_kind?: ReglaCustom["hallazgo_kind"];
-  severidad?: ReglaCustom["severidad"];
+  hallazgo_kind?: ReglaPropia["hallazgo_kind"];
+  severidad?: ReglaPropia["severidad"];
 }): ReglaLike | null {
   if (!input.tipo || !input.variables.length) return null;
   const target = input.variables[0] ?? null;
@@ -227,7 +246,7 @@ export function draftCustomToRule(input: {
 }
 
 function customObjective(
-  tipo: ReglaCustomTipo,
+  tipo: TipoReglaPropia,
   params: Record<string, unknown>,
   variables: string[],
   message: string,
@@ -237,4 +256,232 @@ function customObjective(
   if (!note) return detail || null;
   if (!detail || note.toLocaleLowerCase("es").includes(detail.toLocaleLowerCase("es"))) return note;
   return `${detail} Nota: ${note}`;
+}
+
+// =============================================================================
+// La frase de la regla, en piezas (panel de regla, rebanada V2)
+// =============================================================================
+// Lo que el panel escribe en su tarjeta de frase: texto, fichas de pregunta y
+// valores, en orden. Una pieza `pregunta` se dibuja con `FichaPregunta`; un
+// `valor`, en negrita; un `conector` ("y", "o"), con el acento. La frase dice
+// también qué pasa con un vacío, porque los dos tipos de cruce lo tratan
+// distinto (contrato M1, sección 5): en "Dos respuestas que deben cuadrar" una
+// segunda respuesta vacía marca el caso; en "Condiciones combinadas" una
+// pregunta vacía no cumple su condición y no lo marca.
+
+export type PiezaDeFrase =
+  | { tipo: "texto"; texto: string }
+  | { tipo: "pregunta"; variable: string }
+  | { tipo: "valor"; texto: string }
+  | { tipo: "conector"; texto: string };
+
+export type ReglaParaFrase = {
+  tipo: TipoReglaPropia | null;
+  variables: readonly string[];
+  params: Record<string, unknown>;
+  gate_conditions?: readonly ReglaGateCondition[];
+};
+
+/** Cómo se lee un código de respuesta: su etiqueta si se conoce. */
+export type LeerValor = (variable: string, codigo: string) => string;
+
+const leerTalCual: LeerValor = (_variable, codigo) => codigo;
+
+class Frase {
+  readonly piezas: PiezaDeFrase[] = [];
+  texto(t: string) {
+    const ultima = this.piezas[this.piezas.length - 1];
+    if (ultima?.tipo === "texto") ultima.texto += t;
+    else this.piezas.push({ tipo: "texto", texto: t });
+    return this;
+  }
+  pregunta(variable: string) {
+    this.piezas.push({ tipo: "pregunta", variable });
+    return this;
+  }
+  valor(t: string) {
+    this.piezas.push({ tipo: "valor", texto: t });
+    return this;
+  }
+  conector(t: string) {
+    this.piezas.push({ tipo: "conector", texto: t });
+    return this;
+  }
+}
+
+function textoDeValores(variable: string, valor: unknown, leer: LeerValor): string {
+  const leidos = paramList(valor).map((codigo) => leer(variable, codigo));
+  if (leidos.length <= 1) return leidos[0] ?? "";
+  // Varias etiquetas con espacios ("Trabaja y estudia") se citan, para que el
+  // "y" de la lista no se confunda con el de la etiqueta.
+  const lista = leidos.some((t) => /\s/.test(t)) ? leidos.map((t) => `"${t}"`) : leidos;
+  return `${lista.slice(0, -1).join(", ")} y ${lista[lista.length - 1]}`;
+}
+
+function textoDeParam(valor: unknown): string {
+  if (typeof valor === "number") return String(valor);
+  if (typeof valor === "string") return valor.trim();
+  return "";
+}
+
+/** "edad es mayor que 5": pregunta, operador y valor (u otra pregunta). Falso si falta algo. */
+function condicionEnFrase(
+  f: Frase,
+  c: { variable: string; op: string; valor?: unknown; comparada?: string },
+  leer: LeerValor,
+  opciones: { omitirPregunta?: boolean; negar?: boolean } = {},
+): boolean {
+  const op = opciones.negar ? leerOperadorNegado(c.op) : leerOperador(c.op);
+  const comparada = (c.comparada ?? "").trim();
+  const valor = comparada ? "" : textoDeValores(c.variable, c.valor, leer);
+  if (!c.variable || !op || (!comparada && !valor)) return false;
+  if (!opciones.omitirPregunta) f.pregunta(c.variable).texto(" ");
+  f.texto(`${op} `);
+  if (comparada) f.pregunta(comparada);
+  else f.valor(valor);
+  return true;
+}
+
+function filtroEnFrase(f: Frase, gate: readonly ReglaGateCondition[], leer: LeerValor) {
+  const completas = gate.filter((g) => g.variable && g.op && paramList(g.value).length);
+  if (!completas.length) return;
+  f.texto(" Solo se revisa cuando ");
+  completas.forEach((g, i) => {
+    if (i > 0) f.texto(" ").conector("y").texto(" ");
+    condicionEnFrase(f, { variable: g.variable, op: g.op, valor: g.value }, leer);
+  });
+  f.texto(".");
+}
+
+/**
+ * La frase de una regla propia, o `null` si la regla todavía no está completa
+ * (el panel muestra entonces la descripción del tipo).
+ */
+export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leerTalCual): PiezaDeFrase[] | null {
+  const f = new Frase();
+  const p = regla.params;
+  const [v1, v2] = regla.variables;
+  f.texto("Se marca cuando ");
+  switch (regla.tipo) {
+    case "coherencia_2v": {
+      if (!v1 || !v2) return null;
+      if (!condicionEnFrase(f, { variable: v1, op: String(p.op_x ?? ""), valor: p.valor_x }, leer)) return null;
+      f.texto(" ").conector("y").texto(" ");
+      const comparada = typeof p.valor_y_variable === "string" ? p.valor_y_variable : "";
+      if (!condicionEnFrase(f, { variable: v2, op: String(p.op_y ?? ""), valor: p.valor_y, comparada }, leer, { negar: true })) return null;
+      f.texto(" o está vacía.");
+      break;
+    }
+    case "condiciones": {
+      const condiciones: CondicionCombinada[] = condicionesDeParams(p);
+      if (!condiciones.length) return null;
+      const conector = modoDeCondiciones(p.modo) === "alguna" ? "o" : "y";
+      for (const [i, c] of condiciones.entries()) {
+        if (i > 0) f.texto(" ").conector(conector).texto(" ");
+        const repite = i > 0 && condiciones[i - 1].variable === c.variable;
+        if (!condicionEnFrase(f, { variable: c.variable, op: c.op, valor: c.valor, comparada: c.variable_comparada }, leer, { omitirPregunta: repite })) return null;
+      }
+      f.texto(". Una pregunta vacía no cumple su condición.");
+      break;
+    }
+    case "rango_num": {
+      const min = textoDeParam(p.min);
+      const max = textoDeParam(p.max);
+      if (!v1 || (!min && !max)) return null;
+      const inclusivo = p.inclusive !== false;
+      f.pregunta(v1).texto(" ");
+      if (min) f.texto(inclusivo ? "es menor que " : "es menor o igual a ").valor(min);
+      if (min && max) f.texto(" ").conector("o").texto(" ");
+      if (max) f.texto(inclusivo ? "es mayor que " : "es mayor o igual a ").valor(max);
+      f.texto(".");
+      break;
+    }
+    case "rango_fecha": {
+      const min = textoDeParam(p.min);
+      const max = textoDeParam(p.max);
+      if (!v1 || (!min && !max)) return null;
+      f.pregunta(v1).texto(" ");
+      if (min) f.texto("es anterior al ").valor(min);
+      if (min && max) f.texto(" ").conector("o").texto(" ");
+      if (max) f.texto("es posterior al ").valor(max);
+      f.texto(".");
+      break;
+    }
+    case "duplicados": {
+      const llaves = regla.variables.filter(Boolean);
+      if (!llaves.length) return null;
+      llaves.forEach((v, i) => {
+        if (i > 0) f.texto(i === llaves.length - 1 ? " y " : ", ");
+        f.pregunta(v);
+      });
+      f.texto(llaves.length === 1 ? " se repite en más de una encuesta." : " se repiten juntas en más de una encuesta.");
+      f.texto(" Una encuesta con alguna de ellas vacía no se compara.");
+      break;
+    }
+    case "no_nulo": {
+      if (!v1) return null;
+      f.pregunta(v1).texto(" está vacía.");
+      break;
+    }
+    case "outliers_iqr": {
+      if (!v1) return null;
+      f.pregunta(v1).texto(" se aleja del resto más de ").valor(textoDeParam(p.k) || "1.5").texto(" veces el rango intercuartílico.");
+      break;
+    }
+    case "outliers_z": {
+      if (!v1) return null;
+      f.pregunta(v1).texto(" está a más de ").valor(textoDeParam(p.k) || "3").texto(" desviaciones estándar de la media.");
+      break;
+    }
+    case "fuera_catalogo": {
+      const n = paramList(p.valores).length;
+      if (!v1 || !n) return null;
+      f.pregunta(v1).texto(" tiene un valor fuera de la lista permitida (").valor(String(n)).texto(n === 1 ? " valor)." : " valores).");
+      break;
+    }
+    case "select_multiple_hierarchy": {
+      if (!v1) return null;
+      f.pregunta(v1).texto(" incluye una opción y no incluye las que van con ella.");
+      break;
+    }
+    case "select_multiple_exclusive": {
+      const codigos = textoDeValores(v1 ?? "", p.exclusive_codes, leer);
+      if (!v1 || !codigos) return null;
+      f.pregunta(v1).texto(" incluye ").valor(codigos).texto(" junto con otra opción.");
+      break;
+    }
+    case "select_multiple_cardinality": {
+      const min = textoDeParam(p.min);
+      const max = textoDeParam(p.max);
+      if (!v1 || (!min && !max)) return null;
+      f.pregunta(v1).texto(" tiene ");
+      if (min) f.texto("menos de ").valor(min);
+      if (min && max) f.texto(" ").conector("o").texto(" ");
+      if (max) f.texto("más de ").valor(max);
+      f.texto(" opciones marcadas.");
+      break;
+    }
+    case "select_multiple_selection": {
+      const codigos = textoDeValores(v1 ?? "", p.codes, leer);
+      const op = String(p.op ?? "contains_any");
+      if (!v1 || !codigos) return null;
+      // La regla marca lo que NO cumple el patrón (motor: `!(...)`).
+      const lectura = op === "contains_all" || op === "contains"
+        ? "no incluye todas estas opciones: "
+        : op === "not_contains" || op === "contains_none"
+          ? "incluye alguna de "
+          : "no incluye ninguna de ";
+      f.pregunta(v1).texto(` ${lectura}`).valor(codigos).texto(".");
+      break;
+    }
+    default:
+      return null;
+  }
+  filtroEnFrase(f, regla.gate_conditions ?? [], leer);
+  return f.piezas;
+}
+
+/** La frase en texto llano (para un nombre accesible o una prueba). */
+export function fraseEnTexto(piezas: readonly PiezaDeFrase[]): string {
+  return piezas.map((p) => (p.tipo === "pregunta" ? p.variable : p.texto)).join("");
 }

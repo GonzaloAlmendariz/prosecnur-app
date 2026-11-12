@@ -1,0 +1,959 @@
+/* Panel de regla propia (rebanada V2 del plan de fidelidad; prototipo
+   `panelRegla`, `proto.css:967-1040`).
+
+   Sin cajas propias (`cajasPropias.contract.test.ts`): cada bloque con marco es
+   un `Panel` del kit (cajas, teselas) o una pieza del kit (FraseRegla,
+   CifraHallazgo, campos). Aquí solo van la rejilla, los rellenos interiores, el
+   tono y los separadores.
+
+   Geometría del prototipo: 1040 px de ancho y "Casos que marca" de 320; hasta
+   1400 px, 940 y 280; hasta 1100 px, a todo el ancho y en una columna, con
+   "Casos que marca" debajo. Un solo dueño del scroll: el cuerpo del Sideover. */
+
+.pulso-sideover.pulso-panel-regla {
+  width: min(1040px, 100vw);
+}
+
+/* El antetítulo ("Nueva regla propia de …") va sobre el título, como en el
+   prototipo: es el subtítulo del kit, subido a la primera fila. */
+.pulso-panel-regla .pulso-dialog__head.pulso-cabecera-panel--con-subtitulo {
+  grid-template-rows: auto minmax(var(--pulso-close-size), auto);
+  padding: var(--pulso-space-5) var(--pulso-space-6) var(--pulso-space-4);
+}
+
+.pulso-panel-regla .pulso-dialog__head > .pulso-cabecera-panel__subtitulo {
+  grid-row: 1;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-panel-regla .pulso-dialog__head > :is(.pulso-cabecera-panel__titulo, .pulso-cabecera-panel__acciones, .pulso-cabecera-panel__cerrar) {
+  grid-row: 2;
+}
+
+/* El título lleva su propia elipsis (abajo): sin recortar el h2, el anillo de
+   foco del lápiz se ve entero. */
+.pulso-panel-regla .pulso-dialog__head > .pulso-cabecera-panel__titulo {
+  overflow: visible;
+}
+
+.pulso-panel-regla-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  max-width: 100%;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.pulso-panel-regla-titulo-texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-panel-regla .pulso-input.pulso-panel-regla-nombre {
+  width: min(560px, 100%);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-sideover .pulso-dialog__body.pulso-panel-regla-cuerpo {
+  gap: var(--pulso-space-5);
+  padding: var(--pulso-space-5) var(--pulso-space-6);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-panel-regla-contenido {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+.pulso-panel-regla-error {
+  color: var(--pulso-danger-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-panel-regla .pulso-dialog__hint {
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-panel-regla .pulso-dialog__actions .pulso-panel-regla-principal {
+  min-width: 200px;
+  justify-content: center;
+}
+
+/* ---------- La regla: dos columnas ---------- */
+
+.pulso-panel-regla-dos {
+  display: grid;
+  flex: 1 0 auto;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--pulso-space-5);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.pulso-panel-regla-col {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+.pulso-panel-regla-col--casos > .pulso-regla-casos {
+  flex: 1 1 auto;
+}
+
+/* La columna de la regla mide lo suyo: no se estira contra "Casos" dejando un
+   vacío sin marco al pie (capacity-drift). */
+.pulso-panel-regla-dos > .pulso-panel-regla-col:first-child {
+  align-self: start;
+}
+
+/* "Casos que marca hoy" tiene un marco propio, igual con 0 casos que con 8
+   filas (C2): el vacío y el pie van dentro. */
+.pulso-panel-regla .pulso-panel.pulso-regla-casos {
+  min-height: 640px;
+}
+
+.pulso-panel-regla-valor-entero {
+  white-space: nowrap;
+}
+
+.pulso-panel-regla-confirmar {
+  margin: 0;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-panel-regla-frase-pendiente {
+  color: var(--pulso-text-soft);
+}
+
+/* ---------- Cajas (Panel del kit) ---------- */
+
+.pulso-panel-regla .pulso-panel.pulso-regla-caja {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  overflow: clip;
+  background: var(--pulso-surface);
+}
+
+.pulso-regla-caja > .pulso-panel-header {
+  align-items: center;
+  flex-wrap: nowrap;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 var(--pulso-space-4) 0 var(--pulso-space-5);
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+}
+
+.pulso-regla-caja .pulso-panel-title {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-regla-caja .pulso-panel-actions {
+  margin-left: auto;
+}
+
+.pulso-regla-modo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-regla-caja-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+}
+
+/* "+ Añadir condición", "+ Solo revisar cuando": el punteado marca dónde se agrega. */
+.pulso-panel-regla .pulso-button.pulso-regla-mas {
+  border: 1px dashed var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+}
+
+.pulso-panel-regla .pulso-button.pulso-regla-mas:hover {
+  border-color: var(--module-accent, var(--pulso-primary));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* ---------- Filas de "Condiciones" ---------- */
+
+.pulso-regla-filas {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-regla-fila {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 1.3fr) 28px;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  min-width: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-5);
+}
+
+.pulso-regla-fila + .pulso-regla-fila,
+.pulso-regla-fila + .pulso-regla-fila-mas {
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+}
+
+/* Con rótulo en palabras ("Cuando", "Solo cuando", "Mínimo"): la columna crece. */
+.pulso-regla-condiciones--par .pulso-regla-fila--condicion,
+.pulso-regla-condiciones--rotulos .pulso-regla-fila--condicion {
+  grid-template-columns: 96px minmax(0, 1.3fr) minmax(0, 1.15fr) minmax(0, 0.75fr) 28px;
+}
+
+/* El filtro dentro de "Condiciones combinadas": su rótulo va arriba, sobre la
+   pregunta, y la fila conserva las columnas de las condiciones numeradas. */
+.pulso-regla-condiciones:not(.pulso-regla-condiciones--rotulos):not(.pulso-regla-condiciones--par) .pulso-regla-fila--filtro-inicio > .pulso-regla-rotulo:first-child {
+  grid-column: 1 / -1;
+}
+
+.pulso-regla-condiciones:not(.pulso-regla-condiciones--rotulos):not(.pulso-regla-condiciones--par) .pulso-regla-fila--filtro-inicio > :nth-child(2) {
+  grid-column: 2;
+}
+
+/* Elegir varias opciones: la lista baja a su propia línea, bajo la pregunta y
+   el operador, para que sus interruptores no pisen a los vecinos. */
+.pulso-regla-fila:has(> .pulso-regla-valor[data-lista]) {
+  align-items: start;
+  row-gap: var(--pulso-space-2);
+}
+
+.pulso-regla-fila > .pulso-regla-valor[data-lista] {
+  grid-column: 2 / -2;
+  grid-row: 2;
+}
+
+.pulso-regla-fila:has(> .pulso-regla-valor[data-lista]) > :last-child {
+  grid-column: -2;
+  grid-row: 1;
+}
+
+.pulso-regla-valor[data-lista] .pulso-regla-opciones-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  column-gap: var(--pulso-space-4);
+}
+
+.pulso-regla-fila--campo {
+  grid-template-columns: 96px minmax(0, 1fr) 28px;
+}
+
+.pulso-regla-fila--jerarquia {
+  grid-template-columns: 96px minmax(0, 1fr) auto minmax(0, 1.3fr) 28px;
+  align-items: start;
+}
+
+.pulso-regla-fila-ancha {
+  min-width: 0;
+}
+
+.pulso-regla-fila-mas {
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+}
+
+.pulso-regla-rotulo {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-regla-rotulo--medio {
+  align-self: center;
+}
+
+.pulso-regla-numero,
+.pulso-regla-conector {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-micro-size);
+  font-style: normal;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-regla-conector {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* La pregunta en su desplegable: punto del tipo, código y etiqueta. */
+.pulso-regla-pregunta-opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pulso-regla-pregunta-opcion > code {
+  flex: none;
+  color: var(--pulso-text-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-micro-size);
+}
+
+.pulso-regla-pregunta-opcion > span {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-regla-punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--tipo-int-border);
+}
+
+.pulso-regla-punto[data-tipo="unica"] {
+  background: var(--tipo-so-border);
+}
+
+.pulso-regla-punto[data-tipo="multiple"] {
+  background: var(--tipo-sm-border);
+}
+
+.pulso-regla-punto[data-tipo="texto"] {
+  background: var(--tipo-text-border);
+}
+
+.pulso-select-trigger.pulso-regla-pregunta--comparada {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 4%, var(--pulso-surface));
+}
+
+.pulso-regla-valor {
+  min-width: 0;
+}
+
+.pulso-regla-valor[data-con-comparar] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-1);
+  align-items: center;
+}
+
+.pulso-panel-regla .pulso-button.pulso-regla-comparar[aria-pressed="true"] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* Opciones de una pregunta con interruptores (selección múltiple, listas). */
+.pulso-regla-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-regla-opciones-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-regla-opciones-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-2);
+  align-items: center;
+  padding: var(--pulso-space-1) 0;
+}
+
+.pulso-regla-opciones-fila > .pulso-switch-field {
+  min-width: 0;
+}
+
+.pulso-regla-opciones-fila .pulso-switch-field-label {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.pulso-regla-opciones-n {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Resultado ---------- */
+
+.pulso-regla-produce {
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.pulso-clasificacion-hallazgo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.pulso-clasificacion-hallazgo.pulso-gliding-tab-list > .pulso-gliding-tab-indicator {
+  display: none;
+}
+
+.pulso-clasificacion-hallazgo .pulso-treatment-card {
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  font: inherit;
+}
+
+.pulso-clasificacion-hallazgo .pulso-treatment-card.is-active {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 6%, var(--pulso-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, transparent);
+}
+
+.pulso-clasificacion-hallazgo .pulso-treatment-card:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+}
+
+.pulso-clasificacion-hallazgo .pulso-treatment-card-check {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border-width: 1.5px;
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface);
+}
+
+.pulso-clasificacion-hallazgo .pulso-treatment-card.is-active .pulso-treatment-card-check {
+  border-width: 5px;
+  border-color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-clasificacion-clase {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pulso-clasificacion-clase::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--pulso-warn-accent);
+  content: "";
+}
+
+.is-inconsistencia .pulso-clasificacion-clase::before {
+  background: var(--pulso-danger-fg);
+}
+
+.pulso-clasificacion-hallazgo .pulso-treatment-card small {
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.pulso-regla-tratamiento {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: center;
+  padding: var(--pulso-space-3) var(--pulso-space-5) var(--pulso-space-4);
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+}
+
+.pulso-regla-detalle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  align-items: center;
+  padding: var(--pulso-space-3) var(--pulso-space-5) var(--pulso-space-4);
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+}
+
+/* El segmentado del prototipo (`pp-seg`): fondo hundido y la elegida en relieve. */
+.pulso-regla-segmentado {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-3);
+}
+
+.pulso-regla-segmentado.pulso-gliding-tab-list > .pulso-gliding-tab-indicator {
+  display: none;
+}
+
+.pulso-regla-segmentado > button {
+  height: 28px;
+  padding: 0 var(--pulso-space-3);
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--pulso-text-muted);
+  font: inherit;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out), color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-regla-segmentado > button.is-on {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.pulso-regla-segmentado > button:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+}
+
+/* ---------- Casos que marca hoy ---------- */
+
+.pulso-regla-casos-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  padding: var(--pulso-space-4) 0 0;
+}
+
+.pulso-regla-casos-cuerpo > .pulso-cifra-hallazgo {
+  padding: 0 var(--pulso-space-5);
+}
+
+.pulso-regla-casos-cuerpo > .pulso-estado-vacio,
+.pulso-regla-casos-cuerpo > .pulso-loading-block,
+.pulso-regla-casos-cuerpo > .pulso-error-block {
+  margin: auto var(--pulso-space-5);
+}
+
+/* La tabla de ejemplos llega a los bordes de la caja y su cabecera parte el
+   nombre de la pregunta en dos líneas, como el prototipo. */
+.pulso-regla-casos .pulso-table-scroll {
+  border-width: 1px 0;
+  border-radius: 0;
+}
+
+.pulso-regla-casos .pulso-table th {
+  height: auto;
+  padding-block: var(--pulso-space-2);
+  line-height: 1.25;
+  vertical-align: bottom;
+  white-space: normal;
+}
+
+/* La cabecera dice la pregunta en dos líneas como mucho; el nombre entero
+   sigue siendo el nombre accesible del botón de la columna. */
+.pulso-regla-casos .pulso-table-orden {
+  display: -webkit-box;
+  overflow: hidden;
+  text-align: inherit;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Un valor largo (una fecha con hora, una etiqueta) sigue en la línea de
+   abajo: nada se corta contra el borde. */
+.pulso-regla-casos .pulso-table td {
+  height: auto;
+  min-height: var(--pulso-density-row);
+  padding-block: var(--pulso-space-2);
+  overflow: visible;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* El caso va en una línea; si no cabe, con puntos suspensivos y el id entero
+   en `title`. */
+.pulso-regla-casos .pulso-table td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-regla-caso {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-regla-casos .pulso-table th:first-child,
+.pulso-regla-casos .pulso-table td:first-child {
+  padding-left: var(--pulso-space-5);
+}
+
+.pulso-regla-casos .pulso-table th:last-child,
+.pulso-regla-casos .pulso-table td:last-child {
+  padding-right: var(--pulso-space-5);
+}
+
+.pulso-regla-caso {
+  color: var(--pulso-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-regla-falla {
+  display: inline-block;
+  min-width: 36px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pulso-warn-accent) 12%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-bold);
+  text-align: center;
+}
+
+.pulso-regla-casos[data-tono="inconsistencia"] .pulso-regla-falla {
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-regla-nota {
+  margin: 0;
+  padding: 0 var(--pulso-space-5);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-regla-casos-pie {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  margin-top: auto;
+  padding: var(--pulso-space-4) 0 var(--pulso-space-4);
+}
+
+.pulso-regla-casos-pie .pulso-button.pulso-regla-ancho {
+  margin: 0 var(--pulso-space-5);
+  justify-content: center;
+}
+
+/* ---------- Qué quieres revisar ---------- */
+
+.pulso-regla-que-revisar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-6);
+  min-width: 0;
+}
+
+.pulso-regla-tipos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-5);
+  align-items: start;
+}
+
+.pulso-regla-tipos-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-regla-tipos-titulo {
+  margin: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-regla-teselas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-regla-tesela-celda {
+  display: flex;
+  min-width: 0;
+}
+
+.pulso-panel-regla .pulso-panel.pulso-regla-tesela {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  background: var(--pulso-surface);
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out), box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-panel-regla .pulso-panel.pulso-regla-tesela[data-elegida] {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-panel-regla .pulso-panel.pulso-regla-tesela[data-deshabilitada] {
+  background: var(--pulso-surface-2);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pulso-panel-regla .pulso-panel.pulso-regla-tesela:not([data-deshabilitada]):hover {
+    border-color: var(--pulso-border-strong);
+    box-shadow: var(--pulso-shadow-low);
+  }
+}
+
+.pulso-regla-tesela-boton {
+  display: grid;
+  white-space: normal;
+  flex: 1 1 auto;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--pulso-space-3);
+  align-items: start;
+  min-width: 0;
+  min-height: 76px;
+  margin: 0;
+  padding: var(--pulso-space-4);
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: transform var(--motion-dur-press) var(--motion-ease-out);
+}
+
+.pulso-regla-tesela-boton:active:not([aria-disabled]) {
+  transform: scale(var(--mov-press-tarjeta, 0.985));
+}
+
+.pulso-regla-tesela-boton[aria-disabled] {
+  cursor: not-allowed;
+}
+
+.pulso-regla-tesela-boton:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: 2px;
+}
+
+.pulso-regla-tesela-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+}
+
+.pulso-regla-tesela[data-elegida] .pulso-regla-tesela-icono {
+  border-color: var(--module-accent-border, var(--pulso-primary-border));
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-regla-tesela[data-deshabilitada] .pulso-regla-tesela-icono,
+.pulso-regla-tesela[data-deshabilitada] strong {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-regla-tesela-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-regla-tesela-texto > * {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pulso-regla-tesela-texto strong {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-regla-tesela-texto small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-regla-tesela-causa {
+  margin-top: var(--pulso-space-1);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-regla-sugeridas-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-regla-sugerida {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: center;
+  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-3) var(--pulso-space-5);
+}
+
+.pulso-regla-sugerida + .pulso-regla-sugerida {
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 60%, transparent);
+}
+
+.pulso-regla-sugerida-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-regla-sugerida-texto strong {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-regla-sugerida-texto span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-regla-sugeridas .pulso-estado-vacio {
+  margin: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.pulso-panel-regla-vacio {
+  display: grid;
+  flex: 1 0 auto;
+  place-items: center;
+}
+
+/* ---------- Medidas ---------- */
+
+@media (max-width: 1400px) {
+  .pulso-sideover.pulso-panel-regla {
+    width: min(940px, 100vw);
+  }
+
+  .pulso-panel-regla-dos {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  /* Como el prototipo a esta medida: el rótulo de la condición sube a su
+     propia línea y la pregunta deja de mostrar su código. */
+  .pulso-regla-condiciones--par .pulso-regla-fila--condicion,
+  .pulso-regla-condiciones--rotulos .pulso-regla-fila--condicion {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.7fr) 28px;
+    row-gap: 6px;
+  }
+
+  .pulso-regla-condiciones--par .pulso-regla-fila--condicion > .pulso-regla-rotulo:first-child,
+  .pulso-regla-condiciones--rotulos .pulso-regla-fila--condicion > .pulso-regla-rotulo:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .pulso-select-trigger.pulso-regla-pregunta .pulso-regla-pregunta-opcion > code {
+    display: none;
+  }
+
+  /* Con el rótulo arriba, la lista de opciones baja una línea más. */
+  .pulso-regla-condiciones--par .pulso-regla-fila > .pulso-regla-valor[data-lista],
+  .pulso-regla-condiciones--rotulos .pulso-regla-fila > .pulso-regla-valor[data-lista] {
+    grid-column: 1 / -2;
+    grid-row: 3;
+  }
+
+  .pulso-regla-condiciones--par .pulso-regla-fila:has(> .pulso-regla-valor[data-lista]) > :last-child,
+  .pulso-regla-condiciones--rotulos .pulso-regla-fila:has(> .pulso-regla-valor[data-lista]) > :last-child {
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pulso-sideover.pulso-panel-regla {
+    width: 100vw;
+  }
+
+  .pulso-panel-regla-dos,
+  .pulso-regla-tipos,
+  .pulso-clasificacion-hallazgo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Una columna angosta: cada condición en dos líneas (rótulo arriba, pregunta
+   con su X, y debajo el operador y el valor). */
+@container (max-width: 520px) {
+  .pulso-regla-fila,
+  .pulso-regla-condiciones--par .pulso-regla-fila--condicion,
+  .pulso-regla-condiciones--rotulos .pulso-regla-fila--condicion {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 28px;
+    row-gap: 6px;
+  }
+
+  .pulso-regla-fila > .pulso-regla-rotulo:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .pulso-regla-fila--condicion > :nth-child(2) {
+    grid-column: 1 / 3;
+  }
+
+  .pulso-regla-fila--campo > :nth-child(2) {
+    grid-column: 1 / 3;
+  }
+
+  .pulso-regla-tratamiento {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pulso-regla-tratamiento > .pulso-regla-rotulo {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-panel-regla .pulso-panel.pulso-regla-tesela,
+  .pulso-regla-tesela-boton,
+  .pulso-regla-segmentado > button {
+    transition: none;
+  }
+}

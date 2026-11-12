@@ -19,6 +19,7 @@ import {
   apiV2ReglasCustomSemillas,
   apiV2ReglasCustomUpdate,
 } from "../../../api/client";
+import { apiAuditar } from "../../../api/validacionAuditoria";
 import type {
   ExploradorVariable,
   ExploradorVariablesList,
@@ -28,11 +29,17 @@ import type {
 } from "../types";
 import { useValidacionStore } from "../store";
 import { pedirInventario } from "../inventarioDeBase";
-import { usePestanaValidacion } from "../pestanaDireccionable";
+import { searchDePestana, usePestanaValidacion } from "../pestanaDireccionable";
+import { useLocation, useNavigate } from "react-router-dom";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { JobProgress } from "../../../components/JobProgress";
-import ReglaEditor from "../components/ReglaEditor";
+import { PanelRegla, type AlGuardarRegla } from "../reglas/panel/PanelRegla";
+import { FOCO_NUEVA, searchConPanelRegla, searchSinPanelRegla, usePanelRegla } from "../reglas/panel/usePanelRegla";
+import { preguntasDelCatalogo, useCatalogoDeReglas } from "../reglas/panel/useCatalogoDeReglas";
+import { esAliasDelDetalleDeRegla } from "../pestanaValidacion";
+import { useDireccion } from "../../../lib/navegacion/useDireccion";
+import { comoCuerpoDelCliente, comoReglaPropia } from "../reglas/tiposDelMotor";
 import SemillasPanel from "../components/SemillasPanel";
 import { RuleNarrative } from "../components/v2";
 import type { VariableHoverData } from "../components/v2";
@@ -49,12 +56,22 @@ import { Panel } from "../../../components/Panel";
 // "Ejecutar reglas activas" que corre un job async. El resultado queda
 // guardado como `evaluacion` en el scope: el usuario puede ir a Hallazgos
 // para ver KPIs / heatmap con las reglas custom mezcladas.
+//
+// Rebanada V2 del plan de fidelidad: crear y editar ya no abren el asistente
+// en línea, sino el panel de regla por la dirección (`panel=regla&foco=nueva`
+// o `foco=<id>`). Es un puente hasta que V1 rehaga Reglas con su catálogo.
+// "Guardar y auditar" guarda, lanza la auditoría y, al terminar, lleva a
+// Hallazgos.
 
 export default function ReglasCustomTab() {
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
   const bumpVersion = useValidacionStore((s) => s.bumpVersion);
   const { irAPestana } = usePestanaValidacion();
+  const panel = usePanelRegla();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const setPrefill = useValidacionStore((s) => s.setPrefill);
 
   const [list, setList] = useState<ReglasCustomList | null>(null);
   const [inv, setInv] = useState<ExploradorVariablesList | null>(null);
@@ -62,12 +79,12 @@ export default function ReglasCustomTab() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
-  // El CODIGO ademas del mensaje: `E_NO_DATA_INST` es «todavia no hay base», un
+  // El CODIGO ademas del mensaje: `E_NO_DATA_INST` es "todavia no hay base", un
   // estado esperado, y sin el codigo no se puede distinguir de una averia.
   const [errorCode, setErrorCode] = useState<string>("");
-  const [editing, setEditing] = useState<ReglaCustom | null>(null);
-  const [showEditor, setShowEditor] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+  // La auditoría lanzada desde "Guardar y auditar": al terminar, lleva a Hallazgos.
+  const [auditoriaDelPanel, setAuditoriaDelPanel] = useState(false);
   const [runSummary, setRunSummary] = useState<{ total: number | null; nCustom: number | null } | null>(null);
 
   const refetch = useCallback(async () => {
@@ -77,7 +94,13 @@ export default function ReglasCustomTab() {
     try {
       const [l, i, sem] = await Promise.all([
         apiV2ReglasCustomList(baseNombre),
-        pedirInventario(baseNombre),
+        // Sin respuestas el inventario responde 409 `E_NO_DATA_INST`: es un
+        // estado, no una avería, y las reglas propias igual se pueden armar
+        // (el panel toma las preguntas del catálogo de reglas).
+        pedirInventario(baseNombre).catch((e: unknown) => {
+          if (esEstadoInicial(codigoDeError(e))) return null;
+          throw e;
+        }),
         // El sembrado es una ayuda, no un requisito: si falla, la pestaña
         // sigue funcionando sin propuestas.
         apiV2ReglasCustomSemillas(baseNombre).catch(() => null),
@@ -85,6 +108,7 @@ export default function ReglasCustomTab() {
       setList(l);
       setInv(i);
       setSemillas(sem?.semillas ?? []);
+      if (!i) setErrorCode("E_NO_DATA_INST");
     } catch (e) {
       setError((e as Error).message);
       setErrorCode(codigoDeError(e));
@@ -95,8 +119,6 @@ export default function ReglasCustomTab() {
 
   useEffect(() => {
     void refetch();
-    setShowEditor(false);
-    setEditing(null);
     setJobId(null);
   }, [refetch, version]);
 
@@ -114,7 +136,21 @@ export default function ReglasCustomTab() {
     return out;
   }, [inv]);
 
-  async function handleSubmit(payload: Omit<ReglaCustom, "id" | "created_at"> & { id?: string }) {
+  // Sin respuestas, las preguntas salen del catálogo de reglas (M3).
+  const catalogo = useCatalogoDeReglas(panel.abierto && !loading && !inv, baseNombre);
+
+  // El enlace viejo al detalle de una regla (`pestana=instrumento&panel=regla&foco=<id>`):
+  // si el foco es una regla propia, se abre en el panel con la dirección limpia.
+  // Si es una regla del formulario, la dirección sigue como está: su ficha es de V1.
+  const direccion = useDireccion();
+  const focoDelAlias = esAliasDelDetalleDeRegla(direccion?.pestana, direccion?.panel) ? direccion?.foco ?? null : null;
+  useEffect(() => {
+    if (!focoDelAlias || !list?.reglas.some((r) => r.id === focoDelAlias)) return;
+    navigate({ pathname: location.pathname, search: searchConPanelRegla(location.search, focoDelAlias) }, { replace: true });
+  }, [focoDelAlias, list, location.pathname, location.search, navigate]);
+
+  const handleSubmit: AlGuardarRegla = async (cuerpo, { auditar }) => {
+    const payload = comoCuerpoDelCliente(cuerpo);
     setBusy("Guardando regla…");
     setRunSummary(null);
     try {
@@ -123,13 +159,17 @@ export default function ReglasCustomTab() {
       } else {
         await apiV2ReglasCustomCreate(payload, baseNombre);
       }
-      setShowEditor(false);
-      setEditing(null);
+      if (auditar) {
+        const out = await apiAuditar(baseNombre);
+        setAuditoriaDelPanel(true);
+        setJobId(out.job_id);
+      }
+      panel.cerrar();
       await refetch();
     } finally {
       setBusy("");
     }
-  }
+  };
 
   async function handleAdoptar(s: ReglaSemilla) {
     setRunSummary(null);
@@ -183,30 +223,86 @@ export default function ReglasCustomTab() {
     }
   }
 
+  // El panel de regla: nueva (`foco=nueva`) o la regla del foco. Cerrado no
+  // pinta nada ni pide nada.
+  // Se arma antes de los estados de carga y de "sin respuestas": el panel se
+  // abre también ahí (variante "vacía" del prototipo).
+  const reglasDelPanel = list?.reglas ?? [];
+  const enEdicion = panel.abierto && panel.foco && panel.foco !== FOCO_NUEVA
+    ? reglasDelPanel.find((r) => r.id === panel.foco) ?? null
+    : null;
+  const variablesDelPanel = inv ? flatVars : preguntasDelCatalogo(catalogo);
+  const panelDeRegla = (
+    <PanelRegla
+      abierto={panel.abierto}
+      onCerrar={panel.cerrar}
+      inicial={enEdicion ? comoReglaPropia(enEdicion) : null}
+      focoInexistente={!loading && list && panel.abierto && panel.foco && panel.foco !== FOCO_NUEVA && !enEdicion ? panel.foco : null}
+      cargandoPreguntas={loading}
+      tipoElegido={panel.tipo}
+      pregunta={panel.pregunta}
+      onElegirTipo={panel.elegirTipo}
+      variables={variablesDelPanel}
+      baseNombre={baseNombre}
+      semillas={semillas}
+      onGuardar={handleSubmit}
+      onVerEnExplorar={(variable) => {
+        // A Explorar sin el panel ni lo que solo él usa (`tipo`, `pregunta`).
+        setPrefill("explorar", { var: variable });
+        navigate({ pathname: location.pathname, search: searchDePestana(searchSinPanelRegla(location.search), "explorar") });
+      }}
+      panelProps={panel.props}
+      onVerSinEvaluar={() =>
+        navigate({
+          pathname: location.pathname,
+          search: searchDePestana(searchSinPanelRegla(location.search), "reglas", { familia: "sin-evaluar" }),
+        })
+      }
+    />
+  );
+
   // Montada dentro de Reglas (rebanada V2 de P6), junto al plan del formulario:
   // mientras carga, la carga de bloque del kit impide que la pestaña se dé por lista.
-  if (loading) return <CargaDeBloque label="Cargando reglas propias" />;
+  if (loading) return <><CargaDeBloque label="Cargando reglas propias" />{panelDeRegla}</>;
   // **Tres cosas distintas que caian en el mismo cartel de averia.**
   //
-  // La condicion era `!list || !inv` con el mensaje del error o «Estado
-  // desconocido», y mezclaba: (1) el proyecto aun no tiene base —el estado
+  // La condicion era `!list || !inv` con el mensaje del error o "Estado
+  // desconocido", y mezclaba: (1) el proyecto aun no tiene base —el estado
   // NORMAL de un estudio recien creado, que el backend responde como 409
   // `E_NO_DATA_INST`—, (2) una averia de verdad, y (3) un caso que no deberia
   // ocurrir. Medido en pantalla el 2026-08-23 sobre un proyecto sin cargar:
-  // «No se pudo cargar · No hay data o instrumento cargado para esta base. ·
-  // E_NO_DATA_INST», con el codigo tecnico a la vista.
+  // "No se pudo cargar · No hay data o instrumento cargado para esta base. ·
+  // E_NO_DATA_INST", con el codigo tecnico a la vista.
   if (esEstadoInicial(errorCode)) {
-    return <VacioListo marca="validacion-reglas"><EmptyState icon={<AlertTriangle size={20} />} {...vacioSinDatos("para revisar")} /></VacioListo>;
+    return (
+      <>
+        <VacioListo marca="validacion-reglas">
+          <EmptyState
+            icon={<AlertTriangle size={20} />}
+            {...vacioSinDatos("para revisar")}
+            cta={
+              <button type="button" className="pulso-primary pulso-criterios-accion" onClick={() => panel.abrirNueva()}>
+                <Plus size={12} /> Nuevo criterio
+              </button>
+            }
+          />
+        </VacioListo>
+        {panelDeRegla}
+      </>
+    );
   }
   if (!list || !inv) {
     return (
-      <VacioListo marca="validacion-reglas">
-        <EmptyState
-          icon={<AlertTriangle size={20} />}
-          title="No se pudo cargar"
-          hint={error || "Estado desconocido."}
-        />
-      </VacioListo>
+      <>
+        <VacioListo marca="validacion-reglas">
+          <EmptyState
+            icon={<AlertTriangle size={20} />}
+            title="No se pudo cargar"
+            hint={error || "Estado desconocido."}
+          />
+        </VacioListo>
+        {panelDeRegla}
+      </>
     );
   }
 
@@ -236,7 +332,7 @@ export default function ReglasCustomTab() {
           <>
             <button
               type="button"
-              onClick={() => { setEditing(null); setShowEditor(true); }}
+              onClick={() => panel.abrirNueva()}
               className="pulso-primary pulso-criterios-accion"
               disabled={!!busy || !!jobId}
             >
@@ -265,10 +361,16 @@ export default function ReglasCustomTab() {
 
       {jobId && (
         <JobProgress
-          label="Ejecutando criterios de revisión"
+          label={auditoriaDelPanel ? "Auditando la base" : "Ejecutando criterios de revisión"}
           jobId={jobId}
           onDone={(data: { total_inconsistencias?: number | null }) => {
             setJobId(null);
+            if (auditoriaDelPanel) {
+              setAuditoriaDelPanel(false);
+              bumpVersion();
+              irAPestana("hallazgos", { source: "reglas_custom", at: Date.now() });
+              return;
+            }
             setRunSummary({
               total: typeof data?.total_inconsistencias === "number" ? data.total_inconsistencias : null,
               nCustom: runSummary?.nCustom ?? nActivas,
@@ -276,8 +378,8 @@ export default function ReglasCustomTab() {
             bumpVersion();
             void refetch();
           }}
-          onError={(msg) => { setError(msg); setJobId(null); }}
-          onCancelled={() => setJobId(null)}
+          onError={(msg) => { setError(msg); setJobId(null); setAuditoriaDelPanel(false); }}
+          onCancelled={() => { setJobId(null); setAuditoriaDelPanel(false); }}
         />
       )}
 
@@ -301,21 +403,8 @@ export default function ReglasCustomTab() {
         </div>
       )}
 
-      {/* Editor inline */}
-      {showEditor && (
-        <div className="pulso-criterios-editor-slot">
-          <ReglaEditor
-            inv={inv}
-            baseNombre={baseNombre}
-            inicial={editing}
-            onSubmit={handleSubmit}
-            onCancel={() => { setShowEditor(false); setEditing(null); }}
-          />
-        </div>
-      )}
-
       {/* Lista */}
-      {reglas.length === 0 && !showEditor && (
+      {reglas.length === 0 && (
         <EstadoVacio
           tamano="normal"
           icono={<PieChart size={20} />}
@@ -325,14 +414,19 @@ export default function ReglasCustomTab() {
       )}
 
       {reglas.length > 0 && (
-        <div className="pulso-criterios-list">
+        <div
+          className="pulso-criterios-list"
+          // C1: cada regla es una fila de alto propio (su frase ocupa una o más líneas).
+          data-qa-geometry-group="validacion/reglas-propias"
+          data-qa-geometry-contract="intrinsic"
+        >
           {reglas.map((r) => (
             <ReglaRow
               key={r.id}
               regla={r}
               flatVars={flatVars}
               onToggle={() => handleToggle(r)}
-              onEdit={() => { setEditing(r); setShowEditor(true); }}
+              onEdit={() => panel.abrirRegla(r.id)}
               onDelete={() => handleDelete(r)}
               busy={!!busy}
             />
@@ -345,14 +439,15 @@ export default function ReglasCustomTab() {
     </>
   );
 
-  const rootClassName = `pulso-criterios-tab${showEditor ? " is-editing" : ""}`;
+  const rootClassName = "pulso-criterios-tab";
   if (error) {
-    return <div className={rootClassName}>{panelContent}</div>;
+    return <div className={rootClassName}>{panelContent}{panelDeRegla}</div>;
   }
 
   return (
     <div className={rootClassName} data-audit-ready="validacion-reglas">
       {panelContent}
+      {panelDeRegla}
     </div>
   );
 }

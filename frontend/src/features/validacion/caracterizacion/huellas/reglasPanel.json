@@ -1,0 +1,69 @@
+{
+  "reglas-panel_alias-propia": {
+    "marcado": "f76bc0b77976f2073672657fb12c16803a6dcb4c9325772e47c8d6326a772b98",
+    "pedidos": "40310af83f01d2c4064791db41755d26370d0467850ca756a8c121ab8897a2d5"
+  },
+  "reglas-panel_compara-pregunta": {
+    "marcado": "5cec19edb64a77a90d4b6bc447ef239d470646a9d432520e22aa297d88bc1e5c",
+    "pedidos": "b2a2ec1a2f4277369c0b32f99e8c08967d5449cef1897be2c68d6e891e669237",
+    "guardado": [
+      "PUT /api/validacion/v2/reglas_custom/RC_002 [base=default]\n{\"id\":\"RC_002\",\"activa\":false,\"nombre\":\"Sexo y servicio\",\"tipo\":\"coherencia_2v\",\"variables\":[\"sexo\",\"q7\"],\"params\":{\"op_x\":\"==\",\"valor_x\":\"1\",\"op_y\":\"!=\",\"valor_y_variable\":\"edad\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"advertencia\",\"hallazgo_kind\":\"caso_validar\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"${edad} >= \\\"18\\\"\",\"gate_conditions\":[{\"variable\":\"edad\",\"op\":\">=\",\"value\":\"18\"}]}"
+    ]
+  },
+  "reglas-panel_condiciones-alguna": {
+    "marcado": "5cec19edb64a77a90d4b6bc447ef239d470646a9d432520e22aa297d88bc1e5c",
+    "pedidos": "2104cff14e82fafb7c34c33c83cc9808845c6c7f2a64738a7d168f52b0904fc1",
+    "guardado": [
+      "PUT /api/validacion/v2/reglas_custom/RC_003 [base=default]\n{\"id\":\"RC_003\",\"activa\":true,\"nombre\":\"Edad o sexo fuera de lugar\",\"tipo\":\"condiciones\",\"variables\":[\"edad\",\"sexo\"],\"params\":{\"modo\":\"alguna\",\"condiciones\":[{\"variable\":\"edad\",\"op\":\"<\",\"valor\":18},{\"variable\":\"sexo\",\"op\":\"==\",\"valor\":\"1\"}]},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"advertencia\",\"hallazgo_kind\":\"caso_validar\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}"
+    ]
+  },
+  "reglas-panel_descartar-cambios": {
+    "marcado": "5cec19edb64a77a90d4b6bc447ef239d470646a9d432520e22aa297d88bc1e5c",
+    "pedidos": "aa02da9ff69a31dc36020552757d77b6f5944f9dc052970ea0b40fb9e07d6e3b"
+  },
+  "reglas-panel_guardar-y-auditar": {
+    "marcado": "5e7382e778cec584221475affaba1624cafc551dfda182114cdcc26a0d765cc6",
+    "pedidos": "9c8bddaa33c990518c8db0bd36cca2330777111e7daec614e7264db3e72a6228",
+    "guardado": [
+      "PUT /api/validacion/v2/reglas_custom/RC_001 [base=default]\n{\"id\":\"RC_001\",\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}",
+      "POST /api/validacion/v2/auditoria [base=default]\n"
+    ]
+  },
+  "reglas-panel_por-direccion": {
+    "marcado": "59586a1f25054a2cf2c3caecb6e9ef020c9282863f2fc4359b2c869e24af23f3",
+    "pedidos": "5d8a234866082ee97fad8b38b2b60a57681c4c9ad8e66397d12157b42ed3c35e"
+  },
+  "reglas-panel_probar": {
+    "marcado": "4f67b6ae7157dd0a592e17022d1b7b9aeb811ffb221b3f992c69827fada308b8",
+    "pedidos": "5d30946b407ebbc22c1b06063e6c7e58b4cf78e79e799ddeccabdd6c5936d724",
+    "guardado": [
+      "POST /api/validacion/v2/reglas_custom/probar [base=default]\n{\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}",
+      "POST /api/validacion/v2/reglas_custom/probar [base=default]\n{\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"20\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}"
+    ]
+  },
+  "reglas-panel_sin-datos": {
+    "marcado": "e52855410a2cb8d7442a17903108ce175f6cd1f6f5373f4e6b17e7d70e55e2be",
+    "pedidos": "543b0e7913d2eea1d33c3e8f192e0b95b64e41c0b08302f6dd121c6a265b61a0",
+    "guardado": [
+      "POST /api/validacion/v2/reglas_custom/probar [base=default]\n{\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}"
+    ]
+  },
+  "reglas-panel_sin-evaluar": {
+    "marcado": "6a8f5db4662737be9f09b6447a1f882bcb9bae25df71b0295e712fa4cc83d616",
+    "pedidos": "06052d902b2818974918ebe0e184479932e3b6268bb2dc8089d519af798c2f49"
+  },
+  "reglas-panel_sin-respuestas": {
+    "marcado": "e62411b34fc9306147e08692b6dfe4d05d21c0cb087e5e31557d2ce30b76f6c0",
+    "pedidos": "2682c13abbf4486e3011b9916c3564684d194c3674fa0fc3162763c9dd3b3b58",
+    "guardado": [
+      "POST /api/validacion/v2/reglas_custom/probar [base=default]\n{\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}"
+    ]
+  },
+  "reglas-panel_usar-sugerida": {
+    "marcado": "5cec19edb64a77a90d4b6bc447ef239d470646a9d432520e22aa297d88bc1e5c",
+    "pedidos": "6cabaaed926961dc9d52b2c489efd0ba4618ab1aa25a386988ff3f355751401c",
+    "guardado": [
+      "POST /api/validacion/v2/reglas_custom [base=default]\n{\"activa\":true,\"nombre\":\"Duplicados por documento\",\"tipo\":\"duplicados\",\"variables\":[\"dni\"],\"params\":{\"missing_key_policy\":\"ignore_missing\"},\"mensaje\":\"Documento repetido\",\"severidad\":\"advertencia\",\"hallazgo_kind\":\"caso_validar\",\"planned_action_type\":\"exclude_cases\",\"recommended_scope\":\"selected\",\"gate_expr\":\"\",\"gate_conditions\":[],\"origen\":\"sembrado\",\"semilla\":{\"origen\":\"procedencia\",\"porque\":\"La columna dni identifica a cada persona y tiene 3 repetidos.\",\"n_casos_afectados\":3}}"
+    ]
+  }
+}

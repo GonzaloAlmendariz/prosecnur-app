@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import type { ReglaCustomHallazgoKind, ReglaCustomSeveridad } from "../types";
 
 // =============================================================================
@@ -7,7 +7,10 @@ import type { ReglaCustomHallazgoKind, ReglaCustomSeveridad } from "../types";
 // Un pliego de revisión separa dos cosas: la INCONSISTENCIA (dos respuestas que
 // no pueden ser ciertas a la vez) y el CASO A REVISAR (improbable, pero el
 // instrumento lo permite). El backend ya distingue ambas (`hallazgo_kind`) y
-// Limpieza las rotula distinto; este control es el que deja elegirlo.
+// Limpieza las rotula distinto; este control es el que deja elegirlo. Desde la
+// rebanada V2 del plan de fidelidad va en la caja "Resultado" del panel de
+// regla, como el par de opciones del prototipo (`pp-rg-prod`): un grupo de
+// radio del kit, con flechas del teclado.
 
 export const CLASIFICACIONES: Array<{
   value: ReglaCustomHallazgoKind;
@@ -18,7 +21,7 @@ export const CLASIFICACIONES: Array<{
   {
     value: "inconsistencia_usuario",
     label: "Inconsistencia",
-    description: "Las respuestas no pueden ser ciertas a la vez. Hay que corregir o anular.",
+    description: "Las respuestas no pueden ser ciertas a la vez. Se corrige o se anula.",
     severidad: "error",
   },
   {
@@ -56,36 +59,28 @@ export default function ClasificacionHallazgo({
   onChange: (value: ReglaCustomHallazgoKind) => void;
 }) {
   return (
-    <section className="pulso-treatment-planner pulso-clasificacion-hallazgo">
-      <header className="pulso-treatment-planner-head">
-        <div>
-          <span className="pulso-section-eyebrow">Clasificación</span>
-          <strong>¿Qué encuentra este criterio?</strong>
-        </div>
-      </header>
-      <div className="pulso-treatment-grid" role="radiogroup" aria-label="Clasificación del hallazgo">
-        {CLASIFICACIONES.map((item) => {
-          const active = value === item.value;
-          return (
-            <button
-              key={item.value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              className={`pulso-treatment-card${active ? " is-active" : ""}`}
-              onClick={() => onChange(item.value)}
-            >
-              <span className="pulso-treatment-card-check" aria-hidden="true">
-                {active && <CheckCircle2 size={14} />}
-              </span>
-              <span>
-                <strong>{item.label}</strong>
-                <small>{item.description}</small>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
+    <GlidingRadioGroup
+      className="pulso-clasificacion-hallazgo"
+      aria-label="Qué produce la regla"
+      value={value}
+      options={CLASIFICACIONES}
+      getOptionValue={(item) => item.value}
+      onValueChange={onChange}
+      getOptionProps={(item) => ({
+        // La piel de la tarjeta es la de siempre (`validacion-v2.css`); el panel
+        // de regla la ajusta a la del prototipo. `is-active` lo pone el grupo.
+        className: ["pulso-treatment-card", item.value === "inconsistencia_usuario" ? "is-inconsistencia" : "is-revisar"].join(" "),
+      })}
+    >
+      {(item) => (
+        <>
+          <span className="pulso-treatment-card-check" aria-hidden="true" />
+          <span className="pulso-clasificacion-texto">
+            <strong className="pulso-clasificacion-clase">{item.label}</strong>
+            <small>{item.description}</small>
+          </span>
+        </>
+      )}
+    </GlidingRadioGroup>
   );
 }

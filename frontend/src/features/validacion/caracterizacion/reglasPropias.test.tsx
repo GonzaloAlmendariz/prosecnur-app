@@ -8,8 +8,9 @@
  * editar, adoptar, omitir y eliminar una regla propia. El cuerpo de cada tipo
  * de regla, armado por el editor, lo fija `reglas/payloadDeRegla.test.tsx`.
  */
-import { describe, expect } from "vitest";
-import { escenario, fijar, hay, montar, pulsar, prepararGrupo } from "./arnes";
+import { afterAll, beforeAll, describe, expect } from "vitest";
+import { ESPERA_DEL_CONTEO_MS, fijarEsperaDelConteoParaPruebas } from "../reglas/panel/conteoPrevio";
+import { direccionActual, escenario, fijar, hay, montar, pulsar, prepararGrupo } from "./arnes";
 import {
   DOS_BASES,
   REGLAS_PROPIAS,
@@ -18,6 +19,15 @@ import {
 } from "./escenarios";
 
 prepararGrupo("reglasPropias");
+
+// El conteo previo del panel de regla no es lo que se mide aquí: se aleja, para
+// que la huella no dependa de lo cargada que esté la máquina (lo mide reglasPanel).
+beforeAll(() => {
+  fijarEsperaDelConteoParaPruebas(60_000);
+});
+afterAll(() => {
+  fijarEsperaDelConteoParaPruebas(ESPERA_DEL_CONTEO_MS);
+});
 
 describe("Validación, Criterios de revisión: estados", () => {
   escenario("reglas-propias_sin-reglas", "sin reglas propias: vacío y una sugerencia", async () => {
@@ -35,10 +45,13 @@ describe("Validación, Criterios de revisión: estados", () => {
     fijar("reglas-propias_dos-bases");
   });
 
-  escenario("reglas-propias_nueva", "Nuevo criterio abre el editor en el paso 1", async () => {
+  // Rebanada V2 del plan de fidelidad: el editor es el panel de regla, por la
+  // dirección; una nueva abre en "Qué quieres revisar".
+  escenario("reglas-propias_nueva", "Nuevo criterio abre el panel de regla en Qué quieres revisar", async () => {
     await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutasReglasPropias(REGLAS_PROPIAS) });
     await pulsar("button", "Nuevo criterio");
-    expect(hay(".pulso-regla-editor")).toBe(true);
+    expect(direccionActual()).toBe("/validacion?pestana=reglas&panel=regla&foco=nueva");
+    expect(hay(".pulso-panel-regla .pulso-cabecera-panel__titulo", "Qué quieres revisar")).toBe(true);
     fijar("reglas-propias_nueva");
   });
 });
@@ -47,9 +60,8 @@ describe("Validación, Criterios de revisión: lo que se guarda", () => {
   escenario("reglas-propias_edita-y-guarda", "editar una regla y guardarla sin cambios manda el PUT completo", async () => {
     await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutasReglasPropias(REGLAS_PROPIAS) });
     await pulsar('button[aria-label="Editar criterio"]');
-    await pulsar("button.pulso-primary", "Siguiente");
-    await pulsar("button.pulso-primary", "Siguiente");
-    await pulsar("button.pulso-primary", "Guardar criterio");
+    await pulsar(".pulso-dialog__actions button", "Guardar");
+    expect(direccionActual()).toBe("/validacion?pestana=reglas");
     fijar("reglas-propias_edita-y-guarda");
   });
 

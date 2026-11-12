@@ -2,19 +2,31 @@
 /**
  * Huella de lo que guarda el editor de reglas propias, un escenario por tipo.
  *
- * Monta `ReglaEditor` con una regla inicial válida de cada tipo, recorre los
- * tres pasos sin tocar nada y fija, en claro, el valor que entrega a
- * `onSubmit`: es el cuerpo exacto del POST o PUT de `/reglas_custom`. Cuando
- * el editor se rehaga (panel de regla), estas huellas dicen si guarda lo
- * mismo. Usa el arnés de la caracterización (`../caracterizacion/arnes.tsx`).
+ * Monta `ReglaEditor` con una regla inicial válida de cada tipo, la guarda sin
+ * tocar nada y fija, en claro, el valor que entrega a `onSubmit`: es el cuerpo
+ * exacto del POST o PUT de `/reglas_custom`. Desde la rebanada V2 del plan de
+ * fidelidad `ReglaEditor` es el panel de regla (antes, un asistente de tres
+ * pasos que se recorría con "Siguiente"): el `guardado` de cada huella es el
+ * mismo que con el asistente; el marcado cambió con el panel. Usa el arnés de
+ * la caracterización (`../caracterizacion/arnes.tsx`).
  */
-import { describe, expect } from "vitest";
+import { afterAll, beforeAll, describe, expect } from "vitest";
+import { ESPERA_DEL_CONTEO_MS, fijarEsperaDelConteoParaPruebas } from "./panel/conteoPrevio";
 import type { ReglaCustom } from "../types";
 import ReglaEditor from "../components/ReglaEditor";
 import { escenario, fijarGuardado, montarSuelto, prepararGrupo, pulsar } from "../caracterizacion/arnes";
 import { INVENTARIO, RUTAS_EXPLORAR, reglaPropia } from "../caracterizacion/escenarios";
 
 prepararGrupo("payloadDeRegla");
+
+// El conteo previo del panel de regla no es lo que se mide aquí: se aleja, para
+// que la huella no dependa de lo cargada que esté la máquina (lo mide reglasPanel).
+beforeAll(() => {
+  fijarEsperaDelConteoParaPruebas(60_000);
+});
+afterAll(() => {
+  fijarEsperaDelConteoParaPruebas(ESPERA_DEL_CONTEO_MS);
+});
 
 type Caso = [nombre: string, inicial: ReglaCustom];
 
@@ -54,7 +66,7 @@ const CASOS: Caso[] = [
 
 describe("ReglaEditor: lo que entrega a onSubmit, por tipo", () => {
   for (const [nombre, inicial] of CASOS) {
-    escenario(`regla_${nombre}`, `${inicial.tipo}: recorre los tres pasos y guarda`, async () => {
+    escenario(`regla_${nombre}`, `${inicial.tipo}: abre la regla y la guarda sin cambios`, async () => {
       const enviados: string[] = [];
       await montarSuelto(
         <ReglaEditor
@@ -68,10 +80,8 @@ describe("ReglaEditor: lo que entrega a onSubmit, por tipo", () => {
         />,
         { rutas: RUTAS_EXPLORAR },
       );
-      await pulsar("button.pulso-primary", "Siguiente");
-      await pulsar("button.pulso-primary", "Siguiente");
-      await pulsar("button.pulso-primary", "Guardar criterio");
-      expect(enviados, "el editor no entregó el cuerpo: un paso no validó").toHaveLength(1);
+      await pulsar(".pulso-dialog__actions button", "Guardar");
+      expect(enviados, "el panel no entregó el cuerpo: la regla no validó").toHaveLength(1);
       fijarGuardado(`regla_${nombre}`, enviados);
     });
   }
