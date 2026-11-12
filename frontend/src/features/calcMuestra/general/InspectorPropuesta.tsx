@@ -5,7 +5,7 @@
  * fijo con las acciones.
  */
 import type { CSSProperties } from "react";
-import { FileSpreadsheet, Presentation, Target } from "lucide-react";
+import { FileSpreadsheet, Presentation, Scale } from "lucide-react";
 import { apiCalcMuestraPropuestaExportar } from "../../../api/calcMuestra";
 import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
 import { useGeneracion } from "../../../components/entregables/useGeneracion";
@@ -52,7 +52,7 @@ export function InspectorPropuesta({ estado, filas, activa, onActiva, onCambio }
     <PanelDeMesa
       zona="propuesta-detalle"
       titulo={escenario.nombre}
-      icono={<Target size={16} />}
+      icono={<Scale size={16} />}
       etiquetaCuerpo={`Detalle de ${escenario.nombre}`}
       acciones={estado.escenarios.length > 1 ? (
         <GlidingRadioGroup
@@ -60,6 +60,7 @@ export function InspectorPropuesta({ estado, filas, activa, onActiva, onCambio }
           options={opciones}
           getOptionValue={(o) => o.i}
           onValueChange={onActiva}
+          className="cmg-segmentado"
           aria-label="Propuesta que se ve"
         >
           {(o) => <span>{o.rotulo}</span>}
@@ -92,20 +93,25 @@ export function InspectorPropuesta({ estado, filas, activa, onActiva, onCambio }
           <dd>{cifra.format(total)}</dd>
         </div>
         <div>
-          <dt>respuesta sobre {cifra.format(poblacion)} invitados</dt>
+          <dt>respuesta global, de {cifra.format(poblacion)} invitados</dt>
           <dd>{poblacion > 0 ? fmtPorcentaje(total / poblacion) : "Sin población"}</dd>
         </div>
       </dl>
 
+      <div className="cmg-insp-cuerpo">
       <section className="cmg-insp-seccion" aria-labelledby="cmg-insp-respuesta">
-        <h4 id="cmg-insp-respuesta">Respuesta que exige cada meta</h4>
+        <div className="cmg-insp-titulo">
+          <h4 id="cmg-insp-respuesta">Respuesta que exige cada meta</h4>
+          <span className="cmg-insp-leyenda" aria-hidden="true">
+            <span className="cmg-insp-leyenda-barra" />exige
+            <span className="cmg-insp-leyenda-marca" />esperada
+          </span>
+        </div>
         <ul className="cmg-insp-actores">
           {lecturas.map(({ f, l }) => (
             <li key={f.id} data-excede={l.excede ? "true" : undefined}>
-              <div className="cmg-insp-actor-cab">
-                <span className="cmg-insp-actor">{f.actor}</span>
-                <span className="cmg-insp-margen">{l.margen == null ? "Sin margen" : `± ${fmtPorcentaje(l.margen)}`}</span>
-              </div>
+              <span className="cmg-insp-actor">{f.actor}</span>
+              <span className="cmg-insp-exige">{l.respuestaNecesaria == null ? "Sin meta" : fmtPorcentaje(l.respuestaNecesaria)}</span>
               <div
                 className="cmg-insp-barra"
                 style={{
@@ -117,9 +123,9 @@ export function InspectorPropuesta({ estado, filas, activa, onActiva, onCambio }
                 <span className="cmg-insp-barra-relleno" />
                 {f.respuestaEsperada != null ? <span className="cmg-insp-barra-marca" /> : null}
               </div>
-              <span className="cmg-insp-actor-cifras">
-                {l.respuestaNecesaria == null ? "Sin meta" : fmtPorcentaje(l.respuestaNecesaria)}
-                {f.respuestaEsperada != null ? ` de ${fmtPorcentaje(f.respuestaEsperada)} esperada` : ", sin respuesta esperada"}
+              <span className="cmg-insp-detalle">
+                {f.respuestaEsperada != null ? `Esperada ${fmtPorcentaje(f.respuestaEsperada)}` : "Sin respuesta esperada"}
+                {l.margen != null ? `, margen ± ${fmtPorcentaje(l.margen)}` : ""}
               </span>
             </li>
           ))}
@@ -145,6 +151,7 @@ export function InspectorPropuesta({ estado, filas, activa, onActiva, onCambio }
         <ContenedorEntregable estado={ppt.estado} forma="bloque" onCerrar={ppt.cerrar} />
         <ContenedorEntregable estado={xlsx.estado} forma="bloque" onCerrar={xlsx.cerrar} />
       </section>
+      </div>
     </PanelDeMesa>
   );
 }

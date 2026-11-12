@@ -7,6 +7,7 @@ import {
   fijarMeta,
   lecturaMeta,
   margenReferencia,
+  metaPorMargen,
   payloadPropuesta,
   propuestasIniciales,
   propuestaVigente,
@@ -99,5 +100,17 @@ describe("propuestas de muestra de un barrido", () => {
     // Docentes A exige 650 / 2,599 = 25.0 %, más que su esperada (22.1 %): manda la escala.
     expect(escalaDeRespuesta(estado, filas)).toBeCloseTo((650 / 2599) * 1.1, 6);
     expect(escalaDeRespuesta({ ...estado, escenarios: [{ nombre: "A", metas: {} }] }, [])).toBe(1);
+  });
+
+  it("del margen a la meta: el inverso del margen, subido al múltiplo pedido y sin pasar de N", () => {
+    // Pregrado DCI, 5 %: n0 = 384.2 y con N = 22,820 da 378; esa meta no deja más de 5 % de margen.
+    expect(metaPorMargen(0.05, 22820)).toBe(378);
+    expect(margenReferencia(378, 22820) ?? 1).toBeLessThanOrEqual(0.05);
+    expect(metaPorMargen(0.05, 22820, 10)).toBe(380);
+    expect(metaPorMargen(0.05, 22820, 100)).toBe(400);
+    // El 2.0 % que publica la propuesta A para pregrado sale de 2,200; pedir 2 % da una meta de ese orden.
+    expect(metaPorMargen(0.02, 22820, 50)).toBe(2200);
+    expect(metaPorMargen(0.001, 300)).toBe(300);
+    expect(metaPorMargen(0, 300)).toBeNull();
   });
 });

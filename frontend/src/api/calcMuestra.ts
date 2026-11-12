@@ -1158,6 +1158,8 @@ export type CalcMuestraWorkspacePropuesta = {
   solicitante: string;
   incluir_portada: boolean;
   incluir_diseno: boolean;
+  /** Múltiplo al que se redondea una meta calculada desde un margen (1, 10, 50 o 100). */
+  redondeo?: number;
 };
 
 export type CalcMuestraEstudio = {

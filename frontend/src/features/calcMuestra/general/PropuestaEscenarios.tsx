@@ -9,10 +9,11 @@ import { Minus, Plus, Table2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { CalcMuestraComponente, CalcMuestraWorkspace } from "../../../api/calcMuestra";
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
-import { NumberCell } from "../universidad/aulas";
+import { CampoMargen, CampoMeta } from "./CampoMeta";
 import { InspectorPropuesta } from "./InspectorPropuesta";
 import {
   actoresDePropuesta,
@@ -21,6 +22,9 @@ import {
   fmtPorcentaje,
   lecturaMeta,
   MAX_PROPUESTAS,
+  metaPorMargen,
+  REDONDEOS,
+  redondeoDe,
   propuestaVigente,
   quitarUltimaPropuesta,
   totalPropuesta,
@@ -48,6 +52,7 @@ export function PropuestaEscenarios({
   const guardar = (siguiente: EstadoPropuesta) => onWorkspace({ ...workspace, propuesta: siguiente });
   const poblacionTotal = filas.reduce((x, f) => x + f.poblacion, 0);
   const ultima = estado.escenarios[estado.escenarios.length - 1];
+  const redondeo = redondeoDe(estado);
 
   if (filas.length === 0) {
     return (
@@ -58,33 +63,52 @@ export function PropuestaEscenarios({
   }
 
   const columnas: PulsoTableColumna<FilaTabla>[] = [
-    { id: "actor", encabezado: "Actor", ancho: 190, celda: (f) => (f.total ? <strong>{f.actor}</strong> : f.actor) },
-    { id: "poblacion", encabezado: "Población", ancho: 100, tipo: "cifra", celda: (f) => (f.total ? <strong>{cifra.format(f.poblacion)}</strong> : cifra.format(f.poblacion)) },
+    { id: "actor", encabezado: "Actor", ancho: 180, celda: (f) => (f.total ? <strong>{f.actor}</strong> : f.actor) },
+    { id: "poblacion", encabezado: "Población", ancho: 96, tipo: "cifra", celda: (f) => (f.total ? <strong>{cifra.format(f.poblacion)}</strong> : cifra.format(f.poblacion)) },
     {
       id: "esperada",
       encabezado: "Respuesta esperada",
-      ancho: 150,
+      ancho: 132,
       tipo: "cifra",
       celda: (f) => (f.total ? "" : f.respuestaEsperada == null ? "Sin declarar" : fmtPorcentaje(f.respuestaEsperada)),
     },
     ...estado.escenarios.map((e, i): PulsoTableColumna<FilaTabla> => ({
       id: `p${i}`,
       encabezado: e.nombre,
-      ancho: 130,
+      ancho: 168,
       tipo: "cifra",
       celda: (f) => {
-        if (f.total) return <strong className="cmg-propuesta-total">{cifra.format(totalPropuesta(e.metas, filas))}</strong>;
+        if (f.total) {
+          // Misma rejilla que las metas: el total queda bajo las cifras y no bajo el margen.
+          return (
+            <span className="cmg-propuesta-celda">
+              <strong className="cmg-propuesta-total">{cifra.format(totalPropuesta(e.metas, filas))}</strong>
+              <span className="cmg-campo-margen" aria-hidden="true" />
+            </span>
+          );
+        }
         const n = e.metas[f.id] ?? 0;
         const l = lecturaMeta(n, f);
         return (
-          // Enfocar una meta lleva el inspector a su propuesta.
-          <div className="cmg-propuesta-celda" data-activa={i === activa ? "true" : undefined} onFocus={() => setActiva(i)}>
-            <NumberCell value={n} ariaLabel={`${e.nombre} de ${f.actor}`} onChange={(v) => guardar(fijarMeta(estado, i, f.id, v))} />
-            <span className="cmg-propuesta-lectura">{l.margen == null ? "Sin margen" : `± ${fmtPorcentaje(l.margen)}`}</span>
-            {l.excede && l.respuestaNecesaria != null ? (
-              <span className="cmg-propuesta-lectura" data-excede="true">Exige {fmtPorcentaje(l.respuestaNecesaria)}</span>
-            ) : null}
-          </div>
+          <span className="cmg-propuesta-celda" data-activa={i === activa ? "true" : undefined}>
+            <CampoMeta
+              valor={n}
+              etiqueta={`${e.nombre} de ${f.actor}`}
+              excede={l.excede}
+              titulo={l.excede && l.respuestaNecesaria != null ? `Exige ${fmtPorcentaje(l.respuestaNecesaria)} de respuesta` : undefined}
+              onFocus={() => setActiva(i)}
+              onChange={(v) => guardar(fijarMeta(estado, i, f.id, v))}
+            />
+            <CampoMargen
+              margen={l.margen}
+              etiqueta={`Margen de ${e.nombre} en ${f.actor}`}
+              onFocus={() => setActiva(i)}
+              onMargen={(m) => {
+                const meta = metaPorMargen(m, f.poblacion, redondeo);
+                if (meta != null) guardar(fijarMeta(estado, i, f.id, meta));
+              }}
+            />
+          </span>
         );
       },
     })),
@@ -118,7 +142,24 @@ export function PropuestaEscenarios({
             </PulsoButton>
           </>
         )}
-        pie={<span className="cmg-propuesta-nota">Margen de referencia al 95 % con p = 0.5. La respuesta esperada se declara en Actores.</span>}
+        pie={(
+          <div className="cmg-propuesta-pie">
+            <div className="cmg-propuesta-redondeo">
+              <span id="cmg-redondeo">Meta desde un margen, redondeada a</span>
+              <GlidingRadioGroup
+                value={redondeo}
+                options={REDONDEOS}
+                getOptionValue={(r) => r}
+                onValueChange={(r) => guardar({ ...estado, redondeo: r })}
+                className="cmg-segmentado"
+                aria-labelledby="cmg-redondeo"
+              >
+                {(r) => <span>{r === 1 ? "Exacta" : cifra.format(r)}</span>}
+              </GlidingRadioGroup>
+            </div>
+            <span className="cmg-propuesta-nota">Margen de referencia al 95 % con p = 0.5.</span>
+          </div>
+        )}
       >
         <PulsoTable
           columnas={columnas}

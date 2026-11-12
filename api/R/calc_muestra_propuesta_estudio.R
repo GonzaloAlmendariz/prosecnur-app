@@ -79,6 +79,11 @@ calc_muestra_propuesta_desde_estudio <- function(estudio, marcos, body) {
     escenarios = escenarios,
     solicitante = calc_str(p$solicitante, ""),
     incluir_portada = !isFALSE(p$incluir_portada),
-    incluir_diseno = !isFALSE(p$incluir_diseno)
+    incluir_diseno = !isFALSE(p$incluir_diseno),
+    # Múltiplo al que se redondea una meta calculada desde un margen.
+    redondeo = {
+      r <- calc_int(p$redondeo, 1L, min = 1L)
+      if (r %in% c(1L, 10L, 50L, 100L)) r else 1L
+    }
   )
 }

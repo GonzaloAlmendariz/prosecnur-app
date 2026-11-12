@@ -80,6 +80,7 @@ export function propuestaVigente(
       return { nombre: e.nombre?.trim() || nombrePropuesta(i), metas: { ...partida, ...metas } };
     }),
     solicitante: guardada?.solicitante ?? "",
+    redondeo: guardada?.redondeo ?? 1,
     incluir_portada: guardada?.incluir_portada ?? true,
     incluir_diseno: guardada?.incluir_diseno ?? true,
   };
@@ -120,6 +121,28 @@ export function margenReferencia(n: number, N: number): number | null {
   if (!(n > 0) || !(N > 1)) return null;
   if (n >= N) return 0;
   return 1.96 * Math.sqrt((0.25 / n) * ((N - n) / (N - 1)));
+}
+
+/** Múltiplos a los que se redondea una meta calculada desde un margen; 1 es sin redondeo. */
+export const REDONDEOS = [1, 10, 50, 100] as const;
+export type Redondeo = (typeof REDONDEOS)[number];
+
+export function redondeoDe(estado: EstadoPropuesta): Redondeo {
+  const r = estado.redondeo ?? 1;
+  return (REDONDEOS as readonly number[]).includes(r) ? (r as Redondeo) : 1;
+}
+
+/**
+ * La meta que da un margen de referencia (el inverso de `margenReferencia`): n0 = 1.96² × 0.25 / e² y, con la
+ * población, n = n0 × N / (N − 1 + n0). Se sube al múltiplo pedido, para no quedar con más margen del que se fijó, y
+ * nunca pasa de N. `null` si el margen o la población no sirven.
+ */
+export function metaPorMargen(margen: number, N: number, redondeo: number = 1): number | null {
+  if (!(margen > 0) || !(N > 1)) return null;
+  const n0 = (1.96 ** 2 * 0.25) / (margen * margen);
+  const n = (n0 * N) / (N - 1 + n0);
+  const paso = redondeo > 1 ? redondeo : 1;
+  return Math.min(N, Math.ceil(Math.ceil(n) / paso) * paso);
 }
 
 export type LecturaMeta = {
