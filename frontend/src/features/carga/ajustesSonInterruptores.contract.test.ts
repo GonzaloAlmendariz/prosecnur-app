@@ -33,7 +33,7 @@ const INTERRUPTORES: Array<[string, string]> = [
   ["./independiente/SmDecisionSuite.tsx", "Rescatar parciales con avance suficiente"],
   ["./independiente/SmDecisionSuite.tsx", "Permitir repetidos en la base"],
   ["./independiente/SmDecisionSuite.tsx", "Permitir rechazos en la base"],
-  ["./variablesBase/VariablesBasePanel.tsx", "Esta base ya viene codificada"], // ADR 0106
+  ["./pestanas/variables/CodificacionDeLaBase.tsx", "La base ya viene codificada"], // ADR 0106
 ];
 
 describe("Carga: ajustes con interruptor, selección con casilla", () => {

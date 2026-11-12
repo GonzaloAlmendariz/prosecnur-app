@@ -744,14 +744,6 @@ const DECLARED_VISUAL_SURFACES = [
   ),
   surface(
     "procesamiento",
-    "validacion",
-    "Cierre de base",
-    "Barra de almacenamiento de decisiones",
-    "Distribución apilada de Documentar, Excluir, Corregir y Pendiente.",
-    "frontend/src/features/validacion/components/DecisionStorageBar.tsx",
-  ),
-  surface(
-    "procesamiento",
     "analitica",
     "Dimensiones",
     "Árbol de dimensiones",

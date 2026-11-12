@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import type { Armonizacion } from "../../api/equivalencias";
 import { estadoArmonizacion, estadoDeBase, explicacionArmonizacion, resumenDeEscala } from "./armonizacionModel";
-import { anchoColumnaPublico, anchoMinimoLista, coberturaDeBases } from "./equivalenciasAnchos";
 import { basesNombranAnio, nombreDeSerie, nombreDeSerieDeBases, pareceAnio, rotuloPorDefecto } from "./nombreDeSerie";
 
 const SIETE = ["a", "b", "c", "d", "e", "f", "g"];
@@ -84,21 +83,6 @@ describe("chip de armonización", () => {
     expect(estadoDeBase({ comparable: null, nota: "", mapa: {} })).toBe("sin-declarar");
     expect(estadoDeBase({ comparable: false, nota: "", mapa: {} })).toBe("no-comparable");
     expect(estadoDeBase({ comparable: true, nota: "", mapa: {} })).toBe("comparable");
-  });
-});
-
-describe("tablas con N bases", () => {
-  test("cada columna de base tiene el mismo ancho fijo y la tabla un mínimo que crece con N", () => {
-    expect(anchoColumnaPublico()).toBe("184px");
-    expect(anchoMinimoLista(7) - anchoMinimoLista(3)).toBe(4 * 184);
-    expect(anchoMinimoLista(12)).toBeGreaterThan(anchoMinimoLista(7));
-  });
-
-  test('cobertura "k de N" nombrando dónde está y dónde falta', () => {
-    const cob = coberturaDeBases(SIETE, { a: "p1", c: "p3", g: "p7" });
-    expect(cob.texto).toBe("3 de 7");
-    expect(cob.detalle).toBe("Está en a, c, g. Falta en b, d, e, f.");
-    expect(coberturaDeBases(["a", "b"], { a: "p", b: "q" }).detalle).toBe("Está en todas las bases.");
   });
 });
 

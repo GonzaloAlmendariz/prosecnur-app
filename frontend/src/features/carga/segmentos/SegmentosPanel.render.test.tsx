@@ -1,11 +1,8 @@
-// Lo que se ve del panel «Segmentos de cruce» (ADR 0107) y de la fila de cruce
-// en la matriz, sin portal.
+// Lo que se ve del panel "Segmentos de cruce" (ADR 0107), sin portal.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Segmento, SegmentoEnBase } from "../../../api/segmentos";
-import { EquivalenciasTabla } from "../EquivalenciasTabla";
-import { aFilasEditor } from "../equivalenciasEditorModel";
 import type { CodigosObservados } from "../../../api/codigosObservados";
 import { SegmentoEnBase as SegmentoEnBaseVista } from "./SegmentoEnBase";
 import { SegmentosCuerpo } from "./SegmentosPanel";
@@ -125,36 +122,6 @@ describe("Segmentos de cruce", () => {
     const html = cuerpo({ lectura: { tipo: "error", mensaje: "Sin conexión · E_INTERNAL" } });
     expect(html).toContain("No se pudieron leer los segmentos de cruce");
     expect(html).toContain("E_INTERNAL");
-  });
-});
-
-describe("fila de cruce en la matriz", () => {
-  it('lleva la marca "Cruce", se lee sin buscador y su edición remite al panel de segmentos', () => {
-    const filas = aFilasEditor([
-      { seccion: "", etiqueta_estandar: "Uso de salud", variables: { "2024": "p13_1", "2025": "p11_1" }, cantidad: 2 },
-      { id: "SEG-edad", cruce: true, seccion: "Segmentos de cruce", etiqueta_estandar: "Edad", variables: { "2024": "cruce_edad" }, cantidad: 1 },
-    ]);
-    const html = renderToStaticMarkup(createElement(EquivalenciasTabla, {
-      bases: ["2024", "2025"],
-      filas,
-      variablesPorBase: {},
-      onAsignar: () => undefined,
-      onEditar: () => undefined,
-      onQuitar: () => undefined,
-      onConfirmar: () => undefined,
-      onAgregarFila: () => undefined,
-      onArmonizar: () => undefined,
-      onSegmento: () => undefined,
-    }));
-    const cruce = html.slice(html.indexOf('class="is-cruce"'));
-    expect(cruce).toContain(">Cruce<");
-    expect(cruce).toContain("cruce_edad");
-    expect(cruce).toContain("Sin origen");
-    expect(cruce).toContain('aria-label="Editar el segmento Edad"');
-    expect(cruce).not.toContain("Quitar Edad");
-    expect(cruce).not.toContain("<input");
-    // Las filas sueltas siguen con su buscador y su botón de quitar.
-    expect(html).toContain("Quitar Uso de salud");
   });
 });
 

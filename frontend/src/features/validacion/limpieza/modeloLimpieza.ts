@@ -9,7 +9,7 @@
 import type { InstrumentoDrillResult } from "../../../api/client";
 import { normalizarCaseIds } from "../../../api/validacionAuditoria";
 import type { DecisionesPreservadas, LimpiezaDecision, LimpiezaDecisionActionType, LimpiezaQueueItem, ReglaTreatmentScope } from "../types";
-import type { DecisionCounts, ReglaLike, VariableHoverData } from "../components/v2";
+import type { ReglaLike, VariableHoverData } from "../components/v2";
 
 export const NEW_DECISION = "__new__";
 
@@ -99,34 +99,6 @@ export const LEGACY_ACTION_OPTIONS: Array<{
   { value: "normalize_value", label: "Normalizar valor (anterior)" },
   { value: "impute_value", label: "Imputar (anterior)" },
 ];
-
-// -----------------------------------------------------------------------------
-// Helper: derivar distribución de decisiones para DecisionStorageBar.
-// Los counts son por CASOS (no por reglas) — cada regla con decisión lista
-// contribuye sus n_casos al kind correspondiente. Las pendientes van al
-// segmento striped.
-// -----------------------------------------------------------------------------
-export function deriveDecisionCounts(queue: LimpiezaQueueItem[]): DecisionCounts {
-  const counts: DecisionCounts = {
-    ignore: 0, exclude: 0, change: 0, pending: 0,
-  };
-  for (const item of queue) {
-    const n = item.n_casos ?? 0;
-    if (!n) continue;
-    const covered = item.n_casos_cubiertos ?? (item.pending ? 0 : n);
-    const pending = item.n_casos_pendientes ?? (item.pending ? n : 0);
-    if (pending > 0) counts.pending += pending;
-    if (covered <= 0) continue;
-    // Item tiene decisión lista — inferir kind desde current_action (string
-    // legible) o source_type.
-    const action = (item.current_action ?? "").toLowerCase();
-    if (isDocumentedActionLabel(action)) counts.ignore += covered;
-    else if (action.startsWith("excluir")) counts.exclude += covered;
-    else if (isCorrectionActionLabel(action)) counts.change += covered;
-    else counts.ignore += covered; // fallback conservador si el label no calza
-  }
-  return counts;
-}
 
 export function isDocumentedActionLabel(action: string) {
   return action.startsWith("documentar") || action.startsWith("no modificar") || action.startsWith("ignorar");

@@ -33,7 +33,7 @@ const SNAPSHOT: Record<string, number> = {
   "ArmonizacionFilaEditor.css": 5,
   "BaseSavPanel.css": 3,
   "EquivalenciasEsqueleto.css": 1,
-  "EquivalenciasPanel.css": 14,
+  "EquivalenciasPanel.css": 3,
   "ImportarBloquesDialog.css": 3,
   "IndicadorCompuestoEditor.css": 5,
   "MapaBasesPanel.css": 3,

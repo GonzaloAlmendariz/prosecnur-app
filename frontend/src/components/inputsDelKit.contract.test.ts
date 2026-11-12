@@ -83,8 +83,6 @@ const SNAPSHOT_CASILLAS: Record<string, number> = {
   "features/carga/segmentos/SegmentoEnBase.tsx": 1,
   "features/carga/variablesBase/AnexarColumnas.tsx": 1,
   "features/carga/variablesBase/CalculadaEditor.tsx": 1,
-  "features/carga/variablesBase/ColumnasDeLaBase.tsx": 2,
-  "features/codificacion/CodingConfigActions.tsx": 2,
   "features/codificacion/PalabrasPanel.tsx": 1,
   "features/codificacion/RespuestasCodificador.tsx": 1,
   "features/dashboard/curation/DashboardCurationGate.tsx": 2,

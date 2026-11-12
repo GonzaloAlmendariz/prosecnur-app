@@ -14,10 +14,6 @@ import { describe, expect, test } from "vitest";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const theme = fs.readFileSync(path.join(aqui, "../../app/theme.css"), "utf8");
-// La banda de Cierre de base (StatusBar) vive desde la rebanada V1 de P6 en `limpieza/CierreDeBase.tsx`.
-const limpieza = fs.readFileSync(path.join(aqui, "limpieza/CierreDeBase.tsx"), "utf8");
-// Desde el 4 nov 2026 la banda de Cierre de base es un Panel y su sticky vive en la hoja.
-const hojaValidacion = fs.readFileSync(path.join(aqui, "validacion-v2.css"), "utf8");
 
 function bloque(selector: string): string {
   const i = theme.indexOf(selector + " {");
@@ -40,16 +36,6 @@ describe("Validación: el sticky de la pestaña no tapa el encabezado", () => {
     expect(bloque(".pulso-validacion-panel-head")).toMatch(
       /min-height:\s*var\(--pulso-validacion-head-h/,
     );
-  });
-
-  test("la banda de la pestaña se pega debajo, no en cero", () => {
-    const i = hojaValidacion.indexOf(".pulso-panel.pulso-limpieza-estado {");
-    const banda = i < 0 ? "" : hojaValidacion.slice(i, hojaValidacion.indexOf("}", i));
-    expect(banda).toMatch(/position:\s*sticky/);
-    expect(banda).toMatch(/top:\s*var\(--pulso-validacion-sticky-top, 0px\)/);
-    // La forma vieja, que es la que producía el solapamiento.
-    expect(limpieza).toMatch(/className="pulso-limpieza-estado"/);
-    expect(limpieza).not.toMatch(/position: "sticky",\s*\n\s*top: 0,/);
   });
 
   test("donde el encabezado deja de ser sticky, el offset vuelve a cero", () => {

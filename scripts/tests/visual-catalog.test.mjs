@@ -439,24 +439,8 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
   );
 });
 
-test("clasifica tipos y roles dinámicos con todas sus variantes semánticas", () => {
-  const limpiezaInput = catalog.entries.find(
-    (entry) =>
-      entry.source.file ===
-        "frontend/src/features/validacion/tabs/LimpiezaTab.tsx" &&
-      entry.tag === "input" &&
-      entry.attributes.name === "limpieza-case-selection",
-  );
-  assert.ok(limpiezaInput);
-  assert.equal(limpiezaInput.kind, "Radio / Checkbox dinámico");
-  assert.ok(limpiezaInput.visualVariants.includes("type=radio"));
-  assert.ok(limpiezaInput.visualVariants.includes("type=checkbox"));
-
+test("clasifica roles dinámicos con todas sus variantes semánticas", () => {
   for (const [file, tag] of [
-    [
-      "frontend/src/features/validacion/components/DecisionStorageBar.tsx",
-      "div",
-    ],
     [
       "frontend/src/features/dashboard/tabs/DimensionesTab/IndicadorAssembly.tsx",
       "g",

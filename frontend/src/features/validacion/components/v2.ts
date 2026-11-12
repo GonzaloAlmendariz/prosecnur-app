@@ -5,10 +5,9 @@
 //   - VariableChip + Var (mención inline con hovercard)
 //   - RuleNarrative (compact / hero / inline)
 //   - ContextLens (panel lateral deslizable)
-//   - DecisionStorageBar (barra segmentada estilo almacenamiento iPhone)
 //
 // Los tabs los consumen desde aquí:
-//   import { RuleNarrative, ContextLens, DecisionStorageBar } from "../components/v2";
+//   import { RuleNarrative, ContextLens } from "../components/v2";
 // =============================================================================
 
 export { default as VariableChip, Var } from "./VariableChip";
@@ -19,13 +18,6 @@ export type { RuleNarrativeProps, RuleNarrativeVariant } from "./RuleNarrative";
 
 export { default as ContextLens } from "./ContextLens";
 export type { ContextLensProps, ContextLensTab } from "./ContextLens";
-
-export { default as DecisionStorageBar } from "./DecisionStorageBar";
-export type {
-  DecisionStorageBarProps,
-  DecisionCounts,
-  DecisionKind,
-} from "./DecisionStorageBar";
 
 // Re-export de los helpers narrativos por conveniencia
 export {

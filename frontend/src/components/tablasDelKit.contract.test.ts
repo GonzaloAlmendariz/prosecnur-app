@@ -26,7 +26,6 @@ const PRIMITIVA = "components/PulsoTable.tsx";
 
 const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/analitica/MetadatosEditor.tsx": 1,
-  "features/analitica/panes/ComparativosColumnas.tsx": 1,
   "features/analitica/panes/PanelBasePane.tsx": 2,
   "features/calcMuestra/ComponenteTablas.tsx": 2,
   "features/calcMuestra/general/ActoresAcreditacion.tsx": 1,
@@ -71,7 +70,6 @@ const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/calcMuestra/universidad/salidas/SalidasResultadosTab.tsx": 1,
   "features/calcMuestra/universidad/salidas/SeleccionComparadaCard.tsx": 1,
   "features/carga/ArmonizacionFilaEditor.tsx": 1,
-  "features/carga/EquivalenciasTabla.tsx": 1,
   "features/carga/FuentesEmparejamientoTabla.tsx": 1,
   "features/carga/ImportarBloquesDialog.tsx": 2,
   "features/carga/MapaBasesPanel.tsx": 1,
@@ -82,7 +80,6 @@ const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/carga/segmentos/SegmentosPanel.tsx": 1,
   "features/carga/variablesBase/CalculadaEditor.tsx": 1,
   "features/codificacion/AgruparCategoriasCodificador.tsx": 3,
-  "features/codificacion/CodingConfigActions.tsx": 2,
   "features/dashboard/tabs/BaseDatosTab/index.tsx": 2,
   "features/dashboard/tabs/DimensionesTab/MatrizUnidadesView.tsx": 1,
   "features/dashboard/tabs/RelacionTab/index.tsx": 1,
@@ -95,7 +92,6 @@ const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/recopiladores/correos/contactos/CruceDeVariables.tsx": 1,
   "features/recopiladores/correos/contactos/ListaDeContactos.tsx": 1,
   "features/validacion/components/DrilldownTable.tsx": 1,
-  "features/validacion/limpieza/TablaDeCasos.tsx": 1,
   "features/xlsformEditor/choiceFilters/MatrizCascada.tsx": 1,
   "features/xlsformEditor/choiceFilters/MatrizPorOpcion.tsx": 1,
   "features/xlsformEditor/listas/OpcionesChips.tsx": 1,

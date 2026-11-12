@@ -73,27 +73,6 @@
   display: none;
 }
 
-.pulso-equiv-error,
-.pulso-equiv-aviso {
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border-radius: var(--pulso-radius-chip);
-  font-size: var(--pulso-type-body-size);
-  line-height: 1.45;
-}
-
-.pulso-equiv-error {
-  background: var(--pulso-danger-bg);
-  border: 1px solid var(--pulso-danger-border);
-  color: var(--pulso-danger-fg);
-}
-
-.pulso-equiv-aviso {
-  background: var(--pulso-success-bg);
-  border: 1px solid var(--pulso-success-border);
-  color: var(--pulso-success-fg);
-}
-
 /* C3: este contenedor es el dueño declarado de la capacidad. El vacío vive
    aquí dentro, con borde y material propios, y no como aire suelto en el
    panel.
@@ -113,287 +92,11 @@
   background: var(--pulso-surface);
 }
 
-
-
-
-
-.pulso-equiv-resumen {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-}
-
-/* C2: el marco lo fija el rol, no el contenido. Una base con alerta y otra sin
-   ella comparten caja; la diferencia se resuelve dentro. */
-.pulso-equiv-resumen > li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-2);
-  min-height: 52px;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-card);
-  background: var(--pulso-surface-2);
-}
-
-.pulso-equiv-resumen > li.is-ready .pulso-equiv-resumen-estado {
-  color: var(--pulso-success-fg);
-}
-
-.pulso-equiv-resumen > li.is-attention {
-  border-color: var(--pulso-warn-border);
-}
-
-.pulso-equiv-resumen > li.is-attention .pulso-equiv-resumen-estado {
-  color: var(--pulso-warn-fg);
-}
-
-.pulso-equiv-resumen-estado {
-  display: inline-flex;
-  align-items: center;
-  padding-top: 1px;
-  flex-shrink: 0;
-}
-
-.pulso-equiv-resumen-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.pulso-equiv-resumen-copy strong {
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text);
-}
-
-.pulso-equiv-resumen-copy small {
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-soft);
-  line-height: 1.4;
-}
-
-.pulso-equiv-alerta {
-  color: var(--pulso-warn-fg);
-}
-
-.pulso-equiv-pie {
-  margin: 0;
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-faint);
-}
-
-/* --- Tabla del editor (ADR 0062, enmienda) --------------------------------
-   La forma la dicta el Excel que el equipo ya usaba: una fila por pregunta y
-   los publicos en paralelo. Es la que se lee de corrido. */
-
-.pulso-equiv-tabla-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  min-width: 0;
-  /* Sin scroll propio: un `overflow-x: auto` aquí la volvía contenedor de
-     scroll en los dos ejes, se quedaba con 98 px de alto a 1024x600 y
-     desenganchaba la cabecera sticky del dueño real. El ancho lo resuelve
-     `table-layout: fixed`, que nunca desborda. */
-}
-
-.pulso-equiv-tabla {
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-  width: 100%;
-  font-size: var(--pulso-type-body-size);
-}
-
-/* La cabecera de la Lista se pega bajo la barra de vistas, cuyo alto mide el
-   panel: 52 filas sin saber qué columna es cada público no se leen. */
-.pulso-equiv-tabla th {
-  position: sticky;
-  top: var(--pulso-equiv-barra-alto, 0px);
-  z-index: 2;
-  text-align: left;
-  font-weight: 600;
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface);
-  padding: var(--pulso-space-1) var(--pulso-space-2);
-  border-bottom: 1px solid var(--pulso-border-strong);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pulso-equiv-tabla td {
-  padding: 3px var(--pulso-space-2);
-  border-bottom: 1px solid var(--pulso-border);
-  vertical-align: middle;
-}
-
-.pulso-equiv-tabla tr.is-sugerida td {
-  background: var(--pulso-info-bg);
-}
-.pulso-equiv-col-acciones { width: 72px; }
-.pulso-equiv-col-n {
-  width: 72px;
-  text-align: right;
-  color: var(--pulso-text-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.pulso-equiv-celda-etiqueta {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-1);
-  min-width: 0;
-}
-
-/* Propuesta heredada de un .pulso anterior (ADR 0104 §5). La marca no puede
-   vivir solo en el color de fondo: en una captura o con poco contraste, una
-   fila sin confirmar y una decidida se leerian igual (ADR 0062). */
-.pulso-equiv-chip-sugerida {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  padding: 1px 6px;
-  border: 1px solid var(--pulso-info-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-info-fg);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: 600;
-}
-
-/* ADR 0107: fila de un segmento de cruce. La marca va en texto y en el mismo
-   formato que «Sin confirmar»; la fila no se edita aquí, se lee. */
-.pulso-equiv-chip-cruce {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  padding: 1px 6px;
-  border: 1px solid var(--pulso-border-strong);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: 600;
-}
-
-.pulso-equiv-etiqueta-fija {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--pulso-type-body-size);
-}
-
-.pulso-equiv-variable-fija {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: var(--pulso-type-caption-size);
-  overflow-wrap: anywhere;
-}
-
-.pulso-equiv-tabla input,
-.pulso-equiv-tabla select {
-  width: 100%;
-  min-width: 0;
-  /* Lo que no cabe termina en «…» y el texto entero va en el `title`. */
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  font-size: var(--pulso-type-body-size);
-  padding: 3px 6px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-}
-
-/* La celda de diapositiva es un boton hasta que se edita, igual que la de
-   variable: 157 recuadros diciendo «—» no informaban de nada. */
-
-.pulso-equiv-acciones-fila {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-/* Guardar no se busca al final de 52 filas: el pie se pega al borde inferior
-   del dueño de scroll y el material lo separa de las filas que pasan debajo. */
-.pulso-equiv-pie-editor {
-  position: sticky;
-  bottom: 0;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-3);
-  flex-wrap: wrap;
-  margin: 0 calc(-1 * var(--pulso-space-3)) calc(-1 * var(--pulso-space-3));
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border-top: 1px solid var(--pulso-border);
-  border-radius: 0 0 var(--pulso-radius-panel) var(--pulso-radius-panel);
-  background: var(--pulso-surface);
-  font-size: var(--pulso-type-body-size);
-  color: var(--pulso-text-faint);
-}
-
-/* M14: chip de estado a la izquierda, resumen al medio, Guardar a la derecha. */
-.pulso-equiv-pie-resumen {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 /* --- Vista por diapositiva (ADR 0064) ------------------------------------------
    La declaracion se lee agrupada por la diapositiva del informe, que es la unidad
    que el analista decide y la que Graficos convierte en diapositiva. La escala
    se dice UNA vez en la cabecera de la tarjeta en lugar de repetirse por fila:
    es lo que permite leer las invariantes E1/E2 sin buscarlas. */
-
-/* La barra de vistas queda arriba del dueño de scroll: cambiar de vista,
-   agrupar y confirmar siguen a mano en la fila 40. Se extiende sobre el padding
-   del cuerpo para que las filas no asomen por los lados al pasar debajo. */
-.pulso-equiv-vistas {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-1);
-  margin: calc(-1 * var(--pulso-space-3)) calc(-1 * var(--pulso-space-3)) 0;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border-bottom: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-panel) var(--pulso-radius-panel) 0 0;
-  background: var(--pulso-surface);
-  font-size: var(--pulso-type-body-size);
-}
-
-/* Solo el selector de vista; las acciones masivas son PulsoButton (M2). */
-.pulso-equiv-vistas button:not(.pulso-button) {
-  padding: 3px 10px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: 600;
-}
-
-.pulso-equiv-vistas button.is-active {
-  border-color: var(--module-accent);
-  color: var(--module-accent);
-  background: var(--pulso-surface-2);
-}
-
-.pulso-equiv-vistas-nota {
-  margin-left: auto;
-  color: var(--pulso-text-faint);
-  font-variant-numeric: tabular-nums;
-}
 
 /* Lo que no tiene diapositiva no es una diapositiva mas, pero tampoco un problema
    (M8): para comparar no hace falta. Se distingue por el fondo y por su rotulo
@@ -518,99 +221,8 @@ button.pulso-equiv-chip-escala:hover,
 /* Los publicos van centrados bajo su encabezado y con un ancho minimo comun:
    sin el, una columna con `p9` y otra con `p12_1` se desalineaban a ojo. */
 
-/* M9: el estado de armonizacion es una columna propia de ancho minimo comun.
-   Dentro de la celda del tema, el ancho variable del chip hacia que el campo
-   terminara en una x distinta en cada fila. */
-.pulso-equiv-tabla .pulso-equiv-col-estado {
-  text-align: left;
-}
-
-/* ADR 0104: la columna «Escala» dice si las preguntas elegidas usan la misma
-   lista de respuestas y, si no, abre la armonización de la fila. El texto lleva
-   el estado además del color. */
-.pulso-equiv-escala {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  padding: 1px 7px;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  font: inherit;
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-semibold);
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-.pulso-equiv-escala > svg { flex: none; }
-
-.pulso-equiv-escala > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pulso-equiv-escala.is-neutro {
-  border-style: dashed;
-  color: var(--pulso-text-faint);
-}
-
-.pulso-equiv-escala.is-ok {
-  border-color: var(--pulso-success-border);
-  background: var(--pulso-success-bg);
-  color: var(--pulso-success-fg);
-}
-
-.pulso-equiv-escala.is-aviso {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
-}
-
-button.pulso-equiv-escala { cursor: pointer; }
-
-/* La escala común bajo el estado: cómo quedó armonizada la fila, en dos líneas
-   como mucho; la lista entera va en el `title`. */
-.pulso-equiv-escala-celda {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  min-width: 0;
-}
-
-.pulso-equiv-escala-resumen {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  max-width: 100%;
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.35;
-  color: var(--pulso-text-faint);
-  overflow-wrap: anywhere;
-}
-
-button.pulso-equiv-escala:hover:not(:disabled) { border-color: var(--module-accent-border); }
-
-button.pulso-equiv-escala:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-button.pulso-equiv-escala:focus-visible {
-  outline: var(--mov-foco, 2px solid var(--pulso-primary));
-  outline-offset: 2px;
-}
-
 /* Ancho mínimo común por base, el mismo con cualquier N: el contenido es un
    código corto y lo que no cabe se desplaza en el marco de la tabla. */
-
-/* La ultima columna pega con el borde de la tarjeta, no con la penultima. */
-
-.pulso-equiv-acciones-fila { justify-content: flex-end; }
 
 /* La cabecera de cada tarjeta se pega bajo la barra de vistas mientras su
    tarjeta está a la vista, como en la Lista. El filete va en sombra: con
@@ -625,7 +237,6 @@ button.pulso-equiv-escala:focus-visible {
    pestana tarda en responder al primer clic. */
 
 /* M3: es un PulsoButton secundario; aqui solo se ubica. */
-
 
 /* La celda de variable en modo busqueda. Escribes y el navegador filtra por
    codigo o por etiqueta contra el `datalist` de SU base: el mismo gesto que el
@@ -761,22 +372,6 @@ button.pulso-equiv-escala:focus-visible {
   color: var(--pulso-text);
 }
 
-/* --- Series de N bases (U2) ----------------------------------------------------
-   El marco de cada tabla sólo es dueño de desplazamiento horizontal cuando la
-   tabla no cabe (lo mide `useDesbordeHorizontal`). Mientras cabe no tiene
-   overflow y la cabecera sigue pegada al dueño de scroll de Carga. Cuando
-   desborda, la columna del tema queda fija a la izquierda para no perder de
-   qué fila se trata al desplazarse. */
-.pulso-equiv-hscroll {
-  /* Posicionado: los `pulso-sr-only` absolutos de las celdas (la cobertura
-     «k de N» de la última columna) toman este marco como bloque contenedor y
-     quedan recortados con la tabla. Sin esto escapaban al de `.pulso-equiv` y
-     ensanchaban la pestaña 430 px aunque la tabla ya se desplazaba. */
-  position: relative;
-  min-width: 0;
-  max-width: 100%;
-}
-
 /* La cadena hasta el marco no puede crecer con la tabla: un ítem de grilla o
    flex con `min-width: auto` toma el ancho mínimo de su contenido, y con siete
    bases toda la pestaña se ensanchaba a 1400 px (cabecera y orden de la serie
@@ -786,58 +381,9 @@ button.pulso-equiv-escala:focus-visible {
   min-width: 0;
 }
 
-/* Sin `border-radius`: en un scroller compuesto Chromium recorta las esquinas
-   con una máscara, y con la columna fija pintaba la tabla a medias, con un
-   corte en diagonal (medido en la captura con siete bases). */
-.pulso-equiv-hscroll.is-desborda {
-  overflow-x: auto;
-}
-
-.pulso-equiv-hscroll.is-desborda:focus-visible {
-  outline: var(--mov-foco, 2px solid var(--pulso-primary));
-  outline-offset: 2px;
-}
-
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla th:first-child,
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla td:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--pulso-surface);
-  box-shadow: inset -1px 0 0 var(--pulso-border);
-}
-
-/* Dentro de un marco que se desplaza en horizontal la cabecera ya no puede
-   pegarse al dueño de scroll de Carga: su `top` (el alto de la barra de
-   vistas) la empujaba hacia abajo DENTRO del marco y tapaba la primera fila.
-   Ahí la cabecera queda en su sitio; sólo la columna del tema se fija. */
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th {
-  top: auto;
-}
-
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla thead th:first-child {
-  z-index: 3;
-}
-
-.pulso-equiv-hscroll.is-desborda .pulso-equiv-tabla tr.is-sugerida td:first-child {
-  background: var(--pulso-info-bg);
-}
-
 /* Al desplazarse, el tema conserva un ancho legible en vez de encogerse a
    los chips: es la columna que dice de qué fila se trata. */
 
 /* «3 de 7»: la misma forma con cualquier cantidad de bases. Lo parcial se
    marca en peso y color, y el detalle va en el `title`. */
-/* M9: la cobertura completa no se atenua —se leia deshabilitada—; la parcial
-   se marca con el color semantico de advertencia ademas del peso. */
-.pulso-equiv-cobertura {
-  font-size: var(--pulso-type-caption-size);
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-soft);
-  white-space: nowrap;
-}
 
-.pulso-equiv-cobertura.is-parcial {
-  color: var(--pulso-warn-fg);
-  font-weight: var(--pulso-weight-semibold);
-}

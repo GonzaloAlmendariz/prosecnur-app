@@ -14,8 +14,8 @@ import { describe, expect, it } from "vitest";
  *   (`vx-ver-mas`), que alarga la misma lista y no esconde otra cosa.
  *
  * Un selector que abre su lista de opciones también lleva `aria-expanded` y no es un acordeón:
- * esos van en `SELECTORES`, con el porqué. V4 retira el historial plegado de la decisión
- * (`limpieza/EditorDeDecision.tsx`) y el conteo de ese archivo baja a 0.
+ * esos van en `SELECTORES`, con el porqué. El historial plegado de la decisión salió con
+ * `limpieza/EditorDeDecision.tsx`, retirado el 12 nov 2026.
  */
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -48,7 +48,6 @@ const SNAPSHOT: Record<string, number> = {
   "components/InstrumentoOperationalControls.tsx": 1,
   "components/VariablePicker.tsx": 1,
   "instrumento/GruposDeReglas.tsx": 1,
-  "limpieza/EditorDeDecision.tsx": 1,
   "tabs/explorar/Cruce.tsx": 1,
 };
 
