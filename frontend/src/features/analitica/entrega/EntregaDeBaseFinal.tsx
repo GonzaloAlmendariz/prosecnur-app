@@ -113,12 +113,13 @@ export function EntregaDeBaseFinal({ fuente }: { fuente: ReactNode }) {
               options={formatos}
               getOptionValue={(f) => f}
               onValueChange={setFormato}
-              className="libro-formato"
+              className="analitica-segmented libro-formato"
+              getOptionProps={(_, { checked }) => ({ className: checked ? "is-on" : undefined })}
               aria-label="Formato de la base final"
             >
               {(f) => <span>{ROTULO[f]}</span>}
             </GlidingRadioGroup>
-            <PulsoButton variant="secondary" onClick={generar} disabled={runDelFormato.busy}>
+            <PulsoButton variant="primary" onClick={generar} disabled={runDelFormato.busy}>
               <Play size={14} aria-hidden="true" />
               Generar
             </PulsoButton>

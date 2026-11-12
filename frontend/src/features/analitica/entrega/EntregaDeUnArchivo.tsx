@@ -33,7 +33,7 @@ export function EntregaDeUnArchivo({ zona, titulo, articulo, formato, nombreDelA
         zona={zona}
         titulo={titulo}
         acciones={(
-          <PulsoButton variant="secondary" onClick={() => void run.runSync(generar)} disabled={run.busy}>
+          <PulsoButton variant="primary" onClick={() => void run.runSync(generar)} disabled={run.busy}>
             <Play size={14} aria-hidden="true" />
             Generar
           </PulsoButton>

@@ -29,8 +29,11 @@ export function EleccionDeAjuste<V extends string>({ titulo, valor, opciones, on
         options={opciones}
         getOptionValue={(o) => o.valor}
         onValueChange={onCambio}
-        getOptionProps={(o) => (o.noAplica ? { disabled: true, title: o.noAplica } : {})}
-        className="entrega-eleccion"
+        getOptionProps={(o, { checked }) => ({
+          className: checked ? "is-on" : undefined,
+          ...(o.noAplica ? { disabled: true, title: o.noAplica } : {}),
+        })}
+        className="analitica-segmented entrega-eleccion"
         aria-labelledby={id}
       >
         {(o) => <span>{o.rotulo}</span>}

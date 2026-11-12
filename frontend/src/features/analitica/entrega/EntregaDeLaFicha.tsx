@@ -86,12 +86,13 @@ export function EntregaDeLaFicha({ lectura }: { lectura: FichaTecnica }) {
               options={FORMATOS}
               getOptionValue={(o) => o.valor}
               onValueChange={(layout) => setFichaTecnica({ layout })}
-              className="libro-formato"
+              className="analitica-segmented libro-formato"
+              getOptionProps={(_, { checked }) => ({ className: checked ? "is-on" : undefined })}
               aria-label="Formato de la ficha"
             >
               {(o) => <span>{o.rotulo}</span>}
             </GlidingRadioGroup>
-            <PulsoButton variant="secondary" onClick={() => void generar()} disabled={run.busy || leyendo}>
+            <PulsoButton variant="primary" onClick={() => void generar()} disabled={run.busy || leyendo}>
               <Play size={14} aria-hidden="true" />
               Generar
             </PulsoButton>

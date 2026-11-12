@@ -55,12 +55,13 @@ export function PanelDelLibro({
             options={FORMATOS}
             getOptionValue={(o) => o.valor}
             onValueChange={onFormato}
-            className="libro-formato"
+            className="analitica-segmented libro-formato"
+            getOptionProps={(_, { checked }) => ({ className: checked ? "is-on" : undefined })}
             aria-label="Formato del libro"
           >
             {(o) => <span>{o.rotulo}</span>}
           </GlidingRadioGroup>
-          <PulsoButton variant="secondary" onClick={onGenerar} disabled={generando}>
+          <PulsoButton variant="primary" onClick={onGenerar} disabled={generando}>
             <Play size={14} aria-hidden="true" />
             Generar
           </PulsoButton>
