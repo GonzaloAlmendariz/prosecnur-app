@@ -197,6 +197,23 @@
   outline-offset: 2px;
 }
 
+/* La proporción que llega al destino: ocupa el aire entre los grupos y el destino. */
+.pulso-franja-barra {
+  flex: 1 1 60px;
+  min-inline-size: 60px;
+  block-size: 6px;
+  overflow: hidden;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--pulso-warn-accent) 30%, var(--pulso-surface-3));
+}
+
+.pulso-franja-barra > span {
+  display: block;
+  block-size: 100%;
+  border-radius: var(--pulso-radius-chip) 0 0 var(--pulso-radius-chip);
+  background: var(--pulso-pieza-acento);
+}
+
 /* Pie de avisos: lo que conviene saber antes de seguir, con su acción al extremo. */
 .pulso-franja-pie {
   display: flex;
@@ -273,7 +290,8 @@
   .pulso-franja-fila {
     padding-inline-end: var(--pulso-space-5);
   }
-  .pulso-franja-conector {
+  .pulso-franja-conector,
+  .pulso-franja-barra {
     display: none;
   }
   .pulso-franja-grupo[data-aparte] {

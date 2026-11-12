@@ -47,6 +47,11 @@ export type FranjaRecorridoProps = {
   /** Acción al extremo del pie de avisos. */
   accionDeAvisos?: ReactNode;
   /**
+   * La proporción que llega al destino (de 0 a 1), como barra entre los grupos y el destino
+   * (`pp-via-barra` del prototipo). Es la cifra del destino dibujada: no se anuncia aparte.
+   */
+  barra?: number | null;
+  /**
    * Nombre con el que la franja declara su geometría (Contrato de Superficie, C1). Los grupos y los avisos
    * son colecciones de ancho propio: se declaran `intrinsic`. Dos franjas en la misma vista llevan nombres distintos.
    */
@@ -60,6 +65,7 @@ export function FranjaRecorrido({
   destino,
   avisos,
   accionDeAvisos,
+  barra = null,
   grupoDeGeometria = "procesamiento/franja-recorrido",
   className,
 }: FranjaRecorridoProps) {
@@ -93,6 +99,11 @@ export function FranjaRecorrido({
             </div>
           </Fragment>
         ))}
+        {barra !== null && Number.isFinite(barra) ? (
+          <span className="pulso-franja-barra" aria-hidden="true">
+            <span style={{ inlineSize: `${Math.min(100, Math.max(0, barra * 100))}%` }} />
+          </span>
+        ) : null}
         {destino ? <FranjaDestino destino={destino} /> : null}
       </div>
       {conPie ? (

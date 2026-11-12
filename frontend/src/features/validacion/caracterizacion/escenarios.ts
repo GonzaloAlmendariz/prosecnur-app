@@ -578,6 +578,67 @@ const RESUMEN_DECISIONES = {
   ready_to_finalize: false,
 };
 
+const ARCHIVO_SIN_GENERAR = { causas: [], causa_estado: null, generado_en: null, file_id: null, disponible: false, guardado_en: null, contenido: [], archivo: null, estado: "no_generado" };
+
+function archivosDelEscenario(cerrada: boolean) {
+  const generado = (clave: string, nombre: string, archivo: string, formato: string) => (cerrada
+    ? { ...ARCHIVO_SIN_GENERAR, clave, nombre, archivo, formato, estado: "al_dia", generado_en: "2026-03-04T12:00:00Z", file_id: `f-${clave}`, disponible: true }
+    : { ...ARCHIVO_SIN_GENERAR, clave, nombre, formato: null });
+  return [
+    generado("base_limpia", "Base limpia", "r_Base_limpia.xlsx", "xlsx"),
+    generado("registro", "Registro de limpieza", "r_Decisiones_de_limpieza.xlsx", "xlsx"),
+    generado("revision", "Revisión de limpieza", "r_Revision_de_limpieza.html", "html"),
+    { ...ARCHIVO_SIN_GENERAR, clave: "paquete_metodologico", nombre: "Paquete metodológico", formato: null },
+  ];
+}
+
+/**
+ * El campo `cierre` (motor M5) del escenario: sin auditoría, la vista previa en
+ * cero; con decisiones listas, la que deja "Dejar como está" en RC_002 (4
+ * revisiones); promovida, el cierre del 4 mar que excluyó 3 casos de RC_001.
+ */
+function cierreDelEscenario(opciones: { auditoria: boolean; decisiones?: LimpiezaDecision[]; promovida?: boolean }) {
+  const cerrada = !!opciones.promovida;
+  const listas = (opciones.decisiones ?? []).filter((d) => d.status === "ready");
+  const decisiones = [
+    ...(cerrada ? [{
+      decision_id: "D_000", source_id: "RC_001", action_type: "exclude_cases", target_variable: null, rationale: "Fuera del rango del estudio",
+      decidida_en: "2026-03-04T11:00:00Z", efecto: "excluye", n_filas_excluidas: 3, n_filas_ya_excluidas: 0, n_celdas_cambiadas: 0,
+      n_casos_revisados: null, aplicable: true, motivo_no_aplicable: null,
+    }] : []),
+    ...listas.map((d) => ({
+      decision_id: d.id, source_id: d.source_id, action_type: d.action_type, target_variable: d.target_variable, rationale: d.rationale,
+      decidida_en: d.updated_at, efecto: "sin_cambios", n_filas_excluidas: 0, n_filas_ya_excluidas: 0, n_celdas_cambiadas: 0,
+      n_casos_revisados: 4, aplicable: true, motivo_no_aplicable: null,
+    })),
+  ];
+  const excluidos = cerrada ? 3 : 0;
+  const recibidos = opciones.auditoria ? 120 : 0;
+  return {
+    estado: cerrada ? "cerrada" : "abierta",
+    cerrada_en: cerrada ? "2026-03-04T12:00:00Z" : null,
+    causa_sin_cifras: null,
+    cadena_casos: {
+      momento: cerrada ? "al_cerrar" : "prevista", recibidos, n_fuentes: null,
+      fuera: { retirados_fuera_de_la_app: 0, pruebas: 0, sin_clasificar: 0, por_reglas_de_carga: 0, fuera_de_la_auditoria: 0 },
+      excluidos_en_limpieza: excluidos, cuentan: recibidos - excluidos, proporcion: recibidos ? (recibidos - excluidos) / recibidos : null,
+      cuadra: true, filtro_de_pruebas: false, depuracion_externa: false, base_promovida: cerrada, base: "casos de la tabla principal de la base", avisos: [],
+    },
+    decisiones_aplicadas: {
+      regla_atribucion: null,
+      decisiones,
+      grupos: [
+        { efecto: "excluye", n_decisiones: cerrada ? 1 : 0, cifra: excluidos, unidad: "casos excluidos" },
+        { efecto: "cambia_valores", n_decisiones: 0, cifra: 0, unidad: "valores cambiados" },
+        { efecto: "sin_cambios", n_decisiones: listas.length, cifra: listas.length * 4, unidad: "revisiones de casos" },
+        { efecto: "no_se_aplica", n_decisiones: 0, cifra: null, unidad: null },
+      ],
+      totales: { n_casos_excluidos: excluidos, n_celdas_cambiadas: 0, cuadra_con_motor: true },
+    },
+    archivos: archivosDelEscenario(cerrada),
+  };
+}
+
 export function limpieza(opciones: {
   auditoria: boolean;
   cola?: LimpiezaQueueItem[];
@@ -632,6 +693,8 @@ export function limpieza(opciones: {
           decisions_ready: 1,
         }
       : null,
+    // Motor M5: el cierre con su cadena de casos, las decisiones aplicadas y los archivos.
+    cierre: cierreDelEscenario(opciones),
     artifacts: opciones.promovida
       ? {
           finalized_at: "2026-03-04T12:00:00Z",
@@ -707,6 +770,11 @@ export function rutasLimpieza(resumen: LimpiezaSummary): Ruta[] {
     })],
     ["DELETE", /^\/api\/validacion\/v2\/limpieza\/decision\/[^/]+$/, { ok: true }],
     ["POST", "/api/validacion/v2/limpieza/revertir-promocion", { ok: true }],
+    // Cierre (rebanada V4): la fecha y el estado de la última auditoría.
+    ["GET", "/api/validacion/v2/auditoria/estado", {
+      ok: true, base_nombre: null, estado: "vigente", auditada_en: "2026-03-02T15:00:00Z", n_reglas_vigentes: 9, n_reglas_auditadas: 9,
+      cambios: { agregadas: [], quitadas: [], modificadas: [] }, avisos: [],
+    }],
     ["POST", "/api/validacion/v2/limpieza/finalize", { ok: true, job_id: "job-cierre" }],
   ];
 }

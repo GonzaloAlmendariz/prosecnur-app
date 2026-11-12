@@ -424,6 +424,12 @@ export type LimpiezaSummary = {
   before_after_preview: LimpiezaBeforeAfterPreview | null;
   artifacts: LimpiezaArtifactsBundle | Record<string, never>;
   actions: ViewAction[];
+  /**
+   * El cierre de la base (motor M5): cadena de casos, decisiones aplicadas y
+   * archivos con su estado. Crudo del motor: se lee con `normalizarCierre`
+   * (`api/validacionCierre.ts`).
+   */
+  cierre?: unknown;
 };
 
 // -----------------------------------------------------------------------------

@@ -93,6 +93,12 @@ describe("Validación, Cierre de base: estados", () => {
       pestana: "cierre",
       rutas: rutasHallazgos(limpieza({ auditoria: true, cola: COLA_TRES_CLASES, decisiones: DECISIONES, listaParaCerrar: true, promovida: true })),
     });
+    // Rebanada V4: la cadena del cierre, las decisiones por grupo y los archivos al día.
+    expect(hay(".pulso-cabecera-pestana-estado", "Cerrada el 4 mar")).toBe(true);
+    expect(hay(".pulso-franja-destino", "117")).toBe(true);
+    expect(hay(".pulso-ci-grupo", "Casos excluidos")).toBe(true);
+    expect(hay(".pulso-ci-archivo", "Al día")).toBe(true);
+    expect(hay("button", "Cerrar la base")).toBe(false);
     fijar("limpieza_base-promovida");
   });
 
@@ -261,8 +267,9 @@ describe("Validación, Cierre de base: lo que se guarda", () => {
       pestana: "cierre",
       rutas: rutasHallazgos(limpieza({ auditoria: true, cola: COLA_TRES_CLASES, decisiones: DECISIONES, listaParaCerrar: true })),
     });
-    await pulsar("button", "Generar paquete");
-    await pulsar("button", "Cerrar y generar base");
+    // Rebanada V4: el paquete se genera en su fila de "Archivos" y el cierre es la acción de la cabecera.
+    await pulsar(".pulso-ci-archivo button", "Generar");
+    await pulsar(".pulso-cabecera-pestana-acciones button", "Cerrar la base");
     const enviados = cuerposEnviados().map((c) => c.split("\n")[0]);
     expect(enviados).toContain("POST /api/validacion/v2/report/methodology/bundle [base=default]");
     expect(enviados).toContain("POST /api/validacion/v2/limpieza/finalize [base=default]");
@@ -275,29 +282,30 @@ describe("Validación, Cierre de base: lo que se guarda", () => {
       pestana: "hallazgos",
       rutas: rutasHallazgos(limpieza({ auditoria: true, cola: COLA_TRES_CLASES, decisiones: DECISIONES, listaParaCerrar: true })),
     });
-    expect(hay("button", "Cerrar y generar base")).toBe(false);
+    expect(hay("button", "Cerrar la base")).toBe(false);
     await pulsar(".pulso-hz-franja-avisos button", "Ir a Cierre");
     expect(direccionActual()).toBe("/validacion?pestana=cierre");
-    expect(hay("button", "Cerrar y generar base")).toBe(true);
+    expect(hay("button", "Cerrar la base")).toBe(true);
     fijar("limpieza_hallazgos-lista-lleva-a-cierre");
   });
 
   escenario("limpieza_cierre-sin-auditoria-lleva-a-hallazgos", "Cierre sin auditoría dice dónde se corre y lleva allí", async () => {
     await montar({ ...UNA_BASE, pestana: "cierre", rutas: rutasHallazgos(limpieza({ auditoria: false })) });
-    expect(hay("div", "Corre la auditoría en Hallazgos")).toBe(true);
-    await pulsar("button", "Ir a Hallazgos");
+    expect(hay(".pulso-panel-de-mesa--decisiones", "La base no se ha auditado")).toBe(true);
+    await pulsar(".pulso-panel-de-mesa--decisiones button", "Ir a Hallazgos");
     expect(direccionActual()).toBe("/validacion?pestana=hallazgos");
     fijar("limpieza_cierre-sin-auditoria-lleva-a-hallazgos");
   });
 
-  escenario("limpieza_revierte-promocion", "revertir la promoción pide confirmar y la revierte", async () => {
+  escenario("limpieza_revierte-promocion", "reabrir la base (revertir la promoción) pide confirmar y la revierte", async () => {
     await montar({
       ...UNA_BASE,
       pestana: "cierre",
       rutas: rutasHallazgos(limpieza({ auditoria: true, cola: COLA_TRES_CLASES, decisiones: DECISIONES, listaParaCerrar: true, promovida: true })),
     });
-    await pulsar("button", "Revertir");
-    await pulsar("button", "Revertir");
+    await pulsar(".pulso-cabecera-pestana-acciones button", "Reabrir la base");
+    await pulsar('[role="dialog"] button', "Reabrir");
+    expect(cuerposEnviados().map((c) => c.split("\n")[0])).toContain("POST /api/validacion/v2/limpieza/revertir-promocion [base=default]");
     fijar("limpieza_revierte-promocion");
   });
 });

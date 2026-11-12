@@ -1,69 +1,27 @@
 /**
- * Pestaña Cierre de Validación (ADR 0142, rebanada V2 de P6).
+ * Pestaña Cierre de Validación (plan de fidelidad, rebanada V4; prototipo
+ * `validacion-cierre`): la mesa de `cierre/`, con la cadena de los casos
+ * recibidos a los que cuentan, las decisiones aplicadas por grupo, qué base
+ * rige para el análisis y los archivos del cierre con su estado (motor M5).
  *
- * Montaje de transición: la banda de cierre de "Cierre de base" ("Cerrar y
- * generar base", con su barra de decisiones solo informativa), los archivos
- * del cierre, el efecto de las decisiones y la promoción de la base, y debajo
- * el paquete metodológico, que antes era un botón del paso 1 de "Reglas del
- * formulario". V5 rehace esta pestaña con la cadena de casos.
+ * Reemplaza el montaje de transición de la rebanada V2 de P6, que apilaba la
+ * banda "Cerrar y generar base" (`limpieza/CierreDeBase.tsx`), los avisos
+ * (`limpieza/AvisosDeLimpieza.tsx`), el efecto de las decisiones
+ * (`components/ImpactoDecisiones.tsx`), la promoción
+ * (`components/PromocionBase.tsx`) y el paquete metodológico
+ * (`limpieza/PaqueteMetodologico.tsx`): esas funciones están en la cabecera,
+ * la franja, "Lista para análisis" y "Archivos".
+ *
+ * Readiness: la marca de la pestaña va en la raíz; mientras se lee el cierre,
+ * la carga de bloque del kit (`CargaDeBloque`) la retiene.
  */
-import { AlertTriangle } from "../../../vendor/lucide-react";
-import { EmptyState, LoadingBlock } from "../../../components/States";
-import { useMesaDeLimpieza } from "../limpieza/useMesaDeLimpieza";
-import CierreDeBase from "../limpieza/CierreDeBase";
-import AvisosDeLimpieza from "../limpieza/AvisosDeLimpieza";
-import PaqueteMetodologico from "../limpieza/PaqueteMetodologico";
-import { useValidacionStore } from "../store";
-import { usePestanaValidacion } from "../pestanaDireccionable";
-import CabeceraDeTransicion from "./CabeceraDeTransicion";
-import { cabeceraDeCierre } from "./cabeceraDeValidacion";
-
-const COLUMNA = { display: "flex", flexDirection: "column", gap: "var(--pulso-space-4)", minWidth: 0 } as const;
+import { PestanaCierreMesa } from "../cierre/PestanaCierreMesa";
+import "../cierre/cierre.css";
 
 export default function PestanaCierre() {
-  const mesa = useMesaDeLimpieza();
-  const baseNombre = useValidacionStore((s) => s.baseNombre);
-  const { irAPestana } = usePestanaValidacion();
-  const { loading, error, data } = mesa;
-
-  // Mientras carga, la cabecera ya está y el bloque de carga ocupa el cuerpo.
-  // Sin marca de readiness: la pestaña todavía no tiene contenido.
-  if (loading) {
-    return (
-      <div className="pulso-validacion-pestana-cierre" style={COLUMNA}>
-        <CabeceraDeTransicion pestana="cierre" {...cabeceraDeCierre(null)} />
-        <LoadingBlock label="Cargando el cierre" />
-      </div>
-    );
-  }
-
-  const auditReady = !!data?.progreso.auditoria_corrida;
-
   return (
-    <div
-      className="pulso-validacion-pestana-cierre"
-      data-audit-ready="validacion-cierre"
-      style={COLUMNA}
-    >
-      <CabeceraDeTransicion pestana="cierre" {...cabeceraDeCierre(data)} />
-      {error ? (
-        <EmptyState
-          icon={<AlertTriangle size={20} />}
-          title="No se pudo cargar la sección"
-          hint={error}
-        />
-      ) : data ? (
-        <>
-          <CierreDeBase mesa={mesa} auditReady={auditReady} />
-          <AvisosDeLimpieza
-            mesa={mesa}
-            auditReady={auditReady}
-            conPreservadas={false}
-            onIrAHallazgos={() => irAPestana("hallazgos")}
-          />
-        </>
-      ) : null}
-      <PaqueteMetodologico baseNombre={baseNombre} planConstruido={!!data?.progreso.plan_construido} />
+    <div className="pulso-validacion-pestana-cierre" data-audit-ready="validacion-cierre">
+      <PestanaCierreMesa />
     </div>
   );
 }

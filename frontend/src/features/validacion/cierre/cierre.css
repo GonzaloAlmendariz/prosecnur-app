@@ -1,0 +1,464 @@
+/* Mesa de Cierre (plan de fidelidad de Validación, rebanada V4). Vara:
+   tmp/revamp-procesamiento/vistas.js (`validacion-cierre`, 1021-1049),
+   proto.css (`pp-dec`, `pp-v-grupo`, `pp-v-lista`, `pp-v-sello`, `pp-deps`,
+   `pp-archivos`, `pp-tag`) y sus capturas. Los marcos son del kit
+   (MesaDePestana, PanelDeMesa, FranjaRecorrido, Sideover, Dialog); aquí solo
+   va lo de dentro de cada contenedor.
+
+   Ningún bloque con borde propio: el sello lleva su anillo como sombra
+   interior. Solo tokens; letra por rol; filas sin alto mínimo (el alto sale del
+   relleno). */
+
+/* ---------- La pestaña llena el cuerpo de Validación ---------- */
+
+.pulso-validacion-panel-body:has(> .pulso-validacion-pestana-cierre) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pulso-validacion-pestana-cierre {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-validacion-pestana-cierre .pulso-cabecera-pestana-acciones {
+  display: flex;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-ci-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-ci-error {
+  grid-column: 1 / -1;
+  padding: var(--pulso-space-5);
+}
+
+.pulso-ci-vacio {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--pulso-space-5);
+}
+
+/* Como el prototipo (`pp-vacio`): el vacío va sobre el fondo del contenedor, sin caja propia. */
+.pulso-ci-vacio > .pulso-estado-vacio {
+  border-color: transparent;
+  background: none;
+}
+
+.pulso-ci-nota {
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+.pulso-ci-nota[data-tono="aviso"] {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+}
+
+/* ---------- Decisiones aplicadas (`pp-dec`) ---------- */
+
+.pulso-ci-tabla {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-ci-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(112px, 0.9fr) minmax(0, 1.1fr) 80px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: 11px var(--pulso-space-5);
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 75%, transparent);
+}
+
+.pulso-ci-fila > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-ci-fila > [data-tipo="cifra"] {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.pulso-ci-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-block: 11px;
+  border-top: 0;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-ci-cabecera + .pulso-ci-grupo {
+  border-top: 0;
+}
+
+/* Fila de grupo (`pp-v-grupo`): rótulo en versal pequeña y su cifra. */
+.pulso-ci-grupo {
+  grid-template-columns: minmax(0, 1fr);
+  padding-block: var(--pulso-space-4) var(--pulso-space-2);
+  background: color-mix(in srgb, var(--pulso-surface-2) 60%, var(--pulso-surface));
+}
+
+.pulso-ci-grupo-celda {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-ci-grupo-celda > b {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pulso-ci-grupo-celda > span {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-ci-hallazgo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.pulso-ci-hallazgo > small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+.pulso-ci-hallazgo > small[data-tono="aviso"] {
+  color: var(--pulso-warn-fg);
+}
+
+/* El nombre del hallazgo: texto en negrita que lleva al hallazgo en Hallazgos. */
+.pulso-ci-nombre {
+  display: block;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border: 0;
+  background: none;
+  color: var(--pulso-text);
+  font: inherit;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.3;
+  text-align: start;
+  cursor: pointer;
+}
+
+b.pulso-ci-nombre {
+  cursor: default;
+}
+
+button.pulso-ci-nombre:hover {
+  color: var(--module-accent, var(--pulso-primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button.pulso-ci-nombre:focus-visible {
+  border-radius: 4px;
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 2px;
+}
+
+/* La clase del hallazgo (`pp-tag`), con su punto como en la cola de Hallazgos. */
+.pulso-ci-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-ci-etiqueta::before {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--pulso-danger-solid);
+}
+
+.pulso-ci-etiqueta[data-clase="revisar"]::before {
+  background: var(--pulso-warn-accent);
+}
+
+/* ---------- Lista para análisis (`pp-v-lista`, `pp-deps`) ---------- */
+
+.pulso-panel.pulso-panel-de-mesa--lista {
+  flex: none;
+}
+
+.pulso-panel-de-mesa--lista > .pulso-panel-de-mesa-cuerpo {
+  overflow: visible;
+}
+
+.pulso-ci-sello {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-3);
+  margin: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-ci-sello[data-tono="ok"] {
+  background: color-mix(in srgb, var(--pulso-success-bg) 60%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-success-fg) 22%, var(--pulso-border));
+}
+
+.pulso-ci-sello[data-tono="aviso"] {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 60%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-warn-fg) 22%, var(--pulso-border));
+}
+
+.pulso-ci-sello[data-tono="peligro"] {
+  background: color-mix(in srgb, var(--pulso-danger-bg) 60%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-danger-fg) 22%, var(--pulso-border));
+}
+
+.pulso-ci-sello b {
+  display: block;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-ci-sello span:not(.pulso-ci-sello-icono) {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+.pulso-ci-sello-icono {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-ci-sello[data-tono="ok"] .pulso-ci-sello-icono {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-ci-sello[data-tono="aviso"] .pulso-ci-sello-icono {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-ci-sello[data-tono="peligro"] .pulso-ci-sello-icono {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-ci-puntos {
+  margin: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-5) var(--pulso-space-3);
+  list-style: none;
+}
+
+.pulso-ci-puntos > li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: var(--pulso-space-3) 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 75%, transparent);
+}
+
+.pulso-ci-puntos > li:first-child {
+  border-top: 0;
+}
+
+.pulso-ci-puntos b {
+  display: block;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-ci-puntos li span:not(.pulso-ci-punto) {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-ci-punto {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--pulso-success-fg);
+}
+
+.pulso-ci-puntos > li[data-tono="aviso"] .pulso-ci-punto {
+  background: var(--pulso-warn-accent);
+}
+
+/* ---------- Archivos (`pp-archivos`) ---------- */
+
+.pulso-ci-archivos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-ci-archivo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 75%, transparent);
+}
+
+.pulso-ci-archivo:first-child {
+  border-top: 0;
+}
+
+/* Sin generar: la tesela se apaga, como `pp-arch[data-tono=""]`. */
+.pulso-ci-tesela[data-generado="no"] {
+  opacity: 0.55;
+}
+
+.pulso-ci-archivo-cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-ci-archivo-cuerpo > b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.pulso-ci-archivo-cuerpo > span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+.pulso-ci-archivo-cuerpo > span[data-tono="aviso"] {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-ci-archivo-acciones {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+/* ---------- Registro de decisiones (panel) ---------- */
+
+.pulso-ci-registro-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-ci-registro-lista > li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--pulso-space-3) 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 75%, transparent);
+}
+
+.pulso-ci-registro-lista > li:first-child {
+  border-top: 0;
+}
+
+.pulso-ci-registro-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-ci-registro-linea,
+.pulso-ci-registro-motivo {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-ci-estado-decision {
+  flex: none;
+  color: var(--pulso-success-fg);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-ci-estado-decision[data-estado="borrador"] {
+  color: var(--pulso-text-faint);
+}
+
+.pulso-ci-confirmar {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ---------- Tamaños ---------- */
+
+@container mesa-pestana (max-width: 1299px) {
+  .pulso-ci-fila {
+    grid-template-columns: minmax(0, 2fr) minmax(104px, 0.9fr) minmax(0, 1fr) 64px;
+  }
+}
+
+@container mesa-pestana (max-width: 979px) {
+  /* A una columna, la lista mide lo suyo y los archivos también: la pestaña es la que se desplaza. */
+  .pulso-mesa-pestana-pila > .pulso-panel.pulso-panel-de-mesa--archivos {
+    max-block-size: none;
+  }
+
+  .pulso-panel-de-mesa--archivos > .pulso-panel-de-mesa-cuerpo {
+    overflow: visible;
+  }
+}

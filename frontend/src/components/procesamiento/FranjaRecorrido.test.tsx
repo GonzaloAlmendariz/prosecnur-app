@@ -49,6 +49,18 @@ describe("FranjaRecorrido", () => {
     expect([...grupos[0].querySelectorAll(".pulso-franja-cifra")].map((c) => c.textContent)).toEqual(["94del formulario", "5propias"]);
   });
 
+  test("la barra dibuja la proporción entre los grupos y el destino, acotada de 0 a 100, y sin barra no hay pieza", () => {
+    act(() => raiz.render(<FranjaRecorrido etiqueta="Casos" grupos={GRUPOS} barra={0.9722} destino={{ rotulo: "Cuentan", cifra: 70, nota: "97.2 %" }} />));
+    const barra = contenedor.querySelector(".pulso-franja-barra");
+    expect(barra?.getAttribute("aria-hidden")).toBe("true");
+    expect((barra?.firstElementChild as HTMLElement | null)?.style.inlineSize).toBe("97.22%");
+    expect(barra?.nextElementSibling?.classList.contains("pulso-franja-destino")).toBe(true);
+    act(() => raiz.render(<FranjaRecorrido etiqueta="Casos" grupos={GRUPOS} barra={1.4} />));
+    expect((contenedor.querySelector(".pulso-franja-barra")?.firstElementChild as HTMLElement | null)?.style.inlineSize).toBe("100%");
+    act(() => raiz.render(<FranjaRecorrido etiqueta="Casos" grupos={GRUPOS} />));
+    expect(contenedor.querySelector(".pulso-franja-barra")).toBeNull();
+  });
+
   test("una cifra numérica sale con separador de millares y una escrita se pinta tal cual", () => {
     const grupos: GrupoDeFranja[] = [
       { id: "a", rotulo: "Auditoría", cifras: [{ id: "n", cifra: 17124, texto: "casos" }, { id: "f", cifra: "8 nov", texto: "última auditoría" }] },
