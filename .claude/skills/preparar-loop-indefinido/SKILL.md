@@ -159,6 +159,18 @@ mismo». Lo que ese loop hacía en cada tick, y que todo loop indefinido hace:
   (ventana semanal "all models"). Con tope declarado: unos 3 puntos antes no se
   lanzan agentes nuevos; en el tope se detiene todo y se avisa. Se dice con
   franqueza qué cabe en el margen y en qué orden.
+- **El ritmo se ajusta al margen, y se dice.** Con margen amplio de consumo y la
+  máquina tranquila, se suma un writer (hasta el máximo de la oleada); con poco
+  margen o la máquina cargada, se baja a uno, o a ninguno y solo se verifica.
+  Cada cambio de ritmo se anuncia con su motivo ("vamos en 70 % con 10 de
+  margen: subo a tres agentes"; "77 %: no lanzo más"). Gonzalo, 2026-11-12:
+  «tratemos de ampliar un writer porque tenemos bastante margen. O tratemos de
+  reducir un writer porque hay menos margen».
+- **Seguir o detenerse lo decide el loop, con causa.** Si queda algo que mejorar
+  dentro de la meta, continúa sin pedir permiso; si lo que queda no se puede
+  hacer (falta el dato del motor, es de otra sesión, exige una decisión del
+  usuario), se detiene en ese punto, lo dice y sigue con lo demás. Cuando no
+  queda nada que el loop pueda hacer, se apaga el reloj.
 - **La máquina antes que la prisa.** `uptime` antes de cada corrida pesada;
   nunca dos corridas pesadas (gates, tsc, capturas, servidores) a la vez. Si la
   máquina se resiente o el usuario lo avisa, baja a un agente por vez. El
