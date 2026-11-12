@@ -146,6 +146,39 @@ y ese turno lo relanza de inmediato, antes de trabajar.
 5. **Escribe `ENCARGO_LOOP.md` completo** con los bloques de abajo, aunque la
    mitad estén vacíos, lanza el ticker con el `sleep <N>` que él eligió y avisa
    los dos límites (app cerrada, suspensión).
+6. **Pregunta el tope de consumo** («¿hasta qué porcentaje del uso semanal?») y
+   anótalo en la primera línea del encargo, junto a la cadencia.
+
+## El control del loop
+
+Gonzalo, 2026-11-12, al cerrar el loop del rediseño de Procesamiento: «Me
+encanta el control que tiene, todos los loop indefinidos deberían hacer lo
+mismo». Lo que ese loop hacía en cada tick, y que todo loop indefinido hace:
+
+- **Consumo leído y anotado en cada tick** con `mcp__ccd_session_mgmt__get_usage`
+  (ventana semanal "all models"). Con tope declarado: unos 3 puntos antes no se
+  lanzan agentes nuevos; en el tope se detiene todo y se avisa. Se dice con
+  franqueza qué cabe en el margen y en qué orden.
+- **La máquina antes que la prisa.** `uptime` antes de cada corrida pesada;
+  nunca dos corridas pesadas (gates, tsc, capturas, servidores) a la vez. Si la
+  máquina se resiente o el usuario lo avisa, baja a un agente por vez. El
+  backend del usuario no se toca.
+- **Cada entrega pasa por un tercero antes del commit.** Escritor → verificador o
+  QA independiente en la app → commit por nombre de archivo. Un rechazo vuelve
+  al mismo escritor con los hallazgos numerados, no a uno nuevo.
+- **La vara del prototipo o del contrato en cada QA**, con veredicto por
+  pantalla (fiel, fiel con diferencias menores, no fiel) y causa de cada
+  diferencia (el motor no da el dato, decisión escrita, o defecto).
+- **El avance se reporta por sección, en porcentaje y en llano** cuando el
+  usuario pregunta o al cerrar una etapa: tabla con qué está hecho y qué falta,
+  sin hashes ni códigos de etapa en el cuerpo.
+- **Decisiones del usuario juntas y con opciones**: qué decide, entre qué y qué
+  cambia con cada una. Si delega ("haz lo más conveniente"), se decide, se aplica
+  y se reporta qué se eligió.
+- **Lo que falta se dice con su causa**: un "no se vio en la app", un "el motor no
+  lo publica" o un "es de otra sesión" va escrito, no se calla.
+- **Al cumplir la meta se apaga el reloj** y se dice por qué; un tick sin trabajo
+  real gasta consumo.
 
 ## Anatomía del encargo
 
