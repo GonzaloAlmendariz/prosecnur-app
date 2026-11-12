@@ -24,7 +24,11 @@ export default function BarraLectura({
         <span className="vx-eyebrow">Filtros</span>
         <div className="vx-barra-controles">{filtro}</div>
       </div>
-      {conmutadores && <div className="vx-barra-conmutadores">{conmutadores}</div>}
+      {conmutadores && (
+        <div className="vx-barra-conmutadores" data-qa-geometry-group="validacion/explorar-conmutadores" data-qa-geometry-contract="intrinsic">
+          {conmutadores}
+        </div>
+      )}
     </section>
   );
 }

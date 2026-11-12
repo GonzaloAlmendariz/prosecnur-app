@@ -1,101 +1,86 @@
-import { useState } from "react";
 import type { ExploradorFicha } from "../../../../api/validacionExplorar";
+import { FraseDelCatalogo } from "../../reglas/lista/FraseDelCatalogo";
+import ChipTipo from "./ChipTipo";
 import { fmtN } from "./explorarModelo";
-import { formatoConteo } from "../../../../lib/formatoNumero";
-
-const OPCIONES_VISIBLES = 12;
-
-function Valor({ texto, vacio, mono = false }: { texto: string | null; vacio: string; mono?: boolean }) {
-  if (!texto) return <dd className="is-vacio">{vacio}</dd>;
-  return <dd>{mono ? <span className="vx-mono">{texto}</span> : texto}</dd>;
-}
+import type { LecturaDelFormulario } from "./lecturaDelFormulario";
 
 /**
- * E10 — «En el formulario»: lo que el instrumento dice de la pregunta. Lee la
- * ficha tal cual; lo que no viene se dice («ninguna»), no se inventa.
+ * E10, "En el formulario" (prototipo): tipo, opciones, cuándo aparece, si es
+ * obligatoria, qué abre y su restricción, en palabras. La condición y la
+ * restricción salen de la frase del catálogo de reglas, no de la expresión
+ * del XLSForm. Las opciones con su código y sus casos están en "Tabla" (el
+ * conmutador de la distribución), así que aquí no se repiten.
  */
-export default function PanelFormulario({ ficha }: { ficha: ExploradorFicha }) {
-  const [todas, setTodas] = useState(false);
-  const tipo = [ficha.tipo_xlsform, ficha.tipo_xlsform?.includes(ficha.lista ?? "") ? null : ficha.lista]
-    .filter(Boolean)
-    .join(" ");
-  const opciones = todas ? ficha.opciones : ficha.opciones.slice(0, OPCIONES_VISIBLES);
+export default function PanelFormulario({ ficha, lectura }: { ficha: ExploradorFicha; lectura: LecturaDelFormulario }) {
+  const conOpciones = ficha.tipo === "so" || ficha.tipo === "sm";
   return (
-    <section className="vx-panel" aria-label="En el formulario">
-      <div className="vx-panel-cab">
-        <h4>En el formulario</h4>
-        {ficha.version_formulario && <span className="vx-mono">versión {ficha.version_formulario}</span>}
-      </div>
-      <div className="vx-enunciado">
-        <span>{ficha.label}</span>
-        {ficha.hint && <span>Ayuda: "{ficha.hint}"</span>}
-      </div>
-      <dl className="vx-dl" data-qa-geometry-group="validacion/explorar-ficha-formulario" data-qa-geometry-contract="intrinsic">
+    <dl className="vx-ficha-dl" data-qa-geometry-group="validacion/explorar-ficha-formulario" data-qa-geometry-contract="intrinsic">
+      <div>
         <dt>Tipo</dt>
-        <Valor texto={tipo || null} vacio="sin declarar" mono />
-        <dt>Grupo</dt>
-        <Valor
-          texto={ficha.grupo ? (ficha.grupo.label !== ficha.grupo.name ? `${ficha.grupo.name} (${ficha.grupo.label})` : ficha.grupo.name) : null}
-          vacio="ninguno"
-        />
+        <dd><ChipTipo tipo={ficha.tipo} /></dd>
+      </div>
+      {conOpciones && ficha.opciones.length > 0 && (
+        <div>
+          <dt>Opciones</dt>
+          <dd>{fmtN(ficha.opciones.length)}</dd>
+        </div>
+      )}
+      <div>
         <dt>Aparece si</dt>
-        <Valor texto={ficha.relevant} vacio="siempre" mono />
-        <dt>Restricción</dt>
-        {ficha.constraint ? (
-          <dd>
-            <span className="vx-mono">{ficha.constraint}</span>
-            {ficha.constraint_message && <>: "{ficha.constraint_message}"</>}
-          </dd>
+        {lectura.aparece.tipo === "frase" ? (
+          <dd className="vx-frase"><FraseDelCatalogo piezas={lectura.aparece.piezas} /></dd>
+        ) : lectura.aparece.tipo === "siempre" ? (
+          <dd>Siempre</dd>
         ) : (
-          <dd className="is-vacio">ninguna</dd>
+          <dd className="is-vacio">Con una condición del formulario que no se pudo escribir en palabras</dd>
         )}
+      </div>
+      <div>
         <dt>Obligatoria</dt>
-        <Valor texto={ficha.required === null ? null : ficha.required ? "Sí" : "No"} vacio="sin declarar" />
-        <dt>Filtro de opciones</dt>
-        <Valor texto={ficha.choice_filter} vacio="ninguno" mono />
-        {ficha.appearance && (
-          <>
-            <dt>Apariencia</dt>
-            <Valor texto={ficha.appearance} vacio="" mono />
-          </>
-        )}
-        {ficha.abre.length > 0 && (
-          <>
-            <dt>Abre</dt>
-            <dd>
-              {ficha.abre.map((a, i) => (
-                <span key={a.var}>
-                  {i > 0 && ", "}
-                  <span className="vx-mono" title={a.label}>{a.var}</span>
-                </span>
+        {ficha.required === null ? <dd className="is-vacio">Sin declarar</dd> : <dd>{ficha.required ? "Sí" : "No"}</dd>}
+      </div>
+      {(lectura.restricciones.length > 0 || ficha.constraint_message || ficha.constraint) && (
+        <div>
+          <dt>Restricción</dt>
+          {lectura.restricciones.length > 0 ? (
+            <dd className="vx-frase">
+              {lectura.restricciones.map((frase, i) => (
+                <span key={i} className="vx-frase-linea"><FraseDelCatalogo piezas={frase} /></span>
               ))}
             </dd>
-          </>
-        )}
-      </dl>
-      {ficha.opciones.length > 0 && (
-        <>
-          <div className="vx-opciones" role="table" aria-label="Opciones de la lista">
-            <div role="row">
-              <span role="columnheader">Código</span>
-              <span role="columnheader">Opción</span>
-              <span role="columnheader">n</span>
-            </div>
-            {opciones.map((o) => (
-              <div key={o.codigo} role="row">
-                <span role="cell" className="vx-mono">{o.codigo}</span>
-                <span role="cell">{o.etiqueta}</span>
-                <span role="cell">{fmtN(o.n)}</span>
-              </div>
-            ))}
-          </div>
-          {ficha.opciones.length > OPCIONES_VISIBLES && (
-            <button type="button" className="vx-ver-mas" aria-expanded={todas} onClick={() => setTodas((t) => !t)}>
-              {todas ? "Ver menos" : `Ver las ${formatoConteo(ficha.opciones.length)} opciones`}
-            </button>
+          ) : ficha.constraint_message ? (
+            <dd>"{ficha.constraint_message}"</dd>
+          ) : (
+            <dd className="is-vacio">Una restricción del formulario que no se pudo escribir en palabras</dd>
           )}
-        </>
+        </div>
       )}
-    </section>
+      {ficha.abre.length > 0 && (
+        <div>
+          <dt>Abre</dt>
+          <dd>
+            {ficha.abre.map((a, i) => (
+              <span key={a.var}>
+                {i > 0 && ", "}
+                <code title={a.label}>{a.var}</code>
+              </span>
+            ))}
+            {ficha.datos.n_otro_textos !== null && ` (${fmtN(ficha.datos.n_otro_textos)} ${ficha.datos.n_otro_textos === 1 ? "texto escrito" : "textos escritos"})`}
+          </dd>
+        </div>
+      )}
+      {ficha.hint && (
+        <div>
+          <dt>Ayuda</dt>
+          <dd>"{ficha.hint}"</dd>
+        </div>
+      )}
+      {ficha.version_formulario && (
+        <div>
+          <dt>Versión</dt>
+          <dd><code>{ficha.version_formulario}</code></dd>
+        </div>
+      )}
+    </dl>
   );
 }

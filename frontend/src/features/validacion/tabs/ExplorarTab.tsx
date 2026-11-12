@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { codigoDeError, esEstadoInicial, vacioSinDatos } from "../estadoEsperado";
-import { AlertTriangle, Compass } from "../../../vendor/lucide-react";
+import { AlertTriangle, Compass, List } from "../../../vendor/lucide-react";
 import {
   apiV2ExplorarBivariado,
   apiV2ExplorarFicha,
@@ -16,7 +16,8 @@ import type { ExploradorFicha } from "../../../api/validacionExplorar";
 import type { ExploradorVariable, ExploradorVariablesList } from "../types";
 import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
-import { PulsoButton } from "../../../components/PulsoButton";
+import { MesaDePestana, PilaDeMesa } from "../../../components/procesamiento/MesaDePestana";
+import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { RepeatGrainNote } from "../../../components/RepeatGrainNote";
 import {
   buildExplorerGrain,
@@ -25,7 +26,6 @@ import {
   type ProcessingSheetRepeatContext,
 } from "../../../lib/rosterExplorer";
 import PlotlyView from "../components/PlotlyView";
-import VariablePicker from "../components/VariablePicker";
 import FiltroCascada from "../components/FiltroCascada";
 import CrossBar from "../components/CrossBar";
 import RepeatDimensionBar from "../components/RepeatDimensionBar";
@@ -36,23 +36,25 @@ import { useCatalogoDeExplorar } from "./explorar/useCatalogoDeExplorar";
 import { LECTURA_INICIAL, conmutadoresAplican, type LecturaDeDistribucion } from "./explorar/lecturaDeDistribucion";
 import CabeceraDeTransicion from "../pestanas/CabeceraDeTransicion";
 import { cabeceraDeExplorar } from "../pestanas/cabeceraDeValidacion";
-import CabeceraVariable from "./explorar/CabeceraVariable";
+import CabeceraPregunta from "./explorar/CabeceraPregunta";
+import FlechasDePregunta from "./explorar/FlechasDePregunta";
+import ListaDePreguntas from "./explorar/ListaDePreguntas";
+import { fraseEnTexto, lecturaDelFormulario } from "./explorar/lecturaDelFormulario";
+import { useSeleccionDeValidacion } from "../pestanaDireccionable";
 import Cruce from "./explorar/Cruce";
 import Distribucion from "./explorar/Distribucion";
 import ExplorarLoadingPanel from "./explorar/ExplorarLoadingPanel";
 import FuenteToggle from "./explorar/FuenteToggle";
 import GraficoTarjeta from "./explorar/GraficoTarjeta";
 import PanelApartaTotal from "./explorar/PanelApartaTotal";
-import PanelDatos from "./explorar/PanelDatos";
 import PanelFormulario from "./explorar/PanelFormulario";
-import RielVariables from "./explorar/RielVariables";
 import TextResponsesView from "./explorar/TextResponsesView";
 import TiraCifras from "./explorar/TiraCifras";
 import { enfrentados } from "./explorar/CruceEnfrentados";
 import { recodificacion } from "./explorar/CruceRecodificacion";
 import { cifrasClave, fraseBase, lecturaInicial, modeloCalor, resolverBase, type LecturaCalor } from "./explorar/explorarModelo";
-import { graficoDelPar } from "./explorar/graficoDelPar";
 import { findSeccionOf, pickInitialVariable } from "./explorar/seleccionInicial";
+import "../../../app/tokens-datos.css";
 import "./explorar/explorar.css";
 import { VacioListo } from "../components/VacioListo";
 
@@ -63,17 +65,20 @@ import { VacioListo } from "../components/VacioListo";
 // rebanada V5 del plan de fidelidad (cabecera y retoques del prototipo):
 //   - Cabecera de la pestaña: preguntas, casos, cruce y filtros, y la versión
 //     de la base (Cargada / Limpia) como acción (D-F9).
-//   - Izquierda: la lista de variables (E1); al cruzar se pliega en un riel (E12).
+//   - La mesa de tres columnas del kit (MesaDePestana), como Reglas.
+//   - Izquierda: "Preguntas" (E1), que no se pliega al cruzar.
 //   - Centro: cabecera (E2), barra de lectura Cruzar por | Filtros con los
 //     conmutadores Porcentaje / Casos y Gráfico / Tabla (E3), la base en una
 //     frase (E4), la tira de cifras (E5) y el gráfico por tipo (E6) o el cruce
 //     por par de tipos (E8/E9).
-//   - Derecha: "En el formulario", "En los datos" (E10/E11) y "Reglas sobre
-//     esta pregunta" o, con una tabla cruzada, "Lo que se aparta del total".
+//   - Derecha: "En el formulario" (E10) o, con una tabla cruzada, "Lectura
+//     del cruce"; y siempre "Reglas sobre esta pregunta".
+// La pregunta explorada vive en la dirección (`foco=<código>`): se lee al
+// abrir, se escribe al elegir otra y es la dirección de "Ver en Explorar".
 // Si el motor aún no manda `dist`, `cruce` o la ficha, cada pieza cae a lo
 // anterior (Plotly, las tarjetas KPI) o no se muestra.
 //
-// El deep-link desde Limpieza (prefill.explorar.var) se consume al montar.
+// El enlace viejo por el store (prefill.explorar.var) se pasa al foco al montar.
 
 export default function ExplorarTab({
   repeat = null,
@@ -89,7 +94,7 @@ export default function ExplorarTab({
   const catalogo = useCatalogoDeExplorar(repeat?.parentBase ?? baseNombre, version);
 
   const [inv, setInv] = useState<ExploradorVariablesList | null>(null);
-  const [selected, setSelected] = useState<ExploradorVariable | null>(null);
+  const { foco, elegir } = useSeleccionDeValidacion();
   const [uni, setUni] = useState<ExplorarUnivariadoResult | null>(null);
   const [cruzar, setCruzar] = useState<string | null>(null);
   const [biv, setBiv] = useState<ExplorarBivariadoResult | null>(null);
@@ -111,8 +116,6 @@ export default function ExplorarTab({
   const [fichaEstado, setFichaEstado] = useState<{ var: string; fuente: ExplorarFuente; ficha: ExploradorFicha | null } | null>(null);
   // La lectura que eligió la persona, para el par en que la eligió; otro par abre en la suya (`lecturaInicial`).
   const [lecturaElegida, setLecturaElegida] = useState<{ par: string; lectura: LecturaCalor } | null>(null);
-  // Con cruce la lista va plegada; «lista» o «buscar» la despliegan a pedido.
-  const [listaAbierta, setListaAbierta] = useState<null | "lista" | "buscar">(null);
   // Porcentaje / Casos y Gráfico / Tabla de una pregunta de opciones.
   const [lecturaDist, setLecturaDist] = useState<LecturaDeDistribucion>(LECTURA_INICIAL);
 
@@ -145,6 +148,17 @@ export default function ExplorarTab({
     return scopedSections.flatMap((s) => s.variables);
   }, [scopedSections]);
 
+  // La pregunta que se explora es la del foco de la dirección, si está en la
+  // lista; sin foco (o con uno que esta lista no tiene), la primera útil, sin
+  // escribirla: la dirección cambia solo cuando la persona elige otra.
+  const selected = useMemo(() => {
+    if (prefill?.var) return null;
+    const pedida = foco ? flatVars.find((v) => v.name === foco) ?? null : null;
+    return pedida ?? (scopedInv ? pickInitialVariable(scopedInv) : null);
+  }, [flatVars, foco, scopedInv, prefill?.var]);
+  const selectedName = selected?.name ?? null;
+  const setSelected = useCallback((v: ExploradorVariable | null) => elegir({ foco: v?.name ?? null }), [elegir]);
+
   const currentIdx = useMemo(() => {
     if (!selected) return -1;
     return flatVars.findIndex((v) => v.name === selected.name);
@@ -153,10 +167,15 @@ export default function ExplorarTab({
   const prevVar = currentIdx > 0 ? flatVars[currentIdx - 1] : null;
   const nextVar = currentIdx >= 0 && currentIdx < flatVars.length - 1 ? flatVars[currentIdx + 1] : null;
 
-  // Al cambiar de base, reseteamos el modo fuente a "raw".
+  // Al cambiar de base (no al conocerla: de null a su nombre es la misma),
+  // la fuente vuelve a "raw" y se sueltan el cruce y los filtros. La pregunta
+  // no se suelta: si no existe en la otra base, la de abajo elige otra.
+  const baseAnterior = useRef<string | null>(baseNombre);
   useEffect(() => {
+    const anterior = baseAnterior.current;
+    baseAnterior.current = baseNombre;
+    if (anterior === null) return;
     setFuente("raw");
-    setSelected(null);
     setUni(null);
     setCruzar(null);
     setBiv(null);
@@ -213,39 +232,19 @@ export default function ExplorarTab({
     };
   }, [baseNombre, version, fuente]);
 
-  // Consumir prefill deep-link: abre la variable indicada al cargar.
+  // El enlace viejo por el store (prefill) pasa a la dirección en cuanto
+  // llega, sin esperar la lista: así no lo pierde el paso de la base de null
+  // a su nombre, que vuelve a pedir la lista.
   useEffect(() => {
-    if (!inv || !prefill?.var) return;
-    const found = inv.secciones
-      .flatMap((s) => s.variables)
-      .find((v) => v.name === prefill.var);
-    if (found) {
-      setSelected(found);
-      if (prefill.cruzar_con) setCruzar(prefill.cruzar_con);
-    }
+    if (!prefill?.var) return;
+    elegir({ foco: prefill.var });
+    if (prefill.cruzar_con) setCruzar(prefill.cruzar_con);
     clearPrefill("explorar");
-  }, [inv, prefill, clearPrefill]);
+  }, [prefill, clearPrefill, elegir]);
 
-  // Si el explorador ya tiene inventario y no viene un deep-link, abrir la
-  // primera variable evita que la mesa arranque vacía pese a tener datos.
-  useEffect(() => {
-    if (!scopedInv || selected || prefill?.var) return;
-    const first = pickInitialVariable(scopedInv);
-    if (first) setSelected(first);
-  }, [scopedInv, selected, prefill?.var]);
-
-  // Al cambiar de servicio, conserva la variable si sigue siendo aplicable y
-  // adopta sus conteos segmentados; si no, elige la primera variable útil.
+  // Al cambiar de servicio, el cruce y los filtros que ya no aplican se sueltan.
   useEffect(() => {
     if (!scopedInv) return;
-    const nextSelected = selected
-      ? flatVars.find((variable) => variable.name === selected.name) ?? null
-      : null;
-    if (selected && !nextSelected) {
-      setSelected(pickInitialVariable(scopedInv));
-    } else if (selected && nextSelected && nextSelected !== selected) {
-      setSelected(nextSelected);
-    }
     if (cruzar && !flatVars.some((variable) => variable.name === cruzar)) {
       setCruzar(null);
     }
@@ -256,7 +255,7 @@ export default function ExplorarTab({
     if (Object.keys(nextFiltros).length !== Object.keys(filtros).length) {
       setFiltros(nextFiltros);
     }
-  }, [scopedInv, flatVars, selected, cruzar, filtros]);
+  }, [scopedInv, flatVars, cruzar, filtros]);
 
   // Cargar univariado al seleccionar variable o cambiar filtros.
   useEffect(() => {
@@ -287,7 +286,7 @@ export default function ExplorarTab({
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, baseNombre, fuente, selectedRepeatIsEmpty, JSON.stringify(effectiveFiltros)]);
+  }, [selectedName, baseNombre, fuente, selectedRepeatIsEmpty, JSON.stringify(effectiveFiltros)]);
 
   // Cargar bivariado cuando el usuario elige "cruzar con" (o cambian filtros).
   useEffect(() => {
@@ -321,15 +320,15 @@ export default function ExplorarTab({
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, cruzar, baseNombre, fuente, selectedRepeatIsEmpty, JSON.stringify(effectiveFiltros)]);
+  }, [selectedName, cruzar, baseNombre, fuente, selectedRepeatIsEmpty, JSON.stringify(effectiveFiltros)]);
 
   // Ficha de la pregunta (E10/E11). Un motor sin el endpoint devuelve null y
   // los paneles no se muestran; un error tampoco tumba la vista.
   useEffect(() => {
-    if (!selected || selectedRepeatIsEmpty) return;
+    if (!selectedName || selectedRepeatIsEmpty) return;
     let cancel = false;
-    const pedida = { var: selected.name, fuente };
-    apiV2ExplorarFicha(selected.name, baseNombre, fuente)
+    const pedida = { var: selectedName, fuente };
+    apiV2ExplorarFicha(selectedName, baseNombre, fuente)
       .then((ficha) => {
         if (!cancel) setFichaEstado({ ...pedida, ficha });
       })
@@ -339,18 +338,12 @@ export default function ExplorarTab({
     return () => {
       cancel = true;
     };
-  }, [selected, baseNombre, fuente, selectedRepeatIsEmpty]);
-
-  const cambiarCruce = useCallback((v: string | null) => {
-    setCruzar(v);
-    setListaAbierta(null);
-  }, []);
+  }, [selectedName, baseNombre, fuente, selectedRepeatIsEmpty]);
 
   const onPickVariable = useCallback((v: ExploradorVariable) => {
     setSelected(v);
     setCruzar(null);
-    setListaAbierta(null);
-  }, []);
+  }, [setSelected]);
 
   const fichaVigente =
     selected && fichaEstado && fichaEstado.var === selected.name && fichaEstado.fuente === fuente ? fichaEstado : null;
@@ -403,7 +396,7 @@ export default function ExplorarTab({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [prevVar, nextVar]);
+  }, [prevVar, nextVar, setSelected]);
 
   // Banner de grano cuando la base explorada es una hija repeat: recuerda que
   // los denominadores de las distribuciones son instancias del roster, no
@@ -492,38 +485,16 @@ export default function ExplorarTab({
   }
 
   const crossVar = cruzar ? flatVars.find((v) => v.name === cruzar) ?? null : null;
-  const plegada = !!crossVar && listaAbierta === null;
-  const titulo = selectedRepeatOption ? `Preguntas para ${selectedRepeatOption.label}` : "Variables";
   const sufijoRepeat = selectedRepeatOption ? ` (${selectedRepeatOption.label})` : "";
   const frase = base ? fraseBase(base) : null;
+  const lecturaForm = selected
+    ? lecturaDelFormulario(catalogo.estado === "listo" ? catalogo.catalogo : null, selected.name, ficha?.relevant ?? null)
+    : null;
+  const condicion = lecturaForm?.aparece.tipo === "frase" ? fraseEnTexto(lecturaForm.aparece.piezas) : null;
 
   // Con una recodificación (E8d), lo que «se aparta del total» es la diagonal: el panel no aporta.
   const esRecodificacion = !!(cruce?.tabla && cruce.tipo_x === "sm" && cruce.tipo_y === "sm" && recodificacion(cruce.tabla));
-  const lateral =
-    crossVar && modelo && !esRecodificacion ? (
-      <aside className="vx-lateral" aria-label="Lectura del cruce" data-qa-geometry-group="validacion/explorar-lectura-cruce" data-qa-geometry-contract="intrinsic">
-        <PanelApartaTotal modelo={modelo} />
-      </aside>
-    ) : !crossVar && uniVigente && selected ? (
-      // La columna se reserva mientras llega la ficha: el gráfico no ocupa el
-      // ancho entero para encogerse un instante después (C2). Si la ficha
-      // falló, queda solo el panel de reglas.
-      <aside className="vx-lateral" aria-label="Ficha de la pregunta" aria-busy={!fichaVigente}>
-        {(ficha || !fichaVigente) && (
-          <div className="vx-tarjeta vx-ficha" data-qa-geometry-group="validacion/explorar-ficha" data-qa-geometry-contract="intrinsic">
-            {ficha ? (
-              <>
-                <PanelFormulario ficha={ficha} />
-                <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
-              </>
-            ) : (
-              <LoadingBlock variant="inline" minHeight={40} label="Leyendo el formulario" />
-            )}
-          </div>
-        )}
-        <ReglasDeLaPregunta variable={selected.name} lectura={catalogo} />
-      </aside>
-    ) : null;
+  const conLecturaDelCruce = !!crossVar && !!modelo && !esRecodificacion;
 
   const grafico = !uniVigente || !selected ? null : crossVar && biv ? (
     cruce ? (
@@ -541,13 +512,7 @@ export default function ExplorarTab({
       </GraficoTarjeta>
     )
   ) : crossVar ? null : dist ? (
-    <Distribucion
-      dist={dist}
-      titulo={selected.label || selected.name}
-      sinRespuesta={base?.sinRespuesta ?? null}
-      declarados={declarados}
-      lectura={lecturaDist}
-    />
+    <Distribucion dist={dist} sinRespuesta={base?.sinRespuesta ?? null} declarados={declarados} lectura={lecturaDist} />
   ) : (
     <GraficoTarjeta titulo={`Distribución${sufijoRepeat}`} tipo={uniVigente.tipo}>
       {uniVigente.chart.kind === "table" && uniVigente.chart.text_rows ? (
@@ -558,133 +523,135 @@ export default function ExplorarTab({
     </GraficoTarjeta>
   );
 
-  const panelContent = (
-    <>
-      {plegada ? (
-        <RielVariables
+  const lista = (
+    <PanelDeMesa
+      zona="preguntas"
+      titulo={selectedRepeatOption ? `Preguntas para ${selectedRepeatOption.label}` : "Preguntas"}
+      icono={<List size={16} aria-hidden />}
+      conteo={flatVars.length}
+    >
+      <ListaDePreguntas
+        secciones={scopedSections}
+        elegida={selected?.name ?? null}
+        onElegir={onPickVariable}
+        repeatCode={repeatCode}
+        repeatLabel={selectedRepeatOption?.label ?? null}
+      />
+    </PanelDeMesa>
+  );
+
+  const centro = (
+    <PanelDeMesa
+      zona="pregunta"
+      etiquetaCuerpo="Pregunta que se explora"
+      titulo={selected ? (
+        <CabeceraPregunta
+          variable={selected}
+          titulo={ficha?.label || uniVigente?.label || selected.label || selected.name}
+          nOpciones={ficha?.opciones.length || (dist?.filas ? dist.filas.length : null)}
+          condicion={condicion}
+          cruce={crossVar}
+          repeatLabel={selectedRepeatOption?.label ?? null}
+          repeatInstances={selectedRepeatOption?.n_instancias ?? null}
+        />
+      ) : "Pregunta"}
+      acciones={selected ? (
+        <FlechasDePregunta
           posicion={currentIdx + 1}
           total={flatVars.length}
-          onDesplegar={() => setListaAbierta("lista")}
-          onBuscar={() => setListaAbierta("buscar")}
+          anterior={prevVar?.name ?? null}
+          siguiente={nextVar?.name ?? null}
           onAnterior={prevVar ? () => setSelected(prevVar) : undefined}
           onSiguiente={nextVar ? () => setSelected(nextVar) : undefined}
-          nombreAnterior={prevVar?.name ?? null}
-          nombreSiguiente={nextVar?.name ?? null}
         />
-      ) : (
-        <aside className="pulso-validacion-explorar-sidebar" aria-label="Variables del formulario">
-          <VariablePicker
-            secciones={scopedSections}
-            selectedVar={selected?.name ?? null}
-            onSelect={onPickVariable}
-            repeatCode={repeatCode}
-            repeatLabel={selectedRepeatOption?.label ?? null}
-            titulo={titulo}
-            autoFocusBusqueda={listaAbierta === "buscar"}
-            accion={
-              crossVar ? (
-                <PulsoButton variant="link" size="sm" onClick={() => setListaAbierta(null)}>
-                  Plegar
-                </PulsoButton>
-              ) : null
-            }
-          />
-        </aside>
-      )}
-
-      <main className="pulso-validacion-explorar-main">
-        {rosterGrain && (
-          <RepeatGrainNote grain={rosterGrain} className="pulso-validacion-explorar-repeat" />
-        )}
-
+      ) : undefined}
+    >
+      <div className="vx-centro">
+        {rosterGrain && <RepeatGrainNote grain={rosterGrain} className="pulso-validacion-explorar-repeat" />}
         {repeatContext && repeatContext.options.length > 0 && (
-          <RepeatDimensionBar
-            context={repeatContext}
-            selectedCode={repeatCode}
-            onChange={setRepeatCode}
+          <RepeatDimensionBar context={repeatContext} selectedCode={repeatCode} onChange={setRepeatCode} />
+        )}
+        <BarraLectura
+          conmutadores={
+            conmutadoresAplican(dist, !!crossVar) ? (
+              <ConmutadoresDeLectura lectura={lecturaDist} onCambio={setLecturaDist} />
+            ) : null
+          }
+          filtro={
+            <FiltroCascada secciones={scopedSections} filtros={filtros} onChange={setFiltros} baseNombre={baseNombre} incrustado />
+          }
+          cruce={
+            selected ? (
+              <CrossBar
+                secciones={scopedSections}
+                selfVar={selected.name}
+                selfSeccion={scopedInv ? findSeccionOf(selected.name, scopedInv) : null}
+                cruzar={cruzar}
+                onChange={setCruzar}
+              />
+            ) : (
+              <span className="vx-barra-nota">Elige una pregunta primero</span>
+            )
+          }
+        />
+        {selectedRepeatIsEmpty ? (
+          <EmptyState
+            icon={<Compass size={20} />}
+            title={`Sin respuestas para ${selectedRepeatOption?.label ?? "este servicio"}`}
+            hint="El servicio está declarado en el formulario, pero esta base no contiene instancias para analizar."
+          />
+        ) : !selected && (
+          <EmptyState
+            icon={<Compass size={20} />}
+            title="Elige una pregunta o campo"
+            hint="Selecciona un elemento de la lista para ver su distribución, resumen y cruces."
           />
         )}
+        {!crossVar && <TiraCifras cifras={cifras} />}
+        {grafico}
+        {!crossVar && frase && (
+          <p className="vx-nota">
+            Sin ponderar. Base: <strong>{frase.destacado}</strong>
+            {frase.resto}
+          </p>
+        )}
+        {busy && <LoadingBlock variant="inline" label={busy} />}
+        {error && <ErrorBlock label="Error" detail={error} />}
+      </div>
+    </PanelDeMesa>
+  );
 
-        <div className="vx-cuerpo">
-          <div className="vx-centro">
-            {selected && uniVigente && (
-              <CabeceraVariable
-                uni={uniVigente}
-                ficha={ficha}
-                seccion={scopedInv ? findSeccionOf(selected.name, scopedInv) : null}
-                posicion={currentIdx + 1}
-                total={flatVars.length}
-                nOpciones={ficha?.opciones.length || (dist?.filas ? dist.filas.length : null)}
-                cruce={crossVar ? { variable: crossVar, grafico: cruce?.grafico || graficoDelPar(selected.tipo, crossVar.tipo) } : null}
-                onAnterior={prevVar ? () => setSelected(prevVar) : undefined}
-                onSiguiente={nextVar ? () => setSelected(nextVar) : undefined}
-                nombreAnterior={prevVar?.name ?? null}
-                nombreSiguiente={nextVar?.name ?? null}
-                repeatLabel={selectedRepeatOption?.label ?? null}
-                repeatInstances={selectedRepeatOption?.n_instancias ?? null}
-              />
-            )}
+  const derecha = selected ? (
+    <PilaDeMesa grupo="validacion/explorar">
+      {conLecturaDelCruce && modelo ? (
+        <PanelDeMesa zona="lectura-cruce" titulo="Lectura del cruce">
+          <PanelApartaTotal modelo={modelo} />
+        </PanelDeMesa>
+      ) : !crossVar && (ficha || !fichaVigente) ? (
+        <PanelDeMesa zona="formulario" titulo="En el formulario" ocupado={!fichaVigente}>
+          {ficha && lecturaForm ? (
+            <PanelFormulario ficha={ficha} lectura={lecturaForm} />
+          ) : (
+            <LoadingBlock variant="inline" minHeight={40} label="Leyendo el formulario" />
+          )}
+        </PanelDeMesa>
+      ) : null}
+      <ReglasDeLaPregunta variable={selected.name} lectura={catalogo} />
+    </PilaDeMesa>
+  ) : (
+    <PilaDeMesa grupo="validacion/explorar">
+      <PanelDeMesa zona="formulario" titulo="En el formulario">
+        <p className="vx-barra-nota">Elige una pregunta de la lista.</p>
+      </PanelDeMesa>
+    </PilaDeMesa>
+  );
 
-            <BarraLectura
-              conmutadores={
-                conmutadoresAplican(dist, !!crossVar) ? (
-                  <ConmutadoresDeLectura lectura={lecturaDist} onCambio={setLecturaDist} />
-                ) : null
-              }
-              filtro={
-                <FiltroCascada
-                  secciones={scopedSections}
-                  filtros={filtros}
-                  onChange={setFiltros}
-                  baseNombre={baseNombre}
-                  incrustado
-                />
-              }
-              cruce={
-                selected ? (
-                  <CrossBar
-                    secciones={scopedSections}
-                    selfVar={selected.name}
-                    selfSeccion={scopedInv ? findSeccionOf(selected.name, scopedInv) : null}
-                    cruzar={cruzar}
-                    onChange={cambiarCruce}
-                  />
-                ) : (
-                  <span className="vx-barra-nota">Elige una variable primero</span>
-                )
-              }
-            />
-
-            {selectedRepeatIsEmpty ? (
-              <EmptyState
-                icon={<Compass size={20} />}
-                title={`Sin respuestas para ${selectedRepeatOption?.label ?? "este servicio"}`}
-                hint="El servicio está declarado en el formulario, pero esta base no contiene instancias para analizar."
-              />
-            ) : !selected && (
-              <EmptyState
-                icon={<Compass size={20} />}
-                title="Elige una pregunta o campo"
-                hint="Selecciona un elemento de la lista para ver su distribución, resumen y cruces."
-              />
-            )}
-
-            {frase && (
-              <p className="vx-base">
-                Base: <strong>{frase.destacado}</strong>
-                {frase.resto}
-              </p>
-            )}
-            {!crossVar && <TiraCifras cifras={cifras} />}
-            {grafico}
-
-            {busy && <LoadingBlock variant="inline" label={busy} />}
-            {error && <ErrorBlock label="Error" detail={error} />}
-          </div>
-          {lateral}
-        </div>
-      </main>
-    </>
+  const mesa = (
+    <MesaDePestana grupo="validacion/explorar" columnas={3} cabecera={cabecera}>
+      {lista}
+      {centro}
+      {derecha}
+    </MesaDePestana>
   );
 
   const scopedInventoryEmpty = (scopedInv?.n_variables ?? inv.n_variables) === 0;
@@ -697,18 +664,13 @@ export default function ExplorarTab({
       (!!cruzar && !biv)
     );
 
-  const layoutClass = `pulso-validacion-explorar-layout${plegada ? " vx-con-riel" : ""}`;
   if (busy || error || primaryResultPending) {
-    return conCabecera(<div className={layoutClass}>{panelContent}</div>);
+    return <div className="pulso-validacion-pestana-explorar">{mesa}</div>;
   }
 
-  return conCabecera(
-    <div
-      className={layoutClass}
-      data-audit-ready="validacion-explorar"
-    >
-      {panelContent}
+  return (
+    <div className="pulso-validacion-pestana-explorar" data-audit-ready="validacion-explorar">
+      {mesa}
     </div>
   );
 }
-

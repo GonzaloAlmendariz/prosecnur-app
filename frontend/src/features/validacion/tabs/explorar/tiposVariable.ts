@@ -69,3 +69,13 @@ export function coincide(v: Pick<ExploradorVariable, "name" | "label">, consulta
   if (!q) return true;
   return normalizarBusqueda(v.name).includes(q) || normalizarBusqueda(v.label ?? "").includes(q);
 }
+
+/** Tono de cada tipo en la paleta por tipo de pregunta (`--tipo-*`): el punto de la lista y de los chips. */
+export const TIPO_TONO: Readonly<Record<TipoVariable, "so" | "sm" | "int" | "text" | "neutro">> = {
+  so: "so",
+  sm: "sm",
+  num: "int",
+  texto: "text",
+  fecha: "neutro",
+  mixto: "neutro",
+};

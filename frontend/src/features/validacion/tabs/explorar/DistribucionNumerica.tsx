@@ -12,7 +12,7 @@ const ALTO_CAJA = 62;
 
 /**
  * E6 — numérica: histograma con su rejilla y la caja debajo en la misma escala.
- * El tramo con más casos va en navy; la mediana es una línea punteada rotulada.
+ * Todos los tramos del mismo color; la mediana es una línea punteada rotulada.
  * Los atípicos no se recortan del eje: los cuenta la tira de cifras de arriba.
  */
 export default function DistribucionNumerica({ num }: { num: ExploradorDistNum }) {
@@ -43,7 +43,7 @@ export default function DistribucionNumerica({ num }: { num: ExploradorDistNum }
         {num.bins.map((b, i) => (
           <rect
             key={i}
-            className={`vx-svg-columna${b === top ? " is-mayor" : ""}`}
+            className="vx-svg-columna is-dist"
             x={X(b.desde) + 1}
             y={yDe(marco, b.n, y)}
             width={Math.max(1, X(b.hasta) - X(b.desde) - 2)}

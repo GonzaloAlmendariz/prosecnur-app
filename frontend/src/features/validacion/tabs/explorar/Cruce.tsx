@@ -3,7 +3,9 @@ import CruceCajas, { diferenciaEnCifras, DiferenciaEnCifras } from "./CruceCajas
 import CruceEnfrentados, { enfrentados } from "./CruceEnfrentados";
 import CruceRecodificacion, { recodificacion } from "./CruceRecodificacion";
 import CruceDispersion, { AvisoRestriccion, NUBE_CHICA } from "./CruceDispersion";
+import CruceBarras from "./CruceBarras";
 import CruceLista from "./CruceLista";
+import { barrasDelCruce } from "./barrasDelCruce";
 import CruceSerie from "./CruceSerie";
 import GraficoTarjeta from "./GraficoTarjeta";
 import TablaCalor, { LecturaCalorSelector } from "./TablaCalor";
@@ -65,6 +67,8 @@ export default function Cruce({
     );
   }
   if (cruce.forma === "tabla" && modelo) {
+    // Con pocas columnas, las barras agrupadas van sobre la tabla (prototipo); con más, solo la tabla.
+    const barras = barrasDelCruce(modelo);
     return (
       <GraficoTarjeta
         titulo={titulo}
@@ -72,6 +76,7 @@ export default function Cruce({
         bajada={respuestas}
         acciones={<LecturaCalorSelector valor={lectura} onCambio={onLectura} />}
       >
+        {barras && <CruceBarras barras={barras} lectura={modelo.titulo} />}
         <TablaCalor modelo={modelo} rotuloFilas={rotuloX} />
       </GraficoTarjeta>
     );

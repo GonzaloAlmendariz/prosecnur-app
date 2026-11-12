@@ -530,7 +530,7 @@
 }
 /* Seis cifras pasan a dos filas de tres; cuatro, a dos de dos. La consulta
  * mira el centro: un contenedor no puede consultarse a sí mismo. */
-@container vx-centro (max-width: 760px) {
+@container vx-centro (max-width: 600px) {
   .vx-tira[data-cifras="6"] {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -632,20 +632,12 @@
   border-radius: 5px;
   background: var(--pulso-surface-3);
 }
+/* Todas las barras del mismo color, como el prototipo: el orden ya dice cuál es la mayor. */
 .vx-relleno {
   display: block;
   height: 100%;
   border-radius: 5px;
-  background: var(--vx-resto);
-}
-.vx-barra-fila.is-primera .vx-relleno {
-  background: var(--vx-mayor);
-}
-.vx-barra-fila.is-primera .vx-barra-etq {
-  font-weight: var(--pulso-weight-bold);
-}
-.vx-barra-fila.is-residual .vx-relleno {
-  background: var(--vx-resid);
+  background: var(--pulso-data-seq-4);
 }
 .vx-barra-pct {
   color: var(--pulso-text);
@@ -1091,13 +1083,6 @@
   top: 0;
   left: 0;
 }
-.vx-centro > .vx-grafico:last-child > .vx-barras {
-  flex: 1 1 auto;
-}
-.vx-centro > .vx-grafico:last-child > .vx-barras > .vx-barra-fila {
-  flex: 1 1 auto;
-  max-height: 60px;
-}
 .vx-svg {
   display: block;
   max-width: 100%;
@@ -1157,6 +1142,8 @@
 /* Columnas (histograma, días): el apoyo por defecto; la mayor en navy; los domingos, en el tono claro. */
 .vx-svg .vx-svg-columna { fill: var(--vx-resto); }
 .vx-svg .vx-svg-columna.is-mayor { fill: var(--vx-mayor); }
+/* El histograma de una numérica, de un solo color como las barras. */
+.vx-svg .vx-svg-columna.is-dist { fill: var(--pulso-data-seq-4); }
 .vx-svg .vx-svg-columna.is-claro { fill: var(--vx-claro); }
 .vx-svg .vx-svg-columna:hover { filter: brightness(1.1); }
 .vx-svg text.vx-svg-anota {
@@ -1472,33 +1459,7 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-/* "Reglas sobre esta pregunta": ocupa el resto de la columna y deja su vacío
- * dentro (C3); la acción va al pie, a todo el ancho, en un tono más bajo. */
-.vx-reglas-pregunta {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.vx-reglas-pregunta-cab {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  padding: var(--pulso-space-4) 18px var(--pulso-space-2);
-}
-.vx-reglas-pregunta-cab h4 {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
-}
-.vx-reglas-pregunta-cuerpo {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  padding: 0 18px var(--pulso-space-3);
-}
+/* Las filas de "Reglas sobre esta pregunta" y de "Lectura del cruce" (el marco es PanelDeMesa). */
 .vx-reglas-lista {
   margin: 0;
   padding: 0;
@@ -1544,16 +1505,6 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
-}
-.vx-reglas-pregunta-pie {
-  display: flex;
-  padding: var(--pulso-space-3) 18px;
-  border-top: 1px solid var(--pulso-border);
-  background: var(--pulso-surface-2);
-}
-.vx-reglas-pregunta-pie > .pulso-button {
-  flex: 1 1 auto;
-  justify-content: center;
 }
 .vx-lectura {
   display: flex;
@@ -1614,4 +1565,485 @@
   .pulso-validacion-explorar-layout.vx-con-riel {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ══ Rebanada V5, segunda parte: Explorar en la mesa del kit, como el
+   prototipo (`validacion-explorar`, `-cruce`, `-numerica`). Los marcos son de
+   MesaDePestana y PanelDeMesa; aquí solo va lo de dentro de cada contenedor,
+   sin cajas propias: la fila elegida lleva el fondo suave del módulo y su
+   anillo, y los pozos van sin borde. ══ */
+
+.pulso-validacion-panel-body:has(> .pulso-validacion-pestana-explorar) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.pulso-validacion-pestana-explorar {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── Punto y chip de tipo (paleta por tipo de pregunta) ── */
+.vx-tp {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--pulso-text-faint);
+}
+.vx-tp[data-tono="so"] { background: var(--tipo-so-border); }
+.vx-tp[data-tono="sm"] { background: var(--tipo-sm-border); }
+.vx-tp[data-tono="int"] { background: var(--tipo-int-border); }
+.vx-tp[data-tono="text"] { background: var(--tipo-text-border); }
+.vx-tipo-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 1px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+.vx-tipo-chip[data-tono="so"] { background: var(--tipo-so-bg); box-shadow: inset 0 0 0 1px var(--tipo-so-border); color: var(--tipo-so-fg); }
+.vx-tipo-chip[data-tono="sm"] { background: var(--tipo-sm-bg); box-shadow: inset 0 0 0 1px var(--tipo-sm-border); color: var(--tipo-sm-fg); }
+.vx-tipo-chip[data-tono="int"] { background: var(--tipo-int-bg); box-shadow: inset 0 0 0 1px var(--tipo-int-border); color: var(--tipo-int-fg); }
+.vx-tipo-chip[data-tono="text"] { background: var(--tipo-text-bg); box-shadow: inset 0 0 0 1px var(--tipo-text-border); color: var(--tipo-text-fg); }
+
+/* ── Preguntas ── */
+.vx-preguntas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-4);
+}
+.vx-busca {
+  position: relative;
+  display: block;
+}
+.vx-busca > svg {
+  position: absolute;
+  top: 50%;
+  left: 9px;
+  transform: translateY(-50%);
+  color: var(--pulso-text-soft);
+  pointer-events: none;
+}
+.vx-busca .pulso-input.pulso-input--sm {
+  width: 100%;
+  padding-left: 28px;
+  padding-right: var(--pulso-space-1);
+}
+.vx-preguntas .vx-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.vx-chip .vx-tp {
+  margin-inline-end: 2px;
+}
+.vx-preguntas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+.vx-preguntas-seccion > ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vx-pregunta-fila {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+.vx-pregunta-fila:hover {
+  background: var(--pulso-surface-2);
+}
+.vx-pregunta-fila[aria-current="true"] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+.vx-pregunta-fila:focus-visible {
+  outline: 2px solid var(--module-accent-border, var(--pulso-primary-ring));
+  outline-offset: -2px;
+}
+.vx-pregunta-fila > b {
+  min-width: 0;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+.vx-pregunta-fila > em {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.vx-pregunta-codigo {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.vx-pregunta-codigo > span:not(.pulso-variable-repeat-scope) {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+.vx-pregunta-codigo > code {
+  min-width: 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}
+.vx-pregunta-av {
+  grid-column: 1 / -1;
+  display: block;
+  height: 4px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+}
+.vx-pregunta-av > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pulso-data-seq-4);
+}
+.vx-pregunta-av.is-baja > i {
+  background: var(--pulso-warn-accent);
+}
+
+/* ── La pregunta en una línea (título del contenedor central) ── */
+.pulso-panel-de-mesa--pregunta .pulso-panel-de-mesa-titulo {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+.vx-preg-cab {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+.vx-preg-cab > code {
+  flex: none;
+  padding: 3px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+}
+.vx-preg-cab-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.vx-preg-cab-titulo {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+.vx-preg-cab-detalle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-regular);
+}
+.vx-flechas {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* ── El cuerpo de la pregunta: una sola superficie, secciones con filete ── */
+.pulso-panel-de-mesa--pregunta .vx-centro {
+  gap: 0;
+  flex: 1 0 auto;
+}
+.pulso-panel-de-mesa--pregunta .vx-centro > .vx-tarjeta {
+  border: 0;
+  border-bottom: 1px solid var(--pulso-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+.pulso-panel-de-mesa--pregunta .vx-centro > .vx-grafico {
+  border-bottom: 0;
+}
+.pulso-panel-de-mesa--pregunta .vx-centro > .vx-barra {
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+.pulso-panel-de-mesa--pregunta .vx-centro > .pulso-validacion-explorar-repeat,
+.pulso-panel-de-mesa--pregunta .vx-centro > .pulso-empty-state {
+  margin: var(--pulso-space-4) var(--pulso-space-5) 0;
+}
+.vx-nota {
+  margin: 0;
+  padding: 0 var(--pulso-space-5) var(--pulso-space-5);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+.vx-nota strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* El editor de un filtro y la elección de cruce no ensanchan la barra. */
+.vx-barra-controles > section {
+  width: 100%;
+  min-width: 0;
+}
+.vx-barra-controles select {
+  min-width: 0;
+  max-width: 100%;
+}
+.vx-barra-controles section > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.vx-barra .crossbar-activa {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--pulso-space-3);
+  border-radius: 999px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* ── En el formulario ── */
+.vx-ficha-dl {
+  container: vx-ficha / inline-size;
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-5) var(--pulso-space-4);
+  display: flex;
+  flex-direction: column;
+}
+.vx-ficha-dl > div {
+  display: grid;
+  grid-template-columns: 8.5em minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 75%, transparent);
+}
+.vx-ficha-dl > div:first-child {
+  border-top: 0;
+}
+/* En la columna angosta (hasta 1400 de ventana) el rótulo va sobre el valor:
+   la frase de una condición necesita el ancho entero. */
+@container vx-ficha (max-width: 250px) {
+  .vx-ficha-dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+.vx-ficha-dl dt {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+.vx-ficha-dl dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+.vx-ficha-dl dd.is-vacio {
+  color: var(--pulso-text-faint);
+  font-weight: var(--pulso-weight-regular);
+}
+.vx-ficha-dl code {
+  font-size: var(--pulso-type-caption-size);
+}
+.vx-frase-linea {
+  display: block;
+}
+.vx-frase-linea + .vx-frase-linea {
+  margin-top: var(--pulso-space-1);
+}
+
+/* ── Reglas y lectura del cruce en el cuerpo de su contenedor ── */
+.pulso-panel-de-mesa--reglas-pregunta .pulso-panel-de-mesa-cuerpo,
+.pulso-panel-de-mesa--lectura-cruce .pulso-panel-de-mesa-cuerpo {
+  padding: var(--pulso-space-1) var(--pulso-space-5) var(--pulso-space-3);
+}
+.vx-reglas-lista > li.is-sin-accion {
+  grid-template-columns: 8px minmax(0, 1fr);
+}
+.vx-lectura-cruce {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+.vx-lectura-nota {
+  margin: var(--pulso-space-3) 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+.vx-impacto {
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+}
+
+/* ── Barras agrupadas del cruce ── */
+.vx-cruce-barras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  margin-bottom: var(--pulso-space-4);
+}
+.vx-cruce-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+.vx-cruce-leyenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.vx-cruce-leyenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.vx-cruce-lectura {
+  margin-inline-start: auto;
+  font-weight: var(--pulso-weight-regular);
+}
+.vx-cruce-leyenda i[data-serie="0"], .vx-xbar-pistas i[data-serie="0"] { background: var(--pulso-data-seq-2); }
+.vx-cruce-leyenda i[data-serie="1"], .vx-xbar-pistas i[data-serie="1"] { background: var(--pulso-data-seq-5); }
+.vx-cruce-leyenda i[data-serie="2"], .vx-xbar-pistas i[data-serie="2"] { background: var(--pulso-data-seq-3); }
+.vx-cruce-leyenda i[data-serie="3"], .vx-xbar-pistas i[data-serie="3"] { background: var(--pulso-data-seq-1); }
+.vx-xbarras {
+  container: vx-xbarras / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+.vx-xbar {
+  display: grid;
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr) 48px 44px;
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+@container vx-xbarras (max-width: 520px) {
+  .vx-xbar {
+    grid-template-columns: minmax(0, 96px) minmax(0, 1fr) 40px 38px;
+    gap: var(--pulso-space-2);
+  }
+}
+.vx-xbar-etq {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vx-xbar-pistas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.vx-xbar-pistas i {
+  display: block;
+  height: 12px;
+  border-radius: 3px;
+}
+.vx-xbar-valores {
+  display: flex;
+  flex-direction: column;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-align: right;
+}
+.vx-xbar-valores b {
+  font-weight: var(--pulso-weight-semibold);
+}
+.vx-xbar > em {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.vx-xbar > em.is-dif {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-bold);
+}
+
+/* La recodificación conserva su lectura: el destino mayor en el tono fuerte y lo que sigue en gris. */
+[data-qa-geometry-group="validacion/explorar-recodificacion"] .vx-barra-fila.is-primera .vx-relleno { background: var(--vx-mayor); }
+[data-qa-geometry-group="validacion/explorar-recodificacion"] .vx-barra-fila.is-residual .vx-relleno { background: var(--vx-resid); }
+.vx-preguntas-grupo {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  margin: var(--pulso-space-2) 0 var(--pulso-space-1);
+  padding: 0 var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* En la columna derecha, "En el formulario" y "Lectura del cruce" miden lo
+   suyo hasta el 60 % de la columna (con su propio scroll si pasan) y "Reglas
+   sobre esta pregunta" se queda con el resto, como el prototipo. */
+.pulso-mesa-pestana-pila > .pulso-panel-de-mesa--formulario,
+.pulso-mesa-pestana-pila > .pulso-panel-de-mesa--lectura-cruce {
+  flex: 0 0 auto;
+  max-height: 60%;
 }

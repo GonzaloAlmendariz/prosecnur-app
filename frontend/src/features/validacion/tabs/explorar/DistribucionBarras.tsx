@@ -7,15 +7,11 @@ import type { LecturaDeDistribucion } from "./lecturaDeDistribucion";
 
 const VISIBLES = 15;
 
-/** Puntos que la primera tiene que sacarle a la segunda para ir en navy: menos sería inventar una mayoría. */
-export const VENTAJA_MAYOR = 2;
-
 /**
  * E6 — única y múltiple: barras horizontales propias (no Plotly), ordenadas
  * por frecuencia con «Otro»/«No sabe» al final y «Sin respuesta» aparte,
- * fuera de la base del porcentaje. La pista es la escala de 0 a 100 %; la
- * primera va en navy sólo si le saca 2 puntos a la segunda, las demás en el
- * apoyo y las residuales en gris (estándar del motor de Gráficos). Una lista
+ * fuera de la base del porcentaje. La pista es la escala de 0 a 100 % y todas
+ * las barras van del mismo color, como el prototipo. Una lista
  * ordinal respeta su orden y suma arriba la barra divergente; una múltiple
  * suma abajo cuántas opciones marca cada caso. Con `valor = "casos"` la cifra
  * fuerte de cada barra es el conteo y el porcentaje pasa al costado.
@@ -37,9 +33,6 @@ export default function DistribucionBarras({
   const filas = ordenarFilas(dist.filas ?? [], dist.ordinal, declarados);
   const visibles = todas ? filas : filas.slice(0, VISIBLES);
   const div = dist.ordinal && dist.tipo === "so" ? divergente(filas.filter((f) => !fuera(f))) : null;
-  const sustantivas = filas.filter((f) => !esResidual(f.etiqueta) && !fuera(f));
-  const top = sustantivas[0];
-  const gana = !dist.ordinal && !!top && top.pct - (sustantivas[1]?.pct ?? 0) >= VENTAJA_MAYOR;
 
   // Una escala se lee en su barra divergente, con la cifra en cada tramo y la leyenda debajo: repetirla en cinco
   // barras sueltas decía lo mismo dos veces.
@@ -53,7 +46,7 @@ export default function DistribucionBarras({
       {visibles.map((f) => (
         <div
           key={`${f.codigo}-${f.etiqueta}`}
-          className={`vx-barra-fila${f === top && gana ? " is-primera" : ""}${esResidual(f.etiqueta) || fuera(f) ? " is-residual" : ""}`}
+          className={`vx-barra-fila${esResidual(f.etiqueta) || fuera(f) ? " is-residual" : ""}`}
         >
           <span className="vx-barra-etq">
             {fuera(f) ? <><span className="vx-mono">{f.etiqueta}</span> (fuera de la lista)</> : f.etiqueta}

@@ -28,12 +28,11 @@ const so = (filas: [string, number][]): ExploradorDist => {
   return { tipo: "so", ordinal: false, base_n: base, filas: filas.map(([etiqueta, n], i) => ({ codigo: String(i + 1), etiqueta, n, pct: (100 * n) / base })) };
 };
 
-test("la primera va en navy sólo si le saca 2 puntos a la segunda; la pista es de 0 a 100 %", () => {
-  act(() => root.render(<DistribucionBarras dist={so([["Mujer", 641], ["Hombre", 640], ["Otro", 2]])} sinRespuesta={null} />));
+test("todas las barras van igual, sin destacar la mayor (prototipo); la pista es de 0 a 100 %", () => {
+  act(() => root.render(<DistribucionBarras dist={so([["Redes", 63], ["Televisión", 27], ["Otro", 10]])} sinRespuesta={null} />));
   expect(host.querySelector(".vx-barra-fila.is-primera")).toBeNull();
   expect(host.querySelector(".vx-barra-fila.is-residual")?.textContent).toContain("Otro");
-  act(() => root.render(<DistribucionBarras dist={so([["Redes", 63], ["Televisión", 27], ["Otro", 10]])} sinRespuesta={null} />));
-  const primera = host.querySelector<HTMLElement>(".vx-barra-fila.is-primera");
+  const primera = host.querySelector<HTMLElement>(".vx-barra-fila");
   expect(primera?.textContent).toContain("Redes");
   expect(primera?.querySelector<HTMLElement>(".vx-relleno")?.style.width).toBe("63%");
 });
@@ -52,12 +51,13 @@ test("la fecha rotula cada día y el mes sólo donde empieza, como Monitoreo; el
   expect(host.querySelector("rect.vx-svg-columna.is-mayor title")?.textContent).toBe("30 jun: 40 casos");
 });
 
-test("el histograma marca el tramo mayor y rotula la mediana; la caja comparte la escala", () => {
+test("el histograma va de un solo color y rotula la mediana; la caja comparte la escala", () => {
   act(() => root.render(<DistribucionNumerica num={{
     bins: [{ desde: 10, hasta: 20, n: 5 }, { desde: 20, hasta: 30, n: 12 }, { desde: 30, hasta: 40, n: 3 }],
     min: 12, p25: 21, mediana: 25, p75: 31, max: 39, media: 25.4, n_atipicos: 0,
   }} />));
-  expect(host.querySelectorAll("rect.vx-svg-columna.is-mayor")).toHaveLength(1);
+  expect(host.querySelectorAll("rect.vx-svg-columna.is-mayor")).toHaveLength(0);
+  expect(host.querySelectorAll("rect.vx-svg-columna.is-dist")).toHaveLength(3);
   expect(host.querySelector("text.vx-svg-anota")?.textContent).toBe("Mediana 25");
   expect(host.querySelector("rect.vx-svg-cajita")).toBeTruthy();
 });

@@ -8,7 +8,8 @@ type Fila = ExploradorDistFila & { fuera: boolean };
 /**
  * "Tabla" del conmutador "Gráfico / Tabla": las opciones con sus casos y su
  * porcentaje, en el orden de las barras. "Porcentaje / Casos" decide qué
- * columna va primero. Los códigos fuera de la lista se dicen como en las barras.
+ * columna va primero. Lleva el código de cada opción; los códigos fuera de la
+ * lista se dicen como en las barras.
  */
 export default function TablaDeOpciones({
   filas,
@@ -23,6 +24,8 @@ export default function TablaDeOpciones({
 }) {
   const fuera = esFueraDeLista(filas, declarados);
   const ordenadas: Fila[] = ordenarFilas(filas, ordinal, declarados).map((f) => ({ ...f, fuera: fuera(f) }));
+  // El código de cada opción vive aquí (antes, en la tabla de "En el formulario").
+  const codigo: PulsoTableColumna<Fila> = { id: "codigo", encabezado: "Código", ancho: 80, celda: (f) => <code>{f.codigo}</code>, valor: (f) => f.codigo };
   const respuesta: PulsoTableColumna<Fila> = {
     id: "respuesta",
     encabezado: "Respuesta",
@@ -34,7 +37,7 @@ export default function TablaDeOpciones({
   const pct: PulsoTableColumna<Fila> = { id: "pct", encabezado: "%", ancho: 96, tipo: "cifra", celda: (f) => fmtPct(f.pct), valor: (f) => f.pct };
   return (
     <PulsoTable
-      columnas={valor === "casos" ? [respuesta, casos, pct] : [respuesta, pct, casos]}
+      columnas={valor === "casos" ? [codigo, respuesta, casos, pct] : [codigo, respuesta, pct, casos]}
       filas={ordenadas}
       idDeFila={(f) => `${f.codigo}-${f.etiqueta}`}
       ariaLabel="Opciones con sus casos"

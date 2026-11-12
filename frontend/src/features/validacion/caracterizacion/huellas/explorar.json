@@ -1,9 +1,16 @@
 {
   "explorar_dos-bases": {
-    "marcado": "951870b545a130602f6505191059a39c130677a73d6f6d3e882e58807c042616",
+    "marcado": "b7175a9a460c44672c9d2ad9f8f950f46ba67c83d32eb5696b94eb042464b7f8",
     "pedidos": "6a5c037b2bb91ad3dd007cf33e13cc218c1bfd818a12fc3d6f3e53e41224664e",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=estudiantes]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
+    ]
+  },
+  "explorar_enlace-por-el-store": {
+    "marcado": "c5cd531438a89177b5298f61fa6ed37130fd43c693dbdce37354eb4600777477",
+    "pedidos": "cd808a26b3ed62d03da743a39450298d8e8edc5fc0f7191889b1749648abeba3",
+    "guardado": [
+      "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"q7\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
   "explorar_nueva-regla-sobre-pregunta": {
@@ -13,19 +20,27 @@
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
+  "explorar_pregunta-en-la-direccion": {
+    "marcado": "9fb82c616ef6782ed0fec49f0b2b9dd6ae24109c8c58544c2ae7e0abfa84a349",
+    "pedidos": "5e322323d65390d5823ccf879c95091bb9617c6cfc99ccb37051595945a1b0ed",
+    "guardado": [
+      "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"sexo\",\"filtros\":{},\"fuente\":\"raw\"}",
+      "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"q7\",\"filtros\":{},\"fuente\":\"raw\"}"
+    ]
+  },
   "explorar_sin-datos": {
     "marcado": "cc6b5540ed13a108b85cb1d1ba2bfdb5d31cec9ce8c88aa0c763466a4055b4f4",
     "pedidos": "d589fb469ac61991eddeae1b5bbc77fb4901f091062477cb625e9133dcde9866"
   },
   "explorar_sin-pestana": {
-    "marcado": "ef1f39d69556d895103e44ffc0683fc181404419b91f3a49494a2cae65b5f3d7",
+    "marcado": "3ca628b49ea93486a56ef049e3714d17bc4d947373dc50b8d06ca409f504c082",
     "pedidos": "5202516820cde8f95b3b313248b452f009c5a4bead7b3b8c2543b33c51461b9e",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
   "explorar_una-base": {
-    "marcado": "951870b545a130602f6505191059a39c130677a73d6f6d3e882e58807c042616",
+    "marcado": "b7175a9a460c44672c9d2ad9f8f950f46ba67c83d32eb5696b94eb042464b7f8",
     "pedidos": "5202516820cde8f95b3b313248b452f009c5a4bead7b3b8c2543b33c51461b9e",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"

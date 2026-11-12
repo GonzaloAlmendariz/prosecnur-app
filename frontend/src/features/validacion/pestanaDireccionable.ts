@@ -19,6 +19,8 @@
 //   - Hallazgos: `foco=<id de regla>` (el hallazgo de la cola). Mientras el
 //     detalle de transición use `panel=regla`, ese foco es del panel y no del
 //     hallazgo.
+//   - Explorar: `foco=<código de la pregunta>` (la pregunta que se explora,
+//     rebanada V5). "Ver en Explorar" llega con `searchDeExplorar`.
 // `familia` es un parámetro propio de Reglas, fuera de los cinco niveles de la
 // gramática, que la dirección conserva (`extra`). Cambiar de pestaña descarta
 // los dos.
@@ -31,6 +33,7 @@ import { conNivel } from "../../lib/navegacion/direccion";
 import { searchConNivel, useDireccion, useSeccion } from "../../lib/navegacion/useDireccion";
 import { esAliasDelDetalleDeRegla, resolverPestanaValidacion } from "./pestanaValidacion";
 import { PANEL_REGLA_VALIDACION } from "./panelesValidacion";
+import { PARAM_PREGUNTA, PARAM_TIPO } from "./reglas/panel/usePanelRegla";
 import { useValidacionStore } from "./store";
 import type { ValidacionTabId } from "./types";
 
@@ -48,7 +51,7 @@ export function resolverPestana(pedida: string | null | undefined): ValidacionTa
 export type SeleccionDeValidacion = {
   /** Solo en Reglas. */
   familia: string | null;
-  /** La regla de la ficha en Reglas; el hallazgo de la cola en Hallazgos. */
+  /** La regla de la ficha en Reglas; el hallazgo de la cola en Hallazgos; la pregunta en Explorar. */
   foco: string | null;
 };
 
@@ -76,6 +79,7 @@ export function seleccionDeLaDireccion(direccion: {
     const delPanel = !!direccion.panel && direccion.panel === PANEL_REGLA_VALIDACION.id;
     return { familia: null, foco: delPanel ? null : foco };
   }
+  if (pestana === "explorar") return { familia: null, foco };
   return { familia: null, foco: null };
 }
 
@@ -101,6 +105,20 @@ export function searchDePestana(
   siguiente = conNivel(siguiente, "foco", seleccion.foco ?? null);
   siguiente = conParametro(siguiente, PARAM_FAMILIA, tab === "reglas" ? seleccion.familia ?? null : null);
   return siguiente;
+}
+
+/**
+ * El `search` de Explorar con una pregunta: la pestaña, sin panel, sin la
+ * familia de Reglas ni lo que solo usa el panel de regla (`tipo`, `pregunta`),
+ * y la pregunta en el foco. Es la dirección de "Ver en Explorar".
+ */
+export function searchDeExplorar(search: string, variable: string): string {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  params.delete("panel");
+  params.delete(PARAM_TIPO);
+  params.delete(PARAM_PREGUNTA);
+  const limpio = params.toString();
+  return searchDePestana(limpio ? `?${limpio}` : "", "explorar", { foco: variable });
 }
 
 /** El `search` con lo elegido dentro de la pestaña: solo cambia lo que se pasa. */

@@ -17,7 +17,8 @@ export default function GraficoTarjeta({
   leyenda,
   pie,
 }: {
-  titulo: ReactNode;
+  /** Sin título ni acciones, la tarjeta no lleva cabecera. */
+  titulo?: ReactNode;
   /** Nombre accesible de la tarjeta cuando el título no es texto plano. */
   etiqueta?: string;
   bajada?: string | null;
@@ -34,13 +35,15 @@ export default function GraficoTarjeta({
       className={`vx-tarjeta vx-grafico${tipo ? ` vx-tipo-${tipo}` : ""}`}
       aria-label={etiqueta ?? (typeof titulo === "string" ? titulo : undefined)}
     >
-      <div className="vx-grafico-cab">
-        <div>
-          <h4>{titulo}</h4>
-          {bajada && <p>{bajada}</p>}
+      {(titulo || acciones) && (
+        <div className="vx-grafico-cab">
+          <div>
+            {titulo && <h4>{titulo}</h4>}
+            {bajada && <p>{bajada}</p>}
+          </div>
+          {acciones}
         </div>
-        {acciones}
-      </div>
+      )}
       {aviso}
       {children}
       {leyenda}

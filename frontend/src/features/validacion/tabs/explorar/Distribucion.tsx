@@ -16,18 +16,19 @@ import { LECTURA_INICIAL, type LecturaDeDistribucion } from "./lecturaDeDistribu
  */
 export default function Distribucion({
   dist,
-  titulo,
+  titulo = null,
   sinRespuesta,
   declarados = null,
   lectura = LECTURA_INICIAL,
 }: {
   dist: ExploradorDist;
-  titulo: string;
+  /** Sin título (Explorar): la pregunta ya titula el contenedor y la base va en la nota de abajo. */
+  titulo?: string | null;
   sinRespuesta: number | null;
   declarados?: ReadonlySet<string> | null;
   lectura?: LecturaDeDistribucion;
 }) {
-  const bajada = "sin ponderar";
+  const bajada = titulo ? "sin ponderar" : null;
   if ((dist.tipo === "so" || dist.tipo === "sm") && dist.filas) {
     return (
       <GraficoTarjeta tipo={dist.tipo} titulo={titulo} bajada={bajada}>

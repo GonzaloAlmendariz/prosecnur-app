@@ -4,6 +4,7 @@ import {
   PARAM_FAMILIA,
   resolverPestana,
   searchConSeleccion,
+  searchDeExplorar,
   searchDePestana,
   seleccionDeLaDireccion,
 } from "./pestanaDireccionable";
@@ -71,9 +72,22 @@ describe("lo elegido en la pestaña, según la dirección", () => {
       .toEqual({ familia: null, foco: null });
   });
 
-  it("Explorar y Cierre no eligen por la dirección", () => {
-    expect(seleccionDeLaDireccion({ pedida: "explorar", panel: null, foco: "edad", familia: "x" })).toEqual({ familia: null, foco: null });
+  it("Explorar: el foco es la pregunta explorada, por su código", () => {
+    expect(seleccionDeLaDireccion({ pedida: "explorar", panel: null, foco: "edad", familia: "x" })).toEqual({ familia: null, foco: "edad" });
+    // Sin pestaña en la dirección se abre Explorar, y su foco también vale.
+    expect(seleccionDeLaDireccion({ pedida: null, panel: null, foco: "p10", familia: null })).toEqual({ familia: null, foco: "p10" });
+  });
+
+  it("Cierre no elige por la dirección", () => {
     expect(seleccionDeLaDireccion({ pedida: "cierre", panel: null, foco: "x", familia: null })).toEqual({ familia: null, foco: null });
+  });
+
+  it("a Explorar se llega con la pregunta en el foco (Ver en Explorar)", () => {
+    const s = new URLSearchParams(searchDeExplorar("?pestana=reglas&panel=regla&foco=nueva&familia=saltos", "edad"));
+    expect(s.get("pestana")).toBe("explorar");
+    expect(s.get("foco")).toBe("edad");
+    expect(s.get("panel")).toBeNull();
+    expect(s.get(PARAM_FAMILIA)).toBeNull();
   });
 
   it("un foco o una familia en blanco no eligen nada", () => {
