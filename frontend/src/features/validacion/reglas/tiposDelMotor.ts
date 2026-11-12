@@ -12,7 +12,7 @@
  */
 import type { ReglaCustom, ReglaCustomTipo, ReglaGateCondition } from "../types";
 
-export type TipoReglaPropia = ReglaCustomTipo | "condiciones" | "bateria" | "comparar_fechas";
+export type TipoReglaPropia = ReglaCustomTipo | "condiciones" | "bateria" | "comparar_fechas" | "formato";
 
 /** "todas": se marca si se cumplen todas; "alguna": si se cumple al menos una. */
 export type ModoCondiciones = "todas" | "alguna";
@@ -50,6 +50,7 @@ const TIPOS_CONOCIDOS: readonly TipoReglaPropia[] = [
   "condiciones",
   "bateria",
   "comparar_fechas",
+  "formato",
 ];
 
 export function esTipoReglaPropia(valor: unknown): valor is TipoReglaPropia {

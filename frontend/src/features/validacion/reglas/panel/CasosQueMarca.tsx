@@ -8,7 +8,9 @@
  * valor que falla resaltado. Cada estado sin conteo tiene su vacío con la
  * causa (estados no dibujados: contrato M1, sección 1). En una regla de
  * fechas, bajo la cifra va cómo se leyó cada fecha u hora (formato, vacías,
- * ilegibles) y la tabla lleva lo leído en cada caso.
+ * ilegibles) y la tabla lleva lo leído en cada caso. En una regla de formato,
+ * bajo la cifra van las respuestas que pasan y las que no (las más frecuentes,
+ * con su motivo) y la tabla lleva la respuesta de cada caso con su motivo.
  */
 import { rotuloDeCaso } from "../../rotuloDeCaso";
 import { CifraHallazgo } from "../../../../components/procesamiento/CifraHallazgo";
@@ -20,9 +22,18 @@ import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../../components/States";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { AlertTriangle, Compass, Inbox } from "../../../../vendor/lucide-react";
-import type { EjemploDePrueba, EstadoDePrueba, LecturaDeFechas, PruebaDeRegla, ResumenDeBateria } from "../../../../api/validacionAuditoria";
+import type {
+  EjemploDePrueba,
+  EstadoDePrueba,
+  LecturaDeFechas,
+  LecturaDeFormato,
+  PruebaDeRegla,
+  ResumenDeBateria,
+} from "../../../../api/validacionAuditoria";
 import { textoDeFechas, textoDeLectura } from "../modeloFechas";
+import { motivoEnTexto, textoDeFormato, textoDeLecturaDeFormato } from "../modeloFormato";
 import "./camposDeFechas.css";
+import "./camposDeFormato.css";
 import type { ExploradorVariable } from "../../types";
 import { etiquetaDeOpcion, useOpcionesDeVariables } from "../campos/opcionesDeVariable";
 import { tieneOpciones } from "../campos/tipoDeFicha";
@@ -73,11 +84,13 @@ const MAX_COLUMNAS = 3;
  */
 export function textoDeBateria(resumen: ResumenDeBateria, leerValor: (codigo: string) => string): string {
   const de = `de ${formatoConteo(resumen.n_items)}`;
-  if (resumen.patron === "vacias") return `${formatoConteo(resumen.n_vacias)} ${de} vacías`;
-  if (resumen.patron === "codigo") return `Con el código en ${formatoConteo(resumen.n_codigo)} ${de}`;
-  if (resumen.valor_comun === "") return `${formatoConteo(resumen.n_contadas)} ${de} vacías`;
+  // Con segunda condición: ", y 2 de 1 a 7" (las preguntas del caso que la cumplen).
+  const ademas = resumen.ademas && resumen.n_ademas !== undefined ? `, y ${formatoConteo(resumen.n_ademas)} ${resumen.ademas}` : "";
+  if (resumen.patron === "vacias") return `${formatoConteo(resumen.n_vacias)} ${de} vacías${ademas}`;
+  if (resumen.patron === "codigo") return `Con el código en ${formatoConteo(resumen.n_codigo)} ${de}${ademas}`;
+  if (resumen.valor_comun === "") return `${formatoConteo(resumen.n_contadas)} ${de} vacías${ademas}`;
   const valor = resumen.valor_comun === null ? "Distintas" : leerValor(resumen.valor_comun);
-  return `${valor} en ${formatoConteo(resumen.n_contadas)} ${de}`;
+  return `${valor} en ${formatoConteo(resumen.n_contadas)} ${de}${ademas}`;
 }
 
 /** Las preguntas que van de columna: las de la regla, sin las del filtro, en el orden en que llegan. */
@@ -98,7 +111,9 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
   const bateria = prueba.ejemplos.some((ej) => ej.bateria);
   // En fechas, lo leído en el caso reemplaza a las columnas por pregunta (el original va dentro).
   const fechas = prueba.ejemplos.some((ej) => ej.fechas);
-  const columnas = bateria || fechas ? [] : columnasDeEjemplos(prueba.ejemplos);
+  // En formato, la respuesta como texto con su motivo reemplaza a la columna de la pregunta.
+  const formato = prueba.ejemplos.some((ej) => ej.formato);
+  const columnas = bateria || fechas || formato ? [] : columnasDeEjemplos(prueba.ejemplos);
   const primeraDeLaBateria = bateria ? prueba.ejemplos.find((ej) => ej.bateria)?.valores[0]?.variable ?? null : null;
   const opcionesDeLaBateria = useOpcionesDeVariables(
     primeraDeLaBateria && tieneOpciones(porNombre.get(primeraDeLaBateria)?.tipo) ? [primeraDeLaBateria] : [],
@@ -168,6 +183,16 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       valor: (ej: EjemploDePrueba) => (ej.fechas ? textoDeFechas(ej.fechas) : "Sin dato"),
     });
   }
+  if (formato) {
+    definicion.push({
+      id: "formato",
+      encabezado: "Respuesta",
+      ancho: ANCHO_TABLA - ANCHO_CASO,
+      tipo: "texto" as const,
+      celda: (ej: EjemploDePrueba) => (ej.formato ? <b className="pulso-regla-falla">{textoDeFormato(ej.formato)}</b> : "Sin dato"),
+      valor: (ej: EjemploDePrueba) => (ej.formato ? textoDeFormato(ej.formato) : "Sin dato"),
+    });
+  }
   return (
     <PulsoTable
       columnas={definicion}
@@ -192,6 +217,39 @@ function LecturaDeLaRegla({ lectura }: { lectura: readonly LecturaDeFechas[] }) 
           <b>{ROTULO_DE_MOMENTO[l.momento]}</b>: {textoDeLectura(l)}
         </li>
       ))}
+    </ul>
+  );
+}
+
+/**
+ * Lo que pasa y lo que no en una regla de formato, sobre las filas que evalúa
+ * la auditoría: las cifras, si la columna llegó como número y las respuestas
+ * más frecuentes de cada lado. Son de la base, no inventadas.
+ */
+export function LecturaDeFormatoDeLaRegla({ lectura }: { lectura: LecturaDeFormato | undefined }) {
+  if (!lectura) return null;
+  const lineas = textoDeLecturaDeFormato(lectura);
+  return (
+    <ul className="pulso-regla-formato-lectura" aria-label="Respuestas que pasan y que no pasan">
+      {lineas.map((l) => (
+        <li key={l}>{l}</li>
+      ))}
+      {lectura.pasan.length ? (
+        <li>
+          <b>Pasan</b>: {lectura.pasan.map((x) => `"${x.valor}" (${formatoConteo(x.n)} ${x.n === 1 ? "vez" : "veces"})`).join(", ")}
+        </li>
+      ) : null}
+      {lectura.no_pasan.length ? (
+        <li>
+          <b>No pasan</b>:{" "}
+          {lectura.no_pasan
+            .map((x) => {
+              const motivo = motivoEnTexto(x.motivo, x.n_digitos);
+              return `"${x.valor}" (${motivo ? `${motivo}, ` : ""}${formatoConteo(x.n)} ${x.n === 1 ? "vez" : "veces"})`;
+            })
+            .join(", ")}
+        </li>
+      ) : null}
     </ul>
   );
 }
@@ -269,6 +327,7 @@ export function CasosQueMarca({
           tono={inconsistencia ? "inconsistencia" : "aviso"}
         />
         <LecturaDeLaRegla lectura={prueba.lectura ?? []} />
+        <LecturaDeFormatoDeLaRegla lectura={prueba.formato} />
         {nCasos > 0 && prueba.ejemplos.length > 0 ? (
           <TablaDeEjemplos prueba={prueba} variables={variables} />
         ) : (

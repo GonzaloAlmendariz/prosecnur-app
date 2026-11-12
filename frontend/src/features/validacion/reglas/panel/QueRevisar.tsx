@@ -29,6 +29,7 @@ import {
   Rows3,
   Sigma,
   Split,
+  Type,
   X,
   type LucideIcon,
 } from "../../../../vendor/lucide-react";
@@ -57,6 +58,7 @@ export const ICONO_DE_TIPO: Readonly<Record<TipoReglaPropia, LucideIcon>> = {
   duplicados: Copy,
   condiciones: Split,
   bateria: Rows3,
+  formato: Type,
   select_multiple_hierarchy: ListChecks,
   select_multiple_exclusive: X,
   select_multiple_cardinality: ListOrdered,

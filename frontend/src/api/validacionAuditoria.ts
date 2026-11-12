@@ -750,6 +750,41 @@ export type ResumenDeBateria = {
   n_codigo: number;
   /** `""` si la respuesta común es la vacía (vacías que cuentan); `null` si no hay una sola. */
   valor_comun: string | null;
+  /**
+   * Con segunda condición ("y al menos 1 de 1 a 7"): las preguntas del caso que
+   * la cumplen y la condición en texto ("de 1 a 7", "2 o 3").
+   */
+  n_ademas?: number;
+  ademas?: string;
+};
+
+/** Por qué una respuesta no pasa una regla de formato (validacion_regla_formato.R). */
+export type MotivoDeFormato = "sin_digitos" | "no_digitos" | "largo" | "inicio" | "correo" | "expresion";
+
+/** Lo que mide el motor en un caso de una regla de formato: la respuesta como texto y por qué no pasa. */
+export type ResumenDeFormato = {
+  texto: string | null;
+  /** Lo que se revisó (sin separadores, si la regla los quita). */
+  revisado: string | null;
+  n_digitos: number | null;
+  motivo: MotivoDeFormato | null;
+};
+
+/**
+ * Cómo quedó la pregunta de una regla de formato sobre las filas que evalúa la
+ * auditoría (`n_filas`, sin el filtro): vacías, que pasan y que no pasan (suman
+ * `n_filas`), si la columna llegó como número y las respuestas más frecuentes
+ * de cada lado. Sale de la misma medida que marca.
+ */
+export type LecturaDeFormato = {
+  variable: string;
+  n_filas: number;
+  n_vacias: number;
+  n_pasan: number;
+  n_no_pasan: number;
+  como_numero: boolean;
+  pasan: { valor: string; n: number }[];
+  no_pasan: { valor: string; n: number; motivo: MotivoDeFormato | null; n_digitos: number | null }[];
 };
 
 export type EjemploDePrueba = {
@@ -760,6 +795,8 @@ export type EjemploDePrueba = {
   bateria?: ResumenDeBateria;
   /** Solo en una regla de fechas u horas. */
   fechas?: ResumenDeFechas;
+  /** Solo en una regla de formato. */
+  formato?: ResumenDeFormato;
 };
 
 /** Estado de lectura de una fecha u hora en un caso. */
@@ -886,6 +923,41 @@ export function normalizarResumenDeBateria(value: unknown): ResumenDeBateria | u
     n_vacias: enteroONulo(r.n_vacias) ?? 0,
     n_codigo: enteroONulo(r.n_codigo) ?? 0,
     valor_comun: typeof r.valor_comun === "string" ? r.valor_comun : null,
+    ...(enteroONulo(r.n_ademas) !== null && texto(r.ademas) ? { n_ademas: enteroONulo(r.n_ademas) ?? 0, ademas: texto(r.ademas) } : {}),
+  };
+}
+
+const MOTIVOS_DE_FORMATO: readonly MotivoDeFormato[] = ["sin_digitos", "no_digitos", "largo", "inicio", "correo", "expresion"];
+
+function motivoDeFormato(value: unknown): MotivoDeFormato | null {
+  const m = texto(value);
+  return (MOTIVOS_DE_FORMATO as readonly string[]).includes(m) ? (m as MotivoDeFormato) : null;
+}
+
+/** Lo medido en un caso de formato, o `undefined` si no llega. */
+export function normalizarResumenDeFormato(value: unknown): ResumenDeFormato | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const r = registro(value);
+  return { texto: textoONulo(r.texto), revisado: textoONulo(r.revisado), n_digitos: enteroONulo(r.n_digitos), motivo: motivoDeFormato(r.motivo) };
+}
+
+/** La lectura de una regla de formato, o `undefined` si no llega o le faltan las cifras. */
+export function normalizarLecturaDeFormato(value: unknown): LecturaDeFormato | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const r = registro(value);
+  const n_filas = enteroONulo(r.n_filas);
+  if (n_filas === null) return undefined;
+  return {
+    variable: texto(r.variable),
+    n_filas,
+    n_vacias: enteroONulo(r.n_vacias) ?? 0,
+    n_pasan: enteroONulo(r.n_pasan) ?? 0,
+    n_no_pasan: enteroONulo(r.n_no_pasan) ?? 0,
+    como_numero: booleano(r.como_numero),
+    pasan: lista(r.pasan).map((x) => ({ valor: texto(x.valor), n: enteroONulo(x.n) ?? 0 })).filter((x) => x.valor !== ""),
+    no_pasan: lista(r.no_pasan)
+      .map((x) => ({ valor: texto(x.valor), n: enteroONulo(x.n) ?? 0, motivo: motivoDeFormato(x.motivo), n_digitos: enteroONulo(x.n_digitos) }))
+      .filter((x) => x.valor !== ""),
   };
 }
 
@@ -907,6 +979,8 @@ export type PruebaDeRegla = {
   ejemplos: EjemploDePrueba[];
   /** Solo en una regla de fechas: cómo se leyó cada fecha u hora (vacía en los demás tipos). */
   lectura?: LecturaDeFechas[];
+  /** Solo en una regla de formato. */
+  formato?: LecturaDeFormato;
 };
 
 const PAPELES: readonly PapelEnLaPrueba[] = ["revisada", "comparada", "condicion", "filtro"];
@@ -928,11 +1002,19 @@ export function normalizarPruebaDeRegla(value: unknown): PruebaDeRegla {
     n_casos: enteroONulo(r.n_casos),
     proporcion: numeroONulo(r.proporcion),
     lectura: normalizarLecturaDeFechas(r.lectura),
+    ...(() => {
+      const formato = normalizarLecturaDeFormato(r.formato);
+      return formato ? { formato } : {};
+    })(),
     ejemplos: lista(r.ejemplos).map((ej) => ({
       ...conResumenDeBateria(ej.bateria),
       ...(() => {
         const fechas = normalizarResumenDeFechas(ej.fechas);
         return fechas ? { fechas } : {};
+      })(),
+      ...(() => {
+        const formato = normalizarResumenDeFormato(ej.formato);
+        return formato ? { formato } : {};
       })(),
       id_caso: textoONulo(ej.id_caso),
       valores: lista(ej.valores)

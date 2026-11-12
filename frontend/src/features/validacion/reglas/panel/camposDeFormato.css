@@ -1,0 +1,56 @@
+/* "Formato de la respuesta": cantidad de dígitos, inicio y patrón (CamposDeFormato.tsx). */
+
+.pulso-regla-formato-cantidad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-regla-formato-digitos {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(56px, 80px) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-regla-formato-patron {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-regla-formato-patron input {
+  font-family: var(--pulso-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.pulso-regla-formato-guia {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}
+
+.pulso-regla-formato-lectura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0 var(--pulso-space-5);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  list-style: none;
+}
+
+.pulso-regla-formato-lectura b {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.pulso-regla-formato-lectura code {
+  overflow-wrap: anywhere;
+}

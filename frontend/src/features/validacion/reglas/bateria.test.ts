@@ -171,3 +171,43 @@ describe("el resumen de cada caso", () => {
     expect(t.filas[0].valores["bateria:patron"]).toBe("respondió \"Mucho\" (4) en las 3 preguntas de la batería");
   });
 });
+
+describe("la segunda condición de la batería", () => {
+  const bloque = { patron: "codigo", codigos: ["88"], minimo: 10 };
+
+  it("la frase la dice antes del punto, con las palabras del motor", () => {
+    expect(frase({ ...bloque, ademas: { desde: 1, hasta: 4 } })).toBe(
+      "Se marca cuando 88 aparece en al menos 10 de las 14 preguntas de la batería, de b1 a b14, y al menos 1 de las 14 tiene una respuesta de 1 a 4.",
+    );
+    expect(frase({ ...bloque, ademas: { codigos: ["2", "3"], minimo: 2 } })).toBe(
+      "Se marca cuando 88 aparece en al menos 10 de las 14 preguntas de la batería, de b1 a b14, y al menos 2 de las 14 tienen la respuesta 2 o 3.",
+    );
+    expect(frase({ patron: "iguales", minimo: 12, no_cuentan: ["88"], ademas: { desde: 1 } })).toBe(
+      "Se marca cuando todas las respuestas de la batería, de b1 a b14, son iguales y hay al menos 12 de 14 preguntas respondidas, y al menos 1 de las 14 tiene una respuesta de 1 o más. 88 no cuenta como respuesta.",
+    );
+  });
+
+  it("se guarda solo si está encendida, con el mínimo de 1 por defecto", () => {
+    expect(paramsDeBateria({ ...bloque, ademas: { desde: "1", hasta: "7", minimo: "" } })).toEqual({ ...bloque, ademas: { desde: 1, hasta: 7, minimo: 1 } });
+    expect(paramsDeBateria({ ...bloque, ademas: undefined })).toEqual(bloque);
+    expect(paramsDeBateria({ ...bloque, ademas: { codigos: ["5"], minimo: 3 } })).toEqual({ ...bloque, ademas: { codigos: ["5"], minimo: 3 } });
+  });
+
+  it("valida con los mismos límites que el esquema del motor", () => {
+    expect(validarBateria({ ...bloque, ademas: { minimo: 1 } }, 14)).toMatch(/rango o al menos un código/);
+    expect(validarBateria({ ...bloque, ademas: { desde: 7, hasta: 1 } }, 14)).toMatch(/inicio del rango/);
+    expect(validarBateria({ ...bloque, ademas: { desde: 1, hasta: 7, minimo: 15 } }, 14)).toMatch(/entre 1 y 14/);
+    expect(validarBateria({ ...bloque, ademas: { desde: 1, hasta: 7, minimo: 1.5 } }, 14)).toMatch(/entero/);
+    expect(validarBateria({ ...bloque, ademas: { desde: 1, hasta: 7 } }, 14)).toBe("");
+  });
+
+  it("el resumen del caso suma lo que mide el motor", () => {
+    const prueba = normalizarPruebaDeRegla({
+      estado: "evaluada",
+      n_casos: 1,
+      n_base: 8,
+      ejemplos: [{ id_caso: "u05", valores: [], bateria: { patron: "codigo", n_items: 22, n_codigo: 21, n_ademas: 1, ademas: "de 1 a 7" } }],
+    });
+    expect(textoDeBateria(prueba.ejemplos[0].bateria!, String)).toBe("Con el código en 21 de 22, y 1 de 1 a 7");
+  });
+});

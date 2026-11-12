@@ -421,10 +421,26 @@
 
 # --- Última auditoría --------------------------------------------------------
 
+# Toda regla activa que no tenga ya una causa propia queda sin evaluar con la
+# causa "sin_auditoria". Una desactivada conserva su estado: dice que lo está.
+.vrc_sin_auditoria <- function(filas) {
+  lapply(filas, function(f) {
+    if (identical(f$estado_evaluacion, "evaluada") && isTRUE(f$activa)) {
+      f$estado_evaluacion <- "sin_evaluar"
+      f$causa_codigo <- "sin_auditoria"
+      f$causa <- .vrf_causa("sin_auditoria")
+    }
+    f
+  })
+}
+
 .vrc_auditoria <- function(filas, reglas, scope, sid, base_eff, ctx) {
   ev <- scope$evaluacion
   avisos <- list()
-  if (is.null(ev) || !is.data.frame(ev$resumen)) return(list(filas = filas, avisos = avisos))
+  # Sin auditoría (antes de la primera, o porque reconstruir el plan la
+  # descartó) ninguna regla activa está evaluada. Antes salían como evaluadas y
+  # la cabecera decía "0 sin evaluar" con todas las reglas sin correr.
+  if (is.null(ev) || !is.data.frame(ev$resumen)) return(list(filas = .vrc_sin_auditoria(filas), avisos = avisos))
   res <- ev$resumen
   ids_res <- as.character(res$id_regla)
   repetidos <- unique(ids_res[duplicated(ids_res)])

@@ -40,6 +40,7 @@ import {
 } from "./modeloRegla";
 import { metaDeTipo, rangoDePreguntas } from "./tiposDeRegla";
 import { validarFechas, variablesDeComparar } from "./modeloFechas";
+import { validarFormato } from "./modeloFormato";
 import { esOperadorDeComparacion, type ReglaPropia, type ReglaPropiaAGuardar, type TipoReglaPropia } from "./tiposDelMotor";
 
 export type Borrador = {
@@ -74,6 +75,7 @@ function paramsDeArranque(tipo: TipoReglaPropia | null, primera: string): Record
   if (tipo === "condiciones") return { modo: "todas", condiciones: [{ variable: primera, op: "", valor: "" }] };
   if (tipo === "select_multiple_selection") return { op: "contains_any" };
   if (tipo === "bateria") return { patron: "iguales" };
+  if (tipo === "formato") return { modo: "digitos" };
   if (tipo === "comparar_fechas") {
     return {
       unidad: "fecha",
@@ -297,6 +299,10 @@ export function validarBorrador(b: Borrador): string {
   }
   if (tipo === "bateria") {
     const error = validarBateria(params, b.variables.filter(Boolean).length);
+    if (error) return error;
+  }
+  if (tipo === "formato") {
+    const error = validarFormato(params, b.variables.filter(Boolean).length);
     if (error) return error;
   }
   if (tipo === "select_multiple_selection") {

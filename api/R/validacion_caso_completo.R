@@ -54,7 +54,8 @@
                    as.character(unlist(roles$drivers %||% character(0))),
                    if (is_ast(regla$condicion)) ast_variables(regla$condicion) else character(0),
                    as.character(bateria$vars %||% character(0)),
-                   as.character(unlist(fechas$regla$variables %||% list(), use.names = FALSE))))
+                   as.character(unlist(fechas$regla$variables %||% list(), use.names = FALSE)),
+                   as.character((regla %||% list())$formato$var %||% character(0))))
   vars <- vars[!is.na(vars) & nzchar(vars) & vars %in% names(df)]
   lapply(seq_along(filas), function(k) {
     i <- filas[k]

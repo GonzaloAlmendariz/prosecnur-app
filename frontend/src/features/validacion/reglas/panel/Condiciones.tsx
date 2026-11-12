@@ -36,6 +36,7 @@ import { metaDeTipo, rangoDePreguntas } from "../tiposDeRegla";
 import { esOperadorDeComparacion, type CondicionCombinada, type ModoCondiciones, type OperadorDeCondicion } from "../tiposDelMotor";
 import { CamposDeBateria } from "./CamposDeBateria";
 import { CamposDeFechas } from "./CamposDeFechas";
+import { CamposDeFormato } from "./CamposDeFormato";
 import { Fila } from "./FilaDeRegla";
 import { Segmentado } from "./Segmentado";
 
@@ -102,6 +103,10 @@ export function preguntasDelTipo(tipo: Borrador["tipo"], variables: readonly Exp
     case "select_multiple_cardinality":
     case "select_multiple_selection":
       return variables.filter((v) => v.tipo === "sm");
+    case "formato":
+      // El formato se lee del texto de la respuesta (o de un número escrito
+      // como texto); la opción múltiple reparte la respuesta en columnas.
+      return variables.filter((v) => v.tipo !== "sm");
     case "bateria":
       // Una batería compara respuestas de opción única (o sus códigos): la
       // opción múltiple reparte la respuesta en columnas y la fecha no repite.
@@ -352,6 +357,10 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
     }
     case "bateria": {
       filas = <CamposDeBateria borrador={b} despachar={despachar} variables={preguntasDelTipo("bateria", variables)} />;
+      break;
+    }
+    case "formato": {
+      filas = <CamposDeFormato borrador={b} despachar={despachar} variables={preguntasDelTipo("formato", variables)} />;
       break;
     }
     case "rango_fecha":

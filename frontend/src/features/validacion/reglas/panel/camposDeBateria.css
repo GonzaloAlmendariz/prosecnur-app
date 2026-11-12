@@ -45,3 +45,13 @@
   min-width: 0;
   color: var(--pulso-text-muted);
 }
+
+.pulso-regla-bateria-rango {
+  display: grid;
+  grid-template-columns: minmax(56px, 96px) auto minmax(56px, 96px);
+  gap: var(--pulso-space-2);
+  align-items: center;
+  justify-content: start;
+  min-width: 0;
+  color: var(--pulso-text-muted);
+}

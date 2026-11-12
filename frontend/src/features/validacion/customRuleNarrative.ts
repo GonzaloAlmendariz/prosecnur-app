@@ -16,13 +16,16 @@
 
 import type { ReglaGateCondition } from "./types";
 import type { ReglaLike } from "./components/v2";
+import { descripcionDeFormato, modoDeFormato } from "./reglas/modeloFormato";
 import {
+  ademasDeBateria,
   condicionesDeParams,
   esOperadorSinValor,
   minimoDeBateria,
   modoDeCondiciones,
   paramList,
   patronDeBateria,
+  textoDeAdemas,
 } from "./reglas/modeloRegla";
 import { leerOperador, leerOperadorNegado } from "./reglas/operadores";
 import {
@@ -55,6 +58,7 @@ const CUSTOM_TIPO_TO_AST: Record<TipoReglaPropia, string> = {
   condiciones: "coherence",
   bateria: "pattern",
   comparar_fechas: "coherence",
+  formato: "pattern",
 };
 
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
@@ -75,6 +79,7 @@ export const CUSTOM_TIPO_LABEL: Record<TipoReglaPropia, string> = {
   condiciones: "Condiciones combinadas",
   bateria: "Patrón en una batería",
   comparar_fechas: "Dos fechas u horas que deben cuadrar",
+  formato: "Formato de la respuesta",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
@@ -156,6 +161,10 @@ export function describeCustomParams(
     case "bateria": {
       const piezas = fraseDeReglaPropia({ tipo, variables, params });
       return piezas ? fraseEnTexto(piezas) : "Se marca cuando las preguntas de una batería tienen todas la misma respuesta, repiten un código o quedan vacías.";
+    }
+    case "formato": {
+      const piezas = fraseDeReglaPropia({ tipo, variables, params });
+      return piezas ? fraseEnTexto(piezas) : "Se marca cuando la respuesta no está escrita como se pide.";
     }
     default:
       return "";
@@ -506,6 +515,15 @@ export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leer
       if (!fraseDeBateria(f, regla, leer)) return null;
       break;
     }
+    case "formato": {
+      // Las palabras de `.vrf_frase_formato()` en el motor.
+      const modo = modoDeFormato(p.modo);
+      if (!v1 || (modo === "expresion" && !(typeof p.expresion === "string" && p.expresion.trim()))) return null;
+      f.pregunta(v1).texto(` no es ${descripcionDeFormato(p)}.`);
+      if (modo === "digitos" && p.sin_separadores === true) f.texto(" Antes se quitan espacios, guiones, puntos y paréntesis.");
+      f.texto(" La respuesta se revisa como texto, así que un cero inicial cuenta como dígito.");
+      break;
+    }
     default:
       return null;
   }
@@ -527,17 +545,34 @@ function fraseDeBateria(f: Frase, regla: ReglaParaFrase, leer: LeerValor): boole
   if (m === null || !Number.isInteger(m)) return false;
   const primera = vars[0];
   const tramo = () => f.texto("de ").pregunta(primera).texto(" a ").pregunta(vars[k - 1]);
+  // La segunda condición entra en la primera oración, antes de su punto
+  // (`.vrf_bateria_con_ademas()` en el motor).
+  const ademas = ademasDeBateria(p);
+  const cierre = () => {
+    if (ademas) {
+      const n = ademas.minimo ?? 1;
+      const rango = textoDeAdemas({ ...ademas, codigos: [] });
+      f.texto(`, y al menos ${n} de las ${k} ${n === 1 ? "tiene" : "tienen"}`);
+      if (rango) f.texto(` una respuesta ${rango}`);
+      if (ademas.codigos.length) {
+        f.texto(rango ? " o " : " la respuesta ").valor(textoDeAdemas({ desde: null, hasta: null, codigos: ademas.codigos, minimo: n }, (c) => leer(primera, c)));
+      }
+    }
+    f.texto(".");
+  };
   // La frase reemplaza el "Se marca cuando " con que empieza toda frase.
   f.piezas.length = 0;
   if (patron === "iguales") {
     if (m === k) {
       f.texto(`Se marca cuando las ${k} preguntas de la batería, `);
       tramo();
-      f.texto(", tienen la misma respuesta.");
+      f.texto(", tienen la misma respuesta");
+      cierre();
     } else {
       f.texto("Se marca cuando todas las respuestas de la batería, ");
       tramo();
-      f.texto(`, son iguales y hay al menos ${m} de ${k} preguntas respondidas.`);
+      f.texto(`, son iguales y hay al menos ${m} de ${k} preguntas respondidas`);
+      cierre();
     }
     const noCuentan = paramList(p.no_cuentan);
     if (noCuentan.length) {
@@ -555,12 +590,13 @@ function fraseDeBateria(f: Frase, regla: ReglaParaFrase, leer: LeerValor): boole
     f.texto("Se marca cuando ").valor(lista);
     f.texto(m === k ? ` aparece en las ${k} preguntas de la batería, ` : ` aparece en al menos ${m} de las ${k} preguntas de la batería, `);
     tramo();
-    f.texto(".");
+    cierre();
     return true;
   }
   f.texto(m === k ? `Se marca cuando las ${k} preguntas de la batería, ` : `Se marca cuando al menos ${m} de las ${k} preguntas de la batería, `);
   tramo();
-  f.texto(", están vacías.");
+  f.texto(", están vacías");
+  cierre();
   return true;
 }
 

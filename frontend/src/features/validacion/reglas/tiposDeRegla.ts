@@ -109,6 +109,15 @@ export const TIPOS: TipoMeta[] = [
     grupo: "respuesta",
   },
   {
+    key: "formato",
+    label: "Formato de la respuesta",
+    rotulo: "Formato de la respuesta",
+    ejemploCorto: "Un teléfono que no tiene 9 dígitos que empiezan con 9",
+    descripcion: "Se marca cuando la respuesta no está escrita como se pide: cantidad de dígitos, cómo empieza, un correo o un patrón.",
+    nVars: 1,
+    grupo: "respuesta",
+  },
+  {
     key: "coherencia_2v",
     label: "Dos respuestas que deben cuadrar",
     rotulo: "Dos respuestas que deben cuadrar",

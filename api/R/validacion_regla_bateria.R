@@ -14,6 +14,13 @@
 #   vacias   al menos `minimo` preguntas vacías (todas, si `minimo` es el
 #            total).
 #
+# Segunda condición (`ademas`, opcional, vale para los tres patrones): además
+# del patrón, al menos `ademas.minimo` preguntas (1 por defecto) tienen una
+# respuesta en el rango `ademas.desde` a `ademas.hasta` (inclusive, uno de los
+# dos puede faltar) o entre `ademas.codigos`. Es "88 en 19 o más ítems y al
+# menos uno de 1 a 7": sin ella, el caso con todo el bloque en 88 también se
+# marca. Una pregunta vacía nunca cumple la segunda condición.
+#
 # Grano: fila de la tabla donde corre la regla (el caso en la principal). La
 # cifra de la regla es la del motor: casos marcados sobre las filas que evalúa
 # la auditoría (o las que cumplen el "Solo revisar cuando"); este archivo no
@@ -43,11 +50,17 @@
 #' @param no_cuentan códigos que el patrón "iguales" no cuenta como respuesta.
 #' @param vacias_cuentan si TRUE, en "iguales" una pregunta vacía es una
 #'   respuesta más.
+#' @param ademas_codigos,ademas_desde,ademas_hasta,ademas_minimo segunda
+#'   condición: al menos `ademas_minimo` preguntas con una respuesta entre los
+#'   códigos o en el rango (límites NA = sin límite). `ademas_minimo` 0 = sin
+#'   segunda condición.
 #' @return lista con, por fila, `n_contadas`, `n_vacias`, `n_codigo`,
-#'   `n_distintas`, `valor_comun` y `marca`; `n_items`, y en `items` las
-#'   matrices fila por pregunta `cuenta`, `vacia` y `codigo`.
+#'   `n_ademas` (NA sin segunda condición), `n_distintas`, `valor_comun` y
+#'   `marca`; `n_items`, y en `items` las matrices fila por pregunta `cuenta`,
+#'   `vacia`, `codigo` y `ademas`.
 #' @keywords internal
-.regla_bateria_medir <- function(cols, patron, minimo, codigos, no_cuentan, vacias_cuentan) {
+.regla_bateria_medir <- function(cols, patron, minimo, codigos, no_cuentan, vacias_cuentan,
+                                 ademas_codigos, ademas_desde, ademas_hasta, ademas_minimo) {
   norm <- function(x) {
     x <- if (is.factor(x)) as.character(x) else as.character(unclass(x))
     x <- trimws(x)
@@ -62,6 +75,15 @@
   codigos <- norm(codigos)
   no_cuentan <- norm(no_cuentan)
   en <- function(valores) matrix(m %in% valores, n, k)
+  con_ademas <- isTRUE(ademas_minimo > 0L)
+  es_ademas <- matrix(FALSE, n, k)
+  if (con_ademas) {
+    num <- matrix(suppressWarnings(as.numeric(m)), n, k)
+    con_rango <- !(is.na(ademas_desde) & is.na(ademas_hasta))
+    en_rango <- !is.na(num) & (is.na(ademas_desde) | num >= ademas_desde) & (is.na(ademas_hasta) | num <= ademas_hasta)
+    es_ademas <- !vacia & (en(norm(ademas_codigos)) | (con_rango & en_rango))
+  }
+  n_ademas <- if (con_ademas) as.integer(rowSums(es_ademas)) else rep(NA_integer_, n)
   if (isTRUE(vacias_cuentan)) m[vacia] <- ""
   cuenta <- !en(no_cuentan)
   if (!isTRUE(vacias_cuentan)) cuenta <- cuenta & !vacia
@@ -81,10 +103,11 @@
   } else {
     stop("patron de bateria desconocido: ", patron)
   }
+  if (con_ademas) marca <- marca & n_ademas >= ademas_minimo
   stats::setNames(
-    list(k, n_contadas, n_vacias, n_codigo, n_distintas, valor_comun, marca,
-         stats::setNames(list(cuenta, vacia, es_codigo), c("cuenta", "vacia", "codigo"))),
-    c("n_items", "n_contadas", "n_vacias", "n_codigo", "n_distintas", "valor_comun", "marca", "items")
+    list(k, n_contadas, n_vacias, n_codigo, n_ademas, n_distintas, valor_comun, marca,
+         stats::setNames(list(cuenta, vacia, es_codigo, es_ademas), c("cuenta", "vacia", "codigo", "ademas"))),
+    c("n_items", "n_contadas", "n_vacias", "n_codigo", "n_ademas", "n_distintas", "valor_comun", "marca", "items")
   )
 }
 
@@ -101,9 +124,53 @@
     minimo = minimo,
     codigos = .regla_chr_values(params$codigos),
     no_cuentan = .regla_chr_values(params$no_cuentan),
-    vacias_cuentan = isTRUE(calc_bool(params$vacias_cuentan, FALSE))
+    vacias_cuentan = isTRUE(calc_bool(params$vacias_cuentan, FALSE)),
+    ademas = .regla_bateria_ademas(params$ademas)
   )
 }
+
+# La segunda condición normalizada: `activa` si trae códigos o algún límite.
+# Un límite que no es número queda en `desde_crudo`/`hasta_crudo` para que el
+# esquema lo rechace, nunca se ignora.
+.regla_bateria_ademas <- function(ademas) {
+  if (!is.list(ademas)) ademas <- list()
+  limite <- function(x) {
+    crudo <- unlist(x, use.names = FALSE)
+    if (!length(crudo) || is.na(crudo[1]) || !nzchar(trimws(as.character(crudo[1])))) return(list(valor = NA_real_, crudo = NA))
+    list(valor = suppressWarnings(as.numeric(crudo[1])), crudo = crudo[1])
+  }
+  desde <- limite(ademas$desde); hasta <- limite(ademas$hasta)
+  codigos <- .regla_chr_values(ademas$codigos)
+  minimo_crudo <- suppressWarnings(as.numeric(unlist(ademas$minimo, use.names = FALSE)[1]))
+  minimo_dado <- length(minimo_crudo) == 1L && !is.na(minimo_crudo)
+  activa <- length(codigos) > 0L || !is.na(desde$crudo) || !is.na(hasta$crudo)
+  list(
+    activa = activa,
+    codigos = codigos,
+    desde = desde$valor, hasta = hasta$valor,
+    desde_crudo = desde$crudo, hasta_crudo = hasta$crudo,
+    minimo = if (minimo_dado) minimo_crudo else if (activa) 1 else NA_real_,
+    minimo_dado = minimo_dado
+  )
+}
+
+# "de 1 a 7", "de 1 o más", "de 7 o menos", "2 o 3", "de 1 a 7 o 77": la
+# condición en texto plano, con los códigos tal cual (el conteo previo).
+.regla_bateria_ademas_texto <- function(a, etiquetar = function(x) x) {
+  rango <- if (!is.na(a$desde) && !is.na(a$hasta)) {
+    sprintf("de %s a %s", .regla_bateria_num(a$desde), .regla_bateria_num(a$hasta))
+  } else if (!is.na(a$desde)) {
+    sprintf("de %s o más", .regla_bateria_num(a$desde))
+  } else if (!is.na(a$hasta)) {
+    sprintf("de %s o menos", .regla_bateria_num(a$hasta))
+  } else NA_character_
+  cods <- vapply(a$codigos, etiquetar, character(1))
+  lista <- if (!length(cods)) NA_character_ else if (length(cods) == 1L) cods else
+    paste(paste(cods[-length(cods)], collapse = ", "), "o", cods[length(cods)])
+  paste(c(rango[!is.na(rango)], lista[!is.na(lista)]), collapse = " o ")
+}
+
+.regla_bateria_num <- function(x) format(x, trim = TRUE, scientific = FALSE, drop0trailing = TRUE)
 
 # Esquema: se llama desde `.validar_regla_custom()` con la regla entera.
 .regla_bateria_validar <- function(r) {
@@ -138,6 +205,38 @@
                      inferior, k),
              details = list(patron = p$patron, minimo = if (is.na(m)) NA else m, n_preguntas = k))
   }
+  .regla_bateria_validar_ademas(p$ademas, k)
+  invisible(TRUE)
+}
+
+.regla_bateria_validar_ademas <- function(a, k) {
+  if (!a$activa) {
+    # Un mínimo sin códigos ni rango no dice qué cuenta: se rechaza con causa.
+    if (a$minimo_dado) {
+      stop_api(400, "E_REGLA_BATERIA_ADEMAS",
+               "La segunda condición de la batería necesita un rango (desde, hasta) o al menos un código.")
+    }
+    return(invisible(TRUE))
+  }
+  for (lado in c("desde", "hasta")) {
+    crudo <- a[[paste0(lado, "_crudo")]]
+    if (!is.na(crudo) && is.na(a[[lado]])) {
+      stop_api(400, "E_REGLA_BATERIA_ADEMAS",
+               sprintf("El límite '%s' de la segunda condición debe ser un número; llegó \"%s\".", lado, crudo),
+               details = list(lado = lado, valor = as.character(crudo)))
+    }
+  }
+  if (!is.na(a$desde) && !is.na(a$hasta) && a$desde > a$hasta) {
+    stop_api(400, "E_REGLA_BATERIA_ADEMAS",
+             sprintf("En la segunda condición, el inicio del rango (%s) es mayor que el final (%s).",
+                     .regla_bateria_num(a$desde), .regla_bateria_num(a$hasta)))
+  }
+  m <- a$minimo
+  if (is.na(m) || m != round(m) || m < 1 || m > k) {
+    stop_api(400, "E_REGLA_BATERIA_ADEMAS",
+             sprintf("El mínimo de la segunda condición debe ser un número entero entre 1 y %d (las preguntas de la batería).", k),
+             details = list(minimo = if (is.na(m)) NA else m, n_preguntas = k))
+  }
   invisible(TRUE)
 }
 
@@ -149,8 +248,11 @@
   p <- .regla_bateria_params(params, length(vars))
   fn <- paste(deparse(.regla_bateria_medir, width.cutoff = 500L), collapse = "\n")
   cols <- sprintf("list(%s)", paste(sprintf("`%s`", gsub("`", "\\\\`", vars)), collapse = ", "))
+  a <- p$ademas
   args <- c(cols, deparse1(p$patron), sprintf("%dL", as.integer(p$minimo)),
-            deparse1(p$codigos), deparse1(p$no_cuentan), if (p$vacias_cuentan) "TRUE" else "FALSE")
+            deparse1(p$codigos), deparse1(p$no_cuentan), if (p$vacias_cuentan) "TRUE" else "FALSE",
+            deparse1(a$codigos), deparse1(a$desde), deparse1(a$hasta),
+            sprintf("%dL", if (a$activa) as.integer(a$minimo) else 0L))
   sprintf("(%s)(%s)$marca", fn, paste(args, collapse = ", "))
 }
 
@@ -174,12 +276,15 @@
 .regla_bateria_medir_filas <- function(df, filas, vars, params) {
   p <- .regla_bateria_params(params, length(vars))
   cols <- lapply(vars, function(v) if (v %in% names(df)) df[[v]][filas] else rep(NA, length(filas)))
-  .regla_bateria_medir(cols, p$patron, p$minimo, p$codigos, p$no_cuentan, p$vacias_cuentan)
+  a <- p$ademas
+  .regla_bateria_medir(cols, p$patron, p$minimo, p$codigos, p$no_cuentan, p$vacias_cuentan,
+                       a$codigos, a$desde, a$hasta, if (a$activa) as.integer(a$minimo) else 0L)
 }
 
 # Lo que dice una fila medida, para el conteo previo y el caso.
-.regla_bateria_resumen <- function(med, i, patron) {
-  list(
+# Con segunda condición lleva `n_ademas` y `ademas` (la condición en texto).
+.regla_bateria_resumen <- function(med, i, patron, ademas = NULL) {
+  out <- list(
     patron = patron,
     n_items = as.integer(med$n_items),
     n_contadas = med$n_contadas[i],
@@ -187,6 +292,11 @@
     n_codigo = med$n_codigo[i],
     valor_comun = med$valor_comun[i]
   )
+  if (isTRUE(ademas$activa)) {
+    out$n_ademas <- med$n_ademas[i]
+    out$ademas <- .regla_bateria_ademas_texto(ademas)
+  }
+  out
 }
 
 # Un ejemplo del conteo previo de una batería: cada pregunta resalta si es la
@@ -202,7 +312,7 @@
     if (!is.na(j)) v$falla <- isTRUE(matriz[1L, j])
     v
   })
-  ejemplo$bateria <- .regla_bateria_resumen(med, 1L, p$patron)
+  ejemplo$bateria <- .regla_bateria_resumen(med, 1L, p$patron, p$ademas)
   ejemplo
 }
 
@@ -253,10 +363,35 @@
     out <- c(out, .vrf_t(" "), .vrf_lista_valores(p$no_cuentan, vars[1], ctx, conector = " y "),
              .vrf_t(if (length(p$no_cuentan) == 1L) " no cuenta como respuesta." else " no cuentan como respuesta."))
   }
+  if (p$ademas$activa) out <- .vrf_bateria_con_ademas(out, p$ademas, vars, ctx)
   if (identical(p$patron, "iguales") && p$vacias_cuentan) {
     out <- c(out, .vrf_t(" Una pregunta vacía cuenta como una respuesta más."))
   }
   out
+}
+
+# La segunda condición entra en la primera oración, antes de su punto: "..., de
+# b1 a b14, y al menos 1 de las 14 tiene una respuesta de 1 a 4."
+.vrf_bateria_con_ademas <- function(out, a, vars, ctx) {
+  k <- length(vars)
+  punto <- NA_integer_
+  for (i in seq_along(out)) {
+    t <- out[[i]]$texto
+    if (!is.null(t) && grepl("[.]$", t)) { punto <- i; break }
+  }
+  m <- as.integer(a$minimo)
+  verbo <- if (m == 1L) "tiene" else "tienen"
+  rango <- .regla_bateria_ademas_texto(list(desde = a$desde, hasta = a$hasta, codigos = character(0)))
+  partes <- list()
+  if (nzchar(rango)) partes <- c(partes, .vrf_t(sprintf(" una respuesta %s", rango)))
+  if (length(a$codigos)) {
+    partes <- c(partes, .vrf_t(if (nzchar(rango)) " o" else " la respuesta"), .vrf_t(" "),
+                .vrf_lista_valores(a$codigos, vars[1], ctx))
+  }
+  agregado <- c(.vrf_t(sprintf(", y al menos %d de las %d %s", m, k, verbo)), partes, .vrf_t("."))
+  if (is.na(punto)) return(c(out, agregado))
+  out[[punto]]$texto <- sub("[.]$", "", out[[punto]]$texto)
+  c(out[seq_len(punto)], agregado, out[-seq_len(punto)])
 }
 
 # --- Enunciado del hallazgo ---------------------------------------------------
@@ -285,7 +420,7 @@
     if (is.null(x) || !length(x)) NA_character_ else as.character(x)[1]
   }), vars), stringsAsFactors = FALSE, check.names = FALSE)
   med <- .regla_bateria_medir_filas(df, 1L, vars, bateria$params)
-  r <- .regla_bateria_resumen(med, 1L, p$patron)
+  r <- .regla_bateria_resumen(med, 1L, p$patron, p$ademas)
   et <- etiquetas_valor[[vars[1]]]
   hecho <- switch(p$patron,
     iguales = if (is.na(r$valor_comun)) {
@@ -304,5 +439,14 @@
     vacias = if (r$n_vacias == k) sprintf("dejó vacías las %d preguntas de la batería", k)
              else sprintf("dejó vacías %d de las %d preguntas de la batería", r$n_vacias, k)
   )
+  if (p$ademas$activa) {
+    a <- p$ademas
+    rango <- .regla_bateria_ademas_texto(list(desde = a$desde, hasta = a$hasta, codigos = character(0)))
+    cods <- .regla_bateria_ademas_texto(list(desde = NA, hasta = NA, codigos = a$codigos),
+                                        function(x) .enun_valor(x, et))
+    cond <- if (!nzchar(rango)) paste("la respuesta", cods)
+            else if (nzchar(cods)) sprintf("una respuesta %s o %s", rango, cods) else paste("una respuesta", rango)
+    hecho <- sprintf("%s y %d con %s", hecho, r$n_ademas, cond)
+  }
   list(hecho = hecho, choque = "", resumen = r)
 }

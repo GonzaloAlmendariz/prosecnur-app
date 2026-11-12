@@ -28,6 +28,9 @@
 #   fechas        fecha u hora ilegible, fuera del operativo, en desorden o con
 #                 una duración fuera de rango, con lo leído
 #                 (validacion_regla_fechas.R). No depende del tipo de anomalía.
+#   formato       respuesta escrita con otro formato (dígitos, correo, patrón),
+#                 con lo que respondió y por qué no pasa
+#                 (validacion_regla_formato.R).
 #   contradiccion, valor_invalido, procedencia  sin más datos de la regla.
 # Sin tipo de anomalía no hay enunciado (null): no se inventa.
 
@@ -146,6 +149,7 @@
   # enunciado dice lo que se midió en el caso, no lo clasifica.
   if (!is.null(regla$bateria)) return("bateria")
   if (!is.null(regla$fechas)) return("fechas")
+  if (!is.null(regla$formato)) return("formato")
   a <- as.character(anomalia %||% NA_character_)[1]
   if (is.na(a) || !nzchar(a)) return(NA_character_)
   tipo <- as.character(regla$tipo_regla %||% "")[1]
@@ -299,6 +303,11 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
       hecho <- f$hecho
       f$choque
     },
+    formato = {
+      f <- .regla_formato_enunciado(regla$formato, valores, regla)
+      hecho <- f$hecho
+      f$choque
+    },
     ""
   )
   if (!nzchar(target) && !(sub %in% c("procedencia"))) hecho <- ""
@@ -342,7 +351,8 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
                 origen_semilla = (propia$semilla %||% list())$origen %||% NA_character_,
                 especiales = especiales, etiquetas = etiquetas,
                 bateria = .regla_bateria_contexto(propia),
-                fechas = .regla_fechas_contexto(propia)))
+                fechas = .regla_fechas_contexto(propia),
+                formato = .regla_formato_contexto(propia)))
   }
   origen <- .vrc_origen(rule, ids_propias)
   familia <- .vrc_familia(rule, origen, propia = propia)
@@ -367,6 +377,7 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
     especiales = especiales,
     etiquetas = etiquetas,
     bateria = .regla_bateria_contexto(propia),
-    fechas = .regla_fechas_contexto(propia)
+    fechas = .regla_fechas_contexto(propia),
+    formato = .regla_formato_contexto(propia)
   )
 }

@@ -253,3 +253,104 @@ test_that("el conteo previo rechaza una batería mal formada con su código", {
   expect_identical(r$status, 400L)
   expect_identical(r$body$error$code, "E_REGLA_BATERIA_MINIMO")
 })
+
+# --- Segunda condición: "y al menos un ítem con respuesta en este rango" -----
+# Reglas 17 y 18 del Word del practicante: 88 en 19 o más ítems del bloque y
+# al menos uno de 1 a 7. Sin la segunda condición, un caso con todo el bloque
+# en 88 (sin mamá o sin papá) también se marca.
+
+test_that("la segunda condición pide al menos N respuestas en el rango o los códigos", {
+  base <- list(patron = "codigo", codigos = list("88"), minimo = 10)
+  # Sin segunda condición: u05 (10 = 88 y 4 = 2) y u02 (14 = 88).
+  .bat_ambos(.bat_regla(base), c("u05", "u02"))
+  # Con "al menos 1 de 1 a 4": u02 sale, porque no tiene ninguna respuesta de 1 a 4.
+  con_rango <- function(...) .bat_regla(utils::modifyList(base, list(ademas = list(...))))
+  expect_silent(.validar_regla_custom(con_rango(desde = 1, hasta = 4)))
+  .bat_ambos(con_rango(desde = 1, hasta = 4), "u05")
+  # El mínimo de la segunda condición se respeta: u05 tiene 4 respuestas de 1 a 4.
+  .bat_ambos(con_rango(desde = 1, hasta = 4, minimo = 4), "u05")
+  .bat_ambos(con_rango(desde = 1, hasta = 4, minimo = 5), character(0))
+  # Rango sin el 2: nadie.
+  .bat_ambos(con_rango(desde = 3, hasta = 4), character(0))
+  # Por códigos en lugar de rango ("2.0" es el código 2), o con un solo límite.
+  .bat_ambos(con_rango(codigos = list("2.0")), "u05")
+  .bat_ambos(con_rango(hasta = 2), "u05")
+  .bat_ambos(con_rango(desde = 89), character(0))
+  # Una vacía no cuenta como respuesta del rango aunque las vacías cuenten en "iguales".
+  iguales <- .bat_regla(list(patron = "iguales", minimo = 12, ademas = list(desde = 1, hasta = 1)))
+  .bat_ambos(iguales, "u12")
+  todas_vacias <- .bat_regla(list(patron = "vacias", ademas = list(desde = 1, hasta = 4)))
+  .bat_ambos(todas_vacias, character(0))
+})
+
+test_that("la medida publica cuántas respuestas cumplen la segunda condición", {
+  d <- .bat_datos()
+  med <- .regla_bateria_medir_filas(d, seq_len(nrow(d)), .bat_items,
+                                    list(patron = "codigo", codigos = list("88"), minimo = 10,
+                                         ademas = list(desde = 1, hasta = 4)))
+  expect_identical(med$n_ademas[d$respondent_id == "u05"], 4L)
+  expect_identical(med$n_ademas[d$respondent_id == "u02"], 0L)
+  expect_identical(med$n_ademas[d$respondent_id == "u07"], 14L)
+  sin <- .regla_bateria_medir_filas(d, 1L, .bat_items, list(patron = "iguales"))
+  expect_true(is.na(sin$n_ademas[1]))
+})
+
+test_that("el esquema rechaza una segunda condición mal formada con su código", {
+  err <- function(ademas) {
+    regla <- .bat_regla(list(patron = "codigo", codigos = list("88"), minimo = 10, ademas = ademas))
+    e <- tryCatch(.validar_regla_custom(regla), api_error = function(e) e)
+    if (inherits(e, "api_error")) e$code else NA_character_
+  }
+  expect_identical(err(list(minimo = 1)), "E_REGLA_BATERIA_ADEMAS")
+  expect_identical(err(list(desde = 7, hasta = 1)), "E_REGLA_BATERIA_ADEMAS")
+  expect_identical(err(list(desde = "uno")), "E_REGLA_BATERIA_ADEMAS")
+  expect_identical(err(list(desde = 1, hasta = 7, minimo = 0)), "E_REGLA_BATERIA_ADEMAS")
+  expect_identical(err(list(desde = 1, hasta = 7, minimo = 15)), "E_REGLA_BATERIA_ADEMAS")
+  expect_identical(err(list(desde = 1, hasta = 7, minimo = 1.5)), "E_REGLA_BATERIA_ADEMAS")
+  expect_true(is.na(err(list(desde = 1, hasta = 7))))
+  # Una segunda condición vacía (el panel la apagó) no es un error: no aplica.
+  expect_true(is.na(err(list())))
+  expect_true("E_REGLA_BATERIA_ADEMAS" %in% errores_registrados()$codigo)
+})
+
+test_that("la frase y el enunciado dicen la segunda condición", {
+  ctx <- .vrf_contexto(NULL)
+  params <- list(patron = "codigo", codigos = list("88"), minimo = 10, ademas = list(desde = 1, hasta = 4))
+  expect_identical(.vrf_texto_plano(.vrf_frase_bateria(list(propia = .bat_regla(params)), ctx)),
+                   paste("Se marca cuando 88 aparece en al menos 10 de las 14 preguntas de la batería, de b1 a b14,",
+                         "y al menos 1 de las 14 tiene una respuesta de 1 a 4."))
+  dos <- list(patron = "codigo", codigos = list("88"), minimo = 10, ademas = list(codigos = list("2", "3"), minimo = 2))
+  expect_identical(.vrf_texto_plano(.vrf_frase_bateria(list(propia = .bat_regla(dos)), ctx)),
+                   paste("Se marca cuando 88 aparece en al menos 10 de las 14 preguntas de la batería, de b1 a b14,",
+                         "y al menos 2 de las 14 tienen la respuesta 2 o 3."))
+  # En "iguales" con no_cuentan, la segunda condición va en la primera oración.
+  iguales <- list(patron = "iguales", minimo = 12, no_cuentan = list("88"), ademas = list(desde = 1))
+  expect_identical(.vrf_texto_plano(.vrf_frase_bateria(list(propia = .bat_regla(iguales)), ctx)),
+                   paste("Se marca cuando todas las respuestas de la batería, de b1 a b14, son iguales y hay al menos",
+                         "12 de 14 preguntas respondidas, y al menos 1 de las 14 tiene una respuesta de 1 o más.",
+                         "88 no cuenta como respuesta."))
+  bat <- .regla_bateria_contexto(.bat_regla(params))
+  d <- .bat_datos()
+  e <- validacion_enunciado_hallazgo(NA_character_, list(target = "b1"), "u05",
+                                     valores = as.list(d[d$respondent_id == "u05", .bat_items]),
+                                     regla = list(bateria = bat))
+  expect_identical(e$hecho, "respondió \"88\" en 10 de las 14 preguntas de la batería y 4 con una respuesta de 1 a 4")
+})
+
+test_that("el conteo previo con segunda condición cuenta por id sobre la base pedida", {
+  dir <- withr::local_tempdir()
+  sid <- .bat_sesion(dir)
+  withr::defer(session_delete(sid))
+  regla <- .bat_regla(list(patron = "codigo", codigos = list("88"), minimo = 10,
+                           ademas = list(desde = 1, hasta = 4)), id = "")
+  r <- .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/reglas_custom/probar",
+                body = as.character(jsonlite::toJSON(regla, auto_unbox = TRUE, null = "null")),
+                query = "base_nombre=Bater%C3%ADa")
+  expect_identical(r$status, 200L)
+  expect_identical(r$body$n_casos, 1L)
+  expect_identical(r$body$n_base, 8L)
+  ej <- r$body$ejemplos[[1]]
+  expect_identical(ej$id_caso, "u05")
+  expect_identical(ej$bateria$n_ademas, 4L)
+  expect_identical(ej$bateria$ademas, "de 1 a 4")
+})

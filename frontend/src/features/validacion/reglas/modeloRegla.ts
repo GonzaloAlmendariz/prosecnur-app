@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import type { TipoMeta } from "./tiposDeRegla";
 import { paramsDeComparar } from "./modeloFechas";
+import { paramsDeFormato } from "./modeloFormato";
 import {
   esOperadorDeComparacion,
   type CondicionCombinada,
@@ -163,6 +164,7 @@ export function normalizeParamsForSubmit(
   }
   if (tipo === "bateria") return paramsDeBateria(params);
   if (tipo === "comparar_fechas") return paramsDeComparar(params);
+  if (tipo === "formato") return paramsDeFormato(params);
   return params;
 }
 
@@ -184,15 +186,40 @@ export function minimoDeBateria(params: Record<string, unknown>, nPreguntas: num
   return patronDeBateria(params.patron) === "codigo" ? null : nPreguntas;
 }
 
+/**
+ * La segunda condición de una batería ("y al menos 1 de 1 a 7"): un rango
+ * (desde, hasta; uno puede faltar) o códigos, y en cuántas preguntas.
+ */
+export type AdemasDeBateria = { desde: number | null; hasta: number | null; codigos: string[]; minimo: number | null };
+
+/** La segunda condición escrita en el borrador, o `null` si está apagada. */
+export function ademasDeBateria(params: Record<string, unknown>): AdemasDeBateria | null {
+  const a = params.ademas;
+  if (!a || typeof a !== "object" || Array.isArray(a)) return null;
+  const r = a as Record<string, unknown>;
+  return { desde: nullableNumber(r.desde), hasta: nullableNumber(r.hasta), codigos: paramList(r.codigos), minimo: nullableNumber(r.minimo) };
+}
+
 /** Los parámetros de una batería como los espera el motor: solo los del patrón elegido. */
 export function paramsDeBateria(params: Record<string, unknown>): Record<string, unknown> {
   const patron = patronDeBateria(params.patron);
   const minimo = nullableNumber(params.minimo);
+  const ademas = ademasDeBateria(params);
   return {
     patron,
     ...(minimo === null ? {} : { minimo }),
     ...(patron === "codigo" ? { codigos: paramList(params.codigos) } : {}),
     ...(patron === "iguales" ? { no_cuentan: paramList(params.no_cuentan), vacias_cuentan: params.vacias_cuentan === true } : {}),
+    ...(ademas
+      ? {
+          ademas: {
+            ...(ademas.desde === null ? {} : { desde: ademas.desde }),
+            ...(ademas.hasta === null ? {} : { hasta: ademas.hasta }),
+            ...(ademas.codigos.length ? { codigos: ademas.codigos } : {}),
+            minimo: ademas.minimo ?? 1,
+          },
+        }
+      : {}),
   };
 }
 
@@ -207,7 +234,36 @@ export function validarBateria(params: Record<string, unknown>, nPreguntas: numb
   if (!Number.isInteger(minimo) || minimo < inferior || minimo > nPreguntas) {
     return `El mínimo debe ser un número entero entre ${inferior} y ${nPreguntas}.`;
   }
+  const ademas = ademasDeBateria(params);
+  if (ademas) {
+    if (ademas.desde === null && ademas.hasta === null && !ademas.codigos.length) {
+      return "La segunda condición necesita un rango o al menos un código.";
+    }
+    if (ademas.desde !== null && ademas.hasta !== null && ademas.desde > ademas.hasta) {
+      return "En la segunda condición, el inicio del rango no puede ser mayor que el final.";
+    }
+    const m = ademas.minimo ?? 1;
+    if (!Number.isInteger(m) || m < 1 || m > nPreguntas) {
+      return `El mínimo de la segunda condición debe ser un número entero entre 1 y ${nPreguntas}.`;
+    }
+  }
   return "";
+}
+
+/** "de 1 a 7", "de 1 o más", "2 o 3", "de 1 a 7 o 77": la condición con las palabras del motor. */
+export function textoDeAdemas(ademas: AdemasDeBateria, leer: (codigo: string) => string = (c) => c): string {
+  const num = (x: number) => String(x);
+  const rango =
+    ademas.desde !== null && ademas.hasta !== null
+      ? `de ${num(ademas.desde)} a ${num(ademas.hasta)}`
+      : ademas.desde !== null
+        ? `de ${num(ademas.desde)} o más`
+        : ademas.hasta !== null
+          ? `de ${num(ademas.hasta)} o menos`
+          : "";
+  const cods = ademas.codigos.map(leer);
+  const lista = cods.length <= 1 ? cods.join("") : `${cods.slice(0, -1).join(", ")} o ${cods[cods.length - 1]}`;
+  return [rango, lista].filter(Boolean).join(" o ");
 }
 
 export function paramList(value: unknown): string[] {

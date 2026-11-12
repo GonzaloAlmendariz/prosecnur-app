@@ -390,6 +390,7 @@
     "cruce_identidad" = .regla_expr_cruce_identidad(vars),
     "condiciones"    = .regla_expr_condiciones(r$params),
     "bateria"        = .regla_expr_bateria(vars, r$params),
+    "formato"        = .regla_expr_formato(vars[1], r$params),
     "comparar_fechas" = .regla_expr_fechas(r),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )

@@ -3,7 +3,8 @@
  * regla: el patrón (misma respuesta, un código repetido o vacías), las
  * preguntas de la batería y el mínimo. Las preguntas se buscan por código o
  * rótulo y se eligen una por una o por grupo (su sección o la raíz del código,
- * `modeloBateria.ts`). Lo que se guarda lo arma `paramsDeBateria`.
+ * `modeloBateria.ts`). La segunda condición ("y al menos 1 de 1 a 7") vale
+ * para los tres patrones. Lo que se guarda lo arma `paramsDeBateria`.
  */
 import { useState } from "react";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
@@ -16,7 +17,7 @@ import type { ExploradorVariable } from "../../types";
 import type { AccionDeBorrador, Borrador } from "../borradorDeRegla";
 import { CampoOpciones } from "../campos/CampoOpciones";
 import { buscarPreguntas, enOrdenDelFormulario, gruposDeBateria, type PreguntaConSeccion } from "../modeloBateria";
-import { paramList, patronDeBateria, type PatronDeBateria } from "../modeloRegla";
+import { ademasDeBateria, paramList, patronDeBateria, type PatronDeBateria } from "../modeloRegla";
 import { Fila } from "./FilaDeRegla";
 import { Segmentado } from "./Segmentado";
 import "./camposDeBateria.css";
@@ -129,6 +130,70 @@ function SelectorDePreguntas({
   );
 }
 
+function textoDe(valor: number | null): string {
+  return valor === null ? "" : String(valor);
+}
+
+/**
+ * "Además": la segunda condición de la batería. Apagada no se guarda; encendida
+ * pide un rango (uno de los límites puede faltar) o códigos, y en cuántas
+ * preguntas de la batería.
+ */
+function filasDeAdemas(
+  params: Record<string, unknown>,
+  primera: string | undefined,
+  k: number,
+  setParam: (clave: string, valor: unknown) => void,
+) {
+  const ademas = ademasDeBateria(params);
+  const crudo = (params.ademas ?? {}) as Record<string, unknown>;
+  const set = (clave: string, valor: unknown) => setParam("ademas", { ...crudo, [clave]: valor });
+  const filas = [
+    <Fila key="ademas" variante="campo" rotulo="Además">
+      <PulsoSwitch
+        size="sm"
+        checked={ademas !== null}
+        onCheckedChange={(v) => setParam("ademas", v ? { minimo: 1 } : undefined)}
+        label="Al menos una pregunta con una respuesta en un rango o con ciertos códigos"
+      />
+    </Fila>,
+  ];
+  if (!ademas) return filas;
+  filas.push(
+    <Fila key="ademas-rango" variante="campo" rotulo="Respuesta de">
+      <span className="pulso-regla-bateria-rango">
+        <PulsoInput type="number" value={textoDe(ademas.desde)} onChange={(e) => set("desde", e.target.value)} aria-label="Inicio del rango de la segunda condición" />
+        <span>a</span>
+        <PulsoInput type="number" value={textoDe(ademas.hasta)} onChange={(e) => set("hasta", e.target.value)} aria-label="Final del rango de la segunda condición" />
+      </span>
+    </Fila>,
+    <Fila key="ademas-codigos" variante="campo" rotulo="O los códigos">
+      <CampoOpciones
+        variable={primera}
+        valor={ademas.codigos}
+        onCambio={(codigos) => set("codigos", codigos)}
+        ariaLabel="Códigos de la segunda condición"
+      />
+    </Fila>,
+    <Fila key="ademas-minimo" variante="campo" rotulo="En al menos">
+      <span className="pulso-regla-bateria-minimo">
+        <PulsoInput
+          type="number"
+          min={1}
+          max={k || undefined}
+          step={1}
+          value={textoDe(ademas.minimo)}
+          placeholder="1"
+          onChange={(e) => set("minimo", e.target.value)}
+          aria-label="Preguntas que deben cumplir la segunda condición"
+        />
+        <span>{k ? `de ${formatoConteo(k)} ${k === 1 ? "pregunta" : "preguntas"}` : "preguntas"}</span>
+      </span>
+    </Fila>,
+  );
+  return filas;
+}
+
 export function CamposDeBateria({
   borrador: b,
   despachar,
@@ -216,5 +281,6 @@ export function CamposDeBateria({
   } else {
     filas.push(campoMinimo("Al menos"));
   }
+  filas.push(...filasDeAdemas(b.params, primera, k, setParam));
   return <>{filas}</>;
 }

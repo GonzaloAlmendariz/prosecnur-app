@@ -506,6 +506,7 @@
              continuidad_secuencia = "Huecos en la numeración",
              cruce_identidad = "Mismo caso en encuestas superpuestas",
              bateria = "Patrón en una batería",
+             formato = "Formato de la respuesta",
              comparar_fechas = "Dos fechas u horas que deben cuadrar")
 )
 
@@ -529,6 +530,7 @@
   tabla_ausente = "Falta la tabla del grupo repetido",
   error_al_evaluar = "La regla falló al evaluarse",
   regla_no_traducible = "La regla propia no se puede evaluar",
+  sin_auditoria = "Aún no se auditó",
   sin_auditar = "Creada después de la última auditoría",
   editada_tras_auditoria = "Cambió después de la última auditoría"
 )
@@ -632,6 +634,7 @@
     "calculo" = c(.vrf_t("El valor calculado de "), q, .vrf_t(" debe coincidir con su fórmula del formulario."),
                   filtro),
     "bateria" = c(.vrf_frase_bateria(info, ctx), filtro),
+    "formato" = c(.vrf_frase_formato(info, ctx), filtro),
     "rango_fecha" = , "comparar_fechas" = c(.vrf_frase_fechas(info, ctx), filtro),
     c(.vrf_t("Se marca cuando "), .vrf_cond(info$cuerpo, ctx), punto, filtro)
   )

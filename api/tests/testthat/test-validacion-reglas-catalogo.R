@@ -112,9 +112,12 @@ test_that("con plan y sin auditoría: cada regla con su frase, sin cifras de aud
   expect_identical(cat$por_origen$formulario, cat$n_total)
   ids <- vapply(cat$reglas, `[[`, "", "id")
   expect_false(anyDuplicated(ids) > 0L)
+  # Sin auditoría ninguna regla está evaluada: todas salen sin evaluar, con su
+  # causa (ítem 6 del checklist del practicante).
   for (f in cat$reglas) {
     expect_true(identical(f$ultima_auditoria, NA), info = f$id)
-    expect_identical(f$estado_evaluacion, "evaluada")
+    expect_identical(f$estado_evaluacion, "sin_evaluar")
+    expect_identical(f$causa_codigo, "sin_auditoria")
   }
   fams <- vapply(cat$familias, `[[`, "", "familia")
   expect_true(all(c("obligatoria", "salto", "restriccion") %in% fams))
@@ -824,4 +827,58 @@ test_that("la frase de una condición de vacío dice está vacía o tiene respue
   }
   expect_match(texto("RC_020"), "está vacía")
   expect_match(texto("RC_021"), "tiene respuesta")
+})
+
+test_that("antes de la primera auditoría y tras reconstruir el plan, toda regla activa sale sin evaluar", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  .m3_plan(sid, "Hogares")
+  validacion_scope_set(sid, "Personas", "reglas_custom",
+                       list(.m1_regla("RC_001", "rango_num", list("edad"), list(min = 18, max = 65))))
+  # Una desactivada no es "sin evaluar": dice que está desactivada.
+  apagada <- vapply(validacion_reglas_catalogo(sid, "Personas")$reglas, function(f) {
+    if (identical(f$familia, "restriccion")) f$id_motor else NA_character_
+  }, character(1))
+  validacion_scope_set(sid, "Personas", "reglas_desactivadas", apagada[!is.na(apagada)])
+
+  activas_sin <- function(cat) {
+    vapply(cat$reglas, function(f) isTRUE(f$activa) && identical(f$estado_evaluacion, "sin_evaluar"), logical(1))
+  }
+  # Camino 1: plan leído, ninguna auditoría.
+  antes <- validacion_reglas_catalogo(sid, "Personas")
+  expect_true(antes$n_activas >= 4L)
+  expect_identical(sum(activas_sin(antes)), antes$n_activas)
+  expect_identical(antes$n_sin_evaluar, antes$n_activas)
+  for (f in Filter(function(f) isTRUE(f$activa), antes$reglas)) {
+    expect_identical(f$causa_codigo, "sin_auditoria", info = f$id)
+    expect_identical(f$causa, "Aún no se auditó", info = f$id)
+  }
+  desactivada <- Filter(function(f) !isTRUE(f$activa), antes$reglas)
+  expect_length(desactivada, 1L)
+  expect_identical(desactivada[[1]]$estado_evaluacion, "evaluada")
+  expect_identical(sum(vapply(antes$familias, `[[`, 0L, "n_sin_evaluar")), antes$n_sin_evaluar)
+
+  # Auditadas las dos bases, ninguna regla queda sin evaluar por falta de auditoría.
+  .m2_auditar(sid, "Personas")
+  .m2_auditar(sid, "Hogares")
+  auditada <- validacion_reglas_catalogo(sid, "Personas")
+  expect_false(any(vapply(auditada$reglas, function(f) identical(f$causa_codigo, "sin_auditoria"), logical(1))))
+  expect_identical(auditada$n_sin_evaluar, 0L)
+  hogares_antes <- validacion_reglas_catalogo(sid, "Hogares")$n_sin_evaluar
+
+  # Camino 2: "Aplicar y reconstruir el plan" por HTTP en Personas descarta su
+  # auditoría; la base hermana conserva la suya.
+  r <- .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/instrumento/plan", body = "{}",
+                query = "base_nombre=Personas")
+  expect_identical(r$status, 200L)
+  expect_null(validacion_scope_get(sid, "Personas")$evaluacion)
+  expect_false(is.null(validacion_scope_get(sid, "Hogares")$evaluacion))
+  tras <- validacion_reglas_catalogo(sid, "Personas")
+  expect_identical(sum(activas_sin(tras)), tras$n_activas)
+  expect_identical(tras$n_sin_evaluar, tras$n_activas)
+  expect_true(all(vapply(Filter(function(f) isTRUE(f$activa), tras$reglas),
+                         function(f) identical(f$causa_codigo, "sin_auditoria"), logical(1))))
+  expect_identical(validacion_reglas_catalogo(sid, "Hogares")$n_sin_evaluar, hogares_antes)
+  expect_identical(hogares_antes, 0L)
 })

@@ -543,6 +543,8 @@ export type FilaDeCaso = {
 const CLAVE_PATRON_DE_BATERIA = "bateria:patron";
 /** La columna de lo leído en una regla de fechas (el enunciado del motor). */
 const CLAVE_LECTURA_DE_FECHAS = "fechas:lectura";
+/** La columna de por qué no pasa una respuesta en una regla de formato (el enunciado del motor). */
+const CLAVE_MOTIVO_DE_FORMATO = "formato:motivo";
 
 export type ColumnaDeCaso = { clave: string; rotulo: string; tipo: "contexto" | "pregunta" | "falla"; numerica: boolean };
 
@@ -570,6 +572,9 @@ export function valorEscrito(crudo: unknown, etiquetas: Record<string, string | 
  * En una regla de fechas van sus preguntas con el texto original y al final
  * lo leído por el motor ("registró "15.10.28" (15/10/2028) en Fecha,
  * posterior al cierre del operativo (31/10/2026)").
+ * En una regla de formato va la respuesta tal cual, sin separador de miles, y
+ * al final el enunciado del motor ("respondió "80105" en Ubigeo (5 dígitos),
+ * que no es un número de 6 dígitos").
  * Las filas se cruzan con los ids por posición dentro de la misma respuesta
  * del motor (`casos`, `case_ids`, `esperado` y `contexto_por_caso` son
  * paralelos por contrato).
@@ -613,6 +618,11 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
     const items = [...new Set([objetivo ?? "", ...listaDeRol(roles?.compare)])].filter((v) => v && enLaFila(v));
     for (const v of items) columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
     columnas.push({ clave: CLAVE_LECTURA_DE_FECHAS, rotulo: "Leído", tipo: "falla", numerica: false });
+  } else if (familia === "formato" && objetivo) {
+    // La respuesta tal cual (sin separador de miles: "80105" no es una cifra) y por qué no pasa.
+    for (const v of otras.filter(enLaFila)) columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
+    columnas.push({ clave: `formato:${objetivo}`, rotulo: etiquetas[objetivo] || objetivo, tipo: "pregunta", numerica: false });
+    columnas.push({ clave: CLAVE_MOTIVO_DE_FORMATO, rotulo: "Formato", tipo: "falla", numerica: false });
   } else {
     for (const v of otras.filter(enLaFila)) {
       columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
@@ -632,6 +642,11 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       else if (c.clave === "ctx:fecha_respuesta") valores[c.clave] = fechaCorta(ctx?.fecha_respuesta, true) ?? ctx?.fecha_respuesta ?? "Sin dato";
       else if (c.clave === CLAVE_PATRON_DE_BATERIA) valores[c.clave] = esperado[i]?.hecho ?? "Sin dato";
       else if (c.clave === CLAVE_LECTURA_DE_FECHAS) valores[c.clave] = [esperado[i]?.hecho, esperado[i]?.choque].filter(Boolean).join(", ") || "Sin dato";
+      else if (c.clave === CLAVE_MOTIVO_DE_FORMATO) valores[c.clave] = [esperado[i]?.hecho, esperado[i]?.choque].filter(Boolean).join(", ") || "Sin dato";
+      else if (c.clave.startsWith("formato:")) {
+        const crudo = fila[c.clave.slice("formato:".length)];
+        valores[c.clave] = crudo === null || crudo === undefined || crudo === "" ? "Vacía" : String(crudo);
+      }
       else valores[c.clave] = valorEscrito(fila[c.clave], valueLabels?.[c.clave] ?? null);
     }
     const id = ids[i] ?? null;

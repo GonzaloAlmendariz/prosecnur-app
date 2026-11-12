@@ -29,6 +29,9 @@
 #   - cruce_identidad      — llave compartida + solape temporal en el mismo caso.
 #   - bateria              — patrón en un conjunto de preguntas (misma respuesta,
 #                            un código repetido, vacías); validacion_regla_bateria.R.
+#   - formato              — cómo está escrita la respuesta: dígitos (cantidad,
+#                            inicio), correo o patrón libre;
+#                            validacion_regla_formato.R.
 #   - comparar_fechas      — orden o duración entre dos fechas u horas, con su
 #                            formato o repartidas en varias preguntas;
 #                            validacion_regla_fechas.R (también lee rango_fecha).
@@ -40,7 +43,7 @@
   "select_multiple_hierarchy", "select_multiple_exclusive",
   "select_multiple_cardinality", "select_multiple_selection",
   "continuidad_secuencia", "cruce_identidad",
-  "condiciones", "bateria", "comparar_fechas"
+  "condiciones", "bateria", "comparar_fechas", "formato"
 )
 
 # Comparar con otra pregunta solo admite operadores de comparación: "está
@@ -84,6 +87,7 @@
   }
   params <- r$params %||% list()
   if (identical(tipo, "bateria")) .regla_bateria_validar(r)
+  if (identical(tipo, "formato")) .regla_formato_validar(r)
   if (identical(tipo, "comparar_fechas")) .regla_fechas_validar(r)
 
   # Helper para coaccionar params opcionales a NA cuando vengan NULL o

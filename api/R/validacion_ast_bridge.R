@@ -227,6 +227,9 @@ bridge_regla_custom <- function(r) {
     ),
     "comparar_fechas" = .regla_fechas_rule(r, gate = gate_ast, nombre = nombre,
                                            objetivo = objetivo, severidad = sev),
+    # "Formato de la respuesta" (validacion_regla_formato.R).
+    "formato" = .regla_formato_rule(vars = vars, params = params, gate = gate_ast,
+                                    nombre = nombre, objetivo = objetivo, severidad = sev),
     stop(sprintf("bridge_regla_custom(): tipo '%s' no soportado.", tipo))
   )
 

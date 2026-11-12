@@ -24,6 +24,9 @@
 #   lectura    (solo reglas de fechas) cómo se leyó cada fecha u hora sobre las
 #              n_filas: cuántas con cada formato, vacías, incompletas e
 #              ilegibles (`.regla_fechas_lectura()`).
+#   formato    (solo reglas de formato) cuántas respuestas pasan y no pasan
+#              sobre las n_filas, si la columna llegó como número y las
+#              respuestas más frecuentes de cada lado (`.regla_formato_lectura()`).
 
 .probar_id <- "RC_PRUEBA"
 .probar_limite_ejemplos <- 20L
@@ -93,7 +96,7 @@
 .probar_respuesta <- function(base_nombre, regla, n_filas = 0L, n_base = 0L, n_casos = 0L,
                               evaluada = FALSE, estado = "sin_datos", motivo = NULL,
                               base_vacia = FALSE, ejemplos = list(), tiene_filtro = FALSE,
-                              lectura = NULL) {
+                              lectura = NULL, formato = NULL) {
   entero <- function(x) if (is.null(x)) NA_integer_ else as.integer(x)
   out <- list(
     ok = TRUE,
@@ -113,6 +116,7 @@
     n_ejemplos = length(ejemplos)
   )
   if (!is.null(lectura)) out$lectura <- lectura
+  if (!is.null(formato)) out$formato <- formato
   out
 }
 
@@ -232,11 +236,12 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   if (is.na(n_base)) n_base <- n_filas
   ejemplos <- .probar_ejemplos(ev, mapa, regla, gate_ast, res, ids_cond)
   lectura <- if (.regla_fechas_es(regla)) .regla_fechas_lectura(ev$datos %||% principal, regla) else NULL
+  formato <- if (.regla_formato_es(regla)) .regla_formato_lectura(ev$datos %||% principal, regla) else NULL
 
   .probar_respuesta(
     base_eff, regla, evaluada = TRUE, estado = "evaluada",
     n_filas = n_filas, n_base = n_base, n_casos = length(mapa$row_idx),
-    ejemplos = ejemplos, tiene_filtro = tiene_filtro, lectura = lectura
+    ejemplos = ejemplos, tiene_filtro = tiene_filtro, lectura = lectura, formato = formato
   )
 }
 
@@ -257,6 +262,7 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
 
   es_bateria <- identical(as.character(regla$tipo), "bateria")
   es_fechas <- .regla_fechas_es(regla)
+  es_formato <- .regla_formato_es(regla)
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
     valores <- lapply(names(papeles), function(v) {
@@ -279,6 +285,8 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
     if (es_bateria) ejemplo <- .regla_bateria_ejemplo(ejemplo, df, i, regla)
     # En fechas, lo leído, el formato y el motivo (validacion_regla_fechas.R).
     if (es_fechas) ejemplo <- .regla_fechas_ejemplo(ejemplo, df, i, regla)
+    # En formato, la respuesta como texto y por qué no pasa (validacion_regla_formato.R).
+    if (es_formato) ejemplo <- .regla_formato_ejemplo(ejemplo, df, i, regla)
     ejemplo
   })
 }
