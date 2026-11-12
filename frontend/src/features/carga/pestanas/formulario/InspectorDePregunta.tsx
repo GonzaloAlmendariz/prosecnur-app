@@ -6,7 +6,7 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import { PreviewQuestionCard } from "../../../xlsformEditor/canvas/PreviewQuestionCard";
 import { typeLabel } from "../../../xlsformEditor/parsing/parseType";
 import { toBuilderNode, toChoiceItems } from "../../PreguntasPanel";
-import { condicionEnPalabras, esCalculada, preguntasQueAbre } from "./formularioModel";
+import { condicionEnPalabras, esCalculada, preguntasQueAbre, tituloDePregunta } from "./formularioModel";
 
 const OPCIONES_VISIBLES = 8;
 
@@ -36,10 +36,10 @@ export function InspectorDePregunta({ pregunta, todas }: { pregunta: Pregunta | 
   return (
     <PanelDeMesa
         zona="inspector"
-        titulo={`${pregunta.name}, ${pregunta.label || pregunta.name}`}
+        titulo={tituloDePregunta(pregunta)}
         etiquetaCuerpo={`Ficha de ${pregunta.name}`}
       >
-        <div className="pulso-formulario-ficha" data-huecos-del-motor='"En los datos" (debieron responder, respondieron, textos distintos, codificación): la estructura no trae esas cuentas'>
+        <div className="pulso-formulario-ficha" data-qa-geometry-group="carga/formulario-ficha" data-qa-geometry-contract="intrinsic" data-huecos-del-motor='"En los datos" (debieron responder, respondieron, textos distintos, codificación): la estructura no trae esas cuentas'>
           <dl className="pulso-formulario-dl">
             <dt>Tipo</dt>
             <dd>{calculada ? "Calculada" : typeLabel(pregunta.tipo)}{pregunta.list_name ? <code> {pregunta.list_name}</code> : null}</dd>

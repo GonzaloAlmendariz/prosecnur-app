@@ -74,6 +74,7 @@ import { PestanaFormulario } from "./pestanas/PestanaFormulario";
 import { PestanaRespuestas } from "./pestanas/PestanaRespuestas";
 import { PestanaRevision } from "./pestanas/PestanaRevision";
 import { PestanaVariables } from "./pestanas/PestanaVariables";
+import { etiquetaDeBase } from "./pestanas/bases/basesModel";
 import { BASE_UNICA, baseDeVariables, type ContextoDeCarga } from "./pestanas/contextoDeCarga";
 import { useEstructuraDeBase, useLecturaDeEstructura } from "./pestanas/useEstructuraDeBase";
 import { useElegirBaseDeVariables } from "./pestanas/useElegirBaseDeVariables";
@@ -732,6 +733,7 @@ export default function CargaPage() {
       onUniversoAplicado={alAplicarUniverso}
       onGuardarColumnas={onSaveReconciliacion}
       basesPrimarias={topologyBases.map((base) => base.nombre)}
+      etiquetasDeBases={Object.fromEntries(topologyBases.map((base) => [base.nombre, etiquetaDeBase(base)]))}
       baseElegida={selectedCargaBase}
       onCambiarBase={setSelectedCargaBase}
       resumenDeBases={cargaReviewSummary}

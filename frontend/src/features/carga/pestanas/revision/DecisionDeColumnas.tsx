@@ -55,7 +55,7 @@ export function DecisionDeColumnas({
   );
   return (
     <PanelDeMesa zona="decision" titulo="Decisión" pie={pie} etiquetaCuerpo="Decisión sobre las columnas">
-      <div className="pulso-revision-decision-cuerpo" data-huecos-del-motor='"Marcar como dato personal" (M-C8)'>
+      <div className="pulso-revision-decision-cuerpo" data-qa-geometry-group="carga/revision-decision" data-qa-geometry-contract="intrinsic" data-huecos-del-motor='"Marcar como dato personal" (M-C8)'>
         <section className="pulso-revision-bloque" aria-labelledby="pulso-revision-entran">
           <h4 id="pulso-revision-entran">Entran como variables</h4>
           {entran.length > 0 ? (

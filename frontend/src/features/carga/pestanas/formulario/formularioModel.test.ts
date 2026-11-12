@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Pregunta, Seccion } from "../../../../api/client";
 import {
+  SIN_SECCION,
   TODAS_LAS_SECCIONES,
+  conteoPorSeccion,
+  rotuloDeSeccion,
+  seccionesVisibles,
+  tituloDePregunta,
   apareceDePregunta,
   apareceSeccion,
   buscar,
@@ -65,5 +70,29 @@ describe("Formulario", () => {
 
   it("da a cada tipo su color de la casa", () => {
     expect(preguntas.map(tonoDeTipo)).toEqual(["so", "text", "int", "otro", "otro"]);
+  });
+
+  it("una sola definición de pregunta: la lista suma lo mismo que la cabecera", () => {
+    const secciones = [seccion("s1"), seccion("s2")];
+    const conHuerfana = [...preguntas, q("suelta", { seccion: "" }), q("perdida", { seccion: "no_existe", tipo: "integer" })];
+    const visibles = seccionesVisibles(secciones, conHuerfana);
+    expect(visibles.map((s) => s.name)).toEqual(["s1", "s2", SIN_SECCION]);
+    const conteo = conteoPorSeccion(visibles, conHuerfana);
+    const cabecera = cifrasDeFormulario({ secciones, preguntas: conHuerfana }).preguntas;
+    expect(conteo.get(TODAS_LAS_SECCIONES)).toBe(cabecera);
+    expect(visibles.reduce((suma, s) => suma + (conteo.get(s.name) ?? 0), 0)).toBe(cabecera);
+    expect(conteo.get(SIN_SECCION)).toBe(2);
+    expect(preguntasDeSeccion(conHuerfana, SIN_SECCION, secciones).map((p) => p.name)).toEqual(["suelta", "perdida"]);
+  });
+
+  it("el rótulo de una sección no muestra marcadores del formulario", () => {
+    expect(rotuloDeSeccion(seccion("acc", { label: "Acceso al Espacio de Protección de ${sede_ppl}" }))).toBe("Acceso al Espacio de Protección");
+    expect(rotuloDeSeccion(seccion("solo", { label: "${sede_ppl}" }))).toBe("solo");
+  });
+
+  it("el título del inspector no repite el código cuando la etiqueta es el código", () => {
+    expect(tituloDePregunta(q("p9", { label: "Ocupación" }))).toBe("p9, Ocupación");
+    expect(tituloDePregunta(q("start", { label: "start" }))).toBe("start");
+    expect(tituloDePregunta(q("end", { label: "" }))).toBe("end");
   });
 });

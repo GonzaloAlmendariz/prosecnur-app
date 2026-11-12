@@ -26,7 +26,12 @@ export function ListaDeComprobaciones({
     { clave: "declaracion", titulo: "Declaraciones de la base" },
   ];
   return (
-    <div className="pulso-revision-lista-marco">
+    <div
+      className="pulso-revision-lista-marco"
+      // C1: los grupos (comprobaciones y declaraciones) son secciones independientes.
+      data-qa-geometry-group="carga/revision-grupos"
+      data-qa-geometry-contract="intrinsic"
+    >
       {grupos.map((grupo) => {
         const items = comprobaciones.filter((c) => c.grupo === grupo.clave);
         if (items.length === 0) return null;

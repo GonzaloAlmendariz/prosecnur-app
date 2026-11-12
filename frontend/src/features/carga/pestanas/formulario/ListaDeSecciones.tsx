@@ -1,7 +1,7 @@
 import type { Pregunta, Seccion } from "../../../../api/client";
 import { RepeatBadge } from "../../../../components/RepeatBadge";
 import { formatoConteo } from "../../../../lib/formatoNumero";
-import { TODAS_LAS_SECCIONES, apareceSeccion } from "./formularioModel";
+import { SIN_SECCION, TODAS_LAS_SECCIONES, apareceSeccion, conteoPorSeccion, rotuloDeSeccion, seccionesVisibles } from "./formularioModel";
 
 /**
  * Las secciones del formulario (prototipo "carga-formulario", columna
@@ -21,11 +21,19 @@ export function ListaDeSecciones({
   onElegir: (seccion: string) => void;
   idTabla: string;
 }) {
-  const porSeccion = new Map<string, number>();
-  for (const p of preguntas) porSeccion.set(p.seccion, (porSeccion.get(p.seccion) ?? 0) + 1);
+  // Las cifras cuentan preguntas con la misma definición que la cabecera (sin cálculos ni notas), y la
+  // suma de las secciones, "Sin sección" incluida, es la de "Todas las secciones".
+  const visibles = seccionesVisibles(secciones, preguntas);
+  const conteo = conteoPorSeccion(visibles, preguntas);
   const filas = [
-    { name: TODAS_LAS_SECCIONES, label: "Todas las secciones", n: preguntas.length, aparece: null as string | null, repite: false },
-    ...secciones.map((s) => ({ name: s.name, label: s.label || s.name, n: porSeccion.get(s.name) ?? 0, aparece: apareceSeccion(s, preguntas), repite: s.is_repeat })),
+    { name: TODAS_LAS_SECCIONES, label: "Todas las secciones", n: conteo.get(TODAS_LAS_SECCIONES) ?? 0, aparece: null as string | null, repite: false },
+    ...visibles.map((s) => ({
+      name: s.name,
+      label: rotuloDeSeccion(s),
+      n: conteo.get(s.name) ?? 0,
+      aparece: s.name === SIN_SECCION ? null : apareceSeccion(s, preguntas),
+      repite: s.is_repeat,
+    })),
   ];
   return (
     <ul
@@ -42,7 +50,7 @@ export function ListaDeSecciones({
             aria-pressed={elegida === s.name}
             aria-controls={idTabla}
             onClick={() => onElegir(s.name)}
-            title={s.name === TODAS_LAS_SECCIONES ? undefined : `${s.label} (${s.name})`}
+            title={s.name === TODAS_LAS_SECCIONES || s.name === SIN_SECCION ? undefined : `${s.label} (${s.name})`}
           >
             <span className="pulso-formulario-seccion-texto">
               <b>{s.label}</b>

@@ -13,9 +13,13 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import { LogicCanvas } from "../../../xlsformEditor/canvas-graph/LogicCanvas";
 import { buildReadOnlyLogicInputs } from "../../PreguntasPanel";
 import { CabeceraDeMesaDeCarga } from "../revision/CabeceraDeMesaDeCarga";
+import { etiquetaDeBase } from "../bases/basesModel";
 import { SelectorDeBaseCarga } from "../SelectorDeBaseCarga";
 import {
+  SIN_SECCION,
   TODAS_LAS_SECCIONES,
+  rotuloDeSeccion,
+  seccionesVisibles,
   buscar,
   cifrasDeFormulario,
   conteoPorFiltro,
@@ -66,17 +70,24 @@ export function MesaDeFormulario({
   const preguntas = estructura?.preguntas ?? [];
   // Sin elección, la sección de la pregunta de la dirección; si no, la primera.
   const seccion = vista.seccion
-    ?? preguntas.find((p) => p.name === foco)?.seccion
+    ?? (() => {
+      const deFoco = preguntas.find((p) => p.name === foco);
+      if (!deFoco) return undefined;
+      return secciones.some((s) => s.name === deFoco.seccion) ? deFoco.seccion : SIN_SECCION;
+    })()
     ?? secciones[0]?.name
     ?? TODAS_LAS_SECCIONES;
-  const deLaSeccion = useMemo(() => buscar(preguntasDeSeccion(preguntas, seccion), vista.busqueda), [preguntas, seccion, vista.busqueda]);
+  const deLaSeccion = useMemo(() => buscar(preguntasDeSeccion(preguntas, seccion, secciones), vista.busqueda), [preguntas, seccion, secciones, vista.busqueda]);
   const conteo = conteoPorFiltro(deLaSeccion);
   const visibles = deLaSeccion.filter((p) => cumpleFiltro(p, vista.filtro));
   const elegida = preguntaElegida(visibles, foco);
   const logica = useMemo(() => buildReadOnlyLogicInputs(preguntas, secciones), [preguntas, secciones]);
   const nombreSeccion = seccion === TODAS_LAS_SECCIONES
     ? "Todas las secciones"
-    : secciones.find((s) => s.name === seccion)?.label || seccion;
+    : (() => {
+      const s = seccionesVisibles(secciones, preguntas).find((x) => x.name === seccion);
+      return s ? rotuloDeSeccion(s) : seccion;
+    })();
 
   const c = estructura ? cifrasDeFormulario(estructura) : null;
   const cifras: CifraDePestana[] = c
@@ -88,6 +99,7 @@ export function MesaDeFormulario({
       ]
     : [];
   const nombresDeBases = bases ? Object.keys(bases) : [];
+  const etiquetas = bases ? Object.fromEntries(Object.values(bases).map((b) => [b.nombre, etiquetaDeBase(b)])) : {};
   const cabecera = (
     <CabeceraDeMesaDeCarga
       pestana="formulario"
@@ -96,7 +108,7 @@ export function MesaDeFormulario({
       pendientes='"Revisión 3, publicada el 28 oct": la estructura que lee la pestaña no trae la revisión publicada. "Abrir en Formularios": sin decidir qué formulario del editor abre una base cargada'
       acciones={estructura || (varias && nombresDeBases.length > 1) ? (
         <>
-          {varias ? <SelectorDeBaseCarga bases={nombresDeBases} elegida={baseDelEsquema} onCambiar={onCambiarBaseDelEsquema} /> : null}
+          {varias ? <SelectorDeBaseCarga bases={nombresDeBases} etiquetas={etiquetas} elegida={baseDelEsquema} onCambiar={onCambiarBaseDelEsquema} /> : null}
           {estructura ? (
             <PulsoButton variant="secondary" size="md" onClick={() => setMapaAbierto(true)}>
               <Network size={14} aria-hidden="true" />
@@ -127,7 +139,6 @@ export function MesaDeFormulario({
         <PanelDeMesa
           zona="preguntas"
           titulo={estructura ? nombreSeccion : "Preguntas"}
-          conteo={estructura ? deLaSeccion.length : undefined}
           etiquetaCuerpo="Preguntas de la sección"
         >
           {estructura ? (

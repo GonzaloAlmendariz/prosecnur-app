@@ -5,6 +5,7 @@ import type { ContextoDeCarga } from "../contextoDeCarga";
 import { BASE_UNICA } from "../contextoDeCarga";
 import { CargaBaseSheetPane } from "../HojaBaseCarga";
 import { CabeceraDeMesaDeCarga } from "../revision/CabeceraDeMesaDeCarga";
+import { etiquetaDeBase } from "../bases/basesModel";
 import { SelectorDeBaseCarga } from "../SelectorDeBaseCarga";
 import "../revision/marcoDeMesa.css";
 import "../../../../components/procesamiento/mesa-procesamiento.css";
@@ -55,7 +56,7 @@ export function MesaDeRespuestas({ contexto }: { contexto: ContextoDeCarga }) {
             cifras={cifras}
             pendientes='Conmutador "Cargada, Limpia, Codificada": la hoja de Carga solo lee la base cargada. Filas y columnas: las dice la hoja'
             acciones={esVarias && nombres.length > 1 ? (
-              <SelectorDeBaseCarga bases={nombres} elegida={base?.nombre ?? ""} onCambiar={onCambiarBase} deshabilitado={Boolean(ocupado)} />
+              <SelectorDeBaseCarga bases={nombres} etiquetas={Object.fromEntries(basesTodas.map((b) => [b.nombre, etiquetaDeBase(b)]))} elegida={base?.nombre ?? ""} onCambiar={onCambiarBase} deshabilitado={Boolean(ocupado)} />
             ) : undefined}
           />
           <div className="pulso-respuestas-hoja" data-qa-geometry-capacity="owned">

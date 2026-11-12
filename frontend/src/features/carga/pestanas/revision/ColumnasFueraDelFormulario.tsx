@@ -94,7 +94,7 @@ export function ColumnasFueraDelFormulario({
       className="pulso-revision-columnas pulso-carga-tabla-llena"
       data-huecos-del-motor='"Ejemplos" y "Se leería como": la revisión no publica tipo ni valores de una columna extra'
     >
-      <div className="pulso-revision-filtros" role="group" aria-label="Filtrar columnas por decisión">
+      <div className="pulso-revision-filtros" role="group" aria-label="Filtrar columnas por decisión" data-qa-geometry-group="carga/revision-filtros" data-qa-geometry-contract="intrinsic">
         {FILTROS.map((f) => (
           <ChipSeleccion
             key={f.clave}

@@ -43,6 +43,7 @@ export type MesaDeRevisionProps = {
   filas: number | null;
   varias: boolean;
   basesPrimarias: readonly string[];
+  etiquetasDeBases: Readonly<Record<string, string>>;
   baseElegida: string;
   onCambiarBase: (nombre: string) => void;
   resumenDeBases: CargaReviewSummaryPayload | null;
@@ -68,7 +69,7 @@ type EstadoDeColumnas = { firma: string; marcadas: string[]; filtro: FiltroDeCol
 export function MesaDeRevision(props: MesaDeRevisionProps) {
   const {
     revision, leyendo, ocupado, tieneFormulario, tieneRespuestas, mapeoPendiente, filas, varias,
-    basesPrimarias, baseElegida, onCambiarBase, resumenDeBases, puedeContinuar, conDeclaraciones,
+    basesPrimarias, etiquetasDeBases, baseElegida, onCambiarBase, resumenDeBases, puedeContinuar, conDeclaraciones,
     onLecturaUniverso, onUniversoAplicado, onRevisarMapeo, onGuardarColumnas,
   } = props;
   const idDetalle = useId();
@@ -151,7 +152,7 @@ export function MesaDeRevision(props: MesaDeRevisionProps) {
       acciones={(varias && basesPrimarias.length > 1) || puedeContinuar ? (
         <>
           {varias ? (
-            <SelectorDeBaseCarga bases={basesPrimarias} elegida={baseElegida} onCambiar={onCambiarBase} deshabilitado={ocupado} />
+            <SelectorDeBaseCarga bases={basesPrimarias} etiquetas={etiquetasDeBases} elegida={baseElegida} onCambiar={onCambiarBase} deshabilitado={ocupado} />
           ) : null}
           {puedeContinuar ? (
             <PulsoButtonEnlace variant="primary" size="md" nav href="/validacion">Ir a Validación</PulsoButtonEnlace>

@@ -6,9 +6,12 @@
 import type { Pregunta, Seccion } from "../../../../api/client";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { humanizeRelevantWithLabels } from "../../../xlsformEditor/canvas-graph/logicaTexto";
+import { rotuloSinMarcador } from "../../../codificacion/sugerenciasModulo";
 
 /** Clave de "todas las secciones" en la lista: no choca con un `name` de XLSForm, que no admite espacios. */
 export const TODAS_LAS_SECCIONES = "todas las secciones";
+/** Clave de los elementos que no caen en ninguna sección declarada (sin grupo o con un grupo desconocido). */
+export const SIN_SECCION = "sin sección";
 
 export type FiltroDePreguntas = "todas" | "condicion" | "obligatorias" | "restriccion" | "calculadas" | "filtro-opciones";
 
@@ -40,8 +43,47 @@ export function cumpleFiltro(p: Pregunta, filtro: FiltroDePreguntas): boolean {
   }
 }
 
-export function preguntasDeSeccion(preguntas: readonly Pregunta[], seccion: string): Pregunta[] {
-  return seccion === TODAS_LAS_SECCIONES ? [...preguntas] : preguntas.filter((p) => p.seccion === seccion);
+export function preguntasDeSeccion(preguntas: readonly Pregunta[], seccion: string, secciones: readonly Seccion[] = []): Pregunta[] {
+  if (seccion === TODAS_LAS_SECCIONES) return [...preguntas];
+  if (seccion === SIN_SECCION) {
+    const conocidas = new Set(secciones.map((s) => s.name));
+    return preguntas.filter((p) => !conocidas.has(p.seccion));
+  }
+  return preguntas.filter((p) => p.seccion === seccion);
+}
+
+/** Las secciones de la lista: las declaradas y, si hay elementos fuera de ellas, "Sin sección" al final. */
+export function seccionesVisibles(secciones: readonly Seccion[], preguntas: readonly Pregunta[]): Seccion[] {
+  const conocidas = new Set(secciones.map((s) => s.name));
+  const huerfanas = preguntas.some((p) => !conocidas.has(p.seccion));
+  return huerfanas
+    ? [...secciones, { name: SIN_SECCION, label: "Sin sección", is_repeat: false, is_conditional: false, relevant: null, prefix: "" }]
+    : [...secciones];
+}
+
+/** Una pregunta es lo que se responde: sin cálculos ni notas. La misma definición en la cabecera y en la lista. */
+export function esRespondible(p: Pregunta): boolean {
+  return !esCalculada(p) && !esNota(p);
+}
+
+/** Preguntas por sección (y en "Todas las secciones"), con la definición de la cabecera. */
+export function conteoPorSeccion(visibles: readonly Seccion[], preguntas: readonly Pregunta[]): Map<string, number> {
+  const conteo = new Map<string, number>();
+  const declaradas = visibles.filter((s) => s.name !== SIN_SECCION);
+  for (const s of visibles) conteo.set(s.name, preguntasDeSeccion(preguntas, s.name, declaradas).filter(esRespondible).length);
+  conteo.set(TODAS_LAS_SECCIONES, preguntas.filter(esRespondible).length);
+  return conteo;
+}
+
+/** El nombre de una sección sin marcadores crudos (`${sede_ppl}`); si no queda nada, su código. */
+export function rotuloDeSeccion(s: Seccion): string {
+  return rotuloSinMarcador(s.label || "") || s.name;
+}
+
+/** El título del inspector: "p9, Ocupación principal", o solo el código si la etiqueta no dice más. */
+export function tituloDePregunta(p: Pregunta): string {
+  const etiqueta = (p.label || "").trim();
+  return etiqueta && etiqueta !== p.name ? `${p.name}, ${etiqueta}` : p.name;
 }
 
 export function buscar(preguntas: readonly Pregunta[], texto: string): Pregunta[] {
@@ -119,7 +161,7 @@ export type CifrasDeFormulario = { preguntas: number; secciones: number; conCond
 
 /** Preguntas son las que se responden: sin cálculos ni notas, que se cuentan aparte. */
 export function cifrasDeFormulario(estructura: { secciones: readonly Seccion[]; preguntas: readonly Pregunta[] }): CifrasDeFormulario {
-  const respondibles = estructura.preguntas.filter((p) => !esCalculada(p) && !esNota(p));
+  const respondibles = estructura.preguntas.filter(esRespondible);
   return {
     preguntas: respondibles.length,
     secciones: estructura.secciones.length,

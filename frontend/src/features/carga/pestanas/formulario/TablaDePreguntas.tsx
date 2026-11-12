@@ -45,12 +45,12 @@ export function TablaDePreguntas({
   onElegir: (nombre: string) => void;
 }) {
   const columnas: PulsoTableColumna<Pregunta>[] = [
-    { id: "codigo", encabezado: "Código", ancho: 92, valor: (p) => p.name, celda: (p) => <code className="pulso-formulario-codigo">{p.name}</code> },
-    { id: "pregunta", encabezado: "Pregunta", ancho: 210, valor: (p) => p.label, celda: (p) => <b className="pulso-formulario-etiqueta">{p.label || p.name}</b> },
+    { id: "codigo", encabezado: "Código", ancho: 112, valor: (p) => p.name, celda: (p) => <code className="pulso-formulario-codigo">{p.name}</code> },
+    { id: "pregunta", encabezado: "Pregunta", ancho: 196, valor: (p) => p.label, celda: (p) => <b className="pulso-formulario-etiqueta">{p.label || p.name}</b> },
     {
       id: "tipo",
       encabezado: "Tipo",
-      ancho: 138,
+      ancho: 132,
       valor: (p) => (esCalculada(p) ? "Calculada" : typeLabel(p.tipo)),
       celda: (p) => (
         <span className="pulso-formulario-tipo" data-tono={tonoDeTipo(p)}>{esCalculada(p) ? "Calculada" : typeLabel(p.tipo)}</span>
@@ -68,7 +68,7 @@ export function TablaDePreguntas({
   return (
     <div className="pulso-formulario-preguntas pulso-carga-tabla-llena">
       <div className="pulso-formulario-barra">
-        <div className="pulso-formulario-filtros" role="group" aria-label="Filtrar preguntas">
+        <div className="pulso-formulario-filtros" role="group" aria-label="Filtrar preguntas" data-qa-geometry-group="carga/formulario-filtros" data-qa-geometry-contract="intrinsic">
           {FILTROS_DE_PREGUNTAS.filter((f) => f.clave === "todas" || conteo[f.clave] > 0 || filtro === f.clave).map((f) => (
             <ChipSeleccion
               key={f.clave}

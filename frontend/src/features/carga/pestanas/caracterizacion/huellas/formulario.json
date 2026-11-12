@@ -1,10 +1,10 @@
 {
   "una-base_con-insumos_estructura": {
-    "marcado": "dcdc98054a9627c9d02226e7f7338473684269208ba25443e04da961dd98647d",
+    "marcado": "8b91fc1c75db779ad033a3d53cd9c180a6d4fb97caa4b86331ab403d89c05d42",
     "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
   },
   "una-base_con-insumos_formulario": {
-    "marcado": "8bf96b5bfa8d15e6137956d428068edd24eb0b268957bc58ed2338bb3ce811e1",
+    "marcado": "5d8f7ab2949b29ec53598d038cd187cdc47a59e412e8f7ce6ac510581c2599b8",
     "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
   },
   "una-base_sin-archivos_estructura": {
@@ -16,19 +16,19 @@
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "varias_integradas_estructura": {
-    "marcado": "833cfa32538e8cf7d449aeee2538287255e1c800edea56ff6afdf09be6af69b7",
+    "marcado": "680a79c6e77c3548ce697d25b8fc604332d3c43a4345b725c1dcfc1f093374c4",
     "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
   },
   "varias_integradas_formulario": {
-    "marcado": "91fa9e50ec43173c3735d20322bd67d9c6135ac6bc041dc9f061752a3705e277",
+    "marcado": "410d6b3e05b9b784febf0a1d8f583cf573fc8ce020e01fc7af31f69d269c98e6",
     "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
   },
   "varias_separadas_estructura": {
-    "marcado": "ab875bf993371a47c841772fc40d0fb94410ae5cb435afdbe80b2199bec833e4",
+    "marcado": "44321b3c2f62f6044832bc666a3a0899824f4e6a562e4115ec9911e67f0e4b7a",
     "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
   },
   "varias_separadas_formulario": {
-    "marcado": "21194115dfe8115a809845db1431d818437a273d0efa3abeb7148935676df2b4",
+    "marcado": "ae9a5933ad023fae8c76cfd609e761450cc32498c91d905a2c3d15e95487071b",
     "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
   },
   "varias_sin-bases_estructura": {

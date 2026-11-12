@@ -23,6 +23,8 @@ export type PestanaRevisionProps = {
   varias: boolean;
   /** Varias bases: bases primarias (las hijas de grupo repetido no se revisan), base elegida y avance de todas. */
   basesPrimarias: string[];
+  /** Lo que se lee de cada base en el selector (`etiquetaDeBase`). */
+  etiquetasDeBases: Readonly<Record<string, string>>;
   baseElegida: string;
   onCambiarBase: (nombre: string) => void;
   resumenDeBases: CargaReviewSummaryPayload | null;
@@ -49,6 +51,7 @@ export function PestanaRevision(props: PestanaRevisionProps) {
       filas={props.filasDeLaBase}
       varias={varias}
       basesPrimarias={basesPrimarias}
+      etiquetasDeBases={props.etiquetasDeBases}
       baseElegida={baseElegida}
       onCambiarBase={props.onCambiarBase}
       resumenDeBases={props.resumenDeBases}

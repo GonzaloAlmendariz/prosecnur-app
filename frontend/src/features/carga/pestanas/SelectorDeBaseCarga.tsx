@@ -7,6 +7,8 @@ export type SelectorDeBaseCargaProps = {
   elegida: string;
   onCambiar: (nombre: string) => void;
   deshabilitado?: boolean;
+  /** Lo que se lee de cada base (`etiquetaDeBase`); sin él, su nombre. */
+  etiquetas?: Readonly<Record<string, string>>;
 };
 
 /**
@@ -14,17 +16,19 @@ export type SelectorDeBaseCargaProps = {
  * Revisión, Variables, Formulario y Respuestas, con el select del kit. Con una
  * sola opción no hay nada que elegir y no se pinta.
  */
-export function SelectorDeBaseCarga({ bases, elegida, onCambiar, deshabilitado = false }: SelectorDeBaseCargaProps) {
+export function SelectorDeBaseCarga({ bases, elegida, onCambiar, deshabilitado = false, etiquetas }: SelectorDeBaseCargaProps) {
   if (bases.length < 2) return null;
   return (
     <div className="pulso-carga-selector-base">
       <PulsoField label="Base" inline>
         <PulsoSelect
           size="sm"
-          value={elegida || undefined}
+          // Siempre controlado: con `undefined` mientras no hay base elegida, el select pasaba de no
+          // controlado a controlado al llegar la primera (aviso de React).
+          value={elegida}
           onValueChange={onCambiar}
           disabled={deshabilitado}
-          options={bases.map((nombre) => ({ value: nombre, label: nombre }))}
+          options={bases.map((nombre) => ({ value: nombre, label: etiquetas?.[nombre] ?? nombre }))}
         />
       </PulsoField>
     </div>
