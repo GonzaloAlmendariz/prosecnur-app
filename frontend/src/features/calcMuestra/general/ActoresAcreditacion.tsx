@@ -151,6 +151,17 @@ function MetaDelActor({
           onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota", origen: "usuario" } })}
         />
         <PieDeMeta {...pieDeCuota(sugerido, campo.rotulo)} />
+        {campo.rotulo === "Encuestas" && (
+          // ADR 0143: en un barrido la respuesta esperada dice si la meta es alcanzable (el motor avisa por segmento).
+          <div className="cmg-respuesta-esperada">
+            <PercentCell
+              value={comp.parametros.tasa_respuesta}
+              ariaLabel={`Respuesta esperada de ${actor}`}
+              onChange={(v) => onComponente(comp.id, { parametros: { tasa_respuesta: v } })}
+            />
+            <PieDeMeta detalle="Respuesta esperada" piezas={["Respuesta esperada"]} />
+          </div>
+        )}
       </div>
     );
   }

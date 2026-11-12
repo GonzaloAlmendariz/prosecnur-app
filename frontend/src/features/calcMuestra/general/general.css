@@ -1028,3 +1028,11 @@
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-caption-size);
 }
+
+/* ADR 0143: la respuesta esperada bajo las encuestas de un barrido, alineada como la meta. */
+.cmg-tabla-actores .cmg-respuesta-esperada {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 6px;
+}
