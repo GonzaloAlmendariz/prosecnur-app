@@ -36,3 +36,42 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+/* Cada meta con su lectura debajo: margen de referencia y respuesta que exige. */
+.cmg-propuesta-celda {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+.cmg-propuesta-lectura {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cmg-propuesta-lectura[data-excede="true"] {
+  color: var(--pulso-danger-fg);
+  font-weight: 600;
+}
+.cmg-propuesta-nota {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-muted);
+}
+.cmg-propuesta-aviso {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: 8px;
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: var(--pulso-type-caption-size);
+}
+/* La meta se lee alineada con su lectura, a la derecha, como el resto de cifras de la tabla. */
+.cmg-propuesta-celda .cmv2-number-cell {
+  width: 104px;
+}
+.cmg-propuesta-celda .cmv2-number-cell input {
+  width: 100%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

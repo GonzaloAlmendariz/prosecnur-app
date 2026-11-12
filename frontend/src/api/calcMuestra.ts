@@ -1148,6 +1148,16 @@ export type CalcMuestraWorkspace = {
    *  presupuestar) o "campo" (base de DTI del semestre de aplicación). Distinción
    *  canónica del método HSyVBG. Retrocompatible: default "propuesta". */
   etapa?: "propuesta" | "campo";
+  /** Propuestas A, B, C del barrido (Acreditación › Resultados › Propuesta). Retrocompatible: puede no venir. */
+  propuesta?: CalcMuestraWorkspacePropuesta | null;
+};
+
+/** Hasta cuatro escenarios, cada uno con la meta de cada actor por `componente_id`. */
+export type CalcMuestraWorkspacePropuesta = {
+  escenarios: { nombre: string; metas: Record<string, number> }[];
+  solicitante: string;
+  incluir_portada: boolean;
+  incluir_diseno: boolean;
 };
 
 export type CalcMuestraEstudio = {

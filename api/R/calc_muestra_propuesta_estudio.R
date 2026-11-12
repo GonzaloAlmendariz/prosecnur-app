@@ -55,3 +55,30 @@ calc_muestra_propuesta_desde_estudio <- function(estudio, marcos, body) {
     escenarios = lapply(escenarios, armar)
   )
 }
+
+# Las propuestas que el usuario arma en Acreditación › Resultados › Propuesta viajan en el workspace del estudio (y por
+# eso en el `.pulso`): sin esta entrada el workspace, que es whitelist, las borraba en cada guardado. Hasta cuatro
+# escenarios, cada uno con su nombre y la meta de cada actor por `componente_id`.
+.cm_normalize_workspace_propuesta <- function(p) {
+  if (is.null(p) || !is.list(p)) return(NULL)
+  escenarios <- lapply(p$escenarios %||% list(), function(e) {
+    if (!is.list(e)) return(NULL)
+    metas <- e$metas
+    ids <- names(metas)
+    metas <- if (is.list(metas) && !is.null(ids)) {
+      metas <- metas[nzchar(ids)]
+      lapply(metas, function(v) calc_int(v, 0L, min = 0L))
+    } else {
+      structure(list(), names = character(0))
+    }
+    list(nombre = calc_str(e$nombre, ""), metas = metas)
+  })
+  escenarios <- Filter(Negate(is.null), escenarios)
+  if (length(escenarios) > 4L) escenarios <- escenarios[seq_len(4L)]
+  list(
+    escenarios = escenarios,
+    solicitante = calc_str(p$solicitante, ""),
+    incluir_portada = !isFALSE(p$incluir_portada),
+    incluir_diseno = !isFALSE(p$incluir_diseno)
+  )
+}

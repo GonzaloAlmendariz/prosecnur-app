@@ -129,7 +129,7 @@ export function MesaAcreditacion({
             data-qa-geometry-contract="intrinsic"
           >
             <ResultadosComponentes modo="acreditacion" componentes={estudio.componentes} calculando={calculando} onCalcular={calcular} />
-            <PropuestaEscenarios componentes={estudio.componentes} />
+            <PropuestaEscenarios componentes={estudio.componentes} workspace={workspace} onWorkspace={onWorkspace} />
             <Panel className="cmg-salida-acreditacion" aria-label="Reporte del diseño" data-qa-geometry-member>
               <SalidaReporte reporte={reporte} />
             </Panel>

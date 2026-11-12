@@ -69,3 +69,26 @@ test_that("flujo HTTP: sin actores con N la propuesta responde 409 con su códig
   expect_identical(r$status, 409L)
   expect_identical(r$json$error$code %||% r$json$code, "E_CALC_MUESTRA_PROPUESTA_SIN_ACTORES")
 })
+
+test_that("flujo HTTP: las propuestas A, B y C se guardan en el workspace del estudio y vuelven intactas", {
+  srv <- http_contract_server()
+  sid <- http_post_json(srv, "/api/session", body = list(fresh = TRUE))$json$session_id
+  propuesta <- list(
+    escenarios = list(list(nombre = "Propuesta A", metas = list(doc = 550, egr = 450)),
+                      list(nombre = "Propuesta B", metas = list(doc = 450, egr = 380)),
+                      list(nombre = "Propuesta C", metas = list(doc = 350, egr = 300))),
+    solicitante = "DCI", incluir_portada = FALSE, incluir_diseno = TRUE)
+  r <- http_post_json(srv, "/api/calc-muestra/estudio", sid = sid,
+                      body = list(estudio = list(titulo = "DCI", workspace = list(frame_mode = "acreditacion", propuesta = propuesta))))
+  expect_identical(r$status, 200L)
+  p <- r$json$estudio$workspace$propuesta
+  expect_identical(vapply(p$escenarios, function(e) e$nombre, ""), c("Propuesta A", "Propuesta B", "Propuesta C"))
+  expect_identical(as.integer(unlist(p$escenarios[[3]]$metas)), c(350L, 300L))
+  expect_identical(names(p$escenarios[[2]]$metas), c("doc", "egr"))
+  expect_false(isTRUE(p$incluir_portada))
+  expect_identical(p$solicitante, "DCI")
+  # Un estudio sin propuesta sigue sin ella; más de cuatro escenarios se recortan.
+  cinco <- rep(list(list(nombre = "X", metas = list(doc = 1))), 5)
+  expect_length(.cm_normalize_workspace_propuesta(list(escenarios = cinco))$escenarios, 4L)
+  expect_null(.cm_normalize_workspace_propuesta(NULL))
+})

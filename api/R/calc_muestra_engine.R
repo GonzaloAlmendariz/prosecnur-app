@@ -331,7 +331,9 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     motor_recorrido = .cm_normalize_workspace_motor_recorrido(ws$motor_recorrido),
     # Etapa canónica del método HSyVBG: propuesta (data del semestre anterior)
     # vs campo (base de DTI del semestre de aplicación). Default propuesta.
-    etapa = calc_enum(ws$etapa, c("propuesta", "campo"), "propuesta")
+    etapa = calc_enum(ws$etapa, c("propuesta", "campo"), "propuesta"),
+    # Propuestas A, B, C del barrido (calc_muestra_propuesta_estudio.R).
+    propuesta = .cm_normalize_workspace_propuesta(ws$propuesta)
   )
 }
 
