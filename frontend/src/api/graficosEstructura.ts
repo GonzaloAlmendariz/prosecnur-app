@@ -19,7 +19,12 @@ export type PreguntaDelInforme = {
   porRegistro: boolean;
 };
 
-export type SeccionDelInforme = { titulo: string; preguntas: PreguntaDelInforme[] };
+export type SeccionDelInforme = {
+  titulo: string;
+  preguntas: PreguntaDelInforme[];
+  /** Las preguntas de cada lámina de la sección: una batería pone varias en una (el total se cuenta por lámina). */
+  laminasRefs: string[][];
+};
 
 export type EstructuraDelInforme = {
   perfil: string;
@@ -63,7 +68,8 @@ export function normalizarEstructuraDelInforme(raw: unknown): EstructuraDelInfor
         porRegistro: logico(p.por_registro),
       };
     }).filter((q): q is PreguntaDelInforme => q !== null);
-    return { titulo: texto(sec.titulo) || "Sin sección", preguntas };
+    const laminasRefs = arreglo(sec.laminas_refs).map((l) => arreglo(l).map(texto).filter(Boolean)).filter((l) => l.length > 0);
+    return { titulo: texto(sec.titulo) || "Sin sección", preguntas, laminasRefs };
   }).filter((s) => s.preguntas.length > 0);
   return {
     perfil: texto(r.perfil),

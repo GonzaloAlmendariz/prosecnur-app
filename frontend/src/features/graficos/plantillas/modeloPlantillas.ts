@@ -88,9 +88,16 @@ export function estadoSeccion(s: SeccionDelInforme): EstadoSeccion {
   return dentro === 0 ? "ninguna" : dentro === s.preguntas.length ? "todas" : "algunas";
 }
 
-/** Láminas que suma una sección: las de sus preguntas dentro y su separador. Fuera del todo, cero. */
+/**
+ * Láminas que suma una sección: las que conservan al menos una pregunta dentro y su separador. Fuera del todo, cero.
+ * Se cuenta por lámina: una batería con diez preguntas es una lámina, no diez. Sin el detalle por lámina (una respuesta
+ * antigua), la suma de las de cada pregunta.
+ */
 export function laminasDeSeccion(s: SeccionDelInforme): number {
-  const preguntas = s.preguntas.filter((q) => q.dentro).reduce((a, q) => a + q.laminas, 0);
+  const dentro = new Set(s.preguntas.filter((q) => q.dentro).map((q) => q.ref));
+  const preguntas = s.laminasRefs?.length
+    ? s.laminasRefs.filter((refs) => refs.some((r) => dentro.has(r))).length
+    : s.preguntas.filter((q) => q.dentro).reduce((a, q) => a + q.laminas, 0);
   return preguntas > 0 ? preguntas + 1 : 0;
 }
 

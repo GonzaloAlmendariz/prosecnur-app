@@ -8,7 +8,6 @@ export type GrupoPlantilla = "cliente" | "pulso" | "cero";
 export type PlantillaInforme = {
   id: string;
   nombre: string;
-  descripcion: string;
   grupo: GrupoPlantilla;
   /** Campos que la plantilla agrega a la config al pedir la estructura y el plan. */
   config: Record<string, unknown>;
@@ -33,32 +32,29 @@ export const PLANTILLAS_INFORME: readonly PlantillaInforme[] = [
   {
     id: "acnur",
     nombre: "ACNUR general",
-    descripcion: "Plantilla ACNUR, una pregunta por lámina, con decimales",
     grupo: "cliente",
-    config: { profile_id: "acnur_kobo_cruncher_plus", acnur_mode: "general", include_coverage_maps: false, comparison_mode: "none" },
+    config: { profile_id: "acnur_kobo_cruncher_plus", template_id: "acnur_16_9", acnur_mode: "general", include_coverage_maps: false, comparison_mode: "none" },
     muestra: ACNUR,
   },
   {
     id: "acnur-territorial",
     nombre: "ACNUR territorial",
-    descripcion: "Lo anterior con mapas de cobertura y comparación por distrito",
     grupo: "cliente",
-    config: { profile_id: "acnur_kobo_cruncher_plus", acnur_mode: "territorial", include_coverage_maps: true, comparison_mode: "paired_district" },
+    config: { profile_id: "acnur_kobo_cruncher_plus", template_id: "acnur_16_9", acnur_mode: "territorial", include_coverage_maps: true, comparison_mode: "paired_district" },
     requiereTerritorio: true,
     muestra: ACNUR,
   },
   {
     id: "pulso",
     nombre: "Informe Pulso",
-    descripcion: "Identidad Pulso; las baterías de una misma escala van juntas",
     grupo: "pulso",
-    config: {},
+    // Estilo Pulso explícito: sin esto, en un estudio de ACNUR el backend elegía el perfil ACNUR (`perfil_auto`).
+    config: { perfil_auto: false, template_id: "generic_16_9" },
     muestra: PULSO,
   },
   {
     id: "blanco",
     nombre: "En blanco",
-    descripcion: "Portada e índice; las láminas se arman a mano",
     grupo: "cero",
     config: {},
     enBlanco: true,

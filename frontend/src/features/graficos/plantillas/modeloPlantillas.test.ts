@@ -65,6 +65,18 @@ describe("selección sobre la estructura", () => {
     const dentro = conExclusion(fuera, refs, false);
     expect(exclusionesDe(dentro)).toEqual(new Set(["otra"]));
   });
+  it("una batería cuenta una lámina aunque lleve varias preguntas", () => {
+    const bat = normalizarEstructuraDelInforme({
+      laminas_fijas: 0,
+      secciones: [{ titulo: "Escala", preguntas: [
+        { ref: "a", etiqueta: "A", tipo: "Escala", laminas: 1, dentro: true, grafico: "barras", graficos_posibles: ["barras"] },
+        { ref: "b", etiqueta: "B", tipo: "Escala", laminas: 1, dentro: true, grafico: "barras", graficos_posibles: ["barras"] },
+      ], laminas_refs: [["a", "b"]] }],
+    });
+    expect(laminasDeSeccion(conSeleccion(bat, new Set(), {})[0])).toBe(2);           // la batería y el separador
+    expect(laminasDeSeccion(conSeleccion(bat, new Set(["a"]), {})[0])).toBe(2);      // queda b en la batería
+    expect(laminasDeSeccion(conSeleccion(bat, new Set(["a", "b"]), {})[0])).toBe(0);
+  });
   it("una sección con parte de sus preguntas fuera queda en estado mixto", () => {
     const secciones = conSeleccion(estructura, new Set(["motivo"]), {});
     expect(estadoSeccion(secciones[1])).toBe("algunas");

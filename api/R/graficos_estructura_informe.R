@@ -98,13 +98,16 @@
   }
 
   secciones <- list(); actual <- 0L; fijas <- 0L
-  nueva <- function(titulo) { secciones[[length(secciones) + 1L]] <<- list(titulo = titulo, preguntas = list()); length(secciones) }
+  nueva <- function(titulo) { secciones[[length(secciones) + 1L]] <<- list(titulo = titulo, preguntas = list(), laminas_refs = list()); length(secciones) }
   for (s in propuesta$plan$slides %||% list()) {
     if (identical(s$tipo, "p_slide_seccion")) { actual <- nueva(.graficos_scalar_chr(s$payload$titulo, "")); next }
     refs <- .graficos_refs_de_lamina(s)
     refs <- refs[nzchar(refs)]
     if (!length(refs)) { fijas <- fijas + 1L; next }
     if (actual == 0L) actual <- nueva("Sin sección")
+    # Una batería pone varias preguntas en una lámina: el total se cuenta por lámina, no sumando las de cada pregunta
+    # (en el estilo Pulso del RMS la suma daba 154 y el plan armaba 73).
+    secciones[[actual]]$laminas_refs[[length(secciones[[actual]]$laminas_refs) + 1L]] <- as.list(refs)
     for (ref in refs) {
       qs <- secciones[[actual]]$preguntas
       if (!is.null(qs[[ref]])) { secciones[[actual]]$preguntas[[ref]]$laminas <- qs[[ref]]$laminas + 1L; next }

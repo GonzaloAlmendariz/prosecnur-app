@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { GraficadorRef, PlanJson, PptStyleProfileMeta, Slide, SlideType } from "../../api/client";
 import { scopeRulesConIdentidad, type PlanSugeridoAplicable } from "./armarDesde/aplicarPlanSugerido";
+import { sinPerfil } from "./plantillas/identidadDePlantilla";
 import {
   createDefaultWordPresets,
   normalizeDocumentoWord,
@@ -544,8 +545,12 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setAutoOtrosSlides: (value) => set((state) => (
     state.autoOtrosSlides === value ? state : dirty(state, { autoOtrosSlides: value })
   )),
-  aplicarPlanSugerido: ({ plan, perfil, identidad, autoOtrosSlides }) => set((state) => {
-    const estilo = perfil ? estiloDePerfil(state, perfil) : null;
+  aplicarPlanSugerido: ({ plan, perfil, identidad, autoOtrosSlides, perfilQueSale }) => set((state) => {
+    // Al cambiar de estilo se quita primero lo que dejó el perfil anterior (identidadDePlantilla.ts): volver a Pulso
+    // desde ACNUR no conserva el estilo, las paletas ni los ajustes de ACNUR que nadie editó.
+    const quitado = perfilQueSale ? sinPerfil(state, perfilQueSale) : null;
+    const base = quitado ? ({ ...state, ...quitado } as PlanStore) : state;
+    const estilo = perfil ? estiloDePerfil(base, perfil) : quitado;
     return dirty(state, {
       plan,
       selectedSlideId: plan.slides[0]?.id ?? null,

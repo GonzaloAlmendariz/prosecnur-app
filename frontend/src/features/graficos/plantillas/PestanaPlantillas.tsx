@@ -5,15 +5,15 @@
 // láminas. Reemplaza al popover "Armar desde" en la base activa.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ChevronDown, ChevronRight, FolderOpen, Loader2, Plus, Trash2 } from "../../../vendor/lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Plus, Trash2 } from "../../../vendor/lucide-react";
 import { apiGraficosPlanSugerido, apiGraficosTemplates } from "../../../api/client";
 import { apiPlannerEstado } from "../../../api/planner";
 import { apiGraficosEstructuraInforme, type EstructuraDelInforme, type GraficoPorPregunta, type SeccionDelInforme } from "../../../api/graficosEstructura";
+import { Alert } from "../../../components/Alert";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../components/PulsoSwitch";
 import { Panel } from "../../../components/Panel";
 import { CifrasEnTarjeta } from "../../../components/CifrasEnTarjeta";
-import { EstadoVacio } from "../../../components/EstadoVacio";
 import { PulsoInput } from "../../../components/PulsoInput";
 import { PulsoSelect } from "../../../components/PulsoSelect";
 import { formatoConteo } from "../../../lib/formatoNumero";
@@ -29,6 +29,7 @@ import { conBaseFijada } from "../fijarBase";
 import { identidadDelPlan, perfilResuelto } from "../armarDesde/aplicarPlanSugerido";
 import { clonePlanWithFreshIds } from "../armarDesde/clonarPlanSugerido";
 import { PLANTILLAS_INFORME, ROTULO_GRUPO, plantillaInicial, plantillaPorId, type PlantillaInforme } from "./catalogoPlantillas";
+import { cambiosDeIdentidad, configDePlantilla, nombreDeEstilo, perfilVigente } from "./identidadDePlantilla";
 import {
   ROTULO_GRAFICO,
   conExclusion,
@@ -70,6 +71,10 @@ export default function PestanaPlantillas() {
   const setScopeRules = usePlanStore((s) => s.setScopeRules);
   const planActual = usePlanStore((s) => s.plan);
   const aplicarPlanSugerido = usePlanStore((s) => s.aplicarPlanSugerido);
+  const presets = usePlanStore((s) => s.presets);
+  const paletas = usePlanStore((s) => s.paletas);
+  const overridesReusables = usePlanStore((s) => s.overridesReusables);
+  const logosPropios = usePlanStore((s) => Object.keys(s.estiloCliente.logos ?? {}).length);
   const { profiles: perfiles } = usePptStyleProfiles();
   const { registry } = useGraficosRegistry();
   const { variables, multi, relacionBases } = useVariables();
@@ -106,6 +111,7 @@ export default function PestanaPlantillas() {
   const [errorCrear, setErrorCrear] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [nombreNueva, setNombreNueva] = useState("");
+  const [porConfirmar, setPorConfirmar] = useState<"reemplazar" | "agregar" | null>(null);
   const pedido = useRef(0);
 
   // La estructura depende sólo de la plantilla: encender o apagar preguntas no la vuelve a pedir (cada pedido arma el
@@ -115,10 +121,26 @@ export default function PestanaPlantillas() {
     if (plantilla.enBlanco) { setCarga({ fase: "lista", estructura: { perfil: "", laminasFijas: 0, secciones: [], avisos: [] } }); return; }
     const n = ++pedido.current;
     setCarga({ fase: "cargando" });
-    apiGraficosEstructuraInforme({ ...buildGraficosConfigFromStore(), ...plantilla.config })
+    apiGraficosEstructuraInforme(configDePlantilla(buildGraficosConfigFromStore(), plantilla))
       .then((estructura) => { if (n === pedido.current) setCarga({ fase: "lista", estructura }); })
       .catch((e) => { if (n === pedido.current) setCarga({ fase: "error", mensaje: mensajeDeError(e) }); });
   }, [plantilla.id, plantilla.enBlanco, plantilla.config, esperandoFicha]);
+
+  // Identidad (checklist-plantillas-validez, ítem 4): lo que "Crear láminas" cambia en estilo, paletas, ajustes y logos.
+  // Mientras no llegan los perfiles de estilo no se sabe qué trae la plantilla: no se puede crear todavía.
+  const idPerfilNuevo = plantilla.enBlanco ? "" : String(plantilla.config.profile_id ?? "");
+  const perfilNuevo = idPerfilNuevo ? perfiles.find((p) => p.name === idPerfilNuevo) ?? null : null;
+  const perfilActual = perfiles.find((p) => p.name === perfilVigente(reglas)) ?? null;
+  const identidadPendiente = !!idPerfilNuevo && !perfilNuevo;
+  const cambiosIdentidad = useMemo(
+    () => (identidadPendiente ? [] : cambiosDeIdentidad({ presets, paletas, overridesReusables, scopeRules: reglas }, perfilActual, perfilNuevo, {
+      logosPropios,
+      mantieneIdentidad: plantilla.enBlanco,
+    })),
+    [identidadPendiente, presets, paletas, overridesReusables, reglas, perfilActual, perfilNuevo, logosPropios, plantilla.enBlanco],
+  );
+  const pisaIdentidad = cambiosIdentidad.some((c) => c.pisa);
+  useEffect(() => { setPorConfirmar(null); }, [plantilla.id]);
 
   const secciones = useMemo(
     () => (carga.fase === "lista" ? conSeleccion(carga.estructura, exclusiones, graficos) : []),
@@ -149,7 +171,13 @@ export default function PestanaPlantillas() {
     });
   }
 
+  function pedirCrear(modo: "reemplazar" | "agregar") {
+    if (pisaIdentidad) setPorConfirmar(modo);
+    else void crearLaminas(modo);
+  }
+
   async function crearLaminas(modo: "reemplazar" | "agregar") {
+    setPorConfirmar(null);
     setCreando(true);
     setErrorCrear("");
     try {
@@ -163,7 +191,7 @@ export default function PestanaPlantillas() {
         plan = clonePlanWithFreshIds(vacio.plan);
       } else {
         const perfilId = (plantilla.config.profile_id as string | undefined) ?? "auto";
-        const result = await apiGraficosPlanSugerido({ ...buildGraficosConfigFromStore(), ...plantilla.config });
+        const result = await apiGraficosPlanSugerido(configDePlantilla(buildGraficosConfigFromStore(), plantilla));
         plan = clonePlanWithFreshIds(result.plan);
         perfil = perfiles.find((p) => p.name === perfilResuelto(result, perfilId)) ?? null;
         identidad = identidadDelPlan(result, perfilId);
@@ -171,10 +199,12 @@ export default function PestanaPlantillas() {
       // Con varias bases, cada pregunta sale con su base escrita (`default$p7`): el plan nuevo no arranca con el aviso
       // "se leen de la base principal sin que el plan lo diga" en cada lámina (fijarBase.ts).
       if (multi) plan = { ...plan, slides: conBaseFijada(plan.slides, variables, relacionBases).slides };
+      const cambiaEstilo = !plantilla.enBlanco && nombreDeEstilo(perfilVigente(reglas)) !== nombreDeEstilo(idPerfilNuevo);
       aplicarPlanSugerido({
         plan: modo === "agregar" ? { slides: [...planActual.slides, ...plan.slides] } : plan,
         perfil,
         identidad,
+        perfilQueSale: cambiaEstilo ? perfilActual : null,
       });
       irA("pestana", "laminas");
     } catch (e) {
@@ -193,6 +223,14 @@ export default function PestanaPlantillas() {
   }
 
   const hayLaminas = planActual.slides.length > 0;
+  // Validación de "Crear láminas" (ítem 5): el botón dice por qué no se puede.
+  const motivoNoCrear = creando ? "Creando las láminas."
+    : carga.fase !== "lista" ? "Faltan las secciones y preguntas del cuestionario."
+    : identidadPendiente ? "Falta leer el estilo de la plantilla."
+    : !plantilla.enBlanco && resumen.preguntas === 0 ? "No hay preguntas dentro del informe."
+    : "";
+  const puedeCrear = !motivoNoCrear;
+  const nombreRepetido = guardadas.some((g) => g.nombre.trim().toLowerCase() === nombreNueva.trim().toLowerCase() && !!nombreNueva.trim());
   const grupos = Array.from(new Set(PLANTILLAS_INFORME.map((p) => p.grupo)));
 
   return (
@@ -203,7 +241,6 @@ export default function PestanaPlantillas() {
     >
       <header className="pulso-plantillas-barra">
         <h2 className="pulso-plantillas-titulo">Plantillas</h2>
-        <p className="pulso-plantillas-ayuda">Se elige el punto de partida y qué secciones y preguntas van al informe.</p>
       </header>
 
       <div className="pulso-plantillas-cuerpo" data-qa-scroll-owner="plantillas">
@@ -229,7 +266,7 @@ export default function PestanaPlantillas() {
                       </span>
                       <span className="pulso-plantillas-opcion-texto">
                         <strong>{p.nombre}</strong>
-                        <small>{deshabilitada ? motivoSinTerritorio : p.descripcion}</small>
+                        {deshabilitada && <small>{motivoSinTerritorio}</small>}
                       </span>
                     </button>
                   );
@@ -239,11 +276,7 @@ export default function PestanaPlantillas() {
             <section className="pulso-plantillas-grupo" aria-label="Guardadas en este proyecto">
               <h3>Guardadas en este proyecto</h3>
               {guardadas.length === 0 ? (
-                <EstadoVacio
-                  icono={<FolderOpen size={18} aria-hidden="true" />}
-                  titulo="Todavía no hay plantillas guardadas"
-                  descripcion="Guardar una conserva la selección de secciones, preguntas y gráficos para la siguiente medición."
-                />
+                <p className="pulso-plantillas-sin-guardadas">Ninguna todavía.</p>
               ) : guardadas.map((g) => (
                 <div key={g.id} className="pulso-plantillas-guardada">
                   <button type="button" className="pulso-plantillas-guardada-usar" onClick={() => cambiar((r) => conPlantillaReusada(r, g))}>
@@ -274,7 +307,7 @@ export default function PestanaPlantillas() {
                         value={nombreNueva}
                         onChange={(e) => setNombreNueva(e.target.value)}
                       />
-                      <PulsoButton type="submit" variant="secondary" size="sm" disabled={!nombreNueva.trim()}>Guardar</PulsoButton>
+                      <PulsoButton type="submit" variant="secondary" size="sm" disabled={!nombreNueva.trim()}>{nombreRepetido ? "Reemplazar" : "Guardar"}</PulsoButton>
                       <PulsoButton type="button" variant="ghost" size="sm" onClick={() => setGuardando(false)}>Cancelar</PulsoButton>
                     </form>
                   ) : (
@@ -283,11 +316,11 @@ export default function PestanaPlantillas() {
                     </PulsoButton>
                   )}
                   {hayLaminas && (
-                    <PulsoButton variant="secondary" size="sm" onClick={() => void crearLaminas("agregar")} disabled={creando || carga.fase !== "lista"}>
+                    <PulsoButton variant="secondary" size="sm" onClick={() => pedirCrear("agregar")} disabled={!puedeCrear}>
                       Agregar al final
                     </PulsoButton>
                   )}
-                  <PulsoButton variant="primary" size="sm" onClick={() => void crearLaminas("reemplazar")} disabled={creando || carga.fase !== "lista"}>
+                  <PulsoButton variant="primary" size="sm" onClick={() => pedirCrear("reemplazar")} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
                     {creando && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
                     {hayLaminas ? `Reemplazar las ${formatoConteo(planActual.slides.length)} láminas` : "Crear láminas"}
                   </PulsoButton>
@@ -303,6 +336,24 @@ export default function PestanaPlantillas() {
                   { id: "fuera", rotulo: "Fuera del informe", valor: formatoConteo(resumen.fuera) },
                 ]}
               />
+              {cambiosIdentidad.length > 0 && (
+                <div className="pulso-plantillas-identidad" role={porConfirmar ? "alertdialog" : "note"} aria-label="Cambios en la identidad del informe">
+                  <Alert
+                    kind={porConfirmar ? "warn" : "info"}
+                    acciones={porConfirmar ? (
+                      <>
+                        <PulsoButton variant="primary" size="sm" autoFocus onClick={() => void crearLaminas(porConfirmar)}>Crear y cambiar la identidad</PulsoButton>
+                        <PulsoButton variant="ghost" size="sm" onClick={() => setPorConfirmar(null)}>Cancelar</PulsoButton>
+                      </>
+                    ) : undefined}
+                  >
+                    <p className="pulso-plantillas-identidad-titulo">Identidad del informe</p>
+                    <ul>
+                      {cambiosIdentidad.map((c) => <li key={c.clave} className={c.pisa ? "is-pisa" : undefined}>{c.texto}</li>)}
+                    </ul>
+                  </Alert>
+                </div>
+              )}
             </Panel>
             {errorCrear && <p className="pulso-plantillas-error" role="alert">{errorCrear}</p>}
 

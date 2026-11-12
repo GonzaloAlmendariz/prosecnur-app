@@ -55,6 +55,8 @@ test_that("la estructura agrupa por sección, cuenta láminas y marca lo excluid
   expect_false("torta" %in% unlist(q$motivo$graficos_posibles))
   expect_false("barra_100" %in% unlist(q$motivo$graficos_posibles))   # en opción múltiple las opciones no suman 100 %
   expect_true(q[["miembros$sexo"]]$por_registro)
+  salud <- e$secciones[[3]]
+  expect_length(salud$laminas_refs, 3L)                   # una entrada por lámina, con sus preguntas
   expect_false(q$motivo$por_registro)
 })
 
@@ -152,4 +154,37 @@ test_that("el cliente de la Ficha del estudio marca el estudio como ACNUR", {
   expect_false(.graficos_is_acnur_study(sid))
   local_mocked_bindings(.planner_leer = function(s) list(secciones = list(estudio = list(valor = list(nombre = "RMS 2026", codigo = "", cliente = "ACNUR Perú")))))
   expect_true(.graficos_is_acnur_study(sid))
+})
+
+# La plantilla "Informe Pulso" manda `perfil_auto = FALSE`: en un estudio de ACNUR no debe volverse ACNUR.
+test_that("perfil_auto = FALSE deja el estilo Pulso en un estudio de ACNUR", {
+  local_mocked_bindings(.graficos_is_acnur_study = function(...) TRUE)
+  expect_identical(.graficos_perfil_del_plan("sid", list()), "acnur_kobo_cruncher_plus")
+  expect_identical(.graficos_perfil_del_plan("sid", list(perfil_auto = FALSE)), "")
+  expect_identical(.graficos_perfil_del_plan("sid", list(profile_id = "acnur_kobo_cruncher_plus", perfil_auto = FALSE)), "acnur_kobo_cruncher_plus")
+})
+
+test_that("una batería cuenta una lámina para varias preguntas", {
+  plan <- .pp_plan()
+  bat <- list(tipo = "p_slide_1_grafico", payload = list(titulo = "Batería", grafico = list(graficador = "p_barras_multiapiladas", args = list(vars = list("motivo", "seguridad")))))
+  plan$plan$slides <- c(plan$plan$slides[1:7], list(bat))   # hasta el separador "Salud"
+  local_mocked_bindings(.graficos_suggested_plan = function(sid, config = NULL, alcance = NULL) plan)
+  e <- .graficos_estructura_informe("sid", list())
+  salud <- e$secciones[[3]]
+  expect_length(salud$laminas_refs, 1L)
+  expect_identical(unlist(salud$laminas_refs[[1]]), c("motivo", "seguridad"))
+  expect_length(salud$preguntas, 2L)
+})
+
+# Volver a "Informe Pulso" desde ACNUR: el pedido se funde sobre la config guardada, que sigue con la plantilla de
+# PowerPoint de ACNUR. Sólo una identidad escrita entera en el pedido la reemplaza (configDePlantilla del front; QA en
+# vivo con el RMS, 2026-11-11: omitir la clave dejaba `acnur_16_9`).
+test_that("la identidad que manda la plantilla pisa la guardada", {
+  guardada <- list(scope_rules = list(global = list(profile_id = "acnur_kobo_cruncher_plus", template_id = "acnur_16_9")))
+  omitida <- .graficos_deep_merge(guardada, list(scope_rules = list(global = list(otra = 1))))
+  expect_identical(.graficos_delivery_options(omitida)$template_id, "acnur_16_9")
+  pulso <- .graficos_deep_merge(guardada, list(scope_rules = list(global = list(profile_id = "", template_id = "generic_16_9", acnur_mode = "general"))))
+  d <- .graficos_delivery_options(pulso)
+  expect_identical(d$template_id, "generic_16_9")
+  expect_identical(d$profile_id, "")
 })

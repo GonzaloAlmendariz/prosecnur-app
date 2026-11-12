@@ -159,9 +159,6 @@ export const PROCESAMIENTO_PESTANAS = {
   // Rediseño 2026-10-14 (D1): Láminas y Word van primero, uno detrás del otro, y luego lo demás. Las claves viejas
   // (`vista-general`, `estilo`, `estilo-informe`) se leen como alias en `resolverPestanaGraficos` y no se escriben.
   graficos: [
-    // Pestaña Plantillas (2026-11-11): el menú de plantillas y qué secciones y preguntas entran al informe. Reemplaza al
-    // popover "Armar desde" en la base activa; Láminas sigue siendo la pestaña por defecto.
-    pestana("graficos", "plantillas", "Plantillas", "Plantilla del informe y qué secciones y preguntas entran", Library),
     pestana("graficos", "laminas", "Láminas", "La lámina tal como sale, con su estructura y ajustes", LayoutTemplate),
     pestana("graficos", "word", "Word", "Cómo sale el informe en el documento Word", FileText),
     pestana("graficos", "informe", "Informe", "El informe por capítulos, para ordenarlo de un vistazo", LayoutGrid),
@@ -169,6 +166,9 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("graficos", "identidad", "Identidad", "Logos, letra, íconos y colores de las respuestas", Palette),
     // Texto de la base, cálculos, casos y nota al pie; también en el informe compartido (cambia su PPT consolidado).
     pestana("graficos", "reglas", "Reglas", "Redondeo, nota al pie, casos y texto de la base del informe", Paintbrush),
+    // Pestaña Plantillas (2026-11-11): el menú de plantillas y qué secciones y preguntas entran al informe. Reemplaza al
+    // popover "Armar desde" en la base activa. Va al final (Gonzalo, 2026-11-11); Láminas sigue siendo la de defecto.
+    pestana("graficos", "plantillas", "Plantillas", "Plantilla del informe y qué secciones y preguntas entran", Library),
   ],
 } as const satisfies Record<ProcesamientoSeccionId, readonly PestanaProcesamiento[]>;
 

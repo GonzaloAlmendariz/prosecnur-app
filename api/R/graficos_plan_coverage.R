@@ -1640,6 +1640,18 @@
   any(grepl("(^|_)(acnur|unhcr)(_|$)", keys, perl = TRUE))
 }
 
+#' Perfil de estilo del plan: el pedido o, si no hay, ACNUR en un estudio de ACNUR
+#'
+#' `perfil_auto = FALSE` (la plantilla "Informe Pulso") pide el estilo Pulso aunque el estudio sea de ACNUR.
+#' @keywords internal
+.graficos_perfil_del_plan <- function(sid, raw_cfg = list(), cfg = list()) {
+  profile_id <- .graficos_scalar_chr(raw_cfg$profile_id %||% raw_cfg$profileId %||% cfg$profile_id, "")
+  if (!nzchar(profile_id) && !identical(raw_cfg$perfil_auto, FALSE) && .graficos_is_acnur_study(sid, raw_cfg = raw_cfg, cfg = cfg)) {
+    profile_id <- "acnur_kobo_cruncher_plus"
+  }
+  profile_id
+}
+
 .graficos_should_use_multisource_report <- function(sid, coverage, raw_cfg = list(), cfg = list(), profile_id = "") {
   n_sources <- length((coverage %||% list())$sources %||% list())
   if (n_sources < 2L) return(FALSE)
@@ -1874,10 +1886,7 @@
   raw_cfg <- config %||% list()
   consolidado <- !is.null(alcance)
   cfg <- if (consolidado) alcance$config else .graficos_effective_config(sid, config)
-  profile_id <- .graficos_scalar_chr(raw_cfg$profile_id %||% raw_cfg$profileId %||% cfg$profile_id, "")
-  if (!nzchar(profile_id) && .graficos_is_acnur_study(sid, raw_cfg = raw_cfg, cfg = cfg)) {
-    profile_id <- "acnur_kobo_cruncher_plus"
-  }
+  profile_id <- .graficos_perfil_del_plan(sid, raw_cfg, cfg)
   include_value <- raw_cfg$include_coverage_maps %||% raw_cfg$includeCoverageMaps %||% cfg$include_coverage_maps
   comparison_value <- raw_cfg$comparison_mode %||% raw_cfg$comparisonMode %||% cfg$comparison_mode
   include_district_maps <- isTRUE(

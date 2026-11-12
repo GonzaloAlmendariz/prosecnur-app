@@ -14,6 +14,8 @@ export type PlanSugeridoAplicable = {
   identidad: Record<string, unknown> | null;
   /** Sólo cuando el analista aceptó lo que el plan propone para «Otros»; si falta, el interruptor no se toca. */
   autoOtrosSlides?: boolean;
+  /** Perfil que deja de regir (se cambia de estilo): se quita lo que dejó antes de aplicar el nuevo (identidadDePlantilla.ts). */
+  perfilQueSale?: PptStyleProfileMeta | null;
 };
 
 export type ModoAplicarPlan = "reemplazar" | "fusionar";
