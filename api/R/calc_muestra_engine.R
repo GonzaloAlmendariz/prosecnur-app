@@ -1026,6 +1026,9 @@ calc_muestra_componentes_sin <- function(componentes, id) {
     estado            = calc_enum(marco$estado, .CM_ESTADOS_MARCO, "no_definido"),
     notas             = calc_str(marco$notas, ""),
     estratos          = estratos,
+    # Nombre de la variable que forman los estratos ("Facultad") cuando se declaran a mano, sin archivo de marco
+    # del que leer la columna; lo usa la propuesta para rotular los segmentos de cruce.
+    variable_estrato  = calc_str(marco$variable_estrato, ""),
     matriz_operativa  = matriz_operativa
   )
 }

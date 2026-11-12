@@ -94,3 +94,16 @@ test_that("flujo HTTP: las propuestas A, B y C se guardan en el workspace del es
   expect_length(.cm_normalize_workspace_propuesta(list(escenarios = cinco))$escenarios, 4L)
   expect_null(.cm_normalize_workspace_propuesta(NULL))
 })
+
+test_that("los estratos declarados a mano llevan su nombre al rótulo de la propuesta", {
+  comp <- .http_propuesta_comp("doc", "Docentes", "docentes", 300L, list(A = 200L, B = 100L))
+  comp$marco$variable_estrato <- "Condición y categoría"
+  estudio <- calc_muestra_normalize_estudio(list(componentes = list(comp)))
+  expect_identical(estudio$componentes[[1]]$marco$variable_estrato, "Condición y categoría")
+  prop <- calc_muestra_propuesta_desde_estudio(estudio, list(), list(escenarios = list(list(nombre = "A", metas = list(doc = 100)))))
+  expect_identical(prop$escenarios[[1]]$componentes[[1]]$segmentacion, "Condición y categoría")
+  # El cuerpo sigue mandando sobre lo declarado.
+  prop2 <- calc_muestra_propuesta_desde_estudio(estudio, list(), list(segmentacion = list(doc = "Otro"), escenarios = list(list(nombre = "A", metas = list(doc = 100)))))
+  expect_identical(prop2$escenarios[[1]]$componentes[[1]]$segmentacion, "Otro")
+})
+

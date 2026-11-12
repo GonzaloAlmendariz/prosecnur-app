@@ -37,7 +37,9 @@ calc_muestra_propuesta_desde_estudio <- function(estudio, marcos, body) {
       cols <- .cm_general_columnas((marcos[[c$id]] %||% list())$columnas)
       c$meta <- list(valor = meta, tipo = "cuota", origen = if (meta > 0L) "usuario" else "")
       c$parametros$n_minimo_estrato <- piso
-      c$segmentacion <- calc_str(rotulo_seg[[c$id]], cols$estrato)
+      # El rótulo del segmento: el que pide el cuerpo, la columna del archivo de marco o, sin archivo, el nombre
+      # declarado con los estratos.
+      c$segmentacion <- calc_str(rotulo_seg[[c$id]], if (nzchar(calc_str(cols$estrato, ""))) calc_str(cols$estrato, "") else calc_str(c$marco$variable_estrato, ""))
       c$uso_segmentos <- if (c$id %in% control) "control" else "reporte"
       c
     }))
