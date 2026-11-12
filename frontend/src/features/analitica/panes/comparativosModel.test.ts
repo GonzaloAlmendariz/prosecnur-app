@@ -139,6 +139,24 @@ describe("filas candidatas y serie", () => {
     expect(rotuloPorDefecto("base_sin_anio")).toBe("base_sin_anio");
   });
 
+  it("una fila de misma escala entra sin armonización guardada, comparable donde tiene variable", () => {
+    // `misma_escala` lo publica el motor en GET /api/carga/equivalencias (router_equivalencias.R).
+    const e = estado({
+      armonizacion_periodos: ["hsvg2024", "hsvg2025", "base_sin_anio"],
+      filas: [
+        fila({ id: "m", etiqueta_estandar: "Sexo", misma_escala: true, variables: { hsvg2024: "s1", hsvg2025: "s1" } }),
+        fila({ id: "n", etiqueta_estandar: "Sin armonizar" }),
+      ],
+    });
+    const filas = filasArmonizadas(e);
+    expect(filas.map((f) => f.ref)).toEqual(["m"]);
+    expect(filas[0].basesComparables).toEqual(["hsvg2024", "hsvg2025"]);
+    expect(filas[0].basesSinVariable).toEqual(["base_sin_anio"]);
+    expect(filas[0].nCategorias).toBeNull();
+    expect(filas[0].mismaEscala).toBe(true);
+    expect(motivoVacio(e)).toBeNull();
+  });
+
   it("clasifica el vacío", () => {
     expect(motivoVacio(null)).toBe("sin-equivalencias");
     expect(motivoVacio(estado({ declarada: false }))).toBe("sin-equivalencias");

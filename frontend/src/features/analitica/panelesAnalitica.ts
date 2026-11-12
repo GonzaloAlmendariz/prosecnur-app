@@ -38,8 +38,35 @@ export const PANEL_IMPORTAR_DIMENSIONES: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/**
+ * Analítica › Comparativos: las variables por las que se abre el comparativo
+ * de cruces (`?panel=comparativo-cruces`), las notas al pie de los dos archivos
+ * (`?panel=comparativo-notas`) y el resumen del último comparativo generado
+ * (`?panel=comparativo-resumen`).
+ */
+export const PANEL_COMPARATIVO_CRUCES: PanelDeclarado = {
+  id: "comparativo-cruces",
+  label: "Variables de cruce del comparativo",
+  clase: "sideover",
+};
+
+export const PANEL_COMPARATIVO_NOTAS: PanelDeclarado = {
+  id: "comparativo-notas",
+  label: "Notas al pie del comparativo",
+  clase: "sideover",
+};
+
+export const PANEL_COMPARATIVO_RESUMEN: PanelDeclarado = {
+  id: "comparativo-resumen",
+  label: "Resumen del comparativo",
+  clase: "sideover",
+};
+
 export const PANELES_ANALITICA = [
   PANEL_VARIABLES_EXCLUIDAS,
   PANEL_UNIVERSO,
   PANEL_IMPORTAR_DIMENSIONES,
+  PANEL_COMPARATIVO_CRUCES,
+  PANEL_COMPARATIVO_NOTAS,
+  PANEL_COMPARATIVO_RESUMEN,
 ] as const satisfies readonly PanelDeclarado[];

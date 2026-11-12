@@ -53,6 +53,9 @@ type PropsDelComparativo = {
   onNota: (clave: string, texto: string) => void;
   onGenerales: (texto: string) => void;
   defaultOpen?: boolean;
+  // Sin plegable: el interior a la vista, con rótulos en castellano normal (el
+  // panel lateral de Comparativos ya pone el título).
+  abierta?: boolean;
 };
 
 export type NotasPieEditorProps = PropsDelReporte | PropsDelComparativo;
@@ -213,17 +216,15 @@ function NotasDelComparativo({
   onNota,
   onGenerales,
   defaultOpen = false,
+  abierta = false,
 }: PropsDelComparativo) {
   const generalesId = useId();
   const { visibles, fuera } = notasFueraDeOpciones(notasPregunta, preguntas);
-  return (
-    <NotasPiePlegable
-      variante="comparativo"
-      resumen={resumenNotasComparativo(notasPregunta, notasGenerales, preguntas)}
-      defaultOpen={defaultOpen}
-    >
+  const rotulo = abierta ? ROTULO_ABIERTO : ROTULO_PLEGADO;
+  const interior = (
+    <>
       <div className="analitica-notas-pie-field" data-qa-geometry-member="true">
-        <label htmlFor={generalesId} className="pulso-section-eyebrow">Notas generales</label>
+        <label htmlFor={generalesId} className={rotulo}>Notas generales</label>
         <textarea
           id={generalesId}
           rows={3}
@@ -239,6 +240,7 @@ function NotasDelComparativo({
         valores={visibles}
         onTexto={onNota}
         textos={TEXTOS_NOTA_POR_PREGUNTA}
+        claseRotulo={rotulo}
         pie={fuera > 0 ? (
           <p className="analitica-notas-pie-hint">
             {fuera === 1
@@ -247,6 +249,17 @@ function NotasDelComparativo({
           </p>
         ) : null}
       />
+    </>
+  );
+  return abierta ? (
+    <NotasPieAbierta variante="comparativo">{interior}</NotasPieAbierta>
+  ) : (
+    <NotasPiePlegable
+      variante="comparativo"
+      resumen={resumenNotasComparativo(notasPregunta, notasGenerales, preguntas)}
+      defaultOpen={defaultOpen}
+    >
+      {interior}
     </NotasPiePlegable>
   );
 }

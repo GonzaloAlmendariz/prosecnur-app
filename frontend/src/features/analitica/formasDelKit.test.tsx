@@ -177,13 +177,15 @@ describe("bloque con job: los comparativos", () => {
 
   it("en curso: los botones sólo se deshabilitan; listo: el libro sin enlaces y el manifiesto al pie", async () => {
     await montar();
-    const generar = boton("Generar comparativo simple");
+    // Cada archivo tiene su fila en "Archivos"; el botón se nombra con el archivo.
+    const generar = boton("Generar el comparativo simple");
     await act(async () => { generar.click(); });
 
     expect(espia.frecuencias).toHaveBeenCalledTimes(1);
     expect(generar.disabled).toBe(true);
-    expect(generar.textContent).toBe("Generar comparativo simple");
-    expect(boton("Generar comparativo de cruces").disabled).toBe(true);
+    expect(generar.textContent).toBe("Generar");
+    expect(boton("Generar el comparativo de cruces").disabled).toBe(true);
+    expect(boton("Generar Excel").disabled).toBe(true);
     let bloque = contenedor("bloque");
     expect(bloque?.dataset.entregableFase).toBe("en_curso");
     expect(bloque?.textContent).toContain("Comparativo simple");
@@ -216,15 +218,17 @@ describe("bloque con job: los comparativos", () => {
     expect(espia.descargar).toHaveBeenCalledWith("/api/files/f-cmp/download", "HSVG_Comparativo_de_frecuencias_10_11_26.xlsx");
     expect(boton("Manifiesto").closest("[data-entregable-forma='bloque']")).toBe(bloque);
     sinResaltadoNiSpinner(bloque as HTMLElement);
-    // El resumen sigue en su panel, ya sin la pastilla de descarga.
-    expect(host.querySelector(".pulso-comparativos-resultado")).not.toBeNull();
+    // El resumen se abre desde la fila del archivo, en su panel lateral; sin la pastilla de descarga.
+    expect(host.textContent).toContain("Generado con 1 pregunta");
+    expect(boton("Resumen")).toBeTruthy();
+    expect(generar.textContent).toBe("Regenerar");
     expect(host.querySelector(".analitica-download-pill")).toBeNull();
     expect(generar.disabled).toBe(false);
   });
 
   it("fallo: la causa sin el código pegado, el código aparte y la acción que lo resuelve al pie", async () => {
     await montar();
-    await act(async () => { boton("Generar comparativo simple").click(); });
+    await act(async () => { boton("Generar el comparativo simple").click(); });
     await act(async () => {
       espia.polls.get("cmp-1")?.({
         snapshot: snap({ status: "error", error: "La base 2025 no declara peso · E_ARMONIZADA_PESO_NO_DECLARADO" }),

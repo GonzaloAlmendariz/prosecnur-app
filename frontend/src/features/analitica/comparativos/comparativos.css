@@ -1,0 +1,466 @@
+/*
+ * Analítica › Comparativos con la forma del prototipo ("Analítica, Comparativos").
+ * La mesa, los paneles y la cabecera son del kit (`components/procesamiento`);
+ * aquí van la franja de la serie, la tabla de preguntas por base, las columnas,
+ * los archivos y el resumen. Sin cajas propias: el marco es el del panel.
+ * Las filas no llevan alto mínimo: el alto lo da el relleno.
+ */
+
+.comparativos-superficie {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---- Franja de la serie ----------------------------------------------------- */
+
+.comparativos-serie-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+}
+
+.comparativos-serie-linea > svg {
+  flex: none;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.comparativos-serie-linea > span {
+  flex: 1 1 240px;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+}
+
+/* ---- Tabla de preguntas ------------------------------------------------------- */
+
+.comparativos-barra {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2) var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.comparativos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.comparativos-buscador {
+  position: relative;
+  flex: 0 1 260px;
+  min-width: 180px;
+}
+
+.comparativos-buscador > svg {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 10px;
+  color: var(--pulso-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.comparativos-buscador > .pulso-input {
+  inline-size: 100%;
+  padding-inline-start: 30px;
+}
+
+/* Una columna por base; con muchas bases la tabla se desplaza de lado dentro del panel. */
+.comparativos-tabla {
+  --comparativos-columnas: 52px minmax(240px, 1fr) repeat(var(--comparativos-bases, 2), 112px);
+  display: flex;
+  flex-direction: column;
+  min-inline-size: calc(52px + 240px + var(--comparativos-bases, 2) * 112px + (var(--comparativos-bases, 2) + 1) * var(--pulso-space-4) + 2 * var(--pulso-space-5));
+}
+
+.comparativos-tabla-cabecera {
+  position: sticky;
+  z-index: 1;
+  inset-block-start: 0;
+}
+
+.comparativos-fila {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--comparativos-columnas);
+  column-gap: var(--pulso-space-4);
+  align-items: center;
+  padding: calc(var(--pulso-space-2) + var(--pulso-space-1) / 2) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.comparativos-fila:hover {
+  background: var(--pulso-surface-2);
+}
+
+.comparativos-fila[aria-current="true"] {
+  background: color-mix(in srgb, var(--module-accent-soft, var(--pulso-primary-soft)) 70%, var(--pulso-surface));
+}
+
+.comparativos-fila--cabecera {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  cursor: default;
+}
+
+.comparativos-fila--cabecera:hover {
+  background: var(--pulso-surface-2);
+}
+
+.comparativos-fila--cabecera > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.comparativos-fila[data-fuera] :is(.comparativos-celda-pregunta, .comparativos-celda-base) {
+  opacity: 0.55;
+}
+
+.comparativos-celda-entra {
+  display: flex;
+  align-items: center;
+}
+
+.comparativos-celda-pregunta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.comparativos-pregunta {
+  display: block;
+  inline-size: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.35;
+  text-align: start;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.comparativos-pregunta b {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.comparativos-pregunta:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 2px;
+}
+
+.comparativos-celda-pregunta small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.comparativos-celda-base {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.comparativos-celda-base[data-estado="comparable"] {
+  color: var(--pulso-success-fg);
+}
+
+.comparativos-celda-base[data-estado="sin-variable"] {
+  color: var(--pulso-text-faint);
+}
+
+.comparativos-celda-base[data-estado="no-comparable"] {
+  color: var(--pulso-warn-fg);
+}
+
+/* ---- Columnas del comparativo ---------------------------------------------------- */
+
+.comparativos-columnas {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comparativos-columna {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.comparativos-columna-pos {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.comparativos-columna-base {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.comparativos-columna-base b {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.comparativos-columna-peso {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.comparativos-columna-peso.is-sin-declarar {
+  color: var(--pulso-warn-fg);
+}
+
+.comparativos-columna-titulo {
+  inline-size: 100%;
+}
+
+.comparativos-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.comparativos-aviso > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* Ajustes en línea, como `pp-ajuste--lista` del prototipo: rótulo y valor a la izquierda, control a la derecha. */
+.comparativos-ajustes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comparativos-ajuste {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.comparativos-ajuste > .analitica-interruptor-linea {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
+
+.comparativos-ajuste-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.comparativos-ajuste-texto b {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.comparativos-ajuste-texto span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}
+
+/* ---- Archivos ---------------------------------------------------------------------- */
+
+.comparativos-archivos-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding-block-end: var(--pulso-space-4);
+}
+
+.comparativos-archivos-cuerpo > .pulso-comparativos-ponderacion-aviso,
+.comparativos-archivos-cuerpo > .pulso-entregable {
+  margin-inline: var(--pulso-space-5);
+}
+
+.comparativos-archivos-cuerpo > .pulso-comparativos-ponderacion-aviso {
+  margin-block-start: var(--pulso-space-3);
+}
+
+.comparativos-archivos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comparativos-archivo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.comparativos-archivo-tesela {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: var(--pulso-space-1);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.comparativos-archivo-tesela small {
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.comparativos-archivo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.comparativos-archivo-texto b {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.comparativos-archivo-estado {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}
+
+.comparativos-archivo-estado[data-tono="listo"] {
+  color: var(--pulso-success-fg);
+}
+
+.comparativos-archivo-estado[data-tono="aviso"] {
+  color: var(--pulso-warn-fg);
+}
+
+.comparativos-archivo-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--pulso-space-1);
+}
+
+/* ---- Resumen del comparativo (panel lateral) ---------------------------------------- */
+
+.comparativos-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+
+.comparativos-resumen-tabla {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.comparativos-resumen-fila {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.6fr) repeat(5, minmax(72px, 1fr));
+  gap: var(--pulso-space-2);
+  min-inline-size: 560px;
+  padding: var(--pulso-space-2) 0;
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.comparativos-resumen-fila--cabecera {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.comparativos-resumen-pregunta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.comparativos-resumen-pregunta small {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+}
+
+/* ---- Columna lateral con un solo dueño de scroll ------------------------------------
+   Con la mesa en dos columnas, la pila (Columnas y Archivos) se desplaza entera: cada
+   contenedor mide lo suyo y no se parte en dos cuerpos con scroll propio. Archivos
+   crece hasta el pie cuando sobra alto. En una columna rige la regla de la mesa. */
+@container mesa-pestana (min-width: 980px) {
+  .comparativos-superficie .pulso-mesa-pestana-pila {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .comparativos-superficie .pulso-mesa-pestana-pila > .pulso-panel-de-mesa {
+    flex: none;
+  }
+
+  .comparativos-superficie .pulso-mesa-pestana-pila > .pulso-panel-de-mesa:last-child {
+    flex: 1 0 auto;
+  }
+
+  .comparativos-superficie .pulso-mesa-pestana-pila .pulso-panel-de-mesa-cuerpo {
+    flex: 1 0 auto;
+    overflow: visible;
+  }
+}
+
+/* "Abrir por" en una línea; la lista entera va en el título y en su panel. */
+.comparativos-ajuste-texto span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

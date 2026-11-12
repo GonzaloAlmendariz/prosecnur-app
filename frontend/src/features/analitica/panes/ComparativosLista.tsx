@@ -286,7 +286,7 @@ function TarjetaFila({
         />
         <span className="pulso-comparativos-fila-copy">
           <strong>{rotuloDeMatriz(fila.etiqueta)}</strong>
-          <small>{cantidad(fila.nCategorias, "categoría", "categorías")} en la escala común</small>
+          <small>{fila.nCategorias === null ? "Misma lista en sus bases" : `${cantidad(fila.nCategorias, "categoría", "categorías")} en la escala común`}</small>
           {/* `span` con roles de lista y no `ul`: dentro de un `label` sólo cabe
               contenido de frase. */}
           <span role="list" className="pulso-comparativos-coberturas" aria-label={`Cobertura de ${fila.etiqueta} por ${serie.singular}`}>

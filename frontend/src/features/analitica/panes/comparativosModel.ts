@@ -39,7 +39,16 @@ export type FilaArmonizada = {
   basesComparables: string[];
   /** Mediciones de la serie en las que la fila no declara variable. */
   basesSinVariable: string[];
-  nCategorias: number;
+  /**
+   * Categorías de la escala común. `null` en una fila de misma escala: su
+   * escala es la lista de la primera base y la matriz no la publica.
+   */
+  nCategorias: number | null;
+  /**
+   * Fila sin armonización guardada que el motor compara sola porque tiene la
+   * misma lista en todas sus bases (`misma_escala`, analitica_armonizada_implicita.R).
+   */
+  mismaEscala: boolean;
   /** Comparable en al menos una medición de la serie. Si no, no se ofrece. */
   seleccionable: boolean;
   /**
@@ -55,7 +64,9 @@ export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmoni
   const out: FilaArmonizada[] = [];
   filas.forEach((fila, indice) => {
     const arm = fila.armonizacion;
-    if (!arm) return;
+    // Sin armonización guardada, la fila entra sola si el motor la publica de misma escala.
+    const mismaEscala = !arm && fila.misma_escala === true;
+    if (!arm && !mismaEscala) return;
     const id = (fila.id ?? "").trim();
     const etiqueta = fila.etiqueta_estandar.trim() || fila.enunciado?.trim() || `Fila ${indice + 1}`;
     out.push({
@@ -67,7 +78,8 @@ export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmoni
       seccion: fila.seccion.trim(),
       basesComparables: [],
       basesSinVariable: [],
-      nCategorias: arm.escala.length,
+      nCategorias: arm ? arm.escala.length : null,
+      mismaEscala,
       seleccionable: false,
       esSegmento: fila.cruce === true,
     });
@@ -77,10 +89,14 @@ export function filasArmonizadas(estado: EquivalenciasEstado | null): FilaArmoni
     // cuenta una base sin variable declarada: no hay columna que tabular y el
     // motor la publica como «n.c.» aunque su armonización diga comparable.
     const conVariable = (base: string) => (fila.variables?.[base] ?? "").trim() !== "";
-    ultima.basesComparables = Object.entries(arm.por_base)
-      .filter(([base, entrada]) => entrada.comparable && conVariable(base) && (serie.length === 0 || serie.includes(base)))
-      .map(([base]) => base);
-    ultima.basesSinVariable = (serie.length ? serie : Object.keys(arm.por_base)).filter((base) => !conVariable(base));
+    const enSerie = (base: string) => serie.length === 0 || serie.includes(base);
+    // Misma escala: el motor la compara con la identidad en cada base de la serie donde tiene variable.
+    ultima.basesComparables = arm
+      ? Object.entries(arm.por_base)
+        .filter(([base, entrada]) => entrada.comparable && conVariable(base) && enSerie(base))
+        .map(([base]) => base)
+      : (serie.length ? serie : Object.keys(fila.variables ?? {})).filter(conVariable);
+    ultima.basesSinVariable = (serie.length ? serie : Object.keys(arm?.por_base ?? fila.variables ?? {})).filter((base) => !conVariable(base));
     ultima.seleccionable = ultima.basesComparables.length > 0;
   });
   return out;
@@ -671,7 +687,7 @@ export function detalleCobertura(
 ): string {
   const partes = [
     `comparable en ${fila.basesComparables.length} de ${cantidad(totalPeriodos, "medición", "mediciones")}`,
-    cantidad(fila.nCategorias, "categoría", "categorías"),
+    fila.nCategorias === null ? "misma lista en sus bases" : cantidad(fila.nCategorias, "categoría", "categorías"),
   ];
   if (fila.basesSinVariable.length) {
     const mediciones = fila.basesSinVariable.map((b) => (rotulos[b] ?? "").trim() || rotuloPorDefecto(b));

@@ -317,6 +317,10 @@
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
+  /* Sin esto manda la regla global de botón: centrado y en una línea, y un nombre largo de sección se sale. */
+  justify-content: flex-start;
+  text-align: start;
+  white-space: normal;
   gap: 4px var(--pulso-space-2);
   max-width: 100%;
   padding: 3px 4px;
@@ -603,9 +607,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* El alcance va entre paréntesis tras el tipo: "Sin correspondencia (1 pregunta)". */
 .pulso-comparativos-aviso-alcance::before {
-  content: "·";
-  margin-right: var(--pulso-space-2);
+  content: "(";
+}
+
+.pulso-comparativos-aviso-alcance::after {
+  content: ")";
 }
 
 .pulso-comparativos-aviso-chevron {
