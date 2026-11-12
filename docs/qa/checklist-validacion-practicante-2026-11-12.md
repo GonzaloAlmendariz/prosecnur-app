@@ -66,7 +66,7 @@ analizarlas".
 | 12 | Formato de fechas y horas declarable (dd.mm.aaaa), comparar fechas y medir duración; "Fecha fuera del operativo" debe decir por qué falla: 138 casos | Motor de reglas | Pendiente |
 | 13 | Patrón o cantidad de dígitos (teléfono, texto en campo numérico): 12 casos | Motor de reglas | Pendiente |
 | 14 | Códigos con cero inicial leídos como número ("080105" → 80105): 98 falsos positivos | Carga (tipos) | Pendiente |
-| 15 | Hallazgos abre en Distribución; el prototipo abre en Casos, con id legible y contexto | Hallazgos | Pendiente |
+| 15 | Hallazgos abre en Distribución; el prototipo abre en Casos, con id legible y contexto | `hallazgos/PestanaHallazgosMesa.tsx` (`modoEfectivo`) | Bloqueado: la app ya sigue al prototipo. En `validacion-hallazgos-rango-1366.png` una regla de rango abre en "Distribución" (con "Solo casos" al lado) y en `validacion-hallazgos-1366.png` una regla que no es de rango abre en "Casos"; el código hace lo mismo. El practicante vio Distribución porque su hallazgo era un rango (edad). El id legible y el contexto quedaron resueltos con el ítem 5. Abrir siempre en Casos contradice el prototipo: espera la decisión de Gonzalo |
 | 16 | A 1024x600 la Decisión queda bajo la cola con scroll anidado | `hallazgos.css` | Pendiente |
 | 17 | La banda dice "base limpia" con la base sin cerrar | `features/procesamiento/banda/casosQueCuentanModel.ts` | Hecho en parte, por confirmar (682351db6): con la base sin cerrar dice "de N casos quedarían en la base limpia". Comprobado con un test visto en rojo antes. Falta la otra mitad: a 1024 queda solo la cifra sin rótulo (CSS de la banda) |
 | 18 | Tratamiento "revisar con la ficha física" y lista exportable de casos para digitación | Hallazgos + Cierre | Pendiente |
