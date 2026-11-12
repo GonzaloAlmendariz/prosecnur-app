@@ -946,7 +946,8 @@ mount_validacion <- function(pr) {
         func = runner,
         args = list(model_path = model_path),
         result_filename = filename,
-        on_complete = .validacion_metodologia_bundle_on_complete  # ADR 0133: registra el ZIP
+        # ADR 0133: registra el ZIP; M5: y su estado en el cierre de la base.
+        on_complete = .validacion_metodologia_on_complete_para(resolved_base, .limpieza_firma_cierre(scope))
       )
       list(ok = TRUE, job_id = job_id, kind = "validacion.v2.methodology_report_bundle")
     })) |>

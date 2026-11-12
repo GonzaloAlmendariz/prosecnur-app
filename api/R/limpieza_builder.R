@@ -284,6 +284,7 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
   module_stats <- .limpieza_build_module_stats(decisions, queue, preview)
   summary <- .limpieza_build_summary(scope, queue, decisions, preview)
   artifacts <- scope$limpieza_artifacts %||% list()
+  artifacts$cierre_cifras <- NULL  # se publica en `cierre`
   if (!is.null(preview_error) && nzchar(preview_error)) {
     artifacts$preview_error <- preview_error
   }
@@ -317,6 +318,12 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
   # no está en el formulario" piden cosas distintas.
   preservadas <- scope$limpieza_preservadas %||% list()
   motivo_de <- function(d) as.character(d$preservada_motivo %||% "")[1L]
+  # Por decisión, `aplicable` y `motivo_no_aplicable` (calculados, no se
+  # guardan): una decisión cuyo método de identificación ya no sirve no se
+  # aplica a ningún caso, y la pantalla tiene que poder decirlo. Desde M4,
+  # también su seguimiento de la auditoría (limpieza_alcance_decision.R).
+  draft_publico <- lapply(.limpieza_decisiones_con_aplicabilidad(decisions, scope),
+                          .limpieza_decision_con_seguimiento, scope = scope)
 
   list(
     progreso = list(
@@ -343,14 +350,11 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
     top_reglas = .limpieza_top_reglas(scope),
     top_variables = .limpieza_top_variables(scope),
     decision_queue = queue_publica,
-    # Por decisión, `aplicable` y `motivo_no_aplicable` (calculados, no se
-    # guardan): una decisión cuyo método de identificación ya no sirve no se
-    # aplica a ningún caso, y la pantalla tiene que poder decirlo. Desde M4,
-    # también su seguimiento de la auditoría (limpieza_alcance_decision.R).
-    decision_draft = lapply(.limpieza_decisiones_con_aplicabilidad(decisions, scope),
-                            .limpieza_decision_con_seguimiento, scope = scope),
+    decision_draft = draft_publico,
     module_stats = module_stats,
     before_after_preview = preview,
-    artifacts = artifacts
+    artifacts = artifacts,
+    # M5: lo que publica la pestaña Cierre (limpieza_cierre_resumen.R).
+    cierre = limpieza_cierre_resumen(sid, base_nombre, scope, preview, draft_publico)
   )
 }

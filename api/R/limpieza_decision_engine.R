@@ -1862,7 +1862,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   )
 }
 
-.limpieza_export_excel <- function(path, summary, decisions, preview) {
+.limpieza_export_excel <- function(path, summary, decisions, preview, hojas_extra = list()) {
   wb <- openxlsx::createWorkbook(creator = "prosecnur")
   st_head <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED")
 
@@ -1902,6 +1902,7 @@ limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
   write_sheet("Advertencias", tibble::tibble(warning = preview$logs$warnings %||% character(0)))
   write_sheet("Trazabilidad", preview$logs$trace %||% tibble::tibble())
   write_sheet("Residual_final", if (!is.null(preview$evaluacion_final) && !is.null(preview$evaluacion_final$resumen)) tibble::as_tibble(preview$evaluacion_final$resumen) else tibble::tibble())
+  for (nm in names(hojas_extra)) write_sheet(nm, hojas_extra[[nm]])
 
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
@@ -1969,12 +1970,17 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
   writeLines(html, html_path, useBytes = TRUE)
   html_meta <- .limpieza_register_download(sid, "validacion_limpieza_html", html_path, base = base_nombre)
 
+  # M5 (limpieza_cierre_resumen.R): cifras del cierre y hojas por caso.
+  cierre <- .limpieza_cierre_al_finalizar(sid, base_nombre, preview, limpieza_payload, linaje_limpieza)
   excel_path <- file.path(downloads_dir, sprintf("decisiones_limpieza_%s_%s.xlsx", base_slug, ts_slug))
-  .limpieza_export_excel(excel_path, summary, decisions, preview)
+  .limpieza_export_excel(excel_path, summary, decisions, preview, hojas_extra = cierre$hojas)
   excel_meta <- .limpieza_register_download(sid, "validacion_limpieza_excel", excel_path, base = base_nombre)
+  .limpieza_registrar_archivos_al_cerrar(sid, base_nombre, scope, list(
+    base_limpia = clean_meta, registro = excel_meta, revision = html_meta))
 
   artifacts <- list(
     finalized_at = .limpieza_now_utc(),
+    cierre_cifras = cierre$cifras,
     # ADR 0076, Cumplimiento: `recommended_file_id` se retiró el 2026-08-15. Era
     # una recomendación que ningún consumidor leía, y desde que la base se
     # promueve sola describía algo que ya no ocurre. Quien quiera el archivo lo
