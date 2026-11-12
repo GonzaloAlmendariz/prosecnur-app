@@ -203,7 +203,8 @@
 # `cuentan` se mide aparte (filas evaluadas después de aplicar) y `cuadra` dice
 # si la resta llega a esa cifra. Un tramo que no se puede medir va NA con su
 # causa en `avisos`; la cadena no se completa con supuestos.
-.limpieza_cadena_casos <- function(cifras, universo = NULL, linaje = NULL, cerrada = FALSE) {
+.limpieza_cadena_casos <- function(cifras, universo = NULL, linaje = NULL, cerrada = FALSE,
+                                   error_universo = NULL) {
   avisos <- list()
   avisar <- function(codigo, texto) avisos[[length(avisos) + 1L]] <<- list(codigo = codigo, texto = texto)
   int1 <- function(x) suppressWarnings(as.integer(x %||% NA_integer_))[1L]
@@ -240,6 +241,15 @@
   externo <- isTRUE(u$external_applied)
   retirados <- if (externo) int1(u$excluded_external) else 0L
   recibidos <- if (externo) int1(u$received_external) else cargados
+  if (!is.null(error_universo)) {
+    # No se sabe si hubo pruebas, reglas de carga o depuración externa: esos
+    # tramos y los recibidos van NA, no 0. Lo medido en la limpieza sigue.
+    pruebas <- sin_clasificar <- por_reglas <- retirados <- recibidos <- NA_integer_
+    avisar("universo_no_leido", paste0(
+      "No se pudo leer el filtro de pruebas ni la depuración externa de la base (",
+      error_universo, "): los casos recibidos y los que quedaron fuera antes de",
+      " la limpieza no se pueden contar."))
+  }
 
   fuera_auditoria <- cifras$fuera_de_la_auditoria
   if (is.na(fuera_auditoria)) {
@@ -379,13 +389,13 @@ limpieza_archivos_cierre <- function(sid, base_nombre, scope) {
 #' @keywords internal
 limpieza_cierre_resumen <- function(sid, base_nombre, scope, preview, draft) {
   artifacts <- scope$limpieza_artifacts %||% list()
-  cerrada <- nzchar(calc_str(artifacts$finalized_at, ""))
+  linaje <- if (!is.null(sid)) .limpieza_linaje_vigente(sid, base_nombre) else NULL
+  cerrada <- nzchar(calc_str(artifacts$finalized_at, "")) && !.limpieza_promocion_revertida(linaje)
   guardadas <- artifacts$cierre_cifras
   cifras <- if (cerrada && !is.null(guardadas)) guardadas
             else if (!cerrada && !is.null(preview)) .limpieza_cierre_cifras(preview, draft)
             else NULL
-  linaje <- if (!is.null(sid)) .limpieza_linaje_vigente(sid, base_nombre) else NULL
-  universo <- if (!is.null(sid)) tryCatch(.validacion_upstream_universe(sid, base_nombre), error = function(e) NULL) else NULL
+  universo <- if (!is.null(sid)) .limpieza_universo_leido(sid, base_nombre) else list(universo = NULL, error = NULL)
   sin_cifras <- if (is.null(cifras)) {
     if (cerrada) "La base se cerró antes de que se guardaran las cifras del cierre; vuelve a cerrarla para verlas."
     else "No hay vista previa de la limpieza."
@@ -395,7 +405,8 @@ limpieza_cierre_resumen <- function(sid, base_nombre, scope, preview, draft) {
     estado = if (cerrada) "cerrada" else "abierta",
     cerrada_en = if (cerrada) calc_str(artifacts$finalized_at, NA_character_) else NA_character_,
     causa_sin_cifras = sin_cifras,
-    cadena_casos = if (is.null(cifras)) NA else .limpieza_cadena_casos(cifras, universo, linaje, cerrada),
+    cadena_casos = if (is.null(cifras)) NA else .limpieza_cadena_casos(cifras, universo$universo, linaje, cerrada,
+                                                                        error_universo = universo$error),
     decisiones_aplicadas = aplicadas %||% NA,
     archivos = if (is.null(sid)) list() else limpieza_archivos_cierre(sid, base_nombre, scope)
   )
@@ -452,8 +463,9 @@ limpieza_cierre_resumen <- function(sid, base_nombre, scope, preview, draft) {
 .limpieza_cierre_al_finalizar <- function(sid, base_nombre, preview, payload, linaje) {
   draft <- payload$decision_draft %||% list()
   cifras <- .limpieza_cierre_cifras(preview, draft)
-  universo <- tryCatch(.validacion_upstream_universe(sid, base_nombre), error = function(e) NULL)
-  cadena <- .limpieza_cadena_casos(cifras, universo, linaje, cerrada = TRUE)
+  universo <- .limpieza_universo_leido(sid, base_nombre)
+  cadena <- .limpieza_cadena_casos(cifras, universo$universo, linaje, cerrada = TRUE,
+                                   error_universo = universo$error)
   cola <- payload$decision_queue %||% list()
   nombres <- stats::setNames(
     vapply(cola, function(x) calc_str(x$nombre_regla, ""), character(1)),
@@ -475,4 +487,29 @@ limpieza_cierre_resumen <- function(sid, base_nombre, scope, preview, draft) {
     .limpieza_registrar_archivo(sid, base_nombre, clave, metas[[clave]], firma)
   }
   invisible(TRUE)
+}
+
+# ---- Ronda 2 -------------------------------------------------------------------
+
+# Revertir la promoción ("Reabrir la base") deja el linaje apagado con
+# `reverted_at`; un cierre nuevo escribe un linaje sin esa marca. Una promoción
+# bloqueada (grupos repetibles) también queda apagada, pero sin `reverted_at`:
+# esa base sí está cerrada.
+.limpieza_promocion_revertida <- function(linaje) {
+  is.list(linaje) && !isTRUE(linaje$enabled) && nzchar(calc_str(linaje$reverted_at, ""))
+}
+
+# El universo de Carga con su error, si lo hubo. Un error de dominio
+# (`stop_api`) trae un mensaje para la persona; uno técnico va al log y la
+# causa se dice sin el detalle interno.
+.limpieza_universo_leido <- function(sid, base_nombre) {
+  error <- NULL
+  universo <- tryCatch(.validacion_upstream_universe(sid, base_nombre), error = function(e) {
+    error <<- if (inherits(e, "api_error")) calc_str(e$message, "error de lectura") else {
+      message(sprintf("[prosecnur-app] cierre: universo de la base no leído: %s", conditionMessage(e)))
+      "error interno al leer la base"
+    }
+    NULL
+  })
+  list(universo = universo, error = error)
 }

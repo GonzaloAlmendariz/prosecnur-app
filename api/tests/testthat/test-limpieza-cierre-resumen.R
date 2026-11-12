@@ -248,3 +248,65 @@ test_that("el paquete metodológico queda anotado en su base con la firma al ped
   h <- .cr_por_clave(.cr_get(sid, "Hogares")$cierre$archivos)
   expect_identical(h$paquete_metodologico$estado, "no_generado")
 })
+
+# ---- Ronda 2 (VERIFICACION_MOTOR_M5 y pantalla de Cierre) -------------------
+
+.cr_revertir <- function(sid) {
+  r <- .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/revertir-promocion",
+                query = "base_nombre=Personas")
+  expect_identical(r$status, 200L)
+  r
+}
+
+test_that("revertir la promoción reabre la base: el cierre deja de publicarse como cerrado", {
+  dir <- withr::local_tempdir()
+  sid <- .cr_sesion(dir)
+  withr::defer(session_delete(sid))
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/finalize", query = "base_nombre=Personas")
+  expect_identical(.cr_get(sid)$cierre$estado, "cerrada")
+  .cr_revertir(sid)
+  c <- .cr_get(sid)$cierre
+  expect_identical(c$estado, "abierta")
+  expect_null(c$cerrada_en)
+  # La base vigente vuelve a ser la recibida: 10 casos, 6 excluidos previstos.
+  expect_identical(c$cadena_casos$momento, "prevista")
+  expect_identical(c$cadena_casos$recibidos, 10L)
+  expect_identical(c$cadena_casos$cuentan, 4L)
+  expect_false(c$cadena_casos$base_promovida)
+})
+
+test_that("cerrar, cambiar una decisión, volver a cerrar y revertir: la cadena parte de la base recibida", {
+  dir <- withr::local_tempdir()
+  sid <- .cr_sesion(dir)
+  withr::defer(session_delete(sid))
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/finalize", query = "base_nombre=Personas")
+  d4 <- validacion_scope_get(sid, "Personas", "limpieza_draft")[[4]]
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/decision",
+           body = sprintf('{"id":"%s","source_id":"RC_004","action_type":"ignore_rule","status":"ready","rationale":"Otro motivo","base_nombre":"Personas"}', d4$id))
+  f2 <- .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/finalize", query = "base_nombre=Personas")
+  expect_identical(f2$status, 200L)
+  expect_identical(.cr_get(sid)$cierre$cadena_casos$recibidos, 10L)
+  .cr_revertir(sid)
+  c <- .cr_get(sid)$cierre
+  expect_identical(nrow(.read_data_for_validation(.resolve_base_files(sid, "Personas")$data$path, "csv")), 10L)
+  expect_identical(c$cadena_casos$recibidos, 10L)
+  expect_true(isTRUE(c$cadena_casos$cuadra))
+})
+
+test_that("si el filtro de pruebas no se puede leer, la cadena lo avisa y no supone que no hubo", {
+  dir <- withr::local_tempdir()
+  sid <- .cr_sesion(dir)
+  withr::defer(session_delete(sid))
+  testthat::local_mocked_bindings(
+    .validacion_upstream_universe = function(...) stop("archivo del filtro ilegible")
+  )
+  cad <- .cr_get(sid)$cierre$cadena_casos
+  avisos <- vapply(cad$avisos, `[[`, "", "codigo")
+  expect_true("universo_no_leido" %in% avisos)
+  expect_null(cad$fuera$pruebas)
+  expect_null(cad$recibidos)
+  expect_null(cad$cuadra)
+  # Lo medido sigue publicado.
+  expect_identical(cad$excluidos_en_limpieza, 6L)
+  expect_identical(cad$cuentan, 4L)
+})
