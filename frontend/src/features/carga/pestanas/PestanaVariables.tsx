@@ -1,13 +1,8 @@
 import { useEffect } from "react";
-import { EstadoVacio } from "../../../components/EstadoVacio";
-import { Inbox } from "../../../vendor/lucide-react";
 import { useVariablesBase } from "../variablesBase/useVariablesBase";
-import { VariablesBaseCuerpo } from "../variablesBase/VariablesBasePanel";
-import "../ArmonizacionFilaEditor.css";
-import "../variablesBase/variablesBase.css";
-import "./pestanaVariables.css";
+import { etiquetaDeBase } from "./bases/basesModel";
 import type { ContextoDeCarga } from "./contextoDeCarga";
-import { SelectorDeBaseCarga } from "./SelectorDeBaseCarga";
+import { MesaDeVariables } from "./variables/MesaDeVariables";
 
 export type PestanaVariablesProps = {
   contexto: ContextoDeCarga;
@@ -21,8 +16,9 @@ export type PestanaVariablesProps = {
 
 /**
  * Variables (ADR 0142): lo que la base trae fuera del formulario y lo que se
- * calcula en ella. Era el panel lateral "Variables de la base"; ahora es una
- * pestaña que también existe con una sola base. Su rediseño es otra rebanada.
+ * calcula en ella, con la mesa del prototipo "carga-variables"
+ * (`variables/MesaDeVariables`). Existe también con una sola base. La base
+ * elegida va en la dirección (`foco`, `useElegirBaseDeVariables`).
  */
 export function PestanaVariables({ contexto, bases, conCatalogo, onLeyendo }: PestanaVariablesProps) {
   const base = contexto.baseElegida || null;
@@ -34,30 +30,21 @@ export function PestanaVariables({ contexto, bases, conCatalogo, onLeyendo }: Pe
   }, [leyendo, onLeyendo]);
   useEffect(() => () => onLeyendo(false), [onLeyendo]);
 
+  const porNombre = new Map(contexto.basesTodas.map((b) => [b.nombre, b]));
+  const etiquetas = Object.fromEntries(bases.map((nombre) => {
+    const b = porNombre.get(nombre);
+    return [nombre, b ? etiquetaDeBase(b) : nombre];
+  }));
+
   return (
-    <div
-      className="pulso-carga-surface pulso-carga-variables"
-      data-carga-surface="variables"
-      data-qa-geometry-group="carga/variables"
-      data-qa-geometry-contract="intrinsic"
-    >
-      <SelectorDeBaseCarga
-        bases={bases}
-        elegida={contexto.baseElegida}
-        onCambiar={contexto.onCambiarBase}
-        deshabilitado={Boolean(contexto.ocupado)}
-      />
-      {base ? (
-        <VariablesBaseCuerpo key={base} control={control} />
-      ) : (
-        <div data-qa-geometry-capacity="owned">
-          <EstadoVacio
-            icono={<Inbox size={16} />}
-            titulo="Todavía no hay respuestas cargadas"
-            descripcion="Cárgalas en Bases para declarar columnas y variables calculadas."
-          />
-        </div>
-      )}
-    </div>
+    <MesaDeVariables
+      key={base ?? ""}
+      control={control}
+      base={base}
+      bases={bases}
+      etiquetas={etiquetas}
+      onCambiarBase={contexto.onCambiarBase}
+      cambiandoBase={Boolean(contexto.ocupado)}
+    />
   );
 }

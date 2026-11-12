@@ -1,0 +1,473 @@
+/* Carga › Variables (prototipo "carga-variables"): la rejilla agrupada de
+ * variables, la ficha de la elegida y la marca "ya viene codificada". Los
+ * marcos son del kit (MesaDePestana, PanelDeMesa); esta hoja ordena lo de
+ * adentro y no dibuja cajas. Solo tokens. Las filas no fijan alto: lo da el
+ * padding (capacity-drift).
+ */
+
+/* ---------- Rejilla ---------- */
+
+.pulso-variables-tabla {
+  --pulso-variables-columnas: 48px minmax(120px, 1fr) minmax(120px, 1fr) minmax(150px, 0.8fr) minmax(140px, 1.1fr) 84px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+}
+
+.pulso-variables-fila {
+  display: grid;
+  grid-template-columns: var(--pulso-variables-columnas);
+  align-items: center;
+  column-gap: var(--pulso-space-4);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-variables-fila > span {
+  min-width: 0;
+}
+
+.pulso-variables-fila > [data-cifra] {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-variables-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--pulso-surface);
+}
+
+.pulso-variables-cabecera .pulso-variables-fila {
+  padding-block: var(--pulso-space-3);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+/* El rótulo del grupo con sus acciones queda fijo bajo la cabecera de columnas mientras su grupo está a la vista. */
+.pulso-variables-grupo-titulo {
+  position: sticky;
+  top: var(--pulso-variables-alto-cabecera, 0px);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-variables-grupo-accion {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-variables-elegir {
+  display: inline-flex;
+  align-items: center;
+}
+
+.pulso-variables-grupo-rotulo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-type-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+.pulso-variables-grupo-rotulo em {
+  color: var(--pulso-text-soft);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-variables-grupo .pulso-variables-fila {
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-standard);
+}
+
+.pulso-variables-grupo .pulso-variables-fila:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-variables-grupo .pulso-variables-fila[aria-selected="true"] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-variables-grupo .pulso-variables-fila:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: -2px;
+}
+
+.pulso-variables-codigo,
+.pulso-variables-ficha code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* El código es un identificador: va en una línea y no se parte (C4); si no cabe, se recorta con el entero en `title`. */
+.pulso-variables-codigo {
+  display: inline-block;
+  max-inline-size: 100%;
+  overflow: hidden;
+  padding: 1px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.pulso-variables-etiqueta {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: break-word;
+}
+
+.pulso-variables-origen {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  max-inline-size: 100%;
+  padding: 2px var(--pulso-space-2);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+/* Sobre el fondo de la fila elegida la pastilla gana fondo propio y un contorno más firme. */
+.pulso-variables-fila[aria-selected="true"] .pulso-variables-origen {
+  background: var(--pulso-surface);
+  box-shadow: inset 0 0 0 1px var(--pulso-border-strong);
+}
+
+.pulso-variables-origen svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-variables-dedonde {
+  color: var(--pulso-text-soft);
+  overflow-wrap: break-word;
+}
+
+.pulso-variables-sin-cuenta {
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* ---------- Ficha de la elegida ---------- */
+
+.pulso-variables-ficha {
+  font-size: var(--pulso-type-body-size);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  padding: var(--pulso-space-5);
+}
+
+.pulso-variables-h {
+  margin: 0 0 var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.02em;
+}
+
+.pulso-variables-ruta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.pulso-variables-ruta > code,
+.pulso-variables-ruta > span:not(.pulso-variables-tipo) {
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  font-size: var(--pulso-type-body-size);
+  overflow-wrap: anywhere;
+}
+
+.pulso-variables-ruta > svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-variables-tipo {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--pulso-space-2);
+  border-radius: 6px;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-variables-tipo[data-tono="so"] { background: var(--tipo-so-bg); box-shadow: inset 0 0 0 1px var(--tipo-so-border); color: var(--tipo-so-fg); }
+.pulso-variables-tipo[data-tono="int"] { background: var(--tipo-int-bg); box-shadow: inset 0 0 0 1px var(--tipo-int-border); color: var(--tipo-int-fg); }
+
+.pulso-variables-escala,
+.pulso-variables-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cada categoría en su franja, sin caja propia: fondo y contorno interior. */
+.pulso-variables-escala li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(48px, 80px) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+}
+
+.pulso-variables-escala li > code {
+  padding: 1px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-variables-escala b {
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: break-word;
+}
+
+.pulso-variables-escala em {
+  color: var(--pulso-text-soft);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.pulso-variables-barra {
+  display: block;
+  block-size: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-variables-barra i {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--pulso-data-seq-5, var(--pulso-primary));
+}
+
+.pulso-variables-opciones li {
+  display: grid;
+  grid-template-columns: minmax(40px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--pulso-space-3);
+}
+
+.pulso-variables-impacto {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-4);
+  margin: 0;
+  padding: var(--pulso-space-4);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-variables-impacto b {
+  font-size: var(--pulso-type-title-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-variables-formula {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-variables-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-variables-dl {
+  display: grid;
+  grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+  margin: 0;
+}
+
+.pulso-variables-dl dt,
+.pulso-variables-dl dd {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: var(--pulso-space-2) 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-variables-dl dt {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-variables-dl dd {
+  min-width: 0;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-variables-dl dd .pulso-input,
+.pulso-variables-opciones .pulso-input {
+  inline-size: 100%;
+}
+
+.pulso-variables-aviso {
+  margin: var(--pulso-space-4) var(--pulso-space-5) 0;
+  color: var(--pulso-success-fg);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-variables-aviso.is-error {
+  color: var(--pulso-danger-fg);
+}
+
+/* ---------- Pie del inspector ---------- */
+
+/* Los botones del pie son hijos directos del pie del kit, que los reparte a todo el ancho. */
+.pulso-variables .pulso-panel-de-mesa-pie > .pulso-variables-nota {
+  flex: 1 1 auto;
+}
+
+/* ---------- Editor de una calculada dentro del inspector ---------- */
+
+/* El marco es el del inspector: el editor no repite el suyo. */
+.pulso-variables-editor .pulso-vb-editor {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.pulso-variables-editor .pulso-vb-editor-titulo {
+  display: none;
+}
+
+/* La acción de guardar queda a la vista al pie del cuerpo, aunque el editor sea más alto que el inspector. */
+.pulso-variables-editor .pulso-vb-editor-pie {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-block: var(--pulso-space-3);
+  background: var(--pulso-surface);
+}
+
+.pulso-variables-editor .pulso-vb-campos {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ---------- Columna derecha ---------- */
+
+/* El inspector se queda con el alto libre; la marca de codificación mide lo suyo, al pie. */
+.pulso-variables .pulso-mesa-pestana-pila > .pulso-panel-de-mesa:first-child {
+  flex: 1 1 auto;
+}
+
+.pulso-variables .pulso-mesa-pestana-pila > .pulso-panel-de-mesa--codificada {
+  flex: none;
+}
+
+.pulso-variables-ajuste {
+  font-size: var(--pulso-type-body-size);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.pulso-variables-ajuste-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-variables-ajuste-texto b {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-variables-ajuste-texto span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-variables-retiradas {
+  margin: 0;
+}
+
+/* Anexar columnas dentro del inspector: el contenedor pone el título y el marco. */
+.pulso-variables-anexar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-5);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-variables-anexar > p {
+  margin: 0;
+}
+
+/* El buscador en la cabecera de la tabla, como el de Formulario. */
+.pulso-variables-buscar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  inline-size: 220px;
+  max-inline-size: 100%;
+}
+
+.pulso-variables-buscar > svg {
+  position: absolute;
+  inset-inline-start: 10px;
+  color: var(--pulso-text-faint);
+  pointer-events: none;
+}
+
+.pulso-variables-buscar .pulso-input {
+  inline-size: 100%;
+  padding-inline-start: 32px;
+}
+
+/* Hasta 1100 de ventana la mesa apila sus contenedores y se desplaza la pestaña. En Variables la
+   pestaña es el único dueño del scroll: los contenedores miden lo suyo, sin scroll propio (C4), y
+   las cabeceras fijas de la tabla se pegan al borde del área de Carga. `overflow: clip` recorta el
+   radio sin crear otro contenedor de scroll. */
+@container mesa-pestana (max-width: 979px) {
+  .pulso-variables .pulso-mesa-pestana > .pulso-panel-de-mesa,
+  .pulso-variables .pulso-mesa-pestana-pila > .pulso-panel-de-mesa {
+    max-block-size: none;
+    overflow: clip;
+  }
+
+  .pulso-variables .pulso-panel-de-mesa-cuerpo {
+    overflow: visible;
+  }
+}

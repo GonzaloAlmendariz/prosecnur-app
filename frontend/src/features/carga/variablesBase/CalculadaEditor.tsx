@@ -69,6 +69,8 @@ export function CalculadaEditor({
   const [b, despachar] = useReducer(reducirCalculada, inicial, borradorCalculadaDesde);
   const [intento, setIntento] = useState(false);
   const lista = preguntas ?? [];
+  // Sin catálogo no hay de qué calcular: guardar respondería con un error del motor.
+  const sinPreguntas = preguntas !== null && (catalogoNoAplica || catalogoError);
   const lectura = useCodigosObservados(b.regla === "recodificar" ? base : "", b.recodificar.variable);
   const observados = observadosListos(lectura);
   const origen = useMemo(
@@ -88,6 +90,15 @@ export function CalculadaEditor({
       <h4 id={`${id}-titulo`} className="pulso-vb-editor-titulo">
         {inicial ? `Editar "${inicial.nombre}"` : "Nueva variable calculada"}
       </h4>
+
+      {/* Sin catálogo el aviso va arriba, a la vista: es la causa de que no se pueda guardar. */}
+      {preguntas !== null && catalogoNoAplica ? (
+        // Brecha declarada (C5): sin catálogo de preguntas para esta base.
+        <p className="pulso-armon-aviso" role="status">La lista de preguntas por base todavía no está disponible para estudios sin equivalencias.</p>
+      ) : preguntas !== null && catalogoError ? (
+        // C5 categoría 3: el catálogo no llegó.
+        <p className="pulso-armon-aviso" role="alert">No se pudieron leer las preguntas de la base.</p>
+      ) : null}
 
       <div className="pulso-vb-campos">
         <label className="pulso-compuesto-campo">
@@ -129,14 +140,8 @@ export function CalculadaEditor({
       </div>
 
       {preguntas === null ? (
-        <LoadingBlock variant="inline" label="Leyendo las preguntas de la base…" />
-      ) : catalogoNoAplica ? (
-        // Brecha declarada (C5): el motor todavía no da el catálogo por base sin equivalencias (M-C7).
-        <p className="pulso-armon-aviso" role="status">La lista de preguntas por base todavía no está disponible para estudios sin equivalencias.</p>
-      ) : catalogoError ? (
-        // C5 categoría 3: el catálogo no llegó.
-        <p className="pulso-armon-aviso" role="alert">No se pudieron leer las preguntas de la base.</p>
-      ) : b.regla === "formula" ? (
+        <LoadingBlock variant="inline" label="Leyendo las preguntas de la base" />
+      ) : sinPreguntas ? null : b.regla === "formula" ? (
         <FormulaCampo
           expresion={b.formula.expresion}
           opciones={lista}
@@ -155,7 +160,10 @@ export function CalculadaEditor({
 
       <div className="pulso-vb-editor-pie">
         <span className="pulso-vb-editor-estado" aria-live="polite">
-          {error ? (
+          {sinPreguntas ? (
+            // La causa del botón deshabilitado, a la vista junto a él.
+            <span className="pulso-armon-error">Sin la lista de preguntas de la base no se puede calcular.</span>
+          ) : error ? (
             <span className="pulso-armon-error" role="alert">{error}</span>
           ) : intento && errores.length ? (
             <span className="pulso-armon-error">{errores[0]}</span>
@@ -168,7 +176,7 @@ export function CalculadaEditor({
           variant="primary"
           size="sm"
           className="pulso-armon-btn"
-          disabled={guardando || (intento && errores.length > 0)}
+          disabled={guardando || sinPreguntas || (intento && errores.length > 0)}
           onClick={() => void guardar()}
         >
           <Save size={14} aria-hidden="true" />

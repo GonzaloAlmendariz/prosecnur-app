@@ -1,4 +1,4 @@
-// Estado del panel «Variables de la base» (ADR 0106): la lectura de la base, el
+// Estado del panel "Variables de la base" (ADR 0106): la lectura de la base, el
 // catálogo de sus preguntas y las mutaciones. Un reducer en vez de un racimo de
 // `useState`; el estado duro vive en el backend y cada respuesta lo reemplaza.
 
@@ -15,15 +15,17 @@ import {
   type ResumenCalculada,
 } from "../../../api/baseVariables";
 import { getVariablesEquivalencias, type VariableDeBase } from "../../../api/equivalencias";
-import { avisarCambioDeVariables, textoIncorporadas, type CargaVariablesBase } from "./variablesBaseModel";
+import { apiInstrumentoEstructura } from "../../../api/xlsformEditor";
+import { BASE_UNICA } from "../pestanas/contextoDeCarga";
+import { avisarCambioDeVariables, catalogoDesdeEstructura, textoIncorporadas, type CargaVariablesBase } from "./variablesBaseModel";
 
 export type CatalogoBase =
   | { tipo: "cargando" }
   | { tipo: "error" }
   /**
-   * El catálogo de preguntas por base sale hoy de Equivalencias, que solo
-   * existe con bases de formularios distintos; fuera de esos estudios el
-   * servidor responde 409 (`E_EQUIV_NO_APLICA`) y no se pide.
+   * Sin catálogo de preguntas. Con equivalencias sale de Equivalencias; sin
+   * ellas, de la estructura del formulario de la base (`catalogoDesdeEstructura`),
+   * así que hoy ningún camino lo produce. Queda para quien llame sin base.
    */
   | { tipo: "no-aplica" }
   | { tipo: "listo"; variables: VariableDeBase[] };
@@ -102,7 +104,15 @@ export function useVariablesBase(
 
   const leerCatalogo = useCallback(async (nombre: string, id: number) => {
     if (!conCatalogo) {
-      if (id === secuencia.current) despachar({ tipo: "catalogo", catalogo: { tipo: "no-aplica" } });
+      // Sin equivalencias, el catálogo sale de la estructura del formulario de esa base.
+      try {
+        const estructura = await apiInstrumentoEstructura(nombre === BASE_UNICA ? undefined : nombre);
+        if (id === secuencia.current) {
+          despachar({ tipo: "catalogo", catalogo: { tipo: "listo", variables: catalogoDesdeEstructura(estructura.preguntas ?? []) } });
+        }
+      } catch {
+        if (id === secuencia.current) despachar({ tipo: "catalogo", catalogo: { tipo: "error" } });
+      }
       return;
     }
     try {

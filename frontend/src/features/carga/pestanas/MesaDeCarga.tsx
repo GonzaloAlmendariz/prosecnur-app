@@ -10,7 +10,7 @@ import {
 import { CabeceraDeCargaContexto, pestanaConCabeceraPropia } from "./bases/contextoDeCabecera";
 
 /** Las pestañas rehechas con `MesaDePestana` del kit: dibujan su cabecera y su mesa. */
-const PESTANAS_CON_MESA_DEL_KIT: ReadonlySet<CargaWorkspaceTab> = new Set<CargaWorkspaceTab>(["revision", "formulario", "respuestas"]);
+const PESTANAS_CON_MESA_DEL_KIT: ReadonlySet<CargaWorkspaceTab> = new Set<CargaWorkspaceTab>(["revision", "variables", "formulario", "respuestas"]);
 
 /**
  * Mesa de trabajo de Carga: riel de pestañas, encabezado y panel de la pestaña
@@ -34,9 +34,9 @@ export function MesaDeCarga({
   // (CargaWorkbenchBajo.css). Bases no crece:
   // sus dos marcos (colección e inspector) llegan al borde inferior en todo
   // tamaño y cada uno desplaza su cuerpo (`pestanas/bases/bases.css`).
-  const crece = activa === "variables" || activa === "equivalencias";
+  const crece = activa === "equivalencias";
   const bases = activa === "bases" ? " pulso-carga-workbench--bases" : "";
-  // Revisión, Formulario y Respuestas usan la mesa del kit de Procesamiento
+  // Revisión, Variables, Formulario y Respuestas usan la mesa del kit de Procesamiento
   // (cabecera con cifras y columnas que llegan al pie): no crecen, como Bases
   // (`pestanas/revision/marcoDeMesa.css`).
   const kit = PESTANAS_CON_MESA_DEL_KIT.has(activa) ? " pulso-carga-workbench--kit" : "";
@@ -65,7 +65,7 @@ export function MesaDeCarga({
           : "pulso-carga-content pulso-content-area"}
       >
         {/* Bases dibuja su cabecera con sus cifras y "Agregar base" (contextoDeCabecera.ts); Revisión,
-            Formulario y Respuestas, la del kit con las suyas (revision/CabeceraDeMesaDeCarga.tsx). */}
+            Variables, Formulario y Respuestas, la del kit con las suyas (revision/CabeceraDeMesaDeCarga.tsx). */}
         {pestanaConCabeceraPropia(activa) || PESTANAS_CON_MESA_DEL_KIT.has(activa)
           ? null
           : <CargaWorkspaceHeader active={activa} context={contexto} />}

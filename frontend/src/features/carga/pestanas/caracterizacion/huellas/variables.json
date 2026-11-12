@@ -1,34 +1,34 @@
 {
   "madre-e-hija_variables_panel-viejo": {
-    "marcado": "2abd2b273f02482b07cf79b619c59cb4335456035730a769ede8e107bbc02474",
-    "pedidos": "cac05e71a403bb28d37542a6746284924368401c6a671e3dfea3259b359ad62c"
+    "marcado": "22d41ad9ffa4cef040bd99cbf9ebe96bfedb4d120120a12668948f69fd443de1",
+    "pedidos": "7bd6884ff113acf9face337175ad7c15490c145542a88c6fbccb0ba1ff132bdb"
   },
   "una-base_con-insumos_variables": {
-    "marcado": "92c8f443048ccefe9587e5e8f0cabe9425cc125e57403b3a5acb166d2920a254",
-    "pedidos": "542ccc45f2f9192cea5da3af859b3b547fd51b9af71ce6549bd66009c9c02549"
+    "marcado": "df8b56382291bbfd76b243981ecf4fbd0c001b5da90a7af2dde8d003f630df18",
+    "pedidos": "94b117b6705ed632bd9fc43362b3af574ace68d88ddeadf4f47619f9d1d206ee"
   },
   "una-base_sin-archivos_variables": {
-    "marcado": "fd8a9d096753070262b9037a1a6a46afd9e51e14cd489189a9cdc5e97c4cb04f",
+    "marcado": "0fc5e0b414c4665c85a51cd833029bdaf3a138021c1ddab55c6c8d99278712a9",
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "una-base_variables_sin-catalogo": {
-    "marcado": "92c8f443048ccefe9587e5e8f0cabe9425cc125e57403b3a5acb166d2920a254",
-    "pedidos": "542ccc45f2f9192cea5da3af859b3b547fd51b9af71ce6549bd66009c9c02549"
+    "marcado": "df8b56382291bbfd76b243981ecf4fbd0c001b5da90a7af2dde8d003f630df18",
+    "pedidos": "94b117b6705ed632bd9fc43362b3af574ace68d88ddeadf4f47619f9d1d206ee"
   },
   "varias_integradas_variables": {
-    "marcado": "9fda67cfe360761e0972f46f16de0d9d9e0ce44c647fe55dee58c79bb67dba6c",
-    "pedidos": "e7102e556a85be7acdf3f6b91c30b5a9698ef7402acff7d191051dde96073b75"
+    "marcado": "ee08a91aa5b37b37c5b0874cfa1a56bff311987483cb72b7caa4b8c67e330a3b",
+    "pedidos": "482e5adc7b19577e0384679452117893802385fae82c30cdac03dcc5a891751e"
   },
   "varias_separadas_variables": {
-    "marcado": "4c11064a0cf5f666901dfdfed772e01ee099978467846e2d54b830786e27f343",
+    "marcado": "e59d35fea3220aaef8a56dce58fbecdfbc03a5a752bc3d117421363e3fa5ad5d",
     "pedidos": "34796712fee81403ffc14036b954eb5d7b7cd0a3163084c5ab995ab444abb0b9"
   },
   "varias_separadas_variables_foco": {
-    "marcado": "50f6ac8d9c5c359587fc5ed7ba0af5ce5c34f3a5bfc3eb5ad88e7129b0803459",
+    "marcado": "c1a21142287166f0cadd5552156a5594583c88334ad132d320c7af8b5a8f9d3e",
     "pedidos": "1faf47404ed65b1d08ae3b6b6d88997c725b4e7bfeb724e28e39780aa70b1654"
   },
   "varias_sin-bases_variables": {
-    "marcado": "6a8d7017221195ad664d17f64770652919e8dbc02f4d2781c66bff8af43ac7a4",
+    "marcado": "934e1edffa12dd786551ca38d5df6a109b0925ad8007abcec43de32fefc847ad",
     "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
   }
 }

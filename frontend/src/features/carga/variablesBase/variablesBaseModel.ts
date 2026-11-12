@@ -1,4 +1,4 @@
-// Variables de la base (ADR 0106): lógica pura del panel «Variables de la base».
+// Variables de la base (ADR 0106): lógica pura del panel "Variables de la base".
 //
 // - El panel direccionable y sus direcciones (`?panel=variables-base&foco=<base>`).
 // - El borrador de las columnas que la base trae y el instrumento no declara:
@@ -21,6 +21,7 @@ import type {
   VariableCalculada,
 } from "../../../api/baseVariables";
 import type { VariableDeBase } from "../../../api/equivalencias";
+import type { Pregunta } from "../../../api/xlsformEditor";
 import type { CodigosObservados } from "../../../api/codigosObservados";
 import { codigosConObservados } from "../codigosObservadosModel";
 import { conNivel } from "../../../lib/navegacion/direccion";
@@ -32,7 +33,7 @@ import { parsearCodigos, textoDeCodigos, type AccionCompuesto } from "../indicad
 // Panel y direcciones
 // ---------------------------------------------------------------------------
 
-/** `?panel=variables-base&foco=<base>`: columnas propias, calculadas y la marca «ya codificada». */
+/** `?panel=variables-base&foco=<base>`: columnas propias, calculadas y la marca "ya codificada". */
 export const PANEL_VARIABLES_BASE: PanelDeclarado = {
   id: "variables-base",
   label: "Variables de la base",
@@ -95,7 +96,7 @@ export const ROTULO_TIPO: Record<TipoColumna, string> = {
   datetime: "Fecha y hora",
 };
 
-/** «1 Sí · 2 No · +3»: las primeras opciones y cuántas faltan. */
+/** "1 Sí · 2 No · +3": las primeras opciones y cuántas faltan. */
 export function resumenOpciones(opciones: readonly OpcionBase[], max = 3): string {
   if (opciones.length === 0) return "";
   const vistas = opciones.slice(0, max).map((o) => (o.etiqueta && o.etiqueta !== o.codigo ? `${o.codigo} ${o.etiqueta}` : o.codigo));
@@ -117,7 +118,7 @@ export function textoIncorporadas(n: number): string {
   return n === 1 ? "Se incorporó 1 columna." : `Se incorporaron ${formatoConteo(n)} columnas.`;
 }
 
-/** «Alguna de 9 preguntas · sí = 1» / «Recodifica P8 en 4 categorías» / «= 2026 - P8». */
+/** "Alguna de 9 preguntas · sí = 1" / "Recodifica P8 en 4 categorías" / "= 2026 - P8". */
 export function reglaLegible(c: Pick<VariableCalculada, "regla" | "variables" | "codigos" | "escala" | "expresion">): string {
   if (c.regla === "formula") return `= ${c.expresion ?? ""}`;
   if (c.regla === "recodificar") {
@@ -128,7 +129,7 @@ export function reglaLegible(c: Pick<VariableCalculada, "regla" | "variables" | 
   return c.codigos.length ? `${cuantas}, sí = ${textoDeCodigos(c.codigos)}` : cuantas;
 }
 
-/** «Sí 120 · No 300 · Sin dato 5»; una fórmula: «Con valor 2.400 · de 0 a 19 · Sin dato 5». */
+/** "Sí 120 · No 300 · Sin dato 5"; una fórmula: "Con valor 2.400 · de 0 a 19 · Sin dato 5". */
 export function textoResumen(r: ResumenCalculada): string {
   if (r.numerico) {
     const { n_validos, minimo, maximo } = r.numerico;
@@ -227,7 +228,7 @@ function formatoNumeroCorto(n: number): string {
 
 /**
  * Las variables que nombra una fórmula, en orden y sin repetir: nombres sueltos
- * («P8», «P10.88») o entre comillas invertidas («`x-1`»). La sintaxis completa
+ * ("P8", "P10.88") o entre comillas invertidas ("`x-1`"). La sintaxis completa
  * la valida el backend (`base_variables_formula.R`); aquí sólo se avisa de una
  * variable que la base no tiene antes de enviar.
  */
@@ -299,7 +300,7 @@ export type AccionCalculada =
   | { tipo: "nombre"; valor: string }
   | { tipo: "etiqueta"; valor: string }
   | { tipo: "regla"; valor: ReglaCalculada }
-  /** Las acciones del bloque «alguna» (`BaseCompuesta`); su `base` no importa aquí. */
+  /** Las acciones del bloque "alguna" (`BaseCompuesta`); su `base` no importa aquí. */
   | { tipo: "alguna"; accion: AccionCompuesto }
   | { tipo: "origen"; variable: string }
   | { tipo: "expresion"; valor: string }
@@ -387,7 +388,7 @@ export function reducirCalculada(b: BorradorCalculada, a: AccionCalculada): Borr
         recodificar: {
           ...r,
           escala: escalaBorrador(a.opciones),
-          // Copiar la lista de origen es el punto de partida «cada código a sí mismo».
+          // Copiar la lista de origen es el punto de partida "cada código a sí mismo".
           mapa: Object.fromEntries(a.opciones.map((o) => [o.codigo, o.codigo])),
           marcados: [],
         },
@@ -560,14 +561,14 @@ export function opcionesDeOrigen(
 
 /**
  * Nombre técnico propuesto desde la etiqueta: minúsculas, sin tildes, palabras
- * unidas por «_», sin conectores, a lo sumo `max` caracteres (32) y empezando por
+ * unidas por "_", sin conectores, a lo sumo `max` caracteres (32) y empezando por
  * letra. Los segmentos de cruce (ADR 0107) lo usan con menos, para su prefijo.
- * «VBG: recurrió a alguna instancia de la PUCP» → «vbg_recurrio_alguna_instancia».
+ * "VBG: recurrió a alguna instancia de la PUCP" → "vbg_recurrio_alguna_instancia".
  */
 const CONECTORES = new Set(["a", "al", "de", "del", "la", "las", "el", "los", "en", "y", "o", "u", "e", "con", "por", "para", "que", "se", "su", "sus"]);
 
 export function nombreDesdeEtiqueta(etiqueta: string, max = 32): string {
-  // «ñ» pasa a «ni» antes de quitar tildes: «años» no puede quedar «anos».
+  // "ñ" pasa a "ni" antes de quitar tildes: "años" no puede quedar "anos".
   const palabras = etiqueta
     .replace(/ñ/gi, "ni")
     .normalize("NFD")
@@ -583,4 +584,33 @@ export function nombreDesdeEtiqueta(etiqueta: string, max = 32): string {
   }
   if (!out) return "";
   return /^[a-z]/.test(out) ? out : `v_${out}`.slice(0, max);
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo de preguntas sin equivalencias
+// ---------------------------------------------------------------------------
+
+/**
+ * Las preguntas de la base para el editor de calculadas cuando el estudio no
+ * tiene equivalencias: salen de la estructura del formulario que publica el
+ * motor (`GET /api/carga/instrumento/estructura`), con el mismo recorte que
+ * `.equiv_variables_de_base` (sin notas ni grupos) y sus opciones por código.
+ * No trae `firma`: el editor no compara escalas.
+ */
+export function catalogoDesdeEstructura(preguntas: readonly Pregunta[]): VariableDeBase[] {
+  const vistos = new Set<string>();
+  const out: VariableDeBase[] = [];
+  for (const p of preguntas) {
+    const tipo = (p.type_raw ?? p.tipo ?? "").trim().split(/\s+/)[0] ?? "";
+    if (!p.name || vistos.has(p.name)) continue;
+    if (p.tipo === "note" || /^(note|begin_group|end_group|begin_repeat|end_repeat)$/.test(tipo)) continue;
+    vistos.add(p.name);
+    out.push({
+      name: p.name,
+      label: p.label ?? "",
+      seccion: p.seccion ?? "",
+      opciones: (p.choices ?? []).map((c) => ({ codigo: c.name, etiqueta: c.label || c.name })),
+    });
+  }
+  return out;
 }

@@ -33,6 +33,7 @@ import {
   validarCalculada,
   type AccionCalculada,
   type BorradorCalculada,
+  catalogoDesdeEstructura,
 } from "./variablesBaseModel";
 
 const col = (name: string, extra: Partial<ColumnaPropia> = {}): ColumnaPropia => ({
@@ -328,5 +329,21 @@ describe("Recodificar con los valores observados", () => {
     expect(filasRecodificacion(origen, b.recodificar).map((f) => f.n)).toEqual([0, 40, 3]);
     // Sin observados, la lista del catálogo, sin conteo.
     expect(filasRecodificacion(opcionesDeOrigen(catalogo, "P4", {}), b.recodificar).map((f) => f.n)).toEqual([null, null]);
+  });
+});
+
+describe("catalogoDesdeEstructura", () => {
+  it("toma las preguntas sin notas ni grupos, sin repetir, con sus opciones por código", () => {
+    const cat = catalogoDesdeEstructura([
+      { name: "intro", label: "Hola", tipo: "note", seccion: "", required: false, relevant: false, constraint: false, calculate: false },
+      { name: "g1", label: "Grupo", tipo: "begin_group", type_raw: "begin_group", seccion: "", required: false, relevant: false, constraint: false, calculate: false },
+      { name: "P1", label: "Sexo", tipo: "select_one", seccion: "Datos", required: true, relevant: false, constraint: false, calculate: false, choices: [{ name: "1", label: "Hombre" }, { name: "2", label: "" }] },
+      { name: "P1", label: "Repetida", tipo: "text", seccion: "", required: false, relevant: false, constraint: false, calculate: false },
+      { name: "P2", label: "Edad", tipo: "integer", seccion: "Datos", required: false, relevant: false, constraint: false, calculate: false },
+    ]);
+    expect(cat).toEqual([
+      { name: "P1", label: "Sexo", seccion: "Datos", opciones: [{ codigo: "1", etiqueta: "Hombre" }, { codigo: "2", etiqueta: "2" }] },
+      { name: "P2", label: "Edad", seccion: "Datos", opciones: [] },
+    ]);
   });
 });

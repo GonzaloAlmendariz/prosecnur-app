@@ -2,14 +2,19 @@
 // cruce u otras que vienen creadas aparte. Se unen por un identificador común
 // y aparecen entre las columnas propias de la base para declararlas.
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { apiUpload, uploadKindForDataFile } from "../../../api/client";
 import { apiAnexarColumnas, apiAnexarVista, type AnexarVista } from "../../../api/estudio";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { formatoConteo, formatoConteoDe } from "../../../lib/formatoNumero";
 import { Panel } from "../../../components/Panel";
 
-export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas: () => Promise<void> | void }) {
+export function AnexarColumnas({ base, onAnexadas, sinMarco = false }: {
+  base: string;
+  onAnexadas: () => Promise<void> | void;
+  /** Dentro de un contenedor que ya pone título y marco (el inspector de Variables): solo el contenido. */
+  sinMarco?: boolean;
+}) {
   const id = useId();
   const [archivoId, setArchivoId] = useState("");
   const [vista, setVista] = useState<AnexarVista | null>(null);
@@ -40,7 +45,7 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
     setMensaje(null);
     try {
       const r = await apiAnexarColumnas(base, archivoId, clave, elegidas);
-      setMensaje({ ok: true, texto: `${elegidas.length === 1 ? "Columna anexada" : `${elegidas.length} columnas anexadas`}: ${formatoConteo(r.n_con_dato)} de ${formatoConteoDe(r.n_base, "caso")} tienen dato. Ya aparecen arriba para declararlas.` });
+      setMensaje({ ok: true, texto: `${elegidas.length === 1 ? "Columna anexada" : `${elegidas.length} columnas anexadas`}: ${formatoConteo(r.n_con_dato)} de ${formatoConteoDe(r.n_base, "caso")} tienen dato. Ya aparecen en "Por incorporar".` });
       setVista(null);
       await onAnexadas();
     } catch (e) {
@@ -50,25 +55,21 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
     }
   };
   const k = vista?.claves.find((c) => c.clave === clave);
+  // Un botón del kit abre el selector de archivo; el input queda oculto (antes un `label` con clases de botón, sin su caja).
+  const entradaArchivo = useRef<HTMLInputElement>(null);
 
-  return (
-    <Panel
-      className="pulso-armon-seccion"
-      aria-labelledby={`${id}-t`}
-      data-qa-geometry-member
-      title={<span id={`${id}-t`}>Columnas desde otro archivo</span>}
-      hint="Variables que vienen creadas aparte (por ejemplo, de cruce). Se unen por un identificador común."
-      actions={
-        // Sin archivo, elegirlo es la acción de la sección: va en la cabecera, no suelta al pie de una caja vacía.
-        !vista ? (
-          <label className="pulso-button pulso-button--secondary pulso-button--sm" aria-disabled={ocupado}>
-            {ocupado ? "Leyendo…" : "Elegir archivo"}
-            <input type="file" accept=".xlsx,.xls,.csv,.sav" className="pulso-sr-only" disabled={ocupado}
-                   onChange={(e) => void leer(e.target.files?.[0] ?? null)} />
-          </label>
-        ) : undefined
-      }
-    >
+  // Sin archivo, elegirlo es la acción de la sección: va en la cabecera, no suelta al pie de una caja vacía.
+  const elegir = !vista ? (
+    <>
+      <PulsoButton variant="secondary" size="sm" disabled={ocupado} onClick={() => entradaArchivo.current?.click()}>
+        {ocupado ? "Leyendo" : "Elegir archivo"}
+      </PulsoButton>
+      <input ref={entradaArchivo} type="file" accept=".xlsx,.xls,.csv,.sav" hidden tabIndex={-1} aria-hidden="true"
+             onChange={(e) => { void leer(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+    </>
+  ) : null;
+  const contenido = (
+    <>
       {!vista ? null : !vista.claves.length ? (
         <p className="pulso-armon-error" role="alert">
           "{vista.archivo}" no comparte un identificador con la base (_uuid, respondent_id, código PULSO…).
@@ -105,6 +106,29 @@ export function AnexarColumnas({ base, onAnexadas }: { base: string; onAnexadas:
         </div>
       )}
       {mensaje ? <p className={mensaje.ok ? "pulso-armon-ayuda" : "pulso-armon-error"} role={mensaje.ok ? "status" : "alert"}>{mensaje.texto}</p> : null}
+    </>
+  );
+
+  if (sinMarco) {
+    return (
+      <div className="pulso-variables-anexar">
+        <p className="pulso-armon-ayuda">Variables que vienen creadas aparte (por ejemplo, de cruce). Se unen por un identificador común.</p>
+        {elegir}
+        {contenido}
+      </div>
+    );
+  }
+
+  return (
+    <Panel
+      className="pulso-armon-seccion"
+      aria-labelledby={`${id}-t`}
+      data-qa-geometry-member
+      title={<span id={`${id}-t`}>Columnas desde otro archivo</span>}
+      hint="Variables que vienen creadas aparte (por ejemplo, de cruce). Se unen por un identificador común."
+      actions={elegir ?? undefined}
+    >
+      {contenido}
     </Panel>
   );
 }
