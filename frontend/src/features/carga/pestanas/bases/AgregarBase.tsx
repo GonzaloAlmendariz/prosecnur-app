@@ -8,6 +8,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiEstudioGet, type EstudioPayload } from "../../../../api/estudio";
 import { Dialog } from "../../../../components/Dialog";
+import { ErrorBlock } from "../../../../components/States";
 import { StageStepper } from "../../../../components/StageStepper";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { Plus } from "../../../../vendor/lucide-react";
@@ -52,6 +53,11 @@ export type AgregarBaseProps = {
   entradasMinimas: number;
   onEntradasPrevistas: (valor: number) => void;
   hayFormularioDeSesion: boolean;
+  /**
+   * El error de la última operación de carga. Se dibuja dentro del diálogo: en
+   * la pila de avisos de la página quedaba detrás del velo y no se veía.
+   */
+  errorDeCarga?: string;
 };
 
 export function AgregarBase(props: AgregarBaseProps) {
@@ -95,6 +101,7 @@ function Recorrido({
   entradasMinimas,
   onEntradasPrevistas,
   hayFormularioDeSesion,
+  errorDeCarga,
   onCerrar,
 }: AgregarBaseProps & { onCerrar: () => void }) {
   const location = useLocation();
@@ -130,6 +137,7 @@ function Recorrido({
           currentStage={opcion ? "datos" : "origen"}
           onStageChange={(paso) => { if (paso === "origen") ir(null); }}
       />
+      {errorDeCarga ? <ErrorBlock label="No se pudo completar la carga" detail={errorDeCarga} /> : null}
       {cambiaFuente ? (
         <p className="pulso-bases-dato">Lo que traigas reemplaza el formulario o las respuestas que tiene la base.</p>
       ) : null}

@@ -48,6 +48,8 @@ export type PestanaBasesProps = {
   /** La sesión ya registró la base en el estudio (con una base, la `default`). */
   tieneEstudio: boolean;
   ocupado: boolean;
+  /** El error de la última carga, para dibujarlo dentro de "Agregar base" cuando está abierto. */
+  errorDeCarga?: string;
   relacion: RelacionDeBases;
   entradasPrevistas: number;
   entradasMinimas: number;
@@ -83,6 +85,7 @@ export function PestanaBases({
   estrategia,
   tieneEstudio,
   ocupado,
+  errorDeCarga,
   relacion,
   entradasPrevistas,
   entradasMinimas,
@@ -258,6 +261,7 @@ export function PestanaBases({
         entradasMinimas={entradasMinimas}
         onEntradasPrevistas={onEntradasPrevistas}
         hayFormularioDeSesion={unaBase.tieneFormulario}
+        errorDeCarga={errorDeCarga}
       />
       {varias ? (
         <AgregarFuente

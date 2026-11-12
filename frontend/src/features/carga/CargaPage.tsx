@@ -64,6 +64,8 @@ import {
 } from "./pestanas/cargaPaginaModelo";
 import { quitarInsumo, subirInsumo } from "./pestanas/accionesDeInsumos";
 import { AvisosDeCarga } from "./pestanas/AvisosDeCarga";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
+import { PANEL_AGREGAR_BASE } from "./panelesCarga";
 import { traerTrabajoDeCampo } from "./pestanas/traerTrabajoDeCampo";
 import { MesaDeCarga } from "./pestanas/MesaDeCarga";
 import { useModeloCarga } from "./pestanas/useModeloCarga";
@@ -110,6 +112,7 @@ export default function CargaPage() {
   const estadoEstructura = useEstructuraDeBase();
   const { estructura, setEstructura, esquemaBase, setEsquemaBase } = estadoEstructura;
   const [error, setError] = useState<string>("");
+  const agregarBaseAbierto = usePanelDireccionable(PANEL_AGREGAR_BASE).abierto;
   const [busy, setBusy] = useState<string>("");
   const feedbackRef = useRef<HTMLDivElement | null>(null);
   const normalizationDetails = dataPreviewNormalizationDetails(dataPreview);
@@ -650,6 +653,7 @@ export default function CargaPage() {
       estrategia={sourceStrategy}
       tieneEstudio={Boolean(state?.has_estudio)}
       ocupado={!!busy}
+      errorDeCarga={error}
       entradasPrevistas={plannedInputCount}
       entradasMinimas={materializedInputCount}
       onEntradasPrevistas={setPlannedInputCount}
@@ -786,8 +790,9 @@ export default function CargaPage() {
           : marcaReadinessCarga(hidratacion, activeCargaTab) || "false"
       }
     >
-      {(busy || error || handoffMessage) && (
-        <AvisosDeCarga ocupado={busy} error={error} avisoDeTraspaso={handoffMessage} refAvisos={feedbackRef} />
+      {/* Con "Agregar base" abierto el error se dibuja dentro del diálogo; aquí quedaría detrás del velo. */}
+      {(busy || (error && !agregarBaseAbierto) || handoffMessage) && (
+        <AvisosDeCarga ocupado={busy} error={agregarBaseAbierto ? "" : error} avisoDeTraspaso={handoffMessage} refAvisos={feedbackRef} />
       )}
 
       {reconDialogOpen && reconInfo && (
