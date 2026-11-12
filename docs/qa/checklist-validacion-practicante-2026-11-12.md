@@ -27,8 +27,10 @@ cómo se arma desde la hoja "Codigo" de la base (emparejar las listas por orden,
 
 1. Levanta una pila propia (nunca el puerto 8787, que es de Gonzalo): backend con `load_all` del árbol y Vite,
    como en el skill `/ver-ui`. Una sola corrida pesada a la vez.
-2. Crea un proyecto y carga la base con un XLSForm armado desde su hoja "Codigo" y los encabezados renombrados
-   a `name` (sin ese paso la app no deja entrar: ítem 4).
+2. Crea un proyecto y carga la base con su XLSForm. **El practicante ya armó ese XLSForm con la propia
+   plataforma (editor de Formularios)**; no está al 100 %. Pídeselo a Gonzalo y úsalo en lugar de armar uno: así
+   la prueba sigue el camino real del practicante, y lo que le falte a ese formulario es en sí un hallazgo.
+   Solo si no está disponible, ármalo desde la hoja "Codigo" (ver `INVENTARIO_CHEQUEOS.md`).
 3. En Validación escribe las reglas del inventario, audita y recorre Hallazgos y Cierre, abriendo cada
    desplegable, panel y diálogo a 1366x768 y 1024x600.
 4. Compara lo que marca la app contra el Excel de observaciones de referencia. La meta es cubrir las 552, o decir con causa
@@ -48,7 +50,7 @@ analizarlas".
 | 1 | El error de carga se dibuja detrás del velo del diálogo: el usuario no ve nada | `frontend/src/features/carga/pestanas/AvisosDeCarga.tsx` | Pendiente |
 | 2 | Subir un archivo sin hoja `survey` como formulario responde 500 `E_INTERNAL` en lugar de un 400 con causa | `api/R/codificacion_flujo_hibrido.R` (`leer_instrumento_xlsform`) | Pendiente |
 | 3 | Un intento de carga fallido deja registrada como datos la hoja equivocada | Carga (motor) | Pendiente |
-| 4 | Cargar una base sin XLSForm, o importar un libro de códigos posicional, y emparejar columnas por `label` además de por `name` | Carga (motor + UI) | Pendiente, el de más impacto |
+| 4 | Emparejar las columnas de la base por `label` además de por `name` (los encabezados de la base digitada son el texto de la pregunta). Cargar sin XLSForm baja de prioridad: el practicante ya armó el formulario con el editor de la plataforma; falta probar la carga con ese formulario | Carga (motor + UI) | Pendiente; primero repetir la carga con el XLSForm del practicante |
 | 5 | Cada caso se identifica como `principal::idx::N`: falta el número de encuesta y columnas de control (entrevistador, digitador) en la tabla de casos | `api/R/limpieza_decision_engine.R` (~449) + Hallazgos | Pendiente |
 | 6 | La cabecera dice "sin evaluar 0" con reglas nuevas nunca auditadas | `frontend/src/features/validacion/pestanas/cabeceraDeValidacion.ts` | Pendiente |
 | 7 | El "Detalle" escrito en la regla no aparece en Hallazgos | `frontend/src/features/validacion/hallazgos/PestanaHallazgosMesa.tsx` | Pendiente |
