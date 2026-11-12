@@ -177,3 +177,35 @@ test_that("crear una regla de condiciones guarda las variables de sus condicione
   expect_identical(unlist(guardada$variables), c("hermanos", "p15"))
   expect_identical(guardada$tipo, "condiciones")
 })
+
+test_that("una condición puede pedir que la pregunta esté vacía o tenga respuesta, sin valor", {
+  vacia <- .m1_regla("RC_020", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "p4", op = "==", valor = 1),
+    list(variable = "p21", op = "is_empty")
+  )))
+  expect_silent(.validar_regla_custom(vacia))
+  expect_identical(.m1_marca(vacia), 10L)
+  expect_identical(.m1_marca_texto(vacia), 10L)
+
+  sola <- .m1_regla("RC_021", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "edad", op = "is_empty")
+  )))
+  expect_identical(.m1_marca(sola), 9L)
+
+  con_respuesta <- .m1_regla("RC_022", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "hermanos", op = "==", valor = 1),
+    list(variable = "p15", op = "not_empty")
+  )))
+  expect_identical(.m1_marca(con_respuesta), c(3L, 6L, 9L))
+  expect_identical(.m1_marca_texto(con_respuesta), c(3L, 6L, 9L))
+})
+
+test_that("el filtro previo acepta está vacía y tiene respuesta", {
+  regla <- .m1_regla("RC_023", "rango_num", list("edad"), list(min = 16, max = 25),
+                     gate_conditions = list(list(variable = "p15", op = "not_empty")))
+  expect_silent(.validar_regla_custom(regla))
+  expect_identical(.m1_marca(regla), c(1L, 4L, 8L))
+  sin_p21 <- .m1_regla("RC_024", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "p4", op = "==", valor = 1))), gate_conditions = list(list(variable = "p21", op = "is_empty")))
+  expect_identical(.m1_marca(sin_p21), 10L)
+})

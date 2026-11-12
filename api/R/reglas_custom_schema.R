@@ -44,9 +44,12 @@
 .regla_condiciones_modos <- c("todas", "alguna")
 
 .regla_operadores_basicos <- c("==", "!=", ">", ">=", "<", "<=", "in", "not_in")
+# "Está vacía" y "tiene respuesta" no llevan valor: miran si hay respuesta.
+.regla_operadores_sin_valor <- c("is_empty", "not_empty")
 .regla_operadores_gate <- c(
   .regla_operadores_basicos,
-  "contains", "not_contains", "contains_any", "contains_all", "contains_none"
+  "contains", "not_contains", "contains_any", "contains_all", "contains_none",
+  .regla_operadores_sin_valor
 )
 .regla_tratamientos <- c(
   "ignore_rule", "exclude_cases", "replace_value", "set_value",
@@ -325,6 +328,7 @@
     }
     return(invisible(TRUE))
   }
+  if (op %in% .regla_operadores_sin_valor) return(invisible(TRUE))
   if (op %in% c("in", "not_in", "contains", "not_contains", "contains_any", "contains_all", "contains_none")) {
     if (!length(.regla_chr_values(cond$valor))) {
       stop_api(400, "E_REGLA_CONDICION_VALOR",

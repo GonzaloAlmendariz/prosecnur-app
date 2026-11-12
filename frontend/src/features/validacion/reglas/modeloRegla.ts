@@ -233,6 +233,7 @@ export function operatorOptionsForVariable(variable?: ExploradorVariable): Array
       { value: "!=", label: "no es" },
       { value: "in", label: "está entre" },
       { value: "not_in", label: "no está entre" },
+      ...OPERADORES_DE_VACIO,
     ];
   }
   const base: Array<{ value: ReglaGateCondition["op"]; label: string }> = [
@@ -248,9 +249,21 @@ export function operatorOptionsForVariable(variable?: ExploradorVariable): Array
       { value: ">=", label: "mayor o igual" },
       { value: "<", label: "menor que" },
       { value: "<=", label: "menor o igual" },
+      ...OPERADORES_DE_VACIO,
     ];
   }
-  return base;
+  return [...base, ...OPERADORES_DE_VACIO];
+}
+
+// "Está vacía" y "tiene respuesta" miran si hay respuesta: no llevan valor.
+// En selección múltiple no se ofrecen (la respuesta vive repartida en columnas).
+const OPERADORES_DE_VACIO: Array<{ value: ReglaGateCondition["op"]; label: string }> = [
+  { value: "is_empty", label: "está vacía" },
+  { value: "not_empty", label: "tiene respuesta" },
+];
+
+export function esOperadorSinValor(op: string | null | undefined): boolean {
+  return op === "is_empty" || op === "not_empty";
 }
 
 export function isListOperator(op: ReglaGateCondition["op"]): boolean {
@@ -261,6 +274,7 @@ export function validateGateConditions(conditions: ReglaGateCondition[]): string
   for (const cond of conditions) {
     if (!cond.variable) return "Cada condición debe tener variable.";
     if (!cond.op) return "Cada condición debe tener operador.";
+    if (esOperadorSinValor(cond.op)) continue;
     const values = paramList(cond.value);
     if (!values.length) return "Cada condición debe tener valor u opción.";
   }
@@ -468,6 +482,7 @@ export function condicionParaGuardar(c: CondicionCombinada, tipoDeVariable: Tipo
   const variable = c.variable.trim();
   const comparada = (c.variable_comparada ?? "").trim();
   if (comparada) return { variable, op: c.op, variable_comparada: comparada };
+  if (esOperadorSinValor(c.op)) return { variable, op: c.op };
   if (c.op && isListOperator(c.op)) return { variable, op: c.op, valor: paramList(c.valor) };
   const escalar = Array.isArray(c.valor) ? (c.valor[0] ?? "") : (c.valor ?? "");
   if (typeof escalar === "number") return { variable, op: c.op, valor: escalar };
@@ -502,6 +517,7 @@ export function validarCondiciones(condiciones: readonly CondicionCombinada[]): 
       if (!esOperadorDeComparacion(c.op)) return `La condición ${n} compara con otra pregunta: usa es, no es, mayor o menor.`;
       continue;
     }
+    if (esOperadorSinValor(c.op)) continue;
     if (!paramList(c.valor).length) return `La condición ${n} no tiene valor.`;
   }
   return "";

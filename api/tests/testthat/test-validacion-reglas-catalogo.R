@@ -807,3 +807,21 @@ test_that("el detalle que el equipo escribió en la regla llega al catálogo y a
   vacia <- validacion_cola_con_narrativa(list(list(source_id = "NO_EXISTE")), NULL, validacion_scope_get(sid, "Personas"))
   expect_true(is.na(vacia[[1]]$detalle))
 })
+
+test_that("la frase de una condición de vacío dice está vacía o tiene respuesta", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  vacia <- .m1_regla("RC_020", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "edad", op = ">=", valor = 18), list(variable = "p8", op = "is_empty"))))
+  con_respuesta <- .m1_regla("RC_021", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "p8", op = "not_empty"))))
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(vacia, con_respuesta))
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  texto <- function(id) {
+    f <- Filter(function(f) identical(f$id_motor, id), cat$reglas)[[1]]
+    paste(vapply(f$frase, function(p) as.character(p$texto %||% p$etiqueta %||% p$codigo %||% p$valor), ""), collapse = "")
+  }
+  expect_match(texto("RC_020"), "está vacía")
+  expect_match(texto("RC_021"), "tiene respuesta")
+})

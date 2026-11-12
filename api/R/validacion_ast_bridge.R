@@ -239,8 +239,12 @@ bridge_regla_custom <- function(r) {
 }
 
 .cond_from_legacy <- function(var, op, value) {
-  # `op` puede ser: ==, !=, <, <=, >, >=, in, not_in
-  if (op %in% c("contains", "contains_any")) {
+  # `op` puede ser: ==, !=, <, <=, >, >=, in, not_in, is_empty, not_empty
+  if (op == "is_empty") {
+    ast_is_missing(var)
+  } else if (op == "not_empty") {
+    ast_not(ast_is_missing(var))
+  } else if (op %in% c("contains", "contains_any")) {
     ast_any_selected(var, as.character(unlist(value)))
   } else if (op == "contains_all") {
     ast_and(lapply(as.character(unlist(value)), function(v) ast_selected(var, v)))

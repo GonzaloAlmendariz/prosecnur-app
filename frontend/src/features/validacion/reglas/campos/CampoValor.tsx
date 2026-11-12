@@ -13,7 +13,7 @@ import { PulsoInput } from "../../../../components/PulsoInput";
 import { PulsoSelect } from "../../../../components/PulsoSelect";
 import { GitCompare } from "../../../../vendor/lucide-react";
 import type { ExploradorVariable } from "../../types";
-import { isListOperator, listText, paramList, parseListText } from "../modeloRegla";
+import { esOperadorSinValor, isListOperator, listText, paramList, parseListText } from "../modeloRegla";
 import type { OperadorDeCondicion } from "../tiposDelMotor";
 import { CampoPregunta } from "./CampoPregunta";
 import { ListaDeOpciones } from "./ListaDeOpciones";
@@ -93,6 +93,8 @@ export function CampoValor({
   const { options, loading } = useOpcionesDeVariable(conLista ? variable?.name : null);
   const esLista = op ? isListOperator(op) : false;
   const comparando = !!comparar?.comparada;
+  // "Está vacía" y "tiene respuesta" no comparan con nada: no hay valor que pedir.
+  if (!comparando && esOperadorSinValor(op)) return null;
 
   let control;
   if (comparando && comparar) {

@@ -220,6 +220,7 @@
   op <- trimws(calc_str(cond$op))
   comparada <- trimws(calc_str(cond$variable_comparada))
   if (nzchar(comparada)) return(ast_compare_vars(var, op, comparada))
+  if (op %in% .regla_operadores_sin_valor) return(.cond_from_legacy(var, op, NULL))
   valor <- if (op %in% .regla_operadores_comparar_variable) {
     v <- unlist(cond$valor, use.names = FALSE)[1]
     if (is.character(v)) trimws(v) else v
@@ -288,6 +289,8 @@
 }
 
 .regla_expr_cond <- function(var, op, valor) {
+  if (op == "is_empty") return(.c_is_missing(var))
+  if (op == "not_empty") return(sprintf("!%s", .c_is_missing(var)))
   if (op %in% c("contains", "contains_all", "contains_any", "not_contains", "contains_none")) {
     vals <- .regla_param_values(valor)
     if (op %in% c("contains", "contains_all")) {

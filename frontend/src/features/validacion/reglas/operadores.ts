@@ -25,6 +25,8 @@ const INDICATIVO: Record<OperadorDeCondicion, string> = {
   contains_any: "incluye alguna de",
   contains_all: "incluye todas",
   contains_none: "no incluye ninguna de",
+  is_empty: "está vacía",
+  not_empty: "tiene respuesta",
 };
 
 const ESPERADO: Record<OperadorDeCondicion, string> = {
@@ -41,6 +43,8 @@ const ESPERADO: Record<OperadorDeCondicion, string> = {
   contains_any: "incluya alguna de",
   contains_all: "incluya todas",
   contains_none: "no incluya ninguna de",
+  is_empty: "esté vacía",
+  not_empty: "tenga respuesta",
 };
 
 const NEGADO: Record<OperadorDeCondicion, string> = {
@@ -57,6 +61,8 @@ const NEGADO: Record<OperadorDeCondicion, string> = {
   contains_any: "no incluye ninguna de",
   contains_all: "no incluye todas",
   contains_none: "incluye alguna de",
+  is_empty: "tiene respuesta",
+  not_empty: "está vacía",
 };
 
 export type FormaDelOperador = "indicativo" | "esperado";

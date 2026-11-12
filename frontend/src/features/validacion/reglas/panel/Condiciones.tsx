@@ -25,6 +25,7 @@ import { EditorDeJerarquia } from "../campos/EditorDeJerarquia";
 import {
   condicionesDeParams,
   emptyGateCondition,
+  esOperadorSinValor,
   isListOperator,
   modoDeCondiciones,
   operatorOptionsForVariable,
@@ -78,6 +79,7 @@ function SelectorDeOperador({
   onCambio,
   forma = "indicativo",
   soloComparacion = false,
+  sinVacio = false,
   ariaLabel,
 }: {
   variable: ExploradorVariable | undefined;
@@ -85,9 +87,13 @@ function SelectorDeOperador({
   onCambio: (op: OperadorDeCondicion) => void;
   forma?: FormaDelOperador;
   soloComparacion?: boolean;
+  /** Sin "está vacía" ni "tiene respuesta": "Dos respuestas que deben cuadrar" compara valores. */
+  sinVacio?: boolean;
   ariaLabel: string;
 }) {
-  const opciones = opcionesDeOperador(variable, forma).filter((o) => !soloComparacion || esOperadorDeComparacion(o.value));
+  const opciones = opcionesDeOperador(variable, forma).filter(
+    (o) => (!soloComparacion || esOperadorDeComparacion(o.value)) && (!sinVacio || !esOperadorSinValor(o.value)),
+  );
   return (
     <PulsoSelect
       value={valor}
@@ -247,7 +253,7 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
         <>
           <Fila rotulo="Cuando" quitar={{ etiqueta: "Quitar la condición", onQuitar: () => limpiarLado("x") }}>
             <CampoPregunta variables={variables} valor={b.variables[0] ?? ""} onCambio={(n) => elegirLado("x", 0, n)} ariaLabel="Cuando: pregunta" />
-            <SelectorDeOperador variable={vx} valor={String(b.params.op_x ?? "")} ariaLabel="Cuando: operador" onCambio={(op) => setParam("op_x", op)} />
+            <SelectorDeOperador variable={vx} valor={String(b.params.op_x ?? "")} sinVacio ariaLabel="Cuando: operador" onCambio={(op) => setParam("op_x", op)} />
             <CampoValor
               variable={vx}
               op={String(b.params.op_x ?? "") as OperadorDeCondicion}
@@ -263,6 +269,7 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
               valor={opY}
               forma="esperado"
               soloComparacion={!!comparada}
+              sinVacio
               ariaLabel="Se espera que: operador"
               onCambio={(op) => setParam("op_y", op)}
             />

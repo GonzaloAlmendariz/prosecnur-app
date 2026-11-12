@@ -16,7 +16,7 @@
 
 import type { ReglaGateCondition } from "./types";
 import type { ReglaLike } from "./components/v2";
-import { condicionesDeParams, modoDeCondiciones, paramList } from "./reglas/modeloRegla";
+import { condicionesDeParams, esOperadorSinValor, modoDeCondiciones, paramList } from "./reglas/modeloRegla";
 import { leerOperador, leerOperadorNegado } from "./reglas/operadores";
 import type { CondicionCombinada, ReglaPropia, TipoReglaPropia } from "./reglas/tiposDelMotor";
 
@@ -332,6 +332,13 @@ function condicionEnFrase(
   opciones: { omitirPregunta?: boolean; negar?: boolean } = {},
 ): boolean {
   const op = opciones.negar ? leerOperadorNegado(c.op) : leerOperador(c.op);
+  // "está vacía" y "tiene respuesta" se dicen sin valor.
+  if (esOperadorSinValor(c.op)) {
+    if (!c.variable || !op) return false;
+    if (!opciones.omitirPregunta) f.pregunta(c.variable).texto(" ");
+    f.texto(op);
+    return true;
+  }
   const comparada = (c.comparada ?? "").trim();
   const valor = comparada ? "" : textoDeValores(c.variable, c.valor, leer);
   if (!c.variable || !op || (!comparada && !valor)) return false;
@@ -343,7 +350,7 @@ function condicionEnFrase(
 }
 
 function filtroEnFrase(f: Frase, gate: readonly ReglaGateCondition[], leer: LeerValor) {
-  const completas = gate.filter((g) => g.variable && g.op && paramList(g.value).length);
+  const completas = gate.filter((g) => g.variable && g.op && (esOperadorSinValor(g.op) || paramList(g.value).length));
   if (!completas.length) return;
   f.texto(" Solo se revisa cuando ");
   completas.forEach((g, i) => {
@@ -381,7 +388,10 @@ export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leer
         const repite = i > 0 && condiciones[i - 1].variable === c.variable;
         if (!condicionEnFrase(f, { variable: c.variable, op: c.op, valor: c.valor, comparada: c.variable_comparada }, leer, { omitirPregunta: repite })) return null;
       }
-      f.texto(". Una pregunta vacía no cumple su condición.");
+      // Con "está vacía" o "tiene respuesta" en la regla, el vacío sí decide esas condiciones.
+      if (!condiciones.some((c) => esOperadorSinValor(c.op))) f.texto(". Una pregunta vacía no cumple su condición.");
+      else if (condiciones.every((c) => esOperadorSinValor(c.op))) f.texto(".");
+      else f.texto(". En las condiciones con valor, una pregunta vacía no las cumple.");
       break;
     }
     case "rango_num": {

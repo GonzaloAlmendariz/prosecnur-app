@@ -134,7 +134,9 @@ export type ReglaGateCondition = {
     | "not_contains"
     | "contains_any"
     | "contains_all"
-    | "contains_none";
+    | "contains_none"
+    | "is_empty"
+    | "not_empty";
   value: string | string[];
 };
 
