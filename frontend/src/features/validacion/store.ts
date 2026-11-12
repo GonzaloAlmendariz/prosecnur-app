@@ -43,7 +43,9 @@ export type RelationalPlanCapture = {
 
 const RELATIONAL_DEFAULT_KEY = "__default__";
 export function relationalBaseKey(base: string | null): string {
-  return base && base.trim() ? base : RELATIONAL_DEFAULT_KEY;
+  // Tras reconectar con una sesión nueva, la base activa puede llegar de R como algo que no es
+  // texto (lista vacía o un vector); `.trim()` reventaba Hallazgos. Lo que no es texto no es base.
+  return typeof base === "string" && base.trim() ? base : RELATIONAL_DEFAULT_KEY;
 }
 
 // La pestaña activa NO vive acá: la dice la URL (`?pestana=`), y el store sólo
