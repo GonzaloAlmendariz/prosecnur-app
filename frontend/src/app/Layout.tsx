@@ -26,6 +26,8 @@ import { ModuleCommandBar } from "../components/ModuleCommandBar";
 import { BandejaEntregables } from "../components/entregables/BandejaEntregables";
 import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
 import { CasosQueCuentanEnBanda, EstadoDelEstudioEnBanda } from "../features/procesamiento/banda/BandaDeProcesamiento";
+import { useMarcasDeBaseActiva } from "../features/procesamiento/banda/useMarcasDeBaseActiva";
+import { seccionDeRuta } from "../features/procesamiento/estado/queSigueModel";
 import { GuardaDelMotor } from "../features/procesamiento/sinMotor/SinMotor";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
@@ -140,6 +142,7 @@ function Brand() {
 
 function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
   const location = useLocation();
+  const marcas = useMarcasDeBaseActiva(true);
   const activeItem = items.find(
     (item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`),
   );
@@ -153,16 +156,25 @@ function ProcessingPhaseDock({ items }: { items: NavItem[] }) {
       navClassName="pulso-processing-phase-dock"
       className="pulso-processing-phase-bar"
       seccionActiva={activeItem?.to ?? null}
-      items={items.map((it) => ({
-        id: it.to,
-        label: it.label,
-        href: it.to,
-        done: it.done,
-        // El ✓ del prototipo: la sección quedó hecha para el estudio (no para una base).
-        lista: it.done,
-        lockedReason: it.blockedReason ?? undefined,
-        nota: it.faltaReason ?? (it.done ? "Sección lista" : undefined),
-      }))}
+      items={items.map((it) => {
+        // El ✓ y el punto de desactualizada son de la base activa (estado por fase del motor, M8).
+        const seccion = seccionDeRuta(it.to);
+        const marca = seccion && marcas ? marcas.porSeccion[seccion] : null;
+        const hecha = marca?.hecha === true;
+        return {
+          id: it.to,
+          label: it.label,
+          href: it.to,
+          done: hecha,
+          lista: hecha,
+          desactualizada: marca?.desactualizada === true,
+          lockedReason: it.blockedReason ?? undefined,
+          nota: it.faltaReason
+            // Sin punto final: la píldora suma ". desactualizada" al texto accesible.
+            ?? (marca?.desactualizada ? (marca.causa ?? "Cambió algo de lo que depende").replace(/\.$/, "") : undefined)
+            ?? (hecha ? "Sección lista" : undefined),
+        };
+      })}
     />
   );
 }

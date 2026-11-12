@@ -90,7 +90,14 @@ carga_actualizar_vista_previa <- function(sid, nombre, data_file_id) {
 .carga_actualizar_respaldo_path <- function(sid, nombre) {
   dir <- file.path(session_get(sid)$dir, "state")
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-  file.path(dir, sprintf("carga_respaldo_%s.rds", paste(charToRaw(enc2utf8(nombre)), collapse = "")))
+  .carga_actualizar_respaldo_archivo(session_get(sid)$dir, nombre)
+}
+
+# La ruta de la copia sin crear nada: la lee el estado por fase
+# (procesamiento_estado_fases.R) desde la sesión que ya tiene en la mano.
+.carga_actualizar_respaldo_archivo <- function(dir_sesion, nombre) {
+  file.path(dir_sesion, "state",
+            sprintf("carga_respaldo_%s.rds", paste(charToRaw(enc2utf8(nombre)), collapse = "")))
 }
 
 #' Copia vigente de una base para volver atrás; NULL si no hay.

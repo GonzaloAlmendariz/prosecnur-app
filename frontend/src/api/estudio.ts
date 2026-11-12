@@ -132,6 +132,8 @@ export type EstudioBase = {
     graficos?: boolean;
     shared_logic_from?: string | null;
   } | null;
+  /** Estado por fase de la base (M8); se lee con `normalizarFasesDeBase` (estudioFases.ts). */
+  fases?: unknown;
   multi_integrated?: EstudioMultiIntegrated | null;
 };
 
@@ -232,6 +234,8 @@ export type EstudioPayload = {
   n_bases: number;
   bases: Record<string, EstudioBase>;
   max_bases: number;
+  /** Carpeta de entregables; se lee con `normalizarCarpetaDeEntregables` (estudioFases.ts). */
+  entregables?: unknown;
 };
 
 export type EstudioProcessingSuggestionSource = {

@@ -11,6 +11,7 @@ import { archivosDelEstudio } from "./archivosDelEstudioModel";
 import { basesDelEstudio } from "./basesDelEstudioModel";
 import { cifrasDelEstudio, cifrasPendientesDelEstudio, estadoDelEstudio } from "./cabeceraDelEstudioModel";
 import { cambiosRecientes } from "./cambiosRecientesModel";
+import { normalizarCarpetaDeEntregables } from "../../../api/estudioFases";
 import { PanelArchivos } from "./PanelArchivos";
 import { PanelBases } from "./PanelBases";
 import { PanelCambios } from "./PanelCambios";
@@ -99,7 +100,10 @@ export default function EstadoDelEstudioPage() {
             onReintentar={() => void recargar()}
             onAbrirCarga={() => navigate(RUTA_DE_SECCION.carga)}
           />
-          <PanelArchivos filas={lectura.fase === "error" ? [] : archivos} />
+          <PanelArchivos
+            filas={lectura.fase === "error" ? [] : archivos}
+            carpeta={estudio ? normalizarCarpetaDeEntregables(estudio.entregables) : null}
+          />
         </PilaDeMesa>
         <PilaDeMesa grupo="estado-estudio-seguimiento">
           <PanelQueSigue

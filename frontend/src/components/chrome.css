@@ -333,6 +333,15 @@ button.pulso-chrome-status-chip:not(:disabled):hover {
   background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 16%, transparent);
   color: var(--module-accent, var(--pulso-primary));
 }
+/* Desactualizada: un punto ámbar, sin cifra (la causa va en el title). */
+.pulso-phase-pill-badge[data-estado="desactualizada"] {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--pulso-warn-fg);
+}
 .pulso-phase-pill.is-active .pulso-phase-pill-badge[data-estado="lista"] {
   background: color-mix(in srgb, var(--pulso-surface) 24%, transparent);
   color: inherit;

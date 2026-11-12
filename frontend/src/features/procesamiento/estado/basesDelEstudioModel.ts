@@ -10,14 +10,19 @@
 //   codificacion_adaptada  la base y el formulario adaptados ya existen
 //   analitica              tiene datos preparados o algún reporte generado
 //   graficos               tiene un informe en PowerPoint o en Word
-// Por eso el rótulo de cada celda es el literal de su booleano ("Iniciada",
-// "Aplicada", "Con informe") y nunca "Al día" ni "Lista": la app todavía no sabe
-// si una fase quedó desactualizada (M8 del plan de Procesamiento).
+// Sin otra fuente, el rótulo de cada celda es el literal de su booleano
+// ("Iniciada", "Aplicada", "Con informe").
+//
+// Desde M8 el motor publica además `fases` por base (`estudioFases.ts`): si
+// terminó, si quedó desactualizada y por qué, y la fecha del último cambio.
+// Cuando llega, manda sobre los booleanos (`lecturaDelMotor`).
 
 import type { EstudioBase, EstudioPayload } from "../../../api/estudio";
+import { normalizarFasesDeBase, type EstadoDeFase, type FasesDeBaseMotor } from "../../../api/estudioFases";
 import type { ChromeStatusTone } from "../../../components/ModuleCommandBar";
 import type { Aprobaciones } from "./aprobacionesModel";
 import { CAUSA_PENDIENTE, causasDeBase, type CausasDeBase } from "./causaDeFaseModel";
+import { fechaCorta } from "./fechaDelEstudio";
 import { NOMBRE_DE_SECCION, SECCIONES_EN_ORDEN, type SeccionId } from "./queSigueModel";
 
 export type OrigenDeBase =
@@ -41,6 +46,8 @@ export type FaseDeBase = {
   causa: string | null;
   /** Sin causa: lo que falta pedir al motor para escribirla. */
   causaPendiente: string | null;
+  /** El motor la declaró desactualizada (M8). */
+  desactualizada: boolean;
 };
 
 export type FilaDeBase = {
@@ -130,16 +137,100 @@ function lecturaDeFase(fase: SeccionId, status: NonNullable<EstudioBase["status"
     : { estado: "Sin informe", tono: "neutral", detalle: "Sin informe generado en PowerPoint ni en Word." };
 }
 
-export function fasesDeBase(status: EstudioBase["status"], causas?: CausasDeBase): FaseDeBase[] | null {
-  if (!status) return null;
+const HECHA: Readonly<Record<SeccionId, Pick<Lectura, "estado" | "detalle">>> = {
+  carga: { estado: "Cargada", detalle: "Tiene formulario y respuestas." },
+  validacion: { estado: "Cerrada", detalle: "La limpieza está cerrada sobre las respuestas vigentes." },
+  codificacion: { estado: "Aplicada", detalle: "La base y el formulario ya están codificados." },
+  analitica: { estado: "Al día", detalle: "Los archivos salieron de la base vigente." },
+  graficos: { estado: "Al día", detalle: "El informe salió de la base vigente." },
+};
+
+/** La lectura del motor (M8): terminó, en curso, por iniciar o desactualizada. */
+function lecturaDelMotor(fase: SeccionId, f: EstadoDeFase): Lectura {
+  const sinCausa = (texto: string) => f.causa ?? texto;
+  if (f.estado === "desactualizada") {
+    return { estado: "Desactualizada", tono: "warn", detalle: sinCausa("Cambió algo de lo que depende.") };
+  }
+  if (f.estado === "hecha") return { ...HECHA[fase], tono: "success" };
+  if (fase === "carga") {
+    return f.estado === "sin_iniciar"
+      ? { estado: "Sin archivos", tono: "warn", detalle: sinCausa("Faltan el formulario y las respuestas.") }
+      : { estado: "Incompleta", tono: "warn", detalle: sinCausa("Falta el formulario o las respuestas.") };
+  }
+  if (f.estado === "en_curso") {
+    // Con archivos generados el motor no sabe sobre qué versión de la base salieron: se dice lo que hay.
+    if (f.motivo === "sin_registro_de_version" && fase === "graficos") {
+      return { estado: "Con informe", tono: "success", detalle: sinCausa("Tiene un informe generado.") };
+    }
+    if (f.motivo === "sin_registro_de_version") {
+      return { estado: "Con archivos", tono: "info", detalle: sinCausa("Tiene archivos generados.") };
+    }
+    return { estado: "En curso", tono: "info", detalle: sinCausa("Tiene trabajo sin terminar.") };
+  }
+  return fase === "graficos"
+    ? { estado: "Sin informe", tono: "neutral", detalle: sinCausa("Sin informe generado.") }
+    : { ...POR_INICIAR, detalle: sinCausa("Todavía no tiene trabajo.") };
+}
+
+/** La línea bajo el chip cuando el motor publica la fase: su causa o, si terminó, su fecha. */
+function datoDelMotor(fase: SeccionId, f: EstadoDeFase, causaLocal: string | null, hoy: Date): string | null {
+  if (f.estado === "desactualizada") return f.causa;
+  if (causaLocal) return causaLocal;
+  const el = fechaCorta(f.actualizadoEn, hoy);
+  if (!el) return f.estado === "en_curso" && f.motivo !== "sin_registro_de_version" ? f.causa : null;
+  if (f.estado === "hecha" && fase === "validacion") return `Cierre del ${el}`;
+  if (f.estado === "hecha" && fase === "codificacion") return `Aplicada el ${el}`;
+  if (f.estado === "hecha" && fase === "carga") return `Cargada el ${el}`;
+  if (f.estado === "en_curso") return f.causa ?? `Último cambio el ${el}`;
+  return null;
+}
+
+export function fasesDeBase(
+  status: EstudioBase["status"],
+  causas?: CausasDeBase,
+  motor?: FasesDeBaseMotor | null,
+  hoy: Date = new Date(),
+): FaseDeBase[] | null {
+  if (!status && !motor) return null;
   return SECCIONES_EN_ORDEN.map((fase) => {
-    const causa = causas?.[fase] ?? null;
+    const delMotor = motor?.fases[fase] ?? null;
+    // La lectura de Kobo la fecha el motor; la de SurveyMonkey ya la escribe `causaDeFaseModel`.
+    const lecturaKobo = motor?.fuente.plataforma === "kobo" ? fechaCorta(motor.fuente.leidaEn, hoy) : null;
+    const local = fase === "carga" && lecturaKobo ? `Última lectura el ${lecturaKobo}` : causas?.[fase] ?? null;
+    const recibido = motor?.fueraDeLista[fase];
+    const noReconocido = recibido ? `El motor publicó un estado que la app no reconoce: "${recibido}".` : null;
+    if (delMotor) {
+      return {
+        fase,
+        nombre: NOMBRE_DE_SECCION[fase],
+        ...lecturaDelMotor(fase, delMotor),
+        causa: datoDelMotor(fase, delMotor, local, hoy),
+        causaPendiente: null,
+        desactualizada: delMotor.estado === "desactualizada",
+      };
+    }
+    if (!status) {
+      return {
+        fase,
+        nombre: NOMBRE_DE_SECCION[fase],
+        estado: "Sin dato",
+        tono: "neutral",
+        detalle: noReconocido ?? "El motor no publicó esta fase.",
+        causa: null,
+        causaPendiente: CAUSA_PENDIENTE[fase],
+        desactualizada: false,
+      };
+    }
+    const lectura = lecturaDeFase(fase, status);
     return {
       fase,
       nombre: NOMBRE_DE_SECCION[fase],
-      ...lecturaDeFase(fase, status),
-      causa,
-      causaPendiente: causa ? null : CAUSA_PENDIENTE[fase],
+      ...lectura,
+      // Un estado fuera de la lista no se traga: el chip cae a los indicadores y lo dice.
+      detalle: noReconocido ? `${lectura.detalle} ${noReconocido}` : lectura.detalle,
+      causa: local,
+      causaPendiente: local ? null : CAUSA_PENDIENTE[fase],
+      desactualizada: false,
     };
   });
 }
@@ -190,7 +281,7 @@ export function basesDelEstudio(
       filas: entero(base.n_filas),
       columnas: entero(base.n_columnas),
       madre: madre ? etiquetaDeBase(madre) : null,
-      fases: fasesDeBase(base.status, causas),
+      fases: fasesDeBase(base.status, causas, normalizarFasesDeBase(base.fases), hoy),
     };
   });
 

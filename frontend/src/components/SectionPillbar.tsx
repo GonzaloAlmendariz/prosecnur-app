@@ -59,6 +59,8 @@ export type SectionPillbarItem = {
   pendientes?: number;
   /** La sección quedó lista: se pinta un ✓. Cede ante `pendientes`. */
   lista?: boolean;
+  /** La sección quedó desactualizada: se pinta un punto ámbar. Manda sobre `lista` y cede ante `pendientes`. */
+  desactualizada?: boolean;
 };
 
 export type SectionPillbarProps = {
@@ -114,7 +116,7 @@ export function SectionPillbar({
             const pendientes = item.pendientes && item.pendientes > 0 ? item.pendientes : 0;
             const marca = pendientes
               ? `${pendientes.toLocaleString("es-PE")} ${pendientes === 1 ? "pendiente" : "pendientes"}`
-              : item.lista ? "lista" : "";
+              : item.desactualizada ? "desactualizada" : item.lista ? "lista" : "";
             const detalle = [item.lockedReason ?? item.nota, marca].filter(Boolean).join(". ");
             return (
               <li key={item.id} className="pulso-phase-pill-item">
@@ -146,6 +148,8 @@ export function SectionPillbar({
                     <span className="pulso-phase-pill-badge" data-estado="pendiente" aria-hidden="true">
                       {pendientes.toLocaleString("es-PE")}
                     </span>
+                  ) : item.desactualizada ? (
+                    <span className="pulso-phase-pill-badge" data-estado="desactualizada" aria-hidden="true" />
                   ) : item.lista ? (
                     <span className="pulso-phase-pill-badge" data-estado="lista" aria-hidden="true">✓</span>
                   ) : null}

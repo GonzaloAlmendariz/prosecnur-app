@@ -33,6 +33,16 @@ describe("la marca de la píldora de sección (revamp de Material v5)", () => {
     expect(ambas).not.toContain('data-estado="lista"');
   });
 
+  it("desactualizada pinta un punto, manda sobre lista y cede ante pendientes", () => {
+    const punto = pintar([{ id: "a", label: "Validación", href: "/a", lista: true, desactualizada: true, nota: "Cambiaron las respuestas" }]);
+    expect(punto).toContain('data-estado="desactualizada"');
+    expect(punto).not.toContain('data-estado="lista"');
+    expect(punto).toContain('aria-label="Validación. Cambiaron las respuestas. desactualizada"');
+    const ambas = pintar([{ id: "a", label: "Validación", href: "/a", desactualizada: true, pendientes: 1 }]);
+    expect(ambas).toContain('data-estado="pendiente"');
+    expect(ambas).not.toContain('data-estado="desactualizada"');
+  });
+
   it("sin marca ni nota, la píldora queda como antes: sin badge y sin aria-label", () => {
     const html = pintar([{ id: "a", label: "Casos", href: "/a", pendientes: 0 }]);
     expect(html).not.toContain("pulso-phase-pill-badge");

@@ -935,6 +935,7 @@
   xlsform_variables <- .estudio_xlsform_variables_payload(meta, s)
   consent_var <- .estudio_base_consent_var(meta, xlsform_variables)
   sm_source_summary <- .estudio_sm_source_summary(meta)
+  status <- .estudio_base_status_payload(meta, s)
   list(
     nombre          = meta$nombre,
     xlsform_file_id = meta$xlsform_file_id,
@@ -997,7 +998,9 @@
     instrument_revision_id = as.character(meta$instrument_revision_id %||% NA_character_),
     instrument_revision_binding = as.character(meta$instrument_revision_binding %||% NA_character_),
     instrument_revision_binding_detail = as.character(meta$instrument_revision_binding_detail %||% NA_character_),
-    status          = .estudio_base_status_payload(meta, s),
+    status          = status,
+    # Estado por fase de esta base (M8): procesamiento_estado_fases.R.
+    fases           = procesamiento_estado_fases(meta, s, status),
     multi_integrated = if (is.null(multi_payload)) NA else multi_payload
   )
 }
@@ -1025,7 +1028,8 @@
     independent_siblings = if (is.null(s) || is.null(s$estudio)) NA else (s$estudio$independent_siblings %||% NA),
     n_bases  = length(bases),
     bases    = lapply(bases, .estudio_base_payload, s = s),
-    max_bases = max_bases
+    max_bases = max_bases,
+    entregables = procesamiento_carpeta_entregables(s)
   )
 }
 

@@ -11,7 +11,15 @@
 codificacion_respuestas_cambiaron <- function(sid, source = NULL) {
   desde <- tryCatch(codif_get(sid, "readaptar_desde", source = source), error = function(e) NULL)
   aplicado <- tryCatch(codif_get(sid, "aplicado", source = source), error = function(e) NULL)
-  !is.null(desde) && nzchar(as.character(desde)[1]) && !isTRUE(aplicado)
+  .codif_readaptar_pendiente(list(readaptar_desde = desde, aplicado = aplicado))
+}
+
+# La misma regla sobre la entrada de una base (`s$codif_por_base[[base]]`), sin
+# sesión: la usa también el estado por fase (procesamiento_estado_fases.R).
+.codif_readaptar_pendiente <- function(entry) {
+  desde <- (entry %||% list())$readaptar_desde
+  !is.null(desde) && length(desde) > 0L && !is.na(as.character(desde)[1]) &&
+    nzchar(as.character(desde)[1]) && !isTRUE(entry$aplicado)
 }
 
 #' La adaptación terminó sobre las mismas respuestas de las que partió.

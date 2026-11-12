@@ -463,3 +463,13 @@
     flex: none;
   }
 }
+
+/* Carpeta de entregables en el pie de "Archivos del estudio": una línea, la ruta entera en el title. */
+.pulso-estado-archivos-carpeta {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

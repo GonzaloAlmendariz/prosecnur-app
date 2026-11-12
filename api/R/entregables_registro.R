@@ -126,13 +126,21 @@ entregable_nombre <- function(sid, rotulo, ext, base = NULL, detalle = NULL, fec
 }
 
 # Copia el archivo a Entregables/<Módulo>/. Devuelve list(guardado_en, aviso); nunca lanza.
+# `<carpeta del .pulso>/Entregables[/<Módulo>]`, o NULL si el proyecto no se
+# ha guardado. Una sola fuente para la copia y para quien muestra la carpeta.
+.entregable_carpeta <- function(s, modulo = NULL) {
+  pp <- as.character((s %||% list())$project_path %||% "")[1]
+  if (is.na(pp) || !nzchar(pp)) return(NULL)
+  raiz <- file.path(dirname(pp), "Entregables")
+  if (is.null(modulo)) raiz else file.path(raiz, modulo)
+}
+
 .entregable_copiar <- function(s, path, nombre, modulo) {
   nada <- list(guardado_en = NULL, aviso = NULL)
-  pp <- as.character(s$project_path %||% "")[1]
-  if (is.na(pp) || !nzchar(pp)) return(nada)
+  carpeta <- .entregable_carpeta(s, modulo)
+  if (is.null(carpeta)) return(nada)
   aviso <- function(txt) list(guardado_en = NULL, aviso = txt)
   tryCatch({
-    carpeta <- file.path(dirname(pp), "Entregables", modulo)
     archivo <- .entregable_archivo_limpio(nombre, tools::file_ext(path))
     if (!nzchar(archivo)) return(aviso("El nombre del archivo no deja un nombre válido para la copia."))
     destino <- file.path(carpeta, archivo)

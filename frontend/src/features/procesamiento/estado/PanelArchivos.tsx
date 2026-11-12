@@ -1,4 +1,5 @@
 import { EstadoVacio } from "../../../components/EstadoVacio";
+import type { CarpetaDeEntregables } from "../../../api/estudioFases";
 import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { Skeleton } from "../../../components/Skeleton";
 import { Folder } from "../../../vendor/lucide-react";
@@ -36,12 +37,21 @@ function Celda({ celda, activa }: { celda: CeldaDeArchivo; activa: boolean }) {
 }
 
 /** "Archivos del estudio": qué entregable de Analítica y Gráficos tiene cada base. */
-export function PanelArchivos({ filas }: {
+export function PanelArchivos({ filas, carpeta = null }: {
   /** `null` mientras el estudio se lee. */
   filas: readonly FilaDeArchivos[] | null;
+  /** Carpeta de entregables del estudio (`GET /api/estudio`); `null` si el motor no la publicó. */
+  carpeta?: CarpetaDeEntregables | null;
 }) {
+  const pie = carpeta?.ruta ? (
+    <span className="pulso-estado-archivos-carpeta" title={carpeta.ruta}>
+      Se guardan en {carpeta.ruta}
+    </span>
+  ) : carpeta?.sinRuta ? (
+    <span className="pulso-estado-archivos-carpeta">{carpeta.sinRuta}</span>
+  ) : undefined;
   return (
-    <PanelDeMesa zona="estado-archivos" titulo="Archivos del estudio" icono={<Folder size={16} />}>
+    <PanelDeMesa zona="estado-archivos" titulo="Archivos del estudio" icono={<Folder size={16} />} pie={pie}>
       {filas === null ? (
         <div className="pulso-estado-estudio-cuerpo pulso-estado-estudio-espera" role="status" aria-busy="true">
           <span className="pulso-sr-only">Cargando los archivos del estudio</span>

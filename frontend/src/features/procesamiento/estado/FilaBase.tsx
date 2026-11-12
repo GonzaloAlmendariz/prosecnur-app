@@ -71,6 +71,7 @@ export function FilaBase({ fila, conAccion, activandoA, onActivar }: FilaBasePro
             className="pulso-estado-base-fase"
             data-qa-geometry-member=""
             data-causa-pendiente={fase.causaPendiente ?? undefined}
+            data-desactualizada={fase.desactualizada ? "" : undefined}
           >
             {/* El nombre de la fase sólo se ve cuando la fila se apila y la cabecera de columnas se retira. */}
             <span className="pulso-estado-base-fase-nombre">{fase.nombre}</span>

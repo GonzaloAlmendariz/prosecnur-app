@@ -55,6 +55,16 @@
        auditoria = auditoria)
 }
 
+# Qué cambió entre la firma con que se generó un archivo del cierre y la de
+# hoy: "cambiaron_las_decisiones", "cambio_la_auditoria" o ninguna. La usan
+# los archivos del cierre y el estado por fase (procesamiento_estado_fases.R).
+.limpieza_causas_de_firma <- function(registrada, actual) {
+  causas <- list()
+  if (!identical(registrada$decisiones, actual$decisiones)) causas[[length(causas) + 1L]] <- "cambiaron_las_decisiones"
+  if (!identical(registrada$auditoria, actual$auditoria)) causas[[length(causas) + 1L]] <- "cambio_la_auditoria"
+  causas
+}
+
 # ---- Atribución de exclusiones ----------------------------------------------
 
 # Una fila por caso excluido. `excluded` es el registro de exclusiones del motor
@@ -363,9 +373,7 @@ limpieza_archivos_cierre <- function(sid, base_nombre, scope) {
         return(base)
       }
     } else {
-      causas <- list()
-      if (!identical(rec$firma$decisiones, actual$decisiones)) causas[[length(causas) + 1L]] <- "cambiaron_las_decisiones"
-      if (!identical(rec$firma$auditoria, actual$auditoria)) causas[[length(causas) + 1L]] <- "cambio_la_auditoria"
+      causas <- .limpieza_causas_de_firma(rec$firma, actual)
       base$estado <- if (length(causas)) "desactualizado" else "al_dia"
       base$causas <- causas
       base$file_id <- rec$file_id

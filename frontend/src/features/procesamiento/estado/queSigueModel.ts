@@ -70,7 +70,7 @@ export type QueSigue = {
   pendientes: PendienteDeSeccion[];
 };
 
-function seccionDeRuta(to: string): SeccionId | null {
+export function seccionDeRuta(to: string): SeccionId | null {
   return SECCIONES_EN_ORDEN.find((id) => RUTA_DE_SECCION[id] === to) ?? null;
 }
 
