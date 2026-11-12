@@ -47,7 +47,7 @@ describe("banda de Procesamiento", () => {
     await pintar(<CasosQueCuentanEnBanda visible />);
     expect(api.apiV2Limpieza).toHaveBeenCalledWith("docentes");
     const pieza = host.querySelector(".pulso-banda-casos");
-    expect(pieza?.textContent).toBe("112de 115 casos cuentan");
+    expect(pieza?.textContent).toBe("112de 115 casos en la base limpia");
     expect(pieza?.getAttribute("aria-label")).toMatch(/base activa/);
   });
 

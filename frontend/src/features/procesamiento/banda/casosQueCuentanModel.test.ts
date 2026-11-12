@@ -26,13 +26,13 @@ describe("casosQueCuentan", () => {
   it("dice cuántos casos cuentan sobre los recibidos de la base activa", () => {
     const r = casosQueCuentan(cadena({}));
     expect(r?.cuentanTexto).toBe("112");
-    expect(r?.resto).toBe("de 115 casos cuentan");
+    expect(r?.resto).toBe("de 115 casos en la base limpia");
     expect(r?.detalle).toMatch(/casos recibidos en la base activa/);
   });
 
-  it("concuerda el verbo con los que cuentan y el sustantivo con los recibidos", () => {
-    expect(casosQueCuentan(cadena({ cuentan: 1, recibidos: 115 }))?.resto).toBe("de 115 casos cuenta");
-    expect(casosQueCuentan(cadena({ cuentan: 1, recibidos: 1 }))?.resto).toBe("de 1 caso cuenta");
+  it("el sustantivo concuerda con los recibidos", () => {
+    expect(casosQueCuentan(cadena({ cuentan: 1, recibidos: 115 }))?.resto).toBe("de 115 casos en la base limpia");
+    expect(casosQueCuentan(cadena({ cuentan: 1, recibidos: 1 }))?.resto).toBe("de 1 caso en la base limpia");
   });
 
   it("no dibuja la pieza si falta una de las dos cifras: nunca un 0 por ausencia", () => {

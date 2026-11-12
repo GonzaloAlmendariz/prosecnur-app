@@ -1,4 +1,4 @@
-// Cifra "N de M casos cuentan" de la banda de Procesamiento.
+// Cifra "N de M casos en la base limpia" de la banda de Procesamiento.
 //
 // Fuente única: la cadena de casos del cierre de Validación
 // (`GET /api/validacion/v2/limpieza`, campo `cierre.cadena_casos`), la misma que
@@ -19,7 +19,7 @@ export type CasosQueCuentan = {
   recibidos: number;
   /** "112" */
   cuentanTexto: string;
-  /** "de 115 casos cuentan" */
+  /** "de 115 casos en la base limpia" */
   resto: string;
   /** Para `title` y lector de pantalla: qué mide la cifra y sobre qué base. */
   detalle: string;
@@ -33,8 +33,9 @@ export function casosQueCuentan(cadena: CadenaDeCasos | null | undefined): Casos
   if (recibidos <= 0 || cuentan < 0 || cuentan > recibidos) return null;
   const cuentanTexto = formatoConteo(cuentan);
   const recibidosTexto = formatoConteo(recibidos);
-  // El sustantivo concuerda con los recibidos y el verbo con los que cuentan: "1 de 115 casos cuenta".
-  const resto = `de ${recibidosTexto} ${recibidos === 1 ? "caso" : "casos"} ${cuentan === 1 ? "cuenta" : "cuentan"}`;
+  // "Cuentan" queda reservado al universo de análisis de Analítica ("Qué casos cuentan"): esta
+  // cifra es la base limpia, así que dice eso. El sustantivo concuerda con los recibidos.
+  const resto = `de ${recibidosTexto} ${recibidos === 1 ? "caso" : "casos"} en la base limpia`;
   const momento = cadena.momento === "prevista" ? " Vista previa: la base sigue abierta." : "";
   const cuadra = cadena.cuadra === false ? " La resta de la cadena no cuadra; revisa Validación, Cierre." : "";
   const detalle = `${cuentanTexto} de ${recibidosTexto} casos recibidos en la base activa quedan para el análisis después de la limpieza.${momento}${cuadra}`;
