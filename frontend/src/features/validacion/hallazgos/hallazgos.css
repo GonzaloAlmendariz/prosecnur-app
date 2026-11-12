@@ -370,6 +370,7 @@
 /* ---------- Casos ---------- */
 
 .pulso-hz-casos {
+  container: hz-casos / inline-size;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -415,26 +416,173 @@
   padding-inline-start: calc(var(--pulso-space-3) + 20px);
 }
 
+/* Cada columna tiene un ancho mínimo legible (modeloTablaDeCasos.ts). Si no
+   caben, la tabla se desplaza en horizontal: es el único dueño de ese eje (el
+   vertical es del cuerpo del contenedor) y la marca y el caso quedan fijos. */
 .pulso-hz-tabla {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   font-size: var(--pulso-type-body-size);
 }
 
+/* Con ancho para tres zonas, lo que falla también queda fijo, a la derecha: el
+   caso y su valor siempre a la vista, y el contexto se desplaza entre ambos. Su
+   borde izquierdo se marca mientras haya contenido debajo. */
+@container hz-casos (min-width: 560px) {
+  .pulso-hz-tabla--casos .pulso-hz-tabla-fila > [data-tipo="falla"] {
+    position: sticky;
+    z-index: 1;
+    inset-inline-end: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    background: var(--pulso-hz-fondo-fila);
+    box-shadow:
+      var(--pulso-space-5) 0 0 0 var(--pulso-hz-fondo-fila),
+      calc(-1 * var(--pulso-space-3)) 0 0 0 var(--pulso-hz-fondo-fila);
+  }
+
+  .pulso-hz-tabla--casos .pulso-hz-tabla-fila > [data-tipo="falla"][data-frase] {
+    align-items: flex-start;
+  }
+
+  .pulso-hz-tabla--casos[data-con-respuestas] .pulso-hz-tabla-fila > [data-tipo="falla"] {
+    justify-content: flex-start;
+  }
+
+  .pulso-hz-tabla--casos[data-desborde="derecha"] .pulso-hz-tabla-fila > [data-tipo="falla"],
+  .pulso-hz-tabla--casos[data-desborde="ambos"] .pulso-hz-tabla-fila > [data-tipo="falla"] {
+    box-shadow:
+      var(--pulso-space-5) 0 0 0 var(--pulso-hz-fondo-fila),
+      calc(-1 * var(--pulso-space-3)) 0 0 0 var(--pulso-hz-fondo-fila),
+      calc(-1 * var(--pulso-space-3) - 1px) 0 0 0 var(--pulso-border);
+  }
+}
+
+/* Angosta (1024), solo el caso queda fijo: el borde por donde sigue la tabla se
+   desvanece, que con barras ocultas (macOS) es la señal de que hay más. */
+@container hz-casos (max-width: 559.98px) {
+  .pulso-hz-tabla--casos[data-desborde="derecha"],
+  .pulso-hz-tabla--casos[data-desborde="ambos"] {
+    mask-image: linear-gradient(to left, transparent, black var(--pulso-space-7));
+  }
+}
+
+.pulso-hz-tabla:focus-visible {
+  outline: var(--mov-foco);
+  outline-offset: -2px;
+}
+
 .pulso-hz-tabla-fila {
+  --pulso-hz-fondo-fila: var(--pulso-surface);
   display: grid;
   grid-template-columns: var(--pulso-hz-columnas, 44px minmax(96px, 0.8fr) minmax(0, 1fr));
   align-items: center;
-  gap: var(--pulso-space-3);
+  gap: var(--pulso-space-2) var(--pulso-space-3);
   min-height: 48px;
+  min-inline-size: var(--pulso-hz-ancho-minimo, 0);
   padding: 0 var(--pulso-space-5);
   border-top: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  background: var(--pulso-hz-fondo-fila);
 }
 
 .pulso-hz-tabla-fila > span {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+/* La marca y el caso no se van con el desplazamiento horizontal. La sombra del
+   color de la fila tapa el margen y el hueco por donde pasaría lo desplazado. */
+.pulso-hz-tabla--casos .pulso-hz-tabla-fila > :nth-child(1),
+.pulso-hz-tabla--casos .pulso-hz-tabla-fila > :nth-child(2) {
+  position: sticky;
+  z-index: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  background: var(--pulso-hz-fondo-fila);
+}
+
+.pulso-hz-tabla--casos .pulso-hz-tabla-fila > :nth-child(1) {
+  inset-inline-start: 0;
+  box-shadow: calc(-1 * var(--pulso-space-5)) 0 0 0 var(--pulso-hz-fondo-fila);
+}
+
+.pulso-hz-tabla--casos .pulso-hz-tabla-fila > :nth-child(2) {
+  inset-inline-start: calc(44px + var(--pulso-space-3));
+  box-shadow:
+    calc(-1 * var(--pulso-space-3)) 0 0 0 var(--pulso-hz-fondo-fila),
+    var(--pulso-space-3) 0 0 0 var(--pulso-hz-fondo-fila);
+}
+
+.pulso-hz-tabla--casos .pulso-hz-tabla-vacia > :nth-child(1) {
+  position: static;
+  box-shadow: none;
+}
+
+/* Con muchas preguntas (una batería) sus respuestas van en una segunda línea
+   del caso, bajo las columnas de contexto y lo medido. */
+.pulso-hz-tabla[data-con-respuestas] .pulso-hz-tabla-fila {
+  align-items: start;
+  padding-block: var(--pulso-space-2);
+}
+
+.pulso-hz-tabla[data-con-respuestas] .pulso-hz-tabla-fila > :nth-child(1),
+.pulso-hz-tabla[data-con-respuestas] .pulso-hz-tabla-fila > :nth-child(2) {
+  grid-row: 1 / span 2;
+  align-items: flex-start;
+}
+
+.pulso-hz-tabla[data-con-respuestas] .pulso-hz-tabla-fila:not(.pulso-hz-tabla-cabecera) > :nth-child(1) {
+  padding-block-start: 2px;
+}
+
+.pulso-hz-tabla-fila > .pulso-hz-tabla-respuestas {
+  grid-row: 2;
+  grid-column: 3 / -1;
+}
+
+/* El rótulo nombra preguntas por su código: sin versalitas. */
+.pulso-hz-tabla-cabecera > .pulso-hz-tabla-respuestas {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pulso-hz-respuestas-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulso-hz-respuestas-fila > li {
+  box-sizing: border-box;
+  min-inline-size: 26px;
+  block-size: 20px;
+  padding: 0 var(--pulso-space-1);
+  line-height: 20px;
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  cursor: default;
+}
+
+/* Una respuesta vacía es una casilla sin valor, con el mismo marco que las demás. */
+.pulso-hz-respuestas-fila > li[data-vacia] {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--pulso-border-strong);
+  opacity: 0.6;
 }
 
 .pulso-hz-tabla-fila > [data-tipo="falla"],
@@ -442,7 +590,18 @@
   text-align: end;
 }
 
+/* Una frase del motor (lo medido en una batería, lo leído de una fecha) se lee
+   desde el inicio, no alineada a la derecha como una cifra. */
+.pulso-hz-tabla-fila > [data-frase] {
+  text-align: start;
+}
+
+.pulso-hz-tabla-fila > [data-frase] > .pulso-hz-falla {
+  text-align: start;
+}
+
 .pulso-hz-tabla-cabecera {
+  --pulso-hz-fondo-fila: var(--pulso-surface-2);
   min-height: 38px;
   border-top: 0;
   background: var(--pulso-surface-2);
@@ -454,7 +613,7 @@
 }
 
 .pulso-hz-tabla-fila[data-marcada] {
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
+  --pulso-hz-fondo-fila: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
 }
 
 .pulso-hz-tabla-vacia {
@@ -559,6 +718,19 @@
 .pulso-hz-falla[data-tono="revisar"] {
   background: color-mix(in srgb, var(--pulso-warn-accent) 12%, var(--pulso-surface));
   color: var(--pulso-warn-fg);
+}
+
+/* Lo leído en una regla de fechas: una línea ("08.11.2026 → 08/11/2026") y el motivo debajo. */
+.pulso-hz-falla--linea {
+  white-space: nowrap;
+}
+
+.pulso-hz-falla-motivo {
+  display: block;
+  margin-block-start: var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
 }
 
 /* ---------- Salto: los dos sentidos ---------- */
@@ -1320,6 +1492,49 @@ button.pulso-hz-sentido:hover {
 
   .pulso-hz-busca {
     inline-size: 100%;
+  }
+}
+
+/* Ventana baja (1024x600): la Decisión mostraba solo el bloque del alcance (su
+   cuerpo medía 119 de 606 px; ítem 33 del checklist de Validación). Se recorta
+   el aire del cuerpo y del pie, y la línea de alcance queda solo para el lector
+   de pantalla, para que el bloque de tratamientos y su primera opción queden a
+   la vista; el pie sigue completo. */
+@media (max-height: 680px) {
+  .pulso-hz-alcance {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pulso-hz-decision {
+    gap: var(--pulso-space-3);
+    padding: var(--pulso-space-3) var(--pulso-space-4);
+  }
+
+  .pulso-hz-bloque {
+    gap: var(--pulso-space-1);
+  }
+
+  .pulso-hz-bloque h5 {
+    margin-block-end: 0;
+  }
+
+  .pulso-hz-opcion {
+    padding-block: 6px;
+  }
+
+  .pulso-hz-pie.pulso-pie-efecto {
+    gap: var(--pulso-space-2);
+    padding: var(--pulso-space-2) var(--pulso-space-4);
+  }
+
+  .pulso-hz-pie .pulso-pie-efecto-cifra {
+    font-size: var(--pulso-type-title-size);
   }
 }
 

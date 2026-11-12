@@ -10,6 +10,7 @@ import {
   hayCambiosPorGuardar,
   incluidasAlGuardar,
   marcadasIniciales,
+  revisionConPendientes,
   rotuloConDato,
   type EntradaDeRevision,
 } from "./comprobacionesModel";
@@ -102,8 +103,11 @@ describe("comprobaciones de Revisión", () => {
 describe("columnas fuera del formulario", () => {
   const extras = [extra("a"), extra("b", { fill_pct: 40, n_fill: 34 }), extra("c", { decision: "exclude" })];
 
-  it("marca de inicio las que tienen dato en más de la mitad de los casos si no hay decisión, y las incorporadas si la hay", () => {
-    expect(marcadasIniciales(extras)).toEqual(["a", "c"]);
+  it("marca de inicio las incorporadas, deja sin marcar las excluidas y a las que falta decidir les aplica la regla del 50 %", () => {
+    // Ítem 34 (QA2, 2026-11-12): la excluida "c" venía marcada y una columna
+    // nueva con 97 % de dato venía sin marcar cuando ya había alguna incorporada.
+    expect(marcadasIniciales(extras)).toEqual(["a"]);
+    expect(marcadasIniciales([extra("fecha", { decision: "include", incluida: true }), extra("distrito_c", { fill_pct: 97 })])).toEqual(["fecha", "distrito_c"]);
     expect(marcadasIniciales([extra("fecha", { fill_pct: 96.4 }), extra("obs", { fill_pct: 12 })])).toEqual(["fecha"]);
     expect(marcadasIniciales([extra("fecha", { fill_pct: 96.4 }), extra("dni_supervisor", { fill_pct: 77.8, personal: { sospecha: true, causa: "Parece DNI: 8 dígitos en el 100 % de los casos con dato" } })])).toEqual(["fecha"]);
     expect(marcadasIniciales([extra("a", { decision: "exclude" }), extra("b", { decision: "include", incluida: true })])).toEqual(["b"]);
@@ -154,5 +158,26 @@ describe("columnas de opción sin leer", () => {
   it("sin columnas sin leer no aparece la fila", () => {
     const lista = comprobacionesDeRevision(entrada());
     expect(lista.some((c) => c.clave === "opciones-sin-leer")).toBe(false);
+  });
+});
+
+describe("revisionConPendientes", () => {
+  // Ítem 34 (QA2, 2026-11-12): la pestaña decía "Listo. No hay incidencias"
+  // mientras la cabecera de la mesa decía "Por decidir 5/6" por una columna de
+  // opción sin leer. Las dos leen ahora la misma lista de comprobaciones.
+  it("coincide con la cabecera de la mesa: una columna de opción sin leer es un pendiente", () => {
+    const conSinLeer = revision({
+      opciones_sin_leer: { n: 1, columnas: [{ variable: "p10", columna: "p10/3", codigo: "3", motivo: "valores", valores: ["1", "3"], n_con_dato: 590, causa: "Trae los valores 1, 3." }] },
+    });
+    expect(revisionConPendientes(conSinLeer, false)).toBe(true);
+    const lista = comprobacionesDeRevision(entrada({ revision: conSinLeer }));
+    expect(estadoDeRevision({ lista, leyendo: false, conInsumos: true, resumen: null })?.texto).toBe("Por decidir");
+  });
+
+  it("sin revisión o sin nada por decidir no hay pendientes; el mapeo por confirmar sí lo es", () => {
+    expect(revisionConPendientes(null, false)).toBe(false);
+    expect(revisionConPendientes(revision(), false)).toBe(false);
+    expect(revisionConPendientes(revision(), true)).toBe(true);
+    expect(revisionConPendientes(conPendientes, false)).toBe(true);
   });
 });

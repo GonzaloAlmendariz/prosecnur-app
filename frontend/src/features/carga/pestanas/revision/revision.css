@@ -326,15 +326,29 @@
 .pulso-revision-motivos {
   display: flex;
   flex-direction: column;
-  gap: var(--pulso-space-1);
+  gap: var(--pulso-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* La columna es un identificador: no cede ancho a la causa (antes medía 25 px y
+   partía "p10/3" carácter a carácter). Si no caben juntas, la causa baja. */
 .pulso-revision-motivos li {
   display: flex;
-  gap: var(--pulso-space-2);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.pulso-revision-motivos li > code {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.pulso-revision-motivos li > span {
+  flex: 1 1 16rem;
+  min-width: 0;
 }
 
 /* ---------- Decisión ---------- */

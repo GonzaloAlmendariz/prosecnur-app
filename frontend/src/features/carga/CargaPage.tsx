@@ -68,6 +68,7 @@ import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_AGREGAR_BASE } from "./panelesCarga";
 import { traerTrabajoDeCampo } from "./pestanas/traerTrabajoDeCampo";
 import { MesaDeCarga } from "./pestanas/MesaDeCarga";
+import { revisionConPendientes } from "./pestanas/revision/comprobacionesModel";
 import { useModeloCarga } from "./pestanas/useModeloCarga";
 import { usePlataformaCarga } from "./pestanas/usePlataformaCarga";
 import { PestanaBases } from "./pestanas/PestanaBases";
@@ -271,11 +272,7 @@ export default function CargaPage() {
   const [equivalenciasFilas, setEquivalenciasFilas] = useState<number | "error" | null>(null);
   // Variables lee la base elegida: mientras tanto la página no se declara lista.
   const [variablesLeyendo, setVariablesLeyendo] = useState(false);
-  const reviewHasIssues = Boolean(cargaReview && (
-    !cargaReview.compatibility.ok
-    || cargaReview.choice_mapping.pending
-    || cargaReview.reconciliation.n_pendientes > 0
-  ));
+  const reviewHasIssues = Boolean(cargaReview) && revisionConPendientes(cargaReview, false);
   const revisionEstado = cargaRevisionEstadoLectura({
     isMultiBase,
     baseSeleccionada: selectedCargaBase,

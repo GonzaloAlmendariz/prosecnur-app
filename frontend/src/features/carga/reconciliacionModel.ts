@@ -37,10 +37,26 @@ export function textoPorcentajeConDato(fillPct: number): string {
   return "100";
 }
 
-// Nombres marcados como "incluida" en el estado que trae el backend. Si todavía
-// no se conservó ninguna, vienen marcadas las que cumplen
-// `vieneMarcadaPorDefecto`; si ya hay una decisión, se respeta.
+// Si una columna viene marcada al abrir el diálogo o la tabla de Revisión. La
+// decisión guardada vale solo para la columna que decidió: incluida, marcada;
+// excluida, sin marcar. Una columna sin decidir (también la que aparece en una
+// base nueva después de haber decidido otras) sigue `vieneMarcadaPorDefecto`
+// (ítem 34 del checklist de Validación, 2026-11-12).
+export function marcadaAlAbrir(
+  extra: Pick<ReconciliacionExtra, "kind" | "fill_pct" | "personal" | "incluida"> & { decision?: string },
+): boolean {
+  if (extra.decision === "include" || extra.incluida) return true;
+  if (extra.decision === "exclude") return false;
+  return vieneMarcadaPorDefecto(extra);
+}
+
+// Nombres marcados al abrir el diálogo. Con la decisión por columna se aplica
+// `marcadaAlAbrir`; si la fuente solo trae `incluida`, una base que ya tiene
+// alguna incluida se respeta tal cual y una sin ninguna sigue la regla.
 export function initialIncluidas(info: ReconciliacionInfo): string[] {
+  if (info.extra.every((extra) => extra.decision !== undefined)) {
+    return info.extra.filter(marcadaAlAbrir).map((extra) => extra.name);
+  }
   const decididas = info.extra.filter((extra) => extra.incluida);
   if (decididas.length) return decididas.map((extra) => extra.name);
   return info.extra.filter(vieneMarcadaPorDefecto).map((extra) => extra.name);

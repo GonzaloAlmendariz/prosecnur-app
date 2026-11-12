@@ -2678,6 +2678,11 @@ export type ReconciliacionExtra = {
   n_fill: number;
   kind: ReconciliacionExtraKind;
   incluida: boolean;
+  /**
+   * Decisión guardada de esta columna, cuando la fuente la publica por columna
+   * (revisión de Carga). Sin ella solo se sabe si la columna está incluida.
+   */
+  decision?: "include" | "exclude" | "pending";
   /** Dato potencialmente personal: viene sin marcar por defecto. */
   personal?: DatoPersonal;
 };

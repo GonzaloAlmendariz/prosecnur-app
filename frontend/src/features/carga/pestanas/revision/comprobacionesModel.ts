@@ -11,7 +11,7 @@ import type {
 import type { EstadoDePestana } from "../../../../components/procesamiento/CabeceraDePestana";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { cargaReviewFuentesHallazgos } from "../../cargaReviewFuentesModel";
-import { textoPorcentajeConDato, vieneMarcadaPorDefecto } from "../../reconciliacionModel";
+import { marcadaAlAbrir, textoPorcentajeConDato } from "../../reconciliacionModel";
 
 export type TonoDeComprobacion = "ok" | "aviso" | "error" | "info" | "neutro";
 
@@ -205,6 +205,25 @@ export function comprobacionInicial(lista: readonly Comprobacion[]): ClaveDeComp
   return (error ?? lista.find(pideDecision))?.clave ?? null;
 }
 
+/**
+ * Si la revisión del motor deja algo por decidir. Es la misma lista que pinta
+ * la mesa de Revisión, así que la pestaña y la cabecera no se contradicen (la
+ * pestaña no puede decir "No hay incidencias" junto a "Por decidir").
+ */
+export function revisionConPendientes(revision: CargaReviewPayload | null, mapeoPendiente: boolean): boolean {
+  if (!revision) return mapeoPendiente;
+  return comprobacionesDeRevision({
+    revision,
+    leyendo: false,
+    tieneFormulario: true,
+    tieneRespuestas: true,
+    mapeoPendiente,
+    filas: null,
+    conUniverso: false,
+    conOrigenExterno: false,
+  }).some(pideDecision);
+}
+
 export type CifrasDeRevision = { conformes: number; total: number };
 
 export function cifrasDeRevision(lista: readonly Comprobacion[]): CifrasDeRevision {
@@ -268,14 +287,13 @@ export function columnasDelFiltro(
 }
 
 /**
- * Las marcadas al abrir: las que ya se incorporaron; si todavía no se decidió
- * ninguna, las que traen dato en más de la mitad de los casos (la regla única
- * `reconciliacionModel.vieneMarcadaPorDefecto`, la misma del diálogo).
+ * Las marcadas al abrir: las que se incorporaron; las excluidas, sin marcar; y
+ * las que falta decidir, por la regla única `reconciliacionModel.marcadaAlAbrir`
+ * (más de la mitad de casos con dato y sin sospecha de dato personal), la misma
+ * del diálogo.
  */
 export function marcadasIniciales(extras: readonly CargaReviewReconciliationExtra[]): string[] {
-  const incluidas = extras.filter((e) => decisionDeColumna(e) === "include");
-  if (incluidas.length > 0) return incluidas.map((e) => e.name);
-  return extras.filter(vieneMarcadaPorDefecto).map((e) => e.name);
+  return extras.filter(marcadaAlAbrir).map((e) => e.name);
 }
 
 /**

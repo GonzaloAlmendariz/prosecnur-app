@@ -106,6 +106,14 @@ export function markChoiceMappingConfirmed(preview: DataPreview | null): DataPre
   };
 }
 
+// La revisión publica la decisión de cada columna; el diálogo la necesita para
+// respetar solo lo ya decidido y aplicar la regla de marcado a las columnas nuevas.
+function decisionDeLaRevision(extra: CargaReviewPayload["reconciliation"]["extra"][number]): "include" | "exclude" | "pending" {
+  if (extra.decision === "include" || extra.incluida) return "include";
+  if (extra.decision === "exclude") return "exclude";
+  return "pending";
+}
+
 export function reviewReconciliationInfo(review: CargaReviewPayload): ReconciliacionInfo {
   return {
     ok: true,
@@ -115,6 +123,8 @@ export function reviewReconciliationInfo(review: CargaReviewPayload): Reconcilia
       n_fill: extra.n_fill,
       kind: extra.kind,
       incluida: extra.incluida,
+      decision: decisionDeLaRevision(extra),
+      personal: extra.personal,
     })),
     n_extra: review.reconciliation.n_extra,
     n_incluidas: review.reconciliation.n_incluidas,

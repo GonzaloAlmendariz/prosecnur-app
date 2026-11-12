@@ -5,18 +5,32 @@
  * que el estudio declaró, las preguntas que deciden la regla y, al final, la
  * que falla, resaltada.
  *
- * Es una rejilla con roles de tabla: ancho completo, sin scroll propio (el
- * dueño del scroll es el cuerpo del contenedor). Marcar una fila es un botón
- * con `aria-pressed`, no una casilla (K1 del kit). Una fila sin identificador
- * en la auditoría no se puede marcar ni abrir.
+ * Es una rejilla con roles de tabla a ancho completo. El scroll vertical es
+ * del cuerpo del contenedor; cada columna tiene un ancho mínimo legible y, si
+ * no caben, la tabla se desplaza en horizontal con la marca y el caso fijos
+ * (`modeloTablaDeCasos`). Con muchas preguntas (una batería) las respuestas
+ * van en una fila dentro del caso, en código corto con su etiqueta en el
+ * título. Marcar una fila es un botón con `aria-pressed`, no una casilla (K1
+ * del kit). Una fila sin identificador en la auditoría no se puede marcar ni
+ * abrir.
  */
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { Search } from "../../../../vendor/lucide-react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { ColumnaDeCaso, FilaDeCaso } from "../modeloHallazgos";
 import { rotuloDeCaso } from "../../rotuloDeCaso";
+import {
+  CLAVE_LECTURA_DE_FECHAS,
+  disposicionDeTabla,
+  esFrase,
+  lecturaEnUnaLinea,
+  rotuloDeRespuestas,
+  tituloDeRespuesta,
+  valorCorto,
+} from "./modeloTablaDeCasos";
+import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 
 export function TablaDeCasos({
   columnas,
@@ -54,8 +68,13 @@ export function TablaDeCasos({
   const marcablesN = filas.filter((f) => f.id !== null).length;
   const nMarcados = filas.filter((f) => f.id !== null && marcados.has(f.id)).length;
   const todos = marcablesN > 0 && nMarcados === marcablesN;
+  const disposicion = useMemo(() => disposicionDeTabla(columnas), [columnas]);
+  const tablaRef = useRef<HTMLDivElement>(null);
+  const desborde = useDesbordeHorizontal(tablaRef);
+  const conFila = disposicion.enFila.length > 0;
   const plantilla = {
-    "--pulso-hz-columnas": `44px minmax(96px, 0.8fr) ${columnas.map((c) => (c.tipo === "falla" ? "minmax(96px, 0.9fr)" : "minmax(0, 1.2fr)")).join(" ")}`,
+    "--pulso-hz-columnas": disposicion.plantilla,
+    "--pulso-hz-ancho-minimo": disposicion.anchoMinimo,
   } as CSSProperties;
 
   return (
@@ -83,20 +102,27 @@ export function TablaDeCasos({
         </label>
       </div>
       <div
-        className="pulso-hz-tabla"
+        className="pulso-hz-tabla pulso-hz-tabla--casos"
         role="table"
         aria-label="Casos del hallazgo"
         aria-rowcount={visibles.length + 1}
         style={plantilla}
         data-qa-geometry-group="validacion/hallazgos-casos"
         data-qa-geometry-contract="intrinsic"
+        data-con-respuestas={conFila ? "" : undefined}
+        data-desborde={desborde === "ninguno" ? undefined : desborde}
+        ref={tablaRef}
+        tabIndex={0}
       >
         <div className="pulso-hz-tabla-fila pulso-hz-tabla-cabecera" role="row">
           <span role="columnheader"><span className="pulso-sr-only">Marca</span></span>
           <span role="columnheader">Caso</span>
-          {columnas.map((c) => (
-            <span key={c.clave} role="columnheader" data-tipo={c.tipo} title={c.rotulo}>{c.rotulo}</span>
+          {disposicion.columnas.map((c) => (
+            <span key={c.clave} role="columnheader" data-tipo={c.tipo} data-frase={esFrase(c) ? "" : undefined} title={c.rotulo}>{c.rotulo}</span>
           ))}
+          {conFila ? (
+            <span role="columnheader" className="pulso-hz-tabla-respuestas">{rotuloDeRespuestas(disposicion.enFila)}</span>
+          ) : null}
         </div>
         {visibles.length === 0 ? (
           <div className="pulso-hz-tabla-fila pulso-hz-tabla-vacia" role="row">
@@ -130,19 +156,48 @@ export function TablaDeCasos({
                   <span className="pulso-hz-sin-id">Sin identificador</span>
                 )}
               </span>
-              {columnas.map((c) => (
-                <span key={c.clave} role="cell" data-tipo={c.tipo}>
-                  {c.tipo === "falla" ? (
-                    <b className="pulso-hz-falla" data-tono={tono} title={f.esperado?.hecho ?? undefined}>{f.valores[c.clave]}</b>
-                  ) : (
-                    f.valores[c.clave]
-                  )}
+              {disposicion.columnas.map((c) => (
+                <span key={c.clave} role="cell" data-tipo={c.tipo} data-frase={esFrase(c) ? "" : undefined}>
+                  {c.tipo === "falla" ? <Falla columna={c} fila={f} tono={tono} /> : f.valores[c.clave]}
                 </span>
               ))}
+              {conFila ? (
+                <span role="cell" className="pulso-hz-tabla-respuestas">
+                  <ul className="pulso-hz-respuestas-fila" aria-label={rotuloDeRespuestas(disposicion.enFila)}>
+                    {disposicion.enFila.map((c) => {
+                      const valor = f.valores[c.clave];
+                      const vacia = valor === "Vacía";
+                      return (
+                        <li key={c.clave} title={tituloDeRespuesta(c, valor)} data-vacia={vacia ? "" : undefined}>
+                          <span className="pulso-sr-only">{vacia ? `${c.clave}: Vacía` : `${c.clave}: `}</span>
+                          {vacia ? null : valorCorto(valor).corto}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </span>
+              ) : null}
             </div>
           );
         })}
       </div>
     </div>
   );
+}
+
+/**
+ * El valor que falla. En una regla de fechas, lo leído en una línea
+ * ("08.11.2026 → 08/11/2026") y el motivo debajo; el enunciado entero, en el título.
+ */
+function Falla({ columna, fila, tono }: { columna: ColumnaDeCaso; fila: FilaDeCaso; tono: "inconsistencia" | "revisar" }) {
+  const lectura = columna.clave === CLAVE_LECTURA_DE_FECHAS ? lecturaEnUnaLinea(fila.esperado) : null;
+  if (lectura) {
+    return (
+      <>
+        <b className="pulso-hz-falla pulso-hz-falla--linea" data-tono={tono} title={fila.valores[columna.clave]}>{lectura.lectura}</b>
+        {lectura.motivo ? <small className="pulso-hz-falla-motivo">{lectura.motivo}</small> : null}
+      </>
+    );
+  }
+  return <b className="pulso-hz-falla" data-tono={tono} title={fila.esperado?.hecho ?? undefined}>{fila.valores[columna.clave]}</b>;
 }
