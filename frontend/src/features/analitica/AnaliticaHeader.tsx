@@ -1,6 +1,7 @@
 import type { ReactNode, RefObject } from "react";
 import { toast } from "../../components/toasterStore";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertCircle,
   CheckCircle2,
@@ -302,12 +303,45 @@ function AnaliticaTemplateMenu({
   const ocupado = importando || exportando;
   const [error, setError] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // El menú vive en un portal con posición fija: la barra de fuente está dentro de paneles con scroll
+  // propio (Ajustes de Frecuencias y Cruces, panel de Datos) que lo recortaban. Abre hacia abajo y,
+  // si no cabe, hacia arriba, alineado al borde derecho del disparador.
+  const [posicion, setPosicion] = useState<CSSProperties | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) { setPosicion(null); return; }
+    function ubicar() {
+      const ancla = rootRef.current?.getBoundingClientRect();
+      if (!ancla) return;
+      const alto = popoverRef.current?.offsetHeight ?? 120;
+      const abajo = ancla.bottom + 7;
+      const cabeAbajo = abajo + alto <= window.innerHeight - 8;
+      setPosicion({
+        position: "fixed",
+        top: cabeAbajo ? abajo : Math.max(8, ancla.top - 7 - alto),
+        // La flecha del menú apunta al disparador: arriba si abre hacia abajo; se oculta si abre hacia arriba.
+        ["--pulso-plantilla-flecha" as string]: cabeAbajo ? "block" : "none",
+        right: Math.max(8, window.innerWidth - ancla.right),
+        left: "auto",
+      });
+    }
+    ubicar();
+    window.addEventListener("resize", ubicar);
+    window.addEventListener("scroll", ubicar, true);
+    return () => {
+      window.removeEventListener("resize", ubicar);
+      window.removeEventListener("scroll", ubicar, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     function onDocMouseDown(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false);
+      const objetivo = event.target as Node;
+      if (rootRef.current?.contains(objetivo) || popoverRef.current?.contains(objetivo)) return;
+      setOpen(false);
     }
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
@@ -368,8 +402,14 @@ function AnaliticaTemplateMenu({
         <ChevronDown size={12} aria-hidden="true" />
       </button>
 
-      {open && (
-        <div className="pulso-analitica-template-popover" role="menu" aria-label="Plantilla de Analítica">
+      {open && createPortal(
+        <div
+          ref={popoverRef}
+          className="pulso-analitica-template-popover"
+          role="menu"
+          aria-label="Plantilla de Analítica"
+          style={posicion ?? { position: "fixed", visibility: "hidden" }}
+        >
           <button type="button" role="menuitem" onClick={handleExport} disabled={ocupado} title={exportTitle}>
             <Download size={13} />
             <span>
@@ -390,7 +430,8 @@ function AnaliticaTemplateMenu({
               <small>Actualiza solo la configuración.</small>
             </span>
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <input

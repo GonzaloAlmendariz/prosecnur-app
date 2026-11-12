@@ -151,9 +151,10 @@ describe("anclada: Guardar plantilla", () => {
     const disparador = host.querySelector<HTMLButtonElement>(".pulso-analitica-template-trigger");
     expect(disparador?.textContent).toBe("Plantilla");
     await act(async () => { disparador?.click(); });
-    await act(async () => { host.querySelector<HTMLButtonElement>("[role='menuitem']")?.click(); });
+    // El menú vive en un portal (posición fija, para que ningún panel con scroll lo recorte).
+    await act(async () => { document.querySelector<HTMLButtonElement>(".pulso-analitica-template-popover [role='menuitem']")?.click(); });
 
-    expect(host.querySelector(".pulso-analitica-template-popover")).toBeNull();
+    expect(document.querySelector(".pulso-analitica-template-popover")).toBeNull();
     expect(espia.configExport).toHaveBeenCalledTimes(1);
     const anclada = contenedor("anclada");
     expect(anclada?.dataset.entregableFase).toBe("lista");

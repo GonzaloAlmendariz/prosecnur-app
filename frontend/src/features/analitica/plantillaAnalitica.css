@@ -21,3 +21,9 @@
   transform: none;
   transition: none;
 }
+
+/* El menú "Plantilla" vive en un portal con posición fija (AnaliticaHeader): su flecha solo se ve
+   cuando abre hacia abajo. */
+.pulso-analitica-template-popover::before {
+  display: var(--pulso-plantilla-flecha, block);
+}
