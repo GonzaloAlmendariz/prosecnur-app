@@ -124,7 +124,8 @@ export default function AnaliticaPage() {
   // Frecuencias, Cruces y Ponderación dibujan su propia cabecera, con sus cifras
   // y su acción (prototipo del rediseño): la página no pinta la suya y les pasa
   // la pestaña y la barra de fuente, que va a sus ajustes.
-  const propia = cabeceraPropia(activeMeta.key);
+  // Datos y Libro de códigos también dibujan la suya (prototipo "Analítica, Variables" y "Entrega").
+  const propia = cabeceraPropia(activeMeta.key) || activeMeta.key === "datos" || activeMeta.key === "codebook";
   const fuente = <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />;
   const encabezado = {
     titulo: activeMeta.label,
@@ -282,7 +283,7 @@ export default function AnaliticaPage() {
                   <CargaDeBloque label="Cargando la configuración de Analítica" />
                 ) : prepOk ? (
                   <>
-                    {active === "datos"        && <DataReviewPane />}
+                    {active === "datos"        && <DataReviewPane fuente={fuente} />}
                     {active === "base_final"   && (
                       <ProcessingSheetViewer
                         title="Base final"
@@ -291,7 +292,7 @@ export default function AnaliticaPage() {
                         load={apiAnaliticaBaseSheet}
                       />
                     )}
-                    {active === "codebook"     && <CodebookPane />}
+                    {active === "codebook"     && <CodebookPane fuente={fuente} />}
                     {active === "bases"        && <BasesPane />}
                     {active === "ponderacion"  && <PonderacionPane datos={fuente} />}
                     {active === "frecuencias"  && <FrecuenciasPane encabezado={encabezado} datos={fuente} />}

@@ -1,813 +1,228 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { CheckCircle2, Database, Eye, EyeOff, FolderSearch, RefreshCw } from "lucide-react";
-import {
-  apiAnaliticaDataReview,
-  apiAnaliticaDetectSecciones,
-  type DataReviewVariable,
-} from "../../../api/client";
-import { EstadoVacio } from "../../../components/EstadoVacio";
-import { Panel } from "../../../components/Panel";
+import { useMemo, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+
+import { MesaDePestana } from "../../../components/procesamiento/MesaDePestana";
+import { ErrorBlock } from "../../../components/States";
 import { PulsoButton } from "../../../components/PulsoButton";
-import { PulsoTable } from "../../../components/PulsoTable";
-import { ErrorBlock, LoadingBlock } from "../../../components/States";
-import { formatoConteo } from "../../../lib/formatoNumero";
-import { CifrasPestana, type CifraPestana } from "../CifrasPestana";
-import { padresConDummies } from "../coberturaVariable";
-import {
-  PLAZO_DETECCION_MS,
-  conPlazo,
-  fundirSeccionesDetectadas,
-  seccionesAMaterializar,
-  seccionesVisibles,
-} from "../estructuraDeSecciones";
-import { useAnaliticaStore, type SeccionConfig } from "../store";
-import { searchConPanel } from "../../../lib/navegacion/paneles";
+import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { conNivel } from "../../../lib/navegacion/direccion";
+import { searchConPanel } from "../../../lib/navegacion/paneles";
+import { padresConDummies } from "../coberturaVariable";
+import { seccionesVisibles } from "../estructuraDeSecciones";
 import { PANEL_VARIABLES_EXCLUIDAS } from "../panelesAnalitica";
+import { useAnaliticaStore } from "../store";
+import { UniversoAnalisis } from "../UniversoAnalisis";
 import { conteoExclusion } from "../variablesExcluidasModel";
+import {
+  buildDataReviewSectionGroups,
+  opcionesConDetalles,
+  variablePorConfirmar,
+  variableTieneCambios,
+  dataReviewHasEditableOptions,
+  type DataReviewSectionGroup,
+} from "../datos/borradorDeEtiquetas";
+import { CabeceraDeDatos, cifrasDeDatos, estadoDeDatos } from "../datos/CabeceraDeDatos";
+import { InspectorDeVariable } from "../datos/InspectorDeVariable";
+import { baseComunDeCasos, moverVariableDeSeccion, type FiltroDeVariables } from "../datos/modeloDeVariables";
+import { PanelDeVariables } from "../datos/PanelDeVariables";
+import { useBorradorDeEtiquetas } from "../datos/useBorradorDeEtiquetas";
+import { useRevisionDeDatos } from "../datos/useRevisionDeDatos";
 import "../variablesExcluidas.css";
-import "./DataReviewPane.css";
-import { textoPlano } from "../../../lib/textoPlano";
-import { opcionesEquivalentes, problemasDeEtiqueta } from "./revisionEtiquetas/detectorEtiquetas";
-import { columnasDeDatos } from "./datosColumnas";
-import { DatosInspector } from "./DatosInspector";
+import "../datos/datos.css";
 
-export function dataReviewHasEditableOptions(variable: Pick<DataReviewVariable, "tipo_xlsform" | "opciones">) {
-  const tipo = (variable.tipo_xlsform ?? "").trim().toLowerCase();
-  return (tipo.startsWith("select_one") || tipo.startsWith("select_multiple")) && variable.opciones.length > 0;
-}
+// Los helpers puros viven en `datos/borradorDeEtiquetas.ts`; se reexportan con
+// sus nombres para quien los importa desde aquí.
+export {
+  buildDataReviewDraft,
+  buildDataReviewSectionGroups,
+  dataReviewDraftStatus,
+  dataReviewEffectiveOptionLabel,
+  dataReviewEffectiveVariableLabel,
+  dataReviewHasEditableOptions,
+  type DataReviewDraft,
+  type DataReviewSectionGroup,
+} from "../datos/borradorDeEtiquetas";
 
-export function dataReviewEffectiveVariableLabel(variable: DataReviewVariable, override?: string) {
-  return override ?? (variable.label_actual || variable.label_original || variable.name);
-}
+// Analítica › Datos con la forma del prototipo ("Analítica, Variables"): la
+// cabecera de la pestaña con el estado de las etiquetas, sus cifras y "Detectar
+// secciones"; debajo, una mesa de dos columnas que llegan al pie: "Variables de
+// la base" (filtros, buscador y la lista por sección) y el inspector de la
+// variable elegida (`?foco=`), con "Confirmar etiquetas" en su pie.
 
-export function dataReviewEffectiveOptionLabel(option: DataReviewVariable["opciones"][number], override?: string) {
-  return override ?? (option.label || option.code);
-}
-
-export type DataReviewDraft = {
-  variableLabels: Record<string, string>;
-  valueLabels: Record<string, Record<string, string>>;
-};
-
-export function buildDataReviewDraft(
-  variables: DataReviewVariable[],
-  variableOverrides: Record<string, string> = {},
-  valueOverrides: Record<string, Record<string, string>> = {},
-): DataReviewDraft {
-  const variableLabels: Record<string, string> = {};
-  const valueLabels: Record<string, Record<string, string>> = {};
-  for (const variable of variables) {
-    variableLabels[variable.name] = dataReviewEffectiveVariableLabel(variable, variableOverrides[variable.name]);
-    if (dataReviewHasEditableOptions(variable)) {
-      valueLabels[variable.name] = {};
-      const overrides = valueOverrides[variable.name] ?? {};
-      for (const option of variable.opciones) {
-        valueLabels[variable.name][option.code] = dataReviewEffectiveOptionLabel(option, overrides[option.code]);
-      }
-    }
-  }
-  return { variableLabels, valueLabels };
-}
-
-export function dataReviewDraftStatus(variables: DataReviewVariable[], draft: DataReviewDraft, baseline: DataReviewDraft) {
-  let pendingCount = 0;
-  let emptyCount = 0;
-  for (const variable of variables) {
-    const draftLabel = draft.variableLabels[variable.name] ?? "";
-    const baselineLabel = baseline.variableLabels[variable.name] ?? "";
-    if (draftLabel !== baselineLabel) pendingCount += 1;
-    if (!draftLabel.trim()) emptyCount += 1;
-    if (!dataReviewHasEditableOptions(variable)) continue;
-    for (const option of variable.opciones) {
-      const draftOption = draft.valueLabels[variable.name]?.[option.code] ?? "";
-      const baselineOption = baseline.valueLabels[variable.name]?.[option.code] ?? "";
-      if (draftOption !== baselineOption) pendingCount += 1;
-      if (!draftOption.trim()) emptyCount += 1;
-    }
-  }
-  return { pendingCount, emptyCount };
-}
-
-export type DataReviewSectionGroup = {
-  id: string;
-  name: string;
-  hidden: boolean;
-  manual?: boolean;
-  synthetic: boolean;
-  variables: DataReviewVariable[];
-};
-
-export function buildDataReviewSectionGroups(
-  variables: DataReviewVariable[],
-  sections: SeccionConfig[],
-): DataReviewSectionGroup[] {
-  const byName = new Map(variables.map((variable) => [variable.name, variable]));
-  const assigned = new Set<string>();
-  const groups: DataReviewSectionGroup[] = [];
-  const groupByVariable = new Map<string, DataReviewSectionGroup>();
-  const sortedSections = [...sections].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
-
-  for (const section of sortedSections) {
-    const sectionVars = section.variables
-      .map((name) => byName.get(name))
-      .filter((variable): variable is DataReviewVariable => Boolean(variable));
-    sectionVars.forEach((variable) => assigned.add(variable.name));
-    if (sectionVars.length === 0) continue;
-    const group = {
-      id: section.id,
-      name: section.nombre || section.id,
-      hidden: Boolean(section.oculto),
-      manual: section.manual,
-      synthetic: false,
-      variables: sectionVars,
-    };
-    groups.push(group);
-    sectionVars.forEach((variable) => groupByVariable.set(variable.name, group));
-  }
-
-  for (const variable of variables) {
-    if (assigned.has(variable.name)) continue;
-    const parentGroup = variable.dummy_parent ? groupByVariable.get(variable.dummy_parent) : undefined;
-    if (parentGroup) {
-      parentGroup.variables.push(variable);
-      assigned.add(variable.name);
-      groupByVariable.set(variable.name, parentGroup);
-      continue;
-    }
-    const configuredSection = groups.find(
-      (group) => !group.synthetic && (group.name === variable.seccion || group.id === variable.seccion),
-    );
-    if (configuredSection) {
-      configuredSection.variables.push(variable);
-      assigned.add(variable.name);
-      groupByVariable.set(variable.name, configuredSection);
-      continue;
-    }
-    const fallbackName = variable.seccion || "General";
-    const existing = groups.find((group) => group.synthetic && group.name === fallbackName);
-    if (existing) {
-      existing.variables.push(variable);
-      groupByVariable.set(variable.name, existing);
-    }
-    else {
-      const group = {
-        id: `__fallback_${fallbackName}`,
-        name: fallbackName,
-        hidden: false,
-        synthetic: true,
-        variables: [variable],
-      };
-      groups.push(group);
-      groupByVariable.set(variable.name, group);
-    }
-  }
-
-  return groups;
-}
-
-export function DataReviewPane() {
-  const [variables, setVariables] = useState<DataReviewVariable[]>([]);
-  // Lectura de la estructura del instrumento (P-M11). `silenciosa` es la que
-  // corre sola al entrar: no bloquea el botón ni pinta «Detectando…», y su
-  // resultado NO se escribe en la config (ver estructuraDeSecciones.ts).
-  const [deteccion, setDeteccion] = useState<
-    | { estado: "inactiva" }
-    | { estado: "leyendo"; silenciosa: boolean }
-    | { estado: "error"; silenciosa: boolean; mensaje: string }
-  >({ estado: "inactiva" });
-  const [seccionesDetectadas, setSeccionesDetectadas] = useState<SeccionConfig[] | null>(null);
-  const intentoAutomatico = useRef(false);
-  const lecturaVigente = useRef(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [draftVariableLabels, setDraftVariableLabels] = useState<Record<string, string>>({});
-  const [draftValueLabels, setDraftValueLabels] = useState<Record<string, Record<string, string>>>({});
-  const [draftError, setDraftError] = useState("");
+export function DataReviewPane({ fuente }: {
+  /** De qué versión de la base sale y la plantilla de Analítica, que la página pone al pie de la lista. */
+  fuente?: ReactNode;
+} = {}) {
+  const revision = useRevisionDeDatos();
+  const { variables } = revision;
+  const borrador = useBorradorDeEtiquetas(variables);
   const config = useAnaliticaStore((s) => s.config);
-  const hydrated = useAnaliticaStore((s) => s.hydrated);
   const setSecciones = useAnaliticaStore((s) => s.setSecciones);
   const renameSeccion = useAnaliticaStore((s) => s.renameSeccion);
   const toggleSeccionOculto = useAnaliticaStore((s) => s.toggleSeccionOculto);
   const setVariablesExcluidas = useAnaliticaStore((s) => s.setVariablesExcluidas);
   const toggleVariableExcluida = useAnaliticaStore((s) => s.toggleVariableExcluida);
-  const setDatosVariableLabel = useAnaliticaStore((s) => s.setDatosVariableLabel);
-  const setDatosValueLabel = useAnaliticaStore((s) => s.setDatosValueLabel);
-  const clearDatosVariable = useAnaliticaStore((s) => s.clearDatosVariable);
+  const [filtro, setFiltro] = useState<FiltroDeVariables>("todas");
+  const [consulta, setConsulta] = useState("");
   const location = useLocation();
-
-  async function load() {
-    setLoading(true);
-    setError("");
-    try {
-      const r = await apiAnaliticaDataReview();
-      setVariables(r.variables);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Lee la estructura del XLSForm. Se ESCRIBE en la config solo si la pidió el
-  // usuario o si ya hay secciones declaradas que actualizar (cambio de fuente).
-  // La lectura automática de una config sin secciones queda como vista del
-  // default del backend: antes se escribía y marcaba «sin guardar» al entrar.
-  async function detectSections(opts: { silent?: boolean } = {}) {
-    const silenciosa = Boolean(opts.silent);
-    const lectura = ++lecturaVigente.current;
-    setDeteccion({ estado: "leyendo", silenciosa });
-    try {
-      const r = await conPlazo(
-        apiAnaliticaDetectSecciones(),
-        PLAZO_DETECCION_MS,
-        `La lectura de la estructura no respondió en ${Math.round(PLAZO_DETECCION_MS / 1000)} s. Vuelve a intentarlo con "Detectar estructura".`,
-      );
-      if (lectura !== lecturaVigente.current) return;
-      const declaradas = useAnaliticaStore.getState().config.secciones;
-      const fundidas = fundirSeccionesDetectadas(r.secciones, declaradas);
-      if (!silenciosa || declaradas.length > 0) setSecciones(fundidas);
-      else setSeccionesDetectadas(fundidas);
-      setDeteccion({ estado: "inactiva" });
-    } catch (e) {
-      if (lectura !== lecturaVigente.current) return;
-      setDeteccion({ estado: "error", silenciosa, mensaje: (e as Error).message });
-    }
-  }
-
-  useEffect(() => {
-    void load();
-    function onSourceChanged() {
-      intentoAutomatico.current = false;
-      setSeccionesDetectadas(null);
-      void load();
-      void detectSections({ silent: true });
-    }
-    window.addEventListener("pulso:analitica-source-changed", onSourceChanged);
-    return () => window.removeEventListener("pulso:analitica-source-changed", onSourceChanged);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Una sola lectura automática por montaje, y solo con la config ya hidratada:
-  // antes corría con la config de la visita anterior (o la por defecto) y su
-  // resultado pisaba la recién llegada.
-  useEffect(() => {
-    if (!hydrated || loading || intentoAutomatico.current) return;
-    if (variables.length === 0 || config.secciones.length > 0) return;
-    intentoAutomatico.current = true;
-    void detectSections({ silent: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, loading, variables.length, config.secciones.length]);
-
-  // Una decisión del usuario sobre una sección (renombrar, ocultar) necesita
-  // secciones declaradas sobre las que aplicarse: si solo hay lo detectado,
-  // se escribe primero. Ese «sin guardar» sí es del usuario.
-  function materializarSecciones() {
-    const aEscribir = seccionesAMaterializar(useAnaliticaStore.getState().config.secciones, seccionesDetectadas);
-    if (aEscribir) setSecciones(aEscribir);
-  }
+  const navigate = useNavigate();
 
   // La variable del inspector vive en la dirección (`?foco=`), no en un
-  // useState: un enlace abre la misma variable y «atrás» no la pierde.
-  const navigate = useNavigate();
+  // useState: un enlace abre la misma variable y "atrás" no la pierde.
   const foco = new URLSearchParams(location.search).get("foco");
   function abrirVariable(name: string | null) {
     navigate({ pathname: location.pathname, search: conNivel(location.search, "foco", name) }, { replace: true });
   }
 
-  function setSectionVariablesIncluded(names: string[], include: boolean) {
-    const next = new Set(config.variables_excluidas);
-    for (const name of names) {
-      if (include) next.delete(name);
-      else next.add(name);
-    }
-    setVariablesExcluidas(Array.from(next));
-  }
-
-  const excluded = new Set(config.variables_excluidas);
+  const excluidas = useMemo(() => new Set(config.variables_excluidas), [config.variables_excluidas]);
   const seccionesDePantalla = useMemo(
-    () => seccionesVisibles(config.secciones, seccionesDetectadas),
-    [config.secciones, seccionesDetectadas],
+    () => seccionesVisibles(config.secciones, revision.seccionesDetectadas),
+    [config.secciones, revision.seccionesDetectadas],
   );
-  const groups = useMemo(
-    () => buildDataReviewSectionGroups(variables, seccionesDePantalla),
-    [variables, seccionesDePantalla],
-  );
-  const variableEnFoco = foco ? variables.find((variable) => variable.name === foco) ?? null : null;
-  const grupoEnFoco = variableEnFoco ? groups.find((group) => group.variables.includes(variableEnFoco)) ?? null : null;
+  const grupos = useMemo(() => buildDataReviewSectionGroups(variables, seccionesDePantalla), [variables, seccionesDePantalla]);
   // Sobre el payload completo y no sobre el grupo: si un dummy cayera en otra
   // sección, su padre se leería como ausente y avisaría en falso.
-  const padresRepartidos = useMemo(() => padresConDummies(variables), [variables]);
-  const baselineDraft = useMemo(
-    () => buildDataReviewDraft(variables, config.datos.variable_labels, config.datos.value_labels),
-    [variables, config.datos.variable_labels, config.datos.value_labels],
-  );
-  const draftReady =
-    variables.length === 0 ||
-    variables.every((variable) => Object.prototype.hasOwnProperty.call(draftVariableLabels, variable.name));
-  const currentDraft = useMemo(
-    () => (draftReady ? { variableLabels: draftVariableLabels, valueLabels: draftValueLabels } : baselineDraft),
-    [baselineDraft, draftReady, draftVariableLabels, draftValueLabels],
-  );
-  const draftStatus = useMemo(
-    () => dataReviewDraftStatus(variables, currentDraft, baselineDraft),
-    [variables, currentDraft, baselineDraft],
-  );
+  const repartidas = useMemo(() => padresConDummies(variables), [variables]);
+  const baseComun = useMemo(() => baseComunDeCasos(variables), [variables]);
+  const variableEnFoco = foco ? variables.find((v) => v.name === foco) ?? null : null;
+  const grupoEnFoco = variableEnFoco ? grupos.find((g) => g.variables.includes(variableEnFoco)) ?? null : null;
+  const bloqueadaEnFoco = grupoEnFoco ? grupoEnFoco.hidden && !grupoEnFoco.synthetic : false;
+
+  const estadoDe = (variable: (typeof variables)[number], grupo: DataReviewSectionGroup) => ({
+    incluida: !excluidas.has(variable.name) && !(grupo.hidden && !grupo.synthetic),
+    porConfirmar: variablePorConfirmar(variable, borrador.borrador, borrador.guardado),
+  });
+
   // Excluidas sobre la lista de la config, no sobre las columnas presentes: una
   // variable retirada de la base sigue excluida aunque aquí no tenga fila (U5).
   const conteo = conteoExclusion(variables, config.variables_excluidas);
-  const editedCount = useMemo(() => {
-    const varCount = Object.keys(config.datos.variable_labels ?? {}).length;
-    const valueCount = Object.values(config.datos.value_labels ?? {}).reduce(
-      (sum, labels) => sum + Object.keys(labels ?? {}).length,
-      0,
-    );
-    return varCount + valueCount;
-  }, [config.datos.variable_labels, config.datos.value_labels]);
+  const presentes = new Set(variables.map((v) => v.name));
+  const editadas = Object.keys(config.datos.variable_labels ?? {}).length
+    + Object.values(config.datos.value_labels ?? {}).reduce((suma, etiquetas) => suma + Object.keys(etiquetas ?? {}).length, 0);
+  const cifras = cifrasDeDatos(
+    {
+      total: variables.length,
+      incluidas: grupos.reduce((suma, g) => suma + g.variables.filter((v) => estadoDe(v, g).incluida).length, 0),
+      excluidas: conteo.excluidas,
+      excluidasAusentes: config.variables_excluidas.filter((n) => !presentes.has(n)).length,
+      secciones: grupos.length,
+      editadas,
+    },
+    { pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) },
+  );
 
-  useEffect(() => {
-    setDraftVariableLabels(baselineDraft.variableLabels);
-    setDraftValueLabels(baselineDraft.valueLabels);
-    setDraftError("");
-  }, [baselineDraft]);
-
-  function setDraftVariableLabel(name: string, label: string) {
-    setDraftVariableLabels((prev) => ({ ...prev, [name]: label }));
-    if (draftError) setDraftError("");
-  }
-
-  function setDraftValueLabel(name: string, code: string, label: string) {
-    setDraftValueLabels((prev) => ({
-      ...prev,
-      [name]: { ...(prev[name] ?? {}), [code]: label },
-    }));
-    if (draftError) setDraftError("");
-  }
-
-  function resetDraftVariable(name: string) {
-    const variable = variables.find((item) => item.name === name);
-    if (!variable) return;
-    setDraftVariableLabels((prev) => ({
-      ...prev,
-      [name]: dataReviewEffectiveVariableLabel(variable),
-    }));
-    setDraftValueLabels((prev) => {
-      const next = { ...prev };
-      if (dataReviewHasEditableOptions(variable)) {
-        next[name] = Object.fromEntries(
-          variable.opciones.map((option) => [option.code, dataReviewEffectiveOptionLabel(option)]),
-        );
-      } else {
-        delete next[name];
-      }
-      return next;
-    });
-    if (draftError) setDraftError("");
-  }
-
-  function confirmDraftLabels() {
-    const status = dataReviewDraftStatus(variables, currentDraft, baselineDraft);
-    if (status.emptyCount > 0) {
-      setDraftError(
-        `${status.emptyCount} etiqueta${status.emptyCount === 1 ? "" : "s"} vacía${status.emptyCount === 1 ? "" : "s"}. Completa esos campos antes de confirmar los cambios.`,
-      );
-      return;
+  function incluirVariables(names: string[], incluir: boolean) {
+    const siguiente = new Set(config.variables_excluidas);
+    for (const name of names) {
+      if (incluir) siguiente.delete(name);
+      else siguiente.add(name);
     }
-    if (status.pendingCount === 0) return;
-
-    for (const variable of variables) {
-      const draftLabel = (currentDraft.variableLabels[variable.name] ?? "").trim();
-      const baselineLabel = baselineDraft.variableLabels[variable.name] ?? "";
-      const originalLabel = dataReviewEffectiveVariableLabel(variable);
-      let changed = draftLabel !== baselineLabel;
-
-      if (dataReviewHasEditableOptions(variable)) {
-        for (const option of variable.opciones) {
-          const draftOption = (currentDraft.valueLabels[variable.name]?.[option.code] ?? "").trim();
-          const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? "";
-          if (draftOption !== baselineOption) {
-            changed = true;
-            break;
-          }
-        }
-      }
-
-      if (!changed) continue;
-      clearDatosVariable(variable.name);
-      if (draftLabel !== originalLabel) setDatosVariableLabel(variable.name, draftLabel);
-      if (dataReviewHasEditableOptions(variable)) {
-        for (const option of variable.opciones) {
-          const draftOption = (currentDraft.valueLabels[variable.name]?.[option.code] ?? "").trim();
-          if (draftOption !== dataReviewEffectiveOptionLabel(option)) {
-            setDatosValueLabel(variable.name, option.code, draftOption);
-          }
-        }
-      }
-    }
-    setDraftVariableLabels((prev) => {
-      const next = { ...prev };
-      for (const variable of variables) {
-        if (Object.prototype.hasOwnProperty.call(next, variable.name)) next[variable.name] = next[variable.name].trim();
-      }
-      return next;
-    });
-    setDraftValueLabels((prev) => {
-      const next = { ...prev };
-      for (const variable of variables) {
-        if (!next[variable.name]) continue;
-        next[variable.name] = Object.fromEntries(
-          Object.entries(next[variable.name]).map(([code, label]) => [code, label.trim()]),
-        );
-      }
-      return next;
-    });
-    setDraftError("");
+    setVariablesExcluidas(Array.from(siguiente));
   }
+
+  function cambiarSeccion(name: string, destinoId: string) {
+    revision.materializarSecciones();
+    setSecciones(moverVariableDeSeccion(useAnaliticaStore.getState().config.secciones, name, destinoId));
+  }
+
+  const listo = !revision.cargando && !revision.error;
 
   return (
-    <Panel className="pulso-data-review-panel">
-      {/* La pestaña Datos no tiene readiness propia: la del tabpanel se publica
-          al hidratar la config, antes de que llegue la revisión. Este `false`
-          anidado retiene la vista mientras carga (E15/AD6); el error es
-          terminal y publica `true`. */}
-      <div className="pulso-data-review-workbench" data-audit-ready={loading ? "false" : "true"}>
-        <div className="pulso-data-review-docbar">
-          <span className="pulso-data-review-docbar-icon" aria-hidden="true">
-            <Database size={16} />
-          </span>
-          <div className="pulso-data-review-docbar-copy">
-            <span>Producto de datos</span>
-            <strong>Revisión de etiquetas</strong>
-            <small>Variables, secciones y etiquetas que usan todos los informes.</small>
-          </div>
-          <div
-            className="pulso-data-review-command"
-            role="toolbar"
-            aria-label="Comandos de revisión de datos"
-          >
-            <CifrasPestana
-              ariaLabel="Estado de las variables y etiquetas"
-              cifras={cifrasDeDatos({
-                listo: !loading && !error,
-                incluidas: conteo.incluidas,
-                excluidas: conteo.excluidas,
-                enlaceExcluidas: (
-                  <Link
-                    to={{ pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) }}
-                    replace
-                    className="pulso-excluidas-enlace"
-                    aria-haspopup="dialog"
-                    aria-label={`${formatoConteo(conteo.excluidas)} ${conteo.excluidas === 1 ? "variable excluida" : "variables excluidas"}: ver y editar`}
-                    title="Ver y editar las variables que no salen en los entregables"
-                  >
-                    {formatoConteo(conteo.excluidas)}
-                  </Link>
-                ),
-                renombradas: editedCount,
-                sinConfirmar: draftStatus.pendingCount,
-                vacias: draftStatus.pendingCount > 0 ? draftStatus.emptyCount : 0,
-              })}
-            />
-            <PulsoButton
-              variant="primary"
-              onClick={confirmDraftLabels}
-              disabled={loading || draftStatus.pendingCount === 0}
-              title={draftStatus.pendingCount === 0 ? "No hay etiquetas por confirmar. La inclusión de variables se guarda sola." : "Validar y guardar las etiquetas editadas."}
-            >
-              <CheckCircle2 size={13} aria-hidden="true" />
-              Confirmar etiquetas
-            </PulsoButton>
-            <PulsoButton
-              variant="secondary"
-              onClick={() => void load()}
-              disabled={loading}
-            >
-              <RefreshCw size={13} className={loading ? "pulso-spin" : ""} aria-hidden="true" />
-              Actualizar
-            </PulsoButton>
-          </div>
-        </div>
-
-        {loading ? <LoadingBlock minHeight={280} label="Cargando revisión de datos…" /> : null}
-        {error ? <ErrorBlock label="No se pudo cargar la revisión" detail={error} /> : null}
-        {deteccion.estado === "error" && !deteccion.silenciosa ? (
-          <ErrorBlock label="No se pudo detectar la estructura" detail={deteccion.mensaje} />
-        ) : null}
-        {draftError ? <ErrorBlock label="No se pueden confirmar cambios" detail={draftError} /> : null}
-
-        {!loading && !error ? (
-          <section className="pulso-data-review-structure" aria-label="Estructura y variables">
-            <div className="pulso-data-review-structurebar">
-              <div className="pulso-data-review-structure-copy">
-                <strong>Estructura y variables</strong>
-                <span>Ordena secciones y decide qué etiquetas entran a reportes, bases y cruces.</span>
-              </div>
-              <div className="pulso-data-review-structure-actions">
-                <span className="pulso-data-review-structure-count">
-                  {formatoConteo(groups.length)} {groups.length === 1 ? "sección" : "secciones"}, {formatoConteo(variables.length)} {variables.length === 1 ? "variable" : "variables"}
-                </span>
-                {/* La lectura automática se anuncia aquí, discreta, y no
-                    bloquea el botón. Si falla o vence el plazo, lo dice. */}
-                {deteccion.estado === "leyendo" && deteccion.silenciosa ? (
-                  <span className="pulso-data-review-structure-reading" role="status">
-                    <RefreshCw size={11} className="pulso-spin" aria-hidden="true" />
-                    Leyendo estructura
-                  </span>
-                ) : null}
-                {deteccion.estado === "error" && deteccion.silenciosa ? (
-                  <span className="pulso-data-review-structure-reading is-error" role="status" title={deteccion.mensaje}>
-                    Estructura sin leer
-                  </span>
-                ) : null}
-                <PulsoButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => void detectSections()}
-                  disabled={deteccion.estado === "leyendo" && !deteccion.silenciosa}
-                  aria-busy={deteccion.estado === "leyendo" && !deteccion.silenciosa}
-                  title="Vuelve a leer la estructura del instrumento y conserva los renombres manuales cuando sea posible."
-                >
-                  {deteccion.estado === "leyendo" && !deteccion.silenciosa
-                    ? <RefreshCw size={12} className="pulso-spin" aria-hidden="true" />
-                    : <FolderSearch size={12} aria-hidden="true" />}
-                  Detectar estructura
-                </PulsoButton>
-              </div>
-            </div>
-            {variables.length === 0 ? (
-              <EstadoVacio
-                icono={<Database size={15} />}
-                titulo="No hay variables para revisar"
-                descripcion="Verifica la fuente activa en Carga o vuelve a preparar Analítica."
+    // La pestaña Datos no tiene readiness propia: la del tabpanel se publica al
+    // hidratar la config, antes de que llegue la revisión. Este `false` anidado
+    // retiene la vista mientras carga (E15/AD6); el error es terminal y publica `true`.
+    <div className="datos-superficie" data-audit-ready={revision.cargando ? "false" : "true"}>
+      <MesaDePestana
+        grupo="analitica/datos"
+        columnas={2}
+        cabecera={(
+          <CabeceraDeDatos
+            cifras={cifras}
+            estado={estadoDeDatos(borrador.pendientes, borrador.vacias)}
+            deteccion={revision.deteccion}
+            listo={listo}
+            onDetectar={revision.detectarSecciones}
+          />
+        )}
+        avisos={(revision.error || borrador.error || (revision.deteccion.estado === "error" && !revision.deteccion.silenciosa)) ? (
+          <div className="datos-avisos">
+            {revision.error ? (
+              <ErrorBlock
+                label="No se pudieron leer las variables de la base"
+                detail={revision.error}
+                queda="Lo que ya confirmaste sigue guardado."
+                variante="enmarcado"
+                acciones={<PulsoButton variant="secondary" onClick={revision.recargar}>Volver a leer</PulsoButton>}
               />
             ) : null}
-            {/* L28: la lista de secciones y el inspector de la variable en
-                `?foco=`. El inspector está siempre: sin variable elegida
-                contiene su propio vacío (C3) y el marco no salta (C2). */}
-            <div className="pulso-datos-mesa">
-              <div
-                className="pulso-data-review-section-list"
-                data-qa-geometry-group="analitica/data-review-sections"
-                data-qa-geometry-contract="intrinsic"
-              >
-                {groups.map((group) => (
-                  <DataReviewSection
-                    key={group.id}
-                    group={group}
-                    excluded={excluded}
-                    padresRepartidos={padresRepartidos}
-                    draftVariableLabels={draftVariableLabels}
-                    draftValueLabels={draftValueLabels}
-                    seleccionada={foco}
-                    onSeleccionar={abrirVariable}
-                    onToggleVariable={toggleVariableExcluida}
-                    onSetSectionIncluded={setSectionVariablesIncluded}
-                    onRenameSection={(id, name) => {
-                      materializarSecciones();
-                      renameSeccion(id, name);
-                    }}
-                    onToggleSectionHidden={(id, names, hide) => {
-                      materializarSecciones();
-                      toggleSeccionOculto(id);
-                      if (hide) setSectionVariablesIncluded(names, false);
-                    }}
-                    onSetVariableLabel={setDraftVariableLabel}
-                  />
-                ))}
-              </div>
-              <DatosInspector
-                variable={variableEnFoco}
-                bloqueada={grupoEnFoco ? grupoEnFoco.hidden && !grupoEnFoco.synthetic : false}
-                incluida={variableEnFoco ? !excluded.has(variableEnFoco.name) : false}
-                tieneDummies={variableEnFoco ? padresRepartidos.has(variableEnFoco.name) : false}
-                etiqueta={variableEnFoco ? draftVariableLabels[variableEnFoco.name] ?? dataReviewEffectiveVariableLabel(variableEnFoco) : ""}
-                etiquetaDeOpcion={(code) => {
-                  if (!variableEnFoco) return "";
-                  const option = variableEnFoco.opciones.find((o) => o.code === code);
-                  return draftValueLabels[variableEnFoco.name]?.[code] ?? (option ? dataReviewEffectiveOptionLabel(option) : "");
-                }}
-                editables={variableEnFoco ? dataReviewHasEditableOptions(variableEnFoco) : false}
-                hayCambios={variableEnFoco ? variableTieneCambios(variableEnFoco, draftVariableLabels, draftValueLabels, baselineDraft) : false}
-                onSetVariableLabel={setDraftVariableLabel}
-                onSetValueLabel={setDraftValueLabel}
-                onResetVariable={resetDraftVariable}
-                onCerrar={() => abrirVariable(null)}
-              />
-            </div>
-          </section>
-        ) : null}
-      </div>
-    </Panel>
-  );
-}
-
-function DataReviewSection({
-  group,
-  excluded,
-  padresRepartidos,
-  draftVariableLabels,
-  draftValueLabels,
-  seleccionada,
-  onSeleccionar,
-  onToggleVariable,
-  onSetSectionIncluded,
-  onRenameSection,
-  onToggleSectionHidden,
-  onSetVariableLabel,
-}: {
-  group: DataReviewSectionGroup;
-  excluded: Set<string>;
-  padresRepartidos: Set<string>;
-  draftVariableLabels: Record<string, string>;
-  draftValueLabels: Record<string, Record<string, string>>;
-  seleccionada: string | null;
-  onSeleccionar: (name: string) => void;
-  onToggleVariable: (name: string) => void;
-  onSetSectionIncluded: (names: string[], include: boolean) => void;
-  onRenameSection: (id: string, name: string) => void;
-  onToggleSectionHidden: (id: string, names: string[], hide: boolean) => void;
-  onSetVariableLabel: (name: string, label: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(group.name);
-  const includedInSection = group.variables.filter((variable) => !excluded.has(variable.name)).length;
-  const allIncluded = includedInSection === group.variables.length;
-  const variableNames = group.variables.map((variable) => variable.name);
-  const columnas = columnasDeDatos({
-    excluded,
-    bloqueada: group.hidden && !group.synthetic,
-    padresRepartidos,
-    etiquetaDe: (variable) => draftVariableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable),
-    detallesDe: (variable) => opcionesConDetalles(variable, draftValueLabels),
-    editables: dataReviewHasEditableOptions,
-    onToggleVariable,
-    onSetVariableLabel,
-    onAbrir: onSeleccionar,
-  });
-
-  useEffect(() => {
-    if (editing) setDraft(group.name);
-  }, [editing, group.name]);
-
-  function commitSectionName() {
-    const clean = draft.trim();
-    if (clean && clean !== group.name && !group.synthetic) onRenameSection(group.id, clean);
-    setEditing(false);
-  }
-
-  return (
-    <section className={`pulso-data-review-section${group.hidden ? " is-hidden" : ""}`}>
-      <div className="pulso-data-review-section-head">
-        <div className="pulso-data-review-section-copy">
-          <div className="pulso-data-review-section-title-row">
-            {editing && !group.synthetic ? (
-              <input
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onBlur={commitSectionName}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitSectionName();
-                  if (e.key === "Escape") setEditing(false);
-                }}
-                className="pulso-data-review-input pulso-data-review-section-input"
-              />
-            ) : (
-              <button
-                type="button"
-                disabled={group.synthetic}
-                onClick={() => setEditing(true)}
-                className="pulso-data-review-section-title"
-                title={group.synthetic ? "Sección detectada desde la variable; usa Detectar estructura para administrarla." : "Renombrar sección"}
-              >
-                {group.hidden ? <EyeOff size={13} /> : <Eye size={13} />}
-                {textoPlano(group.name)}
-              </button>
-            )}
-            {group.manual ? <span className="pulso-data-review-pill">editada</span> : null}
-            {group.synthetic ? <span className="pulso-data-review-pill">sin secciones del formulario</span> : null}
+            {revision.deteccion.estado === "error" && !revision.deteccion.silenciosa ? (
+              <ErrorBlock label="No se pudieron leer las secciones del formulario" detail={revision.deteccion.mensaje} />
+            ) : null}
+            {borrador.error ? <ErrorBlock label="No se pueden confirmar las etiquetas" detail={borrador.error} /> : null}
           </div>
-          <div className="pulso-data-review-section-meta">
-            {formatoConteo(includedInSection)}/{formatoConteo(group.variables.length)} incluidas, {group.hidden ? "sección oculta en agrupadores" : "sección visible en agrupadores"}
-          </div>
-        </div>
-
-        <div className="pulso-data-review-section-actions">
-          <PulsoButton
-            variant="secondary"
-            size="sm"
-            onClick={() => onSetSectionIncluded(variableNames, !allIncluded)}
-            disabled={group.variables.length === 0}
-            aria-label={`${allIncluded ? "Excluir variables" : "Incluir variables"} de ${textoPlano(group.name)}`}
-          >
-            {allIncluded ? <EyeOff size={12} aria-hidden="true" /> : <Eye size={12} aria-hidden="true" />}
-            {allIncluded ? "Excluir variables" : "Incluir variables"}
-          </PulsoButton>
-          {!group.synthetic ? (
-            <PulsoButton
-              variant="ghost"
-              size="sm"
-              onClick={() => onToggleSectionHidden(group.id, variableNames, !group.hidden)}
-              aria-label={`${group.hidden ? "Mostrar sección" : "Ocultar sección"} ${textoPlano(group.name)}`}
-            >
-              {group.hidden ? "Mostrar sección" : "Ocultar sección"}
-            </PulsoButton>
-          ) : null}
-        </div>
-      </div>
-
-      {/* L28: una fila de 36 px por variable (PulsoTable). La tabla mide
-          lo que declaran sus columnas y virtualiza sobre 80 filas. */}
-      <div
-        className="pulso-data-review-variable-list"
-        data-qa-geometry-group="analitica/datos-variables"
-        data-qa-geometry-contract="intrinsic"
+        ) : undefined}
       >
-        <PulsoTable
-          columnas={columnas}
-          filas={group.variables}
-          idDeFila={(variable) => variable.name}
-          ariaLabel={`Variables de ${textoPlano(group.name)}`}
-          seleccionada={seleccionada}
-          onSeleccionar={onSeleccionar}
-          altoMaximo={36 * 20 + 32}
+        {revision.cargando && variables.length === 0 ? (
+          <CargaDeBloque label="Leyendo las variables de la base" />
+        ) : (
+          <PanelDeVariables
+            grupos={grupos}
+            total={variables.length}
+            filtro={filtro}
+            consulta={consulta}
+            estadoDe={estadoDe}
+            etiquetaDe={borrador.etiquetaDe}
+            detallesDe={(v) => opcionesConDetalles(v, borrador.borrador.valueLabels)}
+            repartidas={repartidas}
+            baseComun={baseComun}
+            elegida={foco}
+            cargando={revision.cargando}
+            pie={(
+              // Los casos que cuentan, la versión de la base y la plantilla van
+              // en la banda del módulo según el plan 5.4; mientras la banda no
+              // los lleve, quedan al pie de la lista.
+              <div className="datos-pie">
+                <UniversoAnalisis />
+                {fuente ? <div className="datos-pie-fuente">{fuente}</div> : null}
+              </div>
+            )}
+            onFiltro={setFiltro}
+            onBuscar={setConsulta}
+            onIncluir={toggleVariableExcluida}
+            onIncluirSeccion={incluirVariables}
+            onRenombrarSeccion={(id, nombre) => {
+              revision.materializarSecciones();
+              renameSeccion(id, nombre);
+            }}
+            onOcultarSeccion={(id, names, ocultar) => {
+              revision.materializarSecciones();
+              toggleSeccionOculto(id);
+              if (ocultar) incluirVariables(names, false);
+            }}
+            onElegir={abrirVariable}
+            onRecargar={revision.recargar}
+          />
+        )}
+        <InspectorDeVariable
+          variable={variableEnFoco}
+          etiqueta={variableEnFoco ? borrador.etiquetaDe(variableEnFoco) : ""}
+          etiquetaDeOpcion={(code) => (variableEnFoco ? borrador.etiquetaDeOpcion(variableEnFoco, code) : "")}
+          editables={variableEnFoco ? dataReviewHasEditableOptions(variableEnFoco) : false}
+          incluida={variableEnFoco ? !excluidas.has(variableEnFoco.name) : false}
+          bloqueada={bloqueadaEnFoco}
+          repartida={variableEnFoco ? repartidas.has(variableEnFoco.name) : false}
+          seccion={grupoEnFoco ? { id: grupoEnFoco.id, nombre: grupoEnFoco.name } : null}
+          secciones={seccionesDePantalla.map((s) => ({ id: s.id, nombre: s.nombre || s.id }))}
+          hayCambios={variableEnFoco ? variableTieneCambios(variableEnFoco, borrador.borrador.variableLabels, borrador.borrador.valueLabels, borrador.guardado) : false}
+          pendientes={borrador.pendientes}
+          onEtiqueta={borrador.setEtiqueta}
+          onEtiquetaDeOpcion={borrador.setEtiquetaDeOpcion}
+          onSeccion={cambiarSeccion}
+          onRestaurar={borrador.restaurar}
+          onConfirmar={borrador.confirmar}
+          onCerrar={() => abrirVariable(null)}
         />
-      </div>
-    </section>
+      </MesaDePestana>
+    </div>
   );
-}
-
-/** Opciones con detalles de redacción (G18), contadas sin abrir el inspector. */
-function opcionesConDetalles(variable: DataReviewVariable, draftValueLabels: Record<string, Record<string, string>>) {
-  if (!dataReviewHasEditableOptions(variable)) return 0;
-  const etiqueta = (option: DataReviewVariable["opciones"][number]) =>
-    draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
-  const equivalentes = opcionesEquivalentes(variable.opciones.map((o) => ({ code: o.code, label: etiqueta(o) })));
-  return variable.opciones.filter(
-    (o) => problemasDeEtiqueta(etiqueta(o), { esOpcion: true }).length > 0 || equivalentes.has(o.code),
-  ).length;
-}
-
-/** La variable tiene algo que restaurar: borrador distinto del guardado, o guardado distinto del original. */
-function variableTieneCambios(
-  variable: DataReviewVariable,
-  draftVariableLabels: Record<string, string>,
-  draftValueLabels: Record<string, Record<string, string>>,
-  baselineDraft: DataReviewDraft,
-) {
-  const original = dataReviewEffectiveVariableLabel(variable);
-  const draft = draftVariableLabels[variable.name] ?? original;
-  const baseline = baselineDraft.variableLabels[variable.name] ?? original;
-  if (draft !== baseline || baseline !== original) return true;
-  if (!dataReviewHasEditableOptions(variable)) return false;
-  return variable.opciones.some((option) => {
-    const originalOption = dataReviewEffectiveOptionLabel(option);
-    const draftOption = draftValueLabels[variable.name]?.[option.code] ?? originalOption;
-    const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? originalOption;
-    return draftOption !== baselineOption || baselineOption !== originalOption;
-  });
-}
-
-/**
- * Cifras de la pestaña Datos con la primitiva común (P-M1). Las etiquetas
- * renombradas ya están guardadas en la config: se dice así para que no
- * contradigan al botón «Confirmar etiquetas» deshabilitado (P-M11).
- */
-function cifrasDeDatos({
-  listo,
-  incluidas,
-  excluidas,
-  enlaceExcluidas,
-  renombradas,
-  sinConfirmar,
-  vacias,
-}: {
-  listo: boolean;
-  incluidas: number;
-  excluidas: number;
-  enlaceExcluidas: JSX.Element;
-  renombradas: number;
-  sinConfirmar: number;
-  vacias: number;
-}): CifraPestana[] {
-  const cifras: CifraPestana[] = [];
-  if (listo) {
-    cifras.push({ clave: "incluidas", etiqueta: "Incluidas", valor: formatoConteo(incluidas) });
-    cifras.push({ clave: "excluidas", etiqueta: "Excluidas", valor: enlaceExcluidas, titulo: excluidas ? undefined : "Ninguna variable excluida" });
-  }
-  if (renombradas > 0) {
-    cifras.push({
-      clave: "renombradas",
-      etiqueta: "Etiquetas",
-      valor: `${formatoConteo(renombradas)} ${renombradas === 1 ? "renombrada (guardada)" : "renombradas (guardadas)"}`,
-    });
-  }
-  if (sinConfirmar > 0) {
-    cifras.push({ clave: "sin-confirmar", etiqueta: "Sin confirmar", valor: formatoConteo(sinConfirmar), tono: "alerta" });
-  }
-  if (vacias > 0) {
-    cifras.push({ clave: "vacias", etiqueta: "Vacías", valor: formatoConteo(vacias), tono: "peligro" });
-  }
-  return cifras;
 }

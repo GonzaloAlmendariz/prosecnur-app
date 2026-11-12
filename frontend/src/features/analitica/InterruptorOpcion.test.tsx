@@ -54,9 +54,9 @@ describe("tarjetas de opción de Analítica", () => {
   });
 
   it('"Incluir" de cada variable en Datos es un interruptor', () => {
-    // Desde L28 la variable es una fila de PulsoTable y «Incluir» es su primera columna.
-    const fuente = fs.readFileSync(path.join(__dirname, "panes", "datosColumnas.tsx"), "utf8");
-    const bloque = fuente.slice(fuente.indexOf('id: "incluir"'));
+    // La fila de cada variable abre con la celda "Incluir" (`datos-celda-entra`).
+    const fuente = fs.readFileSync(path.join(__dirname, "datos", "FilaDeVariable.tsx"), "utf8");
+    const bloque = fuente.slice(fuente.indexOf('className="datos-celda-entra"'));
     expect(bloque.length).toBeLessThan(fuente.length);
     expect(bloque.slice(0, 600)).toContain("<Switch");
     expect(bloque.slice(0, 600)).not.toContain('type="checkbox"');

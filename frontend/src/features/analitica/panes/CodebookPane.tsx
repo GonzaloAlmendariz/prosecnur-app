@@ -1,74 +1,55 @@
-import { useEffect, useState } from "react";
-import { BookOpen, Download, FileSpreadsheet, FileText, Info } from "lucide-react";
-import { apiAnaliticaCodebook, apiAnaliticaConfigPut, type MultiBaseResult } from "../../../api/client";
-import { PulsoButton } from "../../../components/PulsoButton";
-import { descargarDelServidor } from "../../../components/entregables/entregaArchivo";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+
+import { apiAnaliticaCodebook, apiAnaliticaConfigPut } from "../../../api/client";
 import { apiAnaliticaCodigosEspeciales, type CodigoEspecialSugerido } from "../../../api/analitica";
-import { codigoEscrito, opcionesCodigosEspeciales, textoEfecto, textoPorBase, textoUso } from "./codigosEspecialesModel";
-import { Panel } from "../../../components/Panel";
-import { formatoConteo } from "../../../lib/formatoNumero";
-import { CifrasPestana } from "../CifrasPestana";
-import { InterruptorOpcion } from "../InterruptorOpcion";
-import { useAnaliticaStore } from "../store";
-import { Section, GenerateFooter, PaneGroup } from "../PaneKit";
-import { useReporteRun } from "../useReporteRun";
+import { CabeceraDePestana } from "../../../components/procesamiento/CabeceraDePestana";
+import { MesaDePestana, PilaDeMesa } from "../../../components/procesamiento/MesaDePestana";
 import { useSession } from "../../../lib/SessionContext";
-import { Link, useLocation } from "react-router-dom";
+import { formatoConteo } from "../../../lib/formatoNumero";
+import { PROCESAMIENTO_PESTANAS } from "../../../lib/navegacion/catalogos/procesamiento";
 import { searchConPanel } from "../../../lib/navegacion/paneles";
+import { seccionesVisibles } from "../estructuraDeSecciones";
 import { PANEL_VARIABLES_EXCLUIDAS } from "../panelesAnalitica";
-import "../variablesExcluidas.css";
-import "./CodebookPane.css";
+import { useAnaliticaStore } from "../store";
+import { useReporteRun } from "../useReporteRun";
+import { buildDataReviewDraft, buildDataReviewSectionGroups, dataReviewEffectiveOptionLabel } from "../datos/borradorDeEtiquetas";
+import { baseComunDeCasos } from "../datos/modeloDeVariables";
+import { useRevisionDeDatos } from "../datos/useRevisionDeDatos";
+import { ArchivosDelLibro } from "../libro/ArchivosDelLibro";
+import { CodigosEspeciales } from "../libro/CodigosEspeciales";
+import { seccionesDelLibro } from "../libro/modeloDelLibro";
+import { PanelDelLibro, type FormatoDelLibro } from "../libro/PanelDelLibro";
+import { SeConstruyeCon } from "../libro/SeConstruyeCon";
+import { opcionesCodigosEspeciales } from "./codigosEspecialesModel";
+import { UniversoAnalisis } from "../UniversoAnalisis";
+import "../libro/libro.css";
 
-// CodebookPane. La inclusión/exclusión y los labels confirmados viven en
-// Datos / Revisión de data. Este panel genera el diccionario y el XLSForm
-// final de la misma corrida para que ambos queden sincronizados. El XLSForm
-// final acompaña al libro en Excel al pie de su contenedor de archivo
-// (ADR 0133, fase 5): ya no hay enlace aparte que pida un segundo clic.
+// Analítica › Libro de códigos con la forma del prototipo (panel "Libro de
+// códigos" de "Analítica, Entrega"): la cabecera de la pestaña con sus cifras;
+// al centro, las variables que entran al libro con el formato y "Generar"; a la
+// izquierda, los códigos especiales; a la derecha, de qué se construye y los
+// archivos. La
+// inclusión y las etiquetas se deciden en Datos; el XLSForm final se genera en
+// la misma corrida que el Excel.
 
-export function CodebookPane() {
-  const codebook = useAnaliticaStore((s) => s.config.codebook);
+export function CodebookPane({ fuente }: {
+  /** De qué versión de la base sale y la plantilla de Analítica, que la página pone en "Se construye con". */
+  fuente?: ReactNode;
+} = {}) {
   const config = useAnaliticaStore((s) => s.config);
   const setCodebook = useAnaliticaStore((s) => s.setCodebook);
-  const colorRecods = useAnaliticaStore((s) => s.config.color_recodificaciones);
   const setColorRecodificaciones = useAnaliticaStore((s) => s.setColorRecodificaciones);
-  // AnaliticaPage no monta las pestañas hasta hidratar la config, así que este
-  // conteo ya es el de la base activa y no el default vacío (U6).
-  const excluidasCount = useAnaliticaStore((s) => new Set(s.config.variables_excluidas).size);
-  const location = useLocation();
-  const hrefExcluidas = { pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) };
-  const run = useReporteRun("Libro de códigos", { articulo: "el", formato: "xlsx" });
+  const revision = useRevisionDeDatos();
+  const runExcel = useReporteRun("Libro de códigos", { articulo: "el", formato: "xlsx" });
   const runPdf = useReporteRun("Libro de códigos en PDF", { articulo: "el", formato: "pdf" });
+  const [formato, setFormato] = useState<FormatoDelLibro>("xlsx");
   const { state } = useSession();
-
-  const codes = codebook.codigos_solo_si_presentes;
-  const fuenteLabel = state?.analitica_fuente?.startsWith("adaptados") ? "Codificada" : "Original";
-
-  function toggle(n: number) {
-    setCodebook({
-      codigos_solo_si_presentes: codes.includes(n)
-        ? codes.filter((x) => x !== n)
-        : [...codes, n].sort((a, b) => a - b),
-    });
-  }
-
-  async function onGenerate() {
-    await run.runSync(async () => {
-      await apiAnaliticaConfigPut(config);
-      return apiAnaliticaCodebook();
-    });
-  }
-
-  async function onGeneratePdf() {
-    await runPdf.runSync(async () => {
-      await apiAnaliticaConfigPut(config);
-      return apiAnaliticaCodebook({ formato: "pdf" });
-    });
-  }
+  const location = useLocation();
 
   // Sugerencias del estudio, no una lista fija: los códigos especiales que traen
   // los instrumentos, con su etiqueta, más los ya marcados.
   const [sugeridos, setSugeridos] = useState<CodigoEspecialSugerido[] | null>(null);
-  const [nuevoCodigo, setNuevoCodigo] = useState("");
   useEffect(() => {
     let vivo = true;
     apiAnaliticaCodigosEspeciales()
@@ -76,194 +57,112 @@ export function CodebookPane() {
       .catch(() => { if (vivo) setSugeridos([]); });
     return () => { vivo = false; };
   }, []);
-  const codigosMeta = opcionesCodigosEspeciales(sugeridos ?? [], codes);
-  const agregarCodigo = () => {
-    const n = codigoEscrito(nuevoCodigo);
-    if (n === null) return;
-    if (!codes.includes(n)) toggle(n);
-    setNuevoCodigo("");
-  };
 
+  const codes = config.codebook.codigos_solo_si_presentes;
+  const codigos = opcionesCodigosEspeciales(sugeridos ?? [], codes);
+  function alternarCodigo(n: number) {
+    setCodebook({
+      codigos_solo_si_presentes: codes.includes(n) ? codes.filter((x) => x !== n) : [...codes, n].sort((a, b) => a - b),
+    });
+  }
+
+  // Lo que entra: las variables incluidas de Datos, con las etiquetas que la config ya guarda.
+  const excluidas = useMemo(() => new Set(config.variables_excluidas), [config.variables_excluidas]);
+  const guardado = useMemo(
+    () => buildDataReviewDraft(revision.variables, config.datos.variable_labels, config.datos.value_labels),
+    [revision.variables, config.datos.variable_labels, config.datos.value_labels],
+  );
+  const grupos = useMemo(
+    () => buildDataReviewSectionGroups(revision.variables, seccionesVisibles(config.secciones, revision.seccionesDetectadas)),
+    [revision.variables, config.secciones, revision.seccionesDetectadas],
+  );
+  const secciones = seccionesDelLibro(grupos, (v, g) => !excluidas.has(v.name) && !(g.hidden && !g.synthetic));
+  const enElLibro = secciones.reduce((suma, s) => suma + s.variables.length, 0);
+  const version = state?.analitica_fuente?.startsWith("adaptados") ? "Codificada" : "Cargada";
+  const listasConOrden = Object.keys(config.orden_categorias ?? {}).length;
+  const indices = config.dimensiones?.indices?.length ?? 0;
+  const total = formatoConteo(revision.variables.length);
+  const leida = !revision.cargando && !revision.error;
+
+  async function generar() {
+    const run = formato === "pdf" ? runPdf : runExcel;
+    await run.runSync(async () => {
+      await apiAnaliticaConfigPut(config);
+      return formato === "pdf" ? apiAnaliticaCodebook({ formato: "pdf" }) : apiAnaliticaCodebook();
+    });
+  }
+
+  const meta = PROCESAMIENTO_PESTANAS.analitica.find((p) => p.key === "codebook") ?? PROCESAMIENTO_PESTANAS.analitica[0];
   return (
-    <Panel className="analitica-codebook-panel">
-      {/* C1: barra, avisos y secciones del libro son bloques independientes. */}
-      <div
-        className="analitica-report-shell analitica-codebook-workbench"
-        data-qa-geometry-group="analitica/codebook-workbench"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="analitica-codebook-docbar">
-          <span className="analitica-codebook-docbar-icon" aria-hidden="true">
-            <BookOpen size={16} />
-          </span>
-          <div className="analitica-codebook-docbar-copy">
-            <span>Producto documental</span>
-            <strong>Libro de códigos</strong>
-            <small>Diccionario sincronizado con etiquetas confirmadas y XLSForm final.</small>
-          </div>
-          <CifrasPestana
-            ariaLabel="Estado del libro de códigos"
-            cifras={[
-              { etiqueta: "Fuente", valor: fuenteLabel },
-              { etiqueta: "Códigos especiales", valor: formatoConteo(codes.length) },
+    // La lectura de las variables retiene la vista con la carga del bloque (CargaDeBloque) en el panel del libro.
+    <div className="libro-superficie">
+      <MesaDePestana
+        grupo="analitica/libro"
+        columnas={3}
+        cabecera={(
+          <CabeceraDePestana
+            seccion="Analítica"
+            titulo={meta.label}
+            icono={meta.icon}
+            ariaCifras="Cifras del libro de códigos"
+            cifrasPendientes="Estado del archivo (al día, desactualizado): la app no guarda cuándo se generó el libro"
+            cifras={leida ? [
+              { clave: "variables", valor: formatoConteo(enElLibro), base: total, rotulo: "variables en el libro", rango: 1 },
+              { clave: "secciones", valor: formatoConteo(secciones.length), rotulo: secciones.length === 1 ? "sección" : "secciones" },
               {
-                etiqueta: "Excluidas",
-                valor: (
-                  <Link
-                    to={hrefExcluidas}
-                    replace
-                    className="pulso-excluidas-enlace"
-                    aria-haspopup="dialog"
-                    aria-label={`${formatoConteo(excluidasCount)} ${excluidasCount === 1 ? "variable excluida" : "variables excluidas"}: ver y editar`}
-                  >
-                    {formatoConteo(excluidasCount)}
-                  </Link>
-                ),
+                clave: "excluidas",
+                valor: formatoConteo(excluidas.size),
+                rotulo: excluidas.size === 1 ? "excluida" : "excluidas",
+                enlace: { pathname: location.pathname, search: searchConPanel(location.search, PANEL_VARIABLES_EXCLUIDAS) },
+                titulo: "Abre la lista de variables que no salen en los entregables",
+              },
+            ] : []}
+          />
+        )}
+      >
+        <CodigosEspeciales opciones={codigos} leyendo={sugeridos === null} onAlternar={alternarCodigo} />
+        <PanelDelLibro
+          secciones={secciones}
+          etiquetaDe={(v) => guardado.variableLabels[v.name] ?? v.name}
+          etiquetaDeOpcion={(v, code) => {
+            const opcion = v.opciones.find((o) => o.code === code);
+            return guardado.valueLabels[v.name]?.[code] ?? (opcion ? dataReviewEffectiveOptionLabel(opcion) : "");
+          }}
+          baseComun={baseComunDeCasos(revision.variables)}
+          cargando={revision.cargando}
+          error={revision.error}
+          formato={formato}
+          generando={(formato === "pdf" ? runPdf : runExcel).generacion.estado.fase === "en_curso"}
+          colorRecods={config.color_recodificaciones}
+          onFormato={setFormato}
+          onGenerar={() => void generar()}
+          onColorRecods={() => setColorRecodificaciones(!config.color_recodificaciones)}
+        />
+        <PilaDeMesa grupo="analitica/libro-lateral">
+          <SeConstruyeCon
+            dependencias={[
+              // La versión de la base y la plantilla van en la banda del módulo según el plan 5.4;
+              // mientras la banda no las lleve, quedan aquí, junto a lo que el libro usa.
+              { clave: "base", titulo: "Versión de la base", detalle: fuente ?? version },
+              { clave: "casos", titulo: "Casos que cuentan", detalle: <UniversoAnalisis /> },
+              { clave: "etiquetas", titulo: "Etiquetas y secciones", detalle: leida ? `Datos, ${formatoConteo(enElLibro)} incluidas` : "Datos", pestana: "datos" },
+              {
+                clave: "orden",
+                titulo: "Orden de categorías",
+                detalle: listasConOrden === 0 ? "Como en el formulario" : `${formatoConteo(listasConOrden)} ${listasConOrden === 1 ? "lista con orden propio" : "listas con orden propio"}`,
+                pestana: "orden",
+              },
+              {
+                clave: "dimensiones",
+                titulo: "Dimensiones",
+                detalle: indices === 0 ? "Sin índices declarados" : `${formatoConteo(indices)} ${indices === 1 ? "índice" : "índices"}`,
+                pestana: "dimensiones",
               },
             ]}
           />
-        </div>
-
-        <div className="analitica-codebook-info">
-          <Info size={14} />
-          <div>
-            Usa la fuente <strong>{fuenteLabel}</strong> con las exclusiones y etiquetas confirmadas en <strong>Datos</strong>; el <strong>XLSForm final</strong> se genera en la misma corrida.
-          </div>
-        </div>
-
-        <Section
-          title="Códigos especiales"
-          subtitle={<>
-            Códigos como "No sabe" o "No responde" que aparecen en las preguntas del estudio. Si marcas uno, el libro lo muestra en cada pregunta solo cuando alguien lo eligió.
-          </>}
-        >
-          <div className="analitica-codebook-code-grid">
-            {sugeridos === null && <span className="analitica-codebook-code-nota">Revisando las preguntas del estudio…</span>}
-            {sugeridos !== null && codigosMeta.length === 0 && (
-              <span className="analitica-codebook-code-nota">Las preguntas del estudio no usan códigos de este tipo.</span>
-            )}
-            {codigosMeta.map((c) => (
-              <label
-                key={c.code}
-                title={[
-                  c.ambiguo ? `Etiquetas según la pregunta: ${[c.label, ...c.otras].join(" / ")}. Si lo marcas, se aplica en todas.` : c.label,
-                  textoPorBase(c),
-                ].filter(Boolean).join("\n")}
-                className={`analitica-codebook-code ${c.marcado ? "is-active" : ""} ${c.origen === "configurado" ? "is-ajeno" : ""} ${c.ambiguo ? "is-ambiguo" : ""}`}
-              >
-                <input type="checkbox" checked={c.marcado} onChange={() => toggle(c.code)} />
-                <code>{c.code}</code>
-                <span className="analitica-codebook-code-cuerpo">
-                  <span className="analitica-codebook-code-nombre">
-                    <span>{c.label}</span>
-                    {c.otras.length > 0 && <small className="analitica-codebook-code-otras">+{c.otras.length}</small>}
-                  </span>
-                  {textoUso(c) && <small className="analitica-codebook-code-uso" title={textoPorBase(c)}>{textoUso(c)}</small>}
-                  {textoEfecto(c) && <small className="analitica-codebook-code-efecto">{textoEfecto(c)}</small>}
-                </span>
-              </label>
-            ))}
-          </div>
-          <div className="analitica-codebook-code-agregar">
-            <input
-              value={nuevoCodigo}
-              inputMode="numeric"
-              placeholder="Código"
-              aria-label="Agregar otro código"
-              onChange={(e) => setNuevoCodigo(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") agregarCodigo(); }}
-            />
-            <button type="button" className="analitica-codebook-code-agregar-btn" disabled={codigoEscrito(nuevoCodigo) === null} onClick={agregarCodigo}>
-              Agregar
-            </button>
-          </div>
-        </Section>
-
-        <Section
-          title="Presentación de recodificaciones"
-          subtitle={<>
-            Marca visualmente las variables recodificadas en los entregables para ubicarlas de un vistazo. Afecta el instrumento, la base de datos y el libro de códigos.
-          </>}
-        >
-          <div className="analitica-control-grid">
-            <InterruptorOpcion
-              checked={colorRecods}
-              onToggle={() => setColorRecodificaciones(!colorRecods)}
-              titulo="Resaltar recodificaciones con color"
-              descripcion="Pinta las variables recodificadas con un color de fondo en el instrumento, la base de datos y el libro de códigos."
-            />
-          </div>
-        </Section>
-
-        {excluidasCount > 0 && (
-          <div className="analitica-codebook-note">
-            {/* Un bloque y no texto suelto: así la línea entera es el contenido
-                medido y la nota no declara capacidad que no tiene (C3). */}
-            <div>
-              Este reporte omite <strong>{excluidasCount}</strong> {excluidasCount === 1 ? "variable excluida" : "variables excluidas"}.{" "}
-              <Link to={hrefExcluidas} replace className="pulso-excluidas-enlace" aria-haspopup="dialog">
-                Ver y editar las excluidas
-              </Link>
-            </div>
-          </div>
-        )}
-
-        <PaneGroup
-          label="Libro de códigos"
-          hint="El diccionario del estudio, en Excel para análisis o en PDF para leer e imprimir."
-        >
-          <Section
-            title={
-              <span className="analitica-inline-title">
-                <FileSpreadsheet size={14} /> Excel (.xlsx)
-              </span>
-            }
-            subtitle="Editable, para análisis. Genera además el XLSForm final sincronizado en la misma corrida."
-          >
-            <GenerateFooter
-              label="Generar Excel"
-              run={run}
-              onGenerate={onGenerate}
-              pie={<XlsformFinalAlPie result={run.lastResult?.xlsform} />}
-            />
-          </Section>
-
-          <Section
-            title={
-              <span className="analitica-inline-title">
-                <FileText size={14} /> PDF
-              </span>
-            }
-            subtitle="Para leer, imprimir y compartir. Usa la misma fuente y exclusiones que el Excel."
-          >
-            <GenerateFooter
-              label="Generar PDF"
-              run={runPdf}
-              onGenerate={onGeneratePdf}
-            />
-          </Section>
-        </PaneGroup>
-      </div>
-    </Panel>
-  );
-}
-
-/** El XLSForm final de la misma corrida: un botón neutro al pie del libro en Excel (el ZIP si hay varias bases). */
-function XlsformFinalAlPie({ result }: { result?: MultiBaseResult }) {
-  const fileId = result?.zip?.file_id ?? result?.file_id;
-  if (!fileId) return null;
-  const filename = result?.zip?.filename ?? result?.filename ?? "xlsform_final.xlsx";
-  return (
-    <div className="analitica-per-base-list" role="group" aria-label="XLSForm final">
-      <PulsoButton
-        variant="secondary"
-        size="sm"
-        className="pulso-entregable-texto"
-        title={filename}
-        onClick={() => descargarDelServidor(fileId, filename)}
-      >
-        <Download size={12} aria-hidden="true" /> XLSForm final
-      </PulsoButton>
+          <ArchivosDelLibro excel={runExcel} pdf={runPdf} />
+        </PilaDeMesa>
+      </MesaDePestana>
     </div>
   );
 }

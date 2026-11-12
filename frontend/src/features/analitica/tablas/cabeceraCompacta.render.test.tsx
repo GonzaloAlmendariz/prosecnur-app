@@ -125,12 +125,12 @@ describe("cabecera de las pestañas con vista previa", () => {
   });
 
   it("las demás pestañas llevan la cabecera común del kit, con la banda de casos debajo y la fuente en las acciones", async () => {
-    await montar("datos");
+    await montar("dimensiones");
     const tabHeading = cabeceraDeLaPagina()?.querySelector<HTMLElement>(".pulso-tab-heading");
     // Plan 4.7: la cabecera del kit (`CabeceraDePestana`), con el antetítulo "Analítica" y sin "pestaña n de m".
     expect(cabeceraDeLaPagina()?.querySelector(".pulso-cabecera-pestana")).not.toBeNull();
     expect(tabHeading?.querySelector(".pulso-tab-heading-eyebrow")?.textContent).toBe("Analítica");
-    expect(tabHeading?.querySelector("h2")?.textContent).toBe("Datos");
+    expect(tabHeading?.querySelector("h2")?.textContent).toBe("Dimensiones");
     expect(cabeceraDeLaPagina()?.textContent).not.toMatch(/[Pp]estaña \d+ de \d+/);
     expect(tabHeading?.querySelector(".pulso-cabecera-pestana-acciones .pulso-analitica-sourcebar")).not.toBeNull();
     expect(cabeceraDeLaPagina()?.querySelector(":scope > .pulso-analitica-universo-banda .pulso-universo")).not.toBeNull();

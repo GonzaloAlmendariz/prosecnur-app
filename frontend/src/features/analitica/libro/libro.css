@@ -1,0 +1,299 @@
+/* Analítica › Libro de códigos con la forma del prototipo (panel "Libro de
+   códigos" de "Analítica, Entrega"). La cabecera, la mesa y los paneles son del
+   kit; aquí van la tabla de variables, las dependencias, los códigos especiales
+   y los archivos. Sin cajas propias: los marcos son los del Panel. */
+
+.libro-superficie {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------- Libro de códigos ---------- */
+
+.libro-formato {
+  flex: none;
+}
+
+.libro-hoja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-5);
+}
+
+.libro-hoja h4 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.libro-hoja > p {
+  margin: 0 0 var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.libro-hoja > .libro-error {
+  color: var(--pulso-danger-fg, var(--pulso-warn-fg));
+}
+
+.libro-tabla {
+  --libro-columnas: minmax(96px, 136px) minmax(0, 1.4fr) 92px minmax(0, 1fr) 76px;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.libro-tabla-cabecera {
+  position: sticky;
+  z-index: 1;
+  inset-block-start: 0;
+}
+
+.libro-fila {
+  display: grid;
+  grid-template-columns: var(--libro-columnas);
+  column-gap: var(--pulso-space-3);
+  align-items: center;
+  min-height: 44px;
+  padding-block: var(--pulso-space-2);
+  padding-inline: var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+.libro-grupo:last-child .libro-fila:last-child {
+  border-bottom: 0;
+}
+
+.libro-fila > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.libro-fila--cabecera {
+  min-height: 36px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.libro-fila--cabecera small,
+.libro-n small {
+  color: var(--pulso-text-faint);
+  font-size: inherit;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.libro-seccion {
+  padding: var(--pulso-space-2) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.libro-codigo {
+  display: inline-block;
+  max-inline-size: 100%;
+  padding: 0 6px;
+  border-radius: var(--pulso-control-radius);
+  background: var(--pulso-surface-3);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.6;
+}
+
+.libro-tipo {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.libro-codigos {
+  color: var(--pulso-text-soft);
+}
+
+.libro-n {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.libro-fila--cabecera .libro-n small {
+  display: block;
+}
+
+.libro-recods {
+  flex: 1 1 auto;
+}
+
+/* ---------- Se construye con ---------- */
+
+.libro-deps {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-5);
+  list-style: none;
+}
+
+.libro-deps li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--pulso-space-3);
+  padding-block: var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.libro-deps li:last-child {
+  border-bottom: 0;
+}
+
+.libro-deps-punto {
+  margin-block-start: 7px;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--pulso-text-faint);
+}
+
+.libro-deps li > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.libro-deps b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.libro-deps li > div > span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.libro-deps-ir {
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-decoration: none;
+}
+
+.libro-deps-ir:hover {
+  text-decoration: underline;
+}
+
+.libro-deps-ir:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+}
+
+/* La barra de fuente del módulo y los casos que cuentan, sin su caja. */
+.libro-deps-control {
+  margin-block-start: var(--pulso-space-1);
+}
+
+.libro-deps-control .pulso-analitica-sourcebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.libro-deps-control .pulso-analitica-sourcebar > * {
+  flex: none;
+  min-width: 0;
+  max-width: none;
+}
+
+.libro-deps-control .pulso-analitica-source-actions {
+  margin: 0;
+}
+
+/* ---------- Códigos especiales ---------- */
+
+.libro-codigos-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-5) var(--pulso-space-4);
+}
+
+.libro-codigos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+.libro-codigos-agregar {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.libro-codigos-agregar .pulso-input {
+  inline-size: 96px;
+}
+
+.libro-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* ---------- Archivos ---------- */
+
+.libro-archivos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--pulso-space-1) var(--pulso-space-5);
+  list-style: none;
+}
+
+.libro-archivo {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding-block: var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.libro-archivo:last-child {
+  border-bottom: 0;
+}
+
+.libro-archivo--activo {
+  display: block;
+}
+
+.libro-archivo > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.libro-archivo > div > b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.libro-archivo > div > span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
