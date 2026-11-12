@@ -165,9 +165,10 @@ test_that("cambiar una decisión deja los archivos desactualizados, no sin gener
     expect_identical(arch[[k]]$estado, "desactualizado")
     expect_identical(unlist(arch[[k]]$causas), "cambiaron_las_decisiones")
   }
-  # La base vigente ya es la limpia: la cadena prevista lo avisa.
-  avisos <- vapply(c$cadena_casos$avisos, `[[`, "", "codigo")
-  expect_true("base_vigente_ya_limpia" %in% avisos)
+  # La base vigente ya es la limpia: la cadena prevista se mide sobre la
+  # recibida (ronda 3); el aviso queda para cuando no se puede leer.
+  expect_identical(c$cadena_casos$medida_sobre, "base_recibida")
+  expect_identical(c$cadena_casos$recibidos, 10L)
 })
 
 test_that("la cadena encadena depuración externa y filtro de pruebas, y avisa si no cuadra", {
@@ -309,4 +310,37 @@ test_that("si el filtro de pruebas no se puede leer, la cadena lo avisa y no sup
   # Lo medido sigue publicado.
   expect_identical(cad$excluidos_en_limpieza, 6L)
   expect_identical(cad$cuentan, 4L)
+})
+
+# ---- Ronda 3 (QA_V4_CIERRE H1) ----------------------------------------------
+
+test_that("con cambios sin cerrar, la cadena y el efecto se miden sobre la base recibida", {
+  dir <- withr::local_tempdir()
+  sid <- .cr_sesion(dir)
+  withr::defer(session_delete(sid))
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/finalize", query = "base_nombre=Personas")
+  d4 <- validacion_scope_get(sid, "Personas", "limpieza_draft")[[4]]
+  .m1_http(.m1_router(), sid, "POST", "/api/validacion/v2/limpieza/decision",
+           body = sprintf('{"id":"%s","source_id":"RC_004","action_type":"ignore_rule","status":"ready","rationale":"Otro motivo","base_nombre":"Personas"}', d4$id))
+  c <- .cr_get(sid)$cierre
+  expect_identical(c$estado, "abierta")
+  cad <- c$cadena_casos
+  expect_true(cad$base_promovida)
+  expect_identical(cad$recibidos, 10L)
+  expect_identical(cad$excluidos_en_limpieza, 6L)
+  expect_identical(cad$cuentan, 4L)
+  expect_true(cad$cuadra)
+  expect_identical(cad$medida_sobre, "base_recibida")
+  expect_false("base_vigente_ya_limpia" %in% vapply(cad$avisos, `[[`, "", "codigo"))
+  por_id <- stats::setNames(c$decisiones_aplicadas$decisiones,
+                            vapply(c$decisiones_aplicadas$decisiones, `[[`, "", "source_id"))
+  expect_identical(por_id$RC_001$efecto, "excluye")
+  expect_identical(por_id$RC_001$n_filas_excluidas, 3L)
+  expect_identical(c$decisiones_aplicadas$totales$n_casos_excluidos, 6L)
+  # Sin la base recibida en la sesión, se mide sobre la vigente y se avisa.
+  src <- session_get(sid)$estudio$bases$Personas$limpieza$source_data_file_id
+  s <- session_get(sid); s$files[[src]] <- NULL; .session_env[[sid]] <- s
+  cad2 <- .cr_get(sid)$cierre$cadena_casos
+  expect_identical(cad2$medida_sobre, "base_vigente")
+  expect_true("base_vigente_ya_limpia" %in% vapply(cad2$avisos, `[[`, "", "codigo"))
 })

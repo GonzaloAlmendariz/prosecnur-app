@@ -204,7 +204,7 @@
 # si la resta llega a esa cifra. Un tramo que no se puede medir va NA con su
 # causa en `avisos`; la cadena no se completa con supuestos.
 .limpieza_cadena_casos <- function(cifras, universo = NULL, linaje = NULL, cerrada = FALSE,
-                                   error_universo = NULL) {
+                                   error_universo = NULL, medida_sobre = "base_vigente") {
   avisos <- list()
   avisar <- function(codigo, texto) avisos[[length(avisos) + 1L]] <<- list(codigo = codigo, texto = texto)
   int1 <- function(x) suppressWarnings(as.integer(x %||% NA_integer_))[1L]
@@ -220,7 +220,7 @@
       base_limpieza <- antes
       excluidos <- antes - despues
     }
-  } else if (!isTRUE(cerrada) && promovida) {
+  } else if (!isTRUE(cerrada) && promovida && !identical(medida_sobre, "base_recibida")) {
     avisar("base_vigente_ya_limpia", paste(
       "La base vigente es la limpia del cierre anterior: las cifras previstas",
       "se miden sobre ella y no cuentan las exclusiones de ese cierre."))
@@ -285,6 +285,9 @@
     filtro_de_pruebas = filtro,
     depuracion_externa = externo,
     base_promovida = promovida,
+    # Sobre qué base se midió la vista previa: "base_recibida" cuando la base
+    # vigente ya es la limpia de un cierre anterior y se pudo leer la recibida.
+    medida_sobre = if (isTRUE(cerrada)) NA_character_ else medida_sobre,
     base = "casos de la tabla principal de la base; proporción sobre los recibidos",
     avisos = avisos
   )
@@ -392,6 +395,14 @@ limpieza_cierre_resumen <- function(sid, base_nombre, scope, preview, draft) {
   linaje <- if (!is.null(sid)) .limpieza_linaje_vigente(sid, base_nombre) else NULL
   cerrada <- nzchar(calc_str(artifacts$finalized_at, "")) && !.limpieza_promocion_revertida(linaje)
   guardadas <- artifacts$cierre_cifras
+  # Con cambios sin cerrar y la base todavía promovida, la vista previa del
+  # builder se mide sobre la base limpia: la cadena y el efecto por decisión se
+  # miden de nuevo sobre la base recibida (ronda 3).
+  medida_sobre <- "base_vigente"
+  if (!cerrada && isTRUE((linaje %||% list())$enabled) && !is.null(sid)) {
+    recibida <- .limpieza_vista_previa_recibida(sid, base_nombre, scope, linaje)
+    if (!is.null(recibida)) { preview <- recibida; medida_sobre <- "base_recibida" }
+  }
   cifras <- if (cerrada && !is.null(guardadas)) guardadas
             else if (!cerrada && !is.null(preview)) .limpieza_cierre_cifras(preview, draft)
             else NULL
@@ -406,7 +417,8 @@ limpieza_cierre_resumen <- function(sid, base_nombre, scope, preview, draft) {
     cerrada_en = if (cerrada) calc_str(artifacts$finalized_at, NA_character_) else NA_character_,
     causa_sin_cifras = sin_cifras,
     cadena_casos = if (is.null(cifras)) NA else .limpieza_cadena_casos(cifras, universo$universo, linaje, cerrada,
-                                                                        error_universo = universo$error),
+                                                                        error_universo = universo$error,
+                                                                        medida_sobre = medida_sobre),
     decisiones_aplicadas = aplicadas %||% NA,
     archivos = if (is.null(sid)) list() else limpieza_archivos_cierre(sid, base_nombre, scope)
   )
@@ -512,4 +524,41 @@ limpieza_cierre_resumen <- function(sid, base_nombre, scope, preview, draft) {
     NULL
   })
   list(universo = universo, error = error)
+}
+
+# ---- Ronda 3 -------------------------------------------------------------------
+
+# Vista previa de las decisiones sobre la base recibida (`linaje$source_data_file_id`,
+# la anterior a la promoción), con las mismas funciones que
+# `.limpieza_simulate()`: lectura con fila de origen, cuenta de antes,
+# aplicación de las decisiones listas y filtro de caso válido para "cuentan".
+# Solo lo que usan la cadena y las decisiones aplicadas (sin reevaluar reglas).
+# NULL si la base recibida ya no está en la sesión o no se pudo leer: entonces
+# se mide sobre la vigente y la cadena avisa `base_vigente_ya_limpia`.
+.limpieza_vista_previa_recibida <- function(sid, base_nombre, scope, linaje) {
+  s <- session_get(sid, required = FALSE)
+  src <- calc_str(linaje$source_data_file_id, "")
+  meta <- if (is.null(s) || !nzchar(src)) NULL else s$files[[src]]
+  if (is.null(meta) || !file.exists(calc_str(meta$path, ""))) return(NULL)
+  tryCatch({
+    files <- .resolve_base_files(sid, base_nombre)
+    inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
+    ext <- tolower(calc_str(meta$ext, tools::file_ext(meta$path)))
+    data_raw <- read_validation_data_ast(path = meta$path, ext = ext, instrumento = inst)$principal
+    before <- .limpieza_before_medido(.limpieza_before_metrics(scope), scope, data_raw)
+    ready <- Filter(function(d) identical(as.character(d$status %||% ""), "ready"),
+                    scope$limpieza_draft %||% list())
+    aplicado <- .limpieza_apply_decisions_to_data(data_raw, scope, ready, inst = inst)
+    universo <- caso_valido_filtrar_evaluacion(aplicado$data, scope$operational_config)$data
+    list(
+      before = before,
+      after = list(filas_base = as.integer(nrow(aplicado$data)),
+                   filas_evaluadas = as.integer(nrow(universo))),
+      impact = aplicado$impact,
+      logs = list(excluded_cases = aplicado$excluded_cases, trace = aplicado$trace)
+    )
+  }, error = function(e) {
+    message(sprintf("[prosecnur-app] cierre: base recibida no leída: %s", conditionMessage(e)))
+    NULL
+  })
 }
