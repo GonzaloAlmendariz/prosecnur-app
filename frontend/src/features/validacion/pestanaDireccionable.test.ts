@@ -65,11 +65,13 @@ describe("lo elegido en la pestaña, según la dirección", () => {
       .toEqual({ familia: null, foco: "R_REQ_EDAD" });
   });
 
-  it("Hallazgos: el foco es el hallazgo, salvo que sea del detalle de transición", () => {
+  it("Hallazgos: el foco es el hallazgo, salvo con el caso abierto; el enlace viejo al detalle abre el hallazgo", () => {
     expect(seleccionDeLaDireccion({ pedida: "hallazgos", panel: null, foco: "R_1", familia: "saltos" }))
       .toEqual({ familia: null, foco: "R_1" });
-    expect(seleccionDeLaDireccion({ pedida: "hallazgos", panel: "regla", foco: "R_1", familia: null }))
+    expect(seleccionDeLaDireccion({ pedida: "hallazgos", panel: "caso", foco: "AUD-009", familia: null }))
       .toEqual({ familia: null, foco: null });
+    expect(seleccionDeLaDireccion({ pedida: "hallazgos", panel: "regla", foco: "R_1", familia: null }))
+      .toEqual({ familia: null, foco: "R_1" });
   });
 
   it("Explorar: el foco es la pregunta explorada, por su código", () => {

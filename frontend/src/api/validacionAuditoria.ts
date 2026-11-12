@@ -14,6 +14,14 @@
 // los avisos y las filas nuevas de la vista previa, `esperado`,
 // `coincide_con` y `case_ids`.
 //
+// Del motor de Hallazgos (M4, CONTRATO_VALIDACION_M4.md; commit f734c42ae):
+//   POST /api/validacion/v2/limpieza/decision/efecto  el efecto previsto de un borrador
+// y los normalizadores de la narrativa única por regla (cola, detalle, caso),
+// de a qué casos llega una decisión (`seguimiento`, `casos_nuevos`...), del
+// contexto de cada caso en el detalle y de los campos nuevos del caso
+// completo. El catálogo de reglas se vuelve a leer aquí solo para tomar sus
+// `limites`, que su normalizador (validacionCatalogo.ts) no lee.
+//
 // Plumber escribe un escalar como vector de largo uno, una lista de uno como
 // objeto suelto, `NULL` como `{}` y `NA` como `null` o "NA". Los
 // normalizadores aceptan esas formas y devuelven `null` donde el motor no dio
@@ -21,6 +29,7 @@
 
 import { apiFetch, handle, headers } from "./core";
 import { booleano, enteroONulo, escalar, lista, numeroONulo, registro, texto } from "./normalizarR";
+import { normalizarCatalogoCompleto, type CatalogoCompleto, type OrigenDeRegla, type PiezaDelCatalogo } from "./validacionCatalogo";
 
 function encabezados(baseNombre?: string | null, extra: Record<string, string> = {}): Record<string, string> {
   const h = headers(extra);
@@ -176,6 +185,7 @@ export type MotivoNoAplicable =
   | "auditoria_sin_fila_de_origen"
   | "regla_sin_casos"
   | "sin_filas_en_principal"
+  | "sin_casos_al_decidir"
   | "llave_declarada"
   | "otro";
 
@@ -185,7 +195,40 @@ const MOTIVOS: readonly MotivoNoAplicable[] = [
   "auditoria_sin_fila_de_origen",
   "regla_sin_casos",
   "sin_filas_en_principal",
+  "sin_casos_al_decidir",
 ];
+
+/**
+ * La causa en llano de que una decisión no se aplique, para escribir después
+ * de "No se aplica porque". Los mismos textos que el motor
+ * (`.limpieza_texto_no_aplicable`, limpieza_decision_engine.R), que solo los
+ * publica en el efecto previsto (`texto_no_aplicable`); en `decision_draft`
+ * llega el código.
+ */
+const TEXTO_DE_MOTIVO: Record<MotivoNoAplicable, string> = {
+  columna_ausente: "la columna que identifica los casos ya no está en la base",
+  numeracion_anterior:
+    "sus casos se guardaron por número de fila contando solo los casos válidos, y esa numeración ya no coincide con la de la base recibida",
+  auditoria_sin_fila_de_origen:
+    "la última auditoría no conserva el número de fila de la base recibida; vuelve a correr la auditoría",
+  regla_sin_casos: "la regla ya no marca casos en la última auditoría",
+  sin_filas_en_principal: "sus casos no corresponden a ninguna fila de la tabla principal",
+  sin_casos_al_decidir: "la regla no marcaba casos cuando se dio por lista",
+  llave_declarada: "la llave que identifica los casos ya no sirve",
+  otro: "el método con que se identificaron sus casos ya no sirve",
+};
+
+const TEXTO_DE_LLAVE: Record<string, string> = {
+  llave_repetida: "la llave que identifica los casos repite valores",
+  llave_con_vacios: "la llave que identifica los casos tiene filas sin valor",
+  llave_ausente: "la llave que identifica los casos ya no está en la base",
+};
+
+/** La causa de un motivo; con `llave_*` usa el código crudo, que dice cuál de las tres. */
+export function textoDeMotivoNoAplicable(motivo: MotivoNoAplicable, crudo?: string | null): string {
+  if (motivo === "llave_declarada" && crudo && TEXTO_DE_LLAVE[crudo]) return TEXTO_DE_LLAVE[crudo];
+  return TEXTO_DE_MOTIVO[motivo];
+}
 
 export type AplicabilidadDecision = {
   /** `true` si llega al menos a una fila; `false` si a ninguna; `null` si la base no tiene auditoría. */
@@ -211,6 +254,65 @@ function motivo(value: unknown): MotivoNoAplicable | null {
   if ((MOTIVOS as readonly string[]).includes(crudo)) return crudo as MotivoNoAplicable;
   if (crudo.startsWith("llave_")) return "llave_declarada";
   return "otro";
+}
+
+// --- Decisiones: a qué casos llegan (contrato M4, sección 3) -----------------
+
+/**
+ * `congelada`: cambia datos y se aplica a la lista que la regla marcaba al
+ * darla por lista; `sigue_a_la_regla`: ignorar, cubre lo que marque la última
+ * auditoría; `casos_elegidos`: nombra sus casos; `por_congelar`: borrador que
+ * cambia datos y se congela al pasar a lista; `sin_registro`: lista anterior
+ * al registro, sigue a la auditoría.
+ */
+export type SeguimientoDecision = "congelada" | "sigue_a_la_regla" | "casos_elegidos" | "por_congelar" | "sin_registro";
+
+const SEGUIMIENTOS: readonly SeguimientoDecision[] = ["congelada", "sigue_a_la_regla", "casos_elegidos", "por_congelar", "sin_registro"];
+
+/** D-F3: una decisión sobre una regla de grupo repetido llega al encuestado entero. */
+export type AlcanceDecision = "caso" | "encuestado";
+
+export type SeguimientoDeDecision = {
+  /** `null` si el motor no lo publicó (anterior a M4). */
+  seguimiento: SeguimientoDecision | null;
+  /** Casos de la lista al decidir; `null` sin lista. */
+  n_casos_al_decidir: number | null;
+  /** Solo en las congeladas: los que la regla marca hoy y no están en la lista. `null` en las demás. */
+  casos_nuevos: string[] | null;
+  /** Casos de la lista que la regla ya no marca; siguen en ella. */
+  casos_que_ya_no_marca: string[];
+  /** Casos distintos de la tabla principal a los que llega hoy. */
+  n_casos_aplicados: number | null;
+  alcance: AlcanceDecision | null;
+};
+
+function seguimientoLeido(value: unknown): SeguimientoDecision | null {
+  const t = texto(value);
+  return (SEGUIMIENTOS as readonly string[]).includes(t) ? (t as SeguimientoDecision) : null;
+}
+
+function alcanceLeido(value: unknown): AlcanceDecision | null {
+  const t = texto(value);
+  return t === "caso" || t === "encuestado" ? t : null;
+}
+
+/** `casos_nuevos` es `null` fuera de las congeladas: `null` y `[]` no son lo mismo. */
+function textosONulo(value: unknown): string[] | null {
+  if (value === null || value === undefined || value === "NA") return null;
+  return textos(value);
+}
+
+/** Lo que el motor calcula al responder sobre una decisión (M4): no se guarda. */
+export function normalizarSeguimiento(decision: unknown): SeguimientoDeDecision {
+  const r = registro(decision);
+  return {
+    seguimiento: seguimientoLeido(r.seguimiento),
+    n_casos_al_decidir: enteroONulo(r.n_casos_al_decidir),
+    casos_nuevos: textosONulo(r.casos_nuevos),
+    casos_que_ya_no_marca: textos(r.casos_que_ya_no_marca),
+    n_casos_aplicados: enteroONulo(r.n_casos_aplicados),
+    alcance: alcanceLeido(r.alcance),
+  };
 }
 
 /** Lo que el motor calcula al responder sobre una decisión de `decision_draft` (no se guarda). */
@@ -295,11 +397,15 @@ export function normalizarCaseIds(value: unknown): Array<string | null> {
 
 /**
  * El enunciado de una fila (`esperado[]`). `choque` es lo esperado y `hecho`
- * lo que respondió. `texto` sale del motor con comillas angulares y punto
- * medio: no se muestra tal cual (aviso de redacción del contrato M2).
+ * lo que respondió. Desde M4 `texto` sale con comillas rectas y sin punto
+ * medio ("AUD-009: respondió "17" en Edad, que no cumple..."); con un motor
+ * anterior traía comillas angulares, y por eso la pantalla arma la línea con
+ * `hecho` y `choque`.
  */
 export type EnunciadoEsperado = {
   anomalia_tipo: string | null;
+  /** M4: `restriccion`, `rango`, `salto_debe`, `faltante`... (contrato M4, sección 2). */
+  subtipo: string | null;
   sujeto: string | null;
   hecho: string | null;
   choque: string | null;
@@ -316,6 +422,7 @@ export function normalizarEsperado(value: unknown, nCasos: number): Array<Enunci
     const r = registro(escalar(fila));
     const enunciado: EnunciadoEsperado = {
       anomalia_tipo: textoONulo(r.anomalia_tipo),
+      subtipo: textoONulo(r.subtipo),
       sujeto: textoONulo(r.sujeto),
       hecho: textoONulo(r.hecho),
       choque: textoONulo(r.choque),
@@ -368,6 +475,149 @@ export function normalizarCoincideCon(value: unknown, nCasos: number): Array<Coi
     if (typeof fila !== "object") return null;
     return coincidencias(fila);
   });
+}
+
+// --- Una sola narrativa por regla (contrato M4, sección 1) -------------------
+
+/** La clase del catálogo; con un motor anterior se deduce del `hallazgo_kind`. */
+export type ClaseDeHallazgo = "inconsistencia" | "caso_a_revisar";
+
+/** La clase de la regla: la del catálogo o, con un motor anterior, la del `hallazgo_kind`. */
+export function claseDeHallazgo(clase: unknown, kind?: unknown): ClaseDeHallazgo | null {
+  const c = texto(clase);
+  if (c === "inconsistencia" || c === "caso_a_revisar") return c;
+  const k = texto(kind) || c;
+  if (k === "caso_validar") return "caso_a_revisar";
+  if (k.startsWith("inconsistencia")) return "inconsistencia";
+  return null;
+}
+
+const ORIGENES_DE_REGLA: readonly OrigenDeRegla[] = ["formulario", "operativo", "propia"];
+
+/** Las piezas de una frase del catálogo (`[{texto} | {pregunta, etiqueta, tipo} | {valor, codigo}]`). */
+export function normalizarFrase(value: unknown): PiezaDelCatalogo[] {
+  const crudo = (v: unknown): string => {
+    const x = escalar(v);
+    return typeof x === "string" ? x : typeof x === "number" && Number.isFinite(x) ? String(x) : "";
+  };
+  return lista(value)
+    .map((p): PiezaDelCatalogo | null => {
+      const pregunta = texto(p.pregunta);
+      if (pregunta) {
+        const etiqueta = texto(p.etiqueta);
+        const tipo = texto(p.tipo);
+        return {
+          tipo: "pregunta",
+          codigo: pregunta,
+          etiqueta: etiqueta && etiqueta !== pregunta ? etiqueta : null,
+          tipoPregunta: tipo === "unica" || tipo === "multiple" || tipo === "numerica" ? tipo : "texto",
+        };
+      }
+      if (p.valor !== undefined && p.valor !== null) return { tipo: "valor", valor: crudo(p.valor), codigo: textoONulo(p.codigo) };
+      const t = crudo(p.texto);
+      return t ? { tipo: "texto", texto: t } : null;
+    })
+    .filter((p): p is PiezaDelCatalogo => p !== null);
+}
+
+/**
+ * Nombre, frase, clase, familia y severidad de una regla, como los publica el
+ * catálogo de M3 en la cola, el detalle y el caso. Lo que el motor no dio
+ * queda en `null` (con un motor anterior a M4, todo).
+ */
+export type NarrativaDeRegla = {
+  nombre: string | null;
+  frase: PiezaDelCatalogo[];
+  frase_completa: boolean;
+  clase: ClaseDeHallazgo | null;
+  familia: string | null;
+  familia_nombre: string | null;
+  /** `formulario`, `operativo` o `propia`. En la cola, `origen` es otra cosa ("Automática"). */
+  origen_regla: OrigenDeRegla | null;
+  /** Una sola por regla, la que la regla declara; `null` si la regla no está ni en el plan ni en la auditoría. */
+  severidad: string | null;
+  /** `false` si la regla de la auditoría ya no está en el plan o el catálogo no se leyó. */
+  en_catalogo: boolean | null;
+  id_catalogo: string | null;
+};
+
+export function normalizarNarrativa(value: unknown, campoNombre: "nombre" | "nombre_regla" = "nombre"): NarrativaDeRegla {
+  const r = registro(value);
+  const origen = texto(r.origen_regla);
+  return {
+    nombre: textoONulo(r[campoNombre]),
+    frase: normalizarFrase(r.frase),
+    frase_completa: r.frase_completa === undefined || r.frase_completa === null ? true : booleano(r.frase_completa),
+    clase: claseDeHallazgo(r.clase, r.hallazgo_kind),
+    familia: textoONulo(r.familia),
+    familia_nombre: textoONulo(r.familia_nombre),
+    origen_regla: (ORIGENES_DE_REGLA as readonly string[]).includes(origen) ? (origen as OrigenDeRegla) : null,
+    severidad: textoONulo(r.severidad),
+    en_catalogo: aplicableONulo(r.en_catalogo),
+    id_catalogo: textoONulo(r.id_catalogo),
+  };
+}
+
+// --- Contexto de cada caso en el detalle (contrato M4, sección 6) ------------
+
+/** Una columna de contexto declarada; `null` si el estudio no declaró el rol (nunca se adivina por el nombre). */
+export type ColumnaDeContexto = { variable: string; etiqueta: string | null; fuente: string | null } | null;
+
+export type ColumnasDeContexto = {
+  fecha_respuesta: ColumnaDeContexto;
+  recopilador: ColumnaDeContexto;
+  fecha_envio: ColumnaDeContexto;
+  inicio: ColumnaDeContexto;
+  fin: ColumnaDeContexto;
+};
+
+/** Lo de un caso que acompaña a sus respuestas: también los `metadatos` de `GET /caso`. */
+export type ContextoDeCaso = {
+  fecha_respuesta: string | null;
+  recopilador: string | null;
+  fecha_envio: string | null;
+  /** Minutos de inicio a fin, con un decimal; `null` si falta uno o sale negativa. */
+  duracion_min: number | null;
+  n_respondidas: number | null;
+  /** Preguntas de origen respuesta con columna en la tabla. */
+  n_preguntas: number | null;
+};
+
+function columnaDeContexto(value: unknown): ColumnaDeContexto {
+  if (vacio(value)) return null;
+  const r = registro(escalar(value));
+  const variable = textoONulo(r.variable);
+  return variable ? { variable, etiqueta: textoONulo(r.etiqueta), fuente: textoONulo(r.fuente) } : null;
+}
+
+export function normalizarColumnasDeContexto(value: unknown): ColumnasDeContexto {
+  const r = registro(escalar(value));
+  return {
+    fecha_respuesta: columnaDeContexto(r.fecha_respuesta),
+    recopilador: columnaDeContexto(r.recopilador),
+    fecha_envio: columnaDeContexto(r.fecha_envio),
+    inicio: columnaDeContexto(r.inicio),
+    fin: columnaDeContexto(r.fin),
+  };
+}
+
+export function normalizarContextoDeCaso(value: unknown): ContextoDeCaso | null {
+  if (vacio(value)) return null;
+  const r = registro(escalar(value));
+  return {
+    fecha_respuesta: textoONulo(r.fecha_respuesta),
+    recopilador: textoONulo(r.recopilador),
+    fecha_envio: textoONulo(r.fecha_envio),
+    duracion_min: numeroONulo(r.duracion_min),
+    n_respondidas: enteroONulo(r.n_respondidas),
+    n_preguntas: enteroONulo(r.n_preguntas),
+  };
+}
+
+/** `contexto_por_caso` del detalle: mismo largo y orden que `casos`; `null` en la fila que no se ubicó. */
+export function normalizarContextoPorCaso(value: unknown, nCasos: number): Array<ContextoDeCaso | null> {
+  const v = Array.isArray(value) ? value : vacio(value) ? [] : [value];
+  return Array.from({ length: Math.max(0, nCasos) }, (_, i) => normalizarContextoDeCaso(v[i]));
 }
 
 // --- Auditar -----------------------------------------------------------------
@@ -556,7 +806,25 @@ export async function apiReglaProbar(
 
 // --- El caso completo --------------------------------------------------------
 
-export type OpcionMarcada = { codigo: string; etiqueta: string | null };
+export type OpcionMarcada = {
+  codigo: string;
+  etiqueta: string | null;
+  /** M4: un código especial declarado por el estudio. */
+  especial?: boolean;
+};
+
+/** M4: `respuesta`, `calculada` (`calculate`, `hidden`) o `metadato` (`start`, `end`, `deviceid`...). */
+export type OrigenDeRespuesta = "respuesta" | "calculada" | "metadato";
+
+/**
+ * M4: `respondida`; `vacia_por_salto` (su condición es falsa en el caso);
+ * `vacia` (sin condición o con la condición verdadera); `relevancia_indeterminada`
+ * (la condición no se pudo evaluar en el caso).
+ */
+export type EstadoDeRespuesta = "respondida" | "vacia_por_salto" | "vacia" | "relevancia_indeterminada";
+
+const ORIGENES_RESPUESTA: readonly OrigenDeRespuesta[] = ["respuesta", "calculada", "metadato"];
+const ESTADOS_RESPUESTA: readonly EstadoDeRespuesta[] = ["respondida", "vacia_por_salto", "vacia", "relevancia_indeterminada"];
 
 export type VariableDelCaso = {
   variable: string;
@@ -568,6 +836,14 @@ export type VariableDelCaso = {
   valor_etiqueta: string | null;
   /** En `select_multiple`, una por código marcado. */
   opciones: OpcionMarcada[];
+  /** `null` con un motor anterior a M4. */
+  origen: OrigenDeRespuesta | null;
+  estado: EstadoDeRespuesta | null;
+  /** `true` si el valor es un código especial declarado por el estudio. */
+  especial: boolean;
+  especial_etiqueta: string | null;
+  /** Preguntas de opciones: algún código no está entre ellas. `null` en las demás o sin las opciones leídas. */
+  fuera_de_opciones: boolean | null;
 };
 
 export type SeccionDelCaso = {
@@ -575,17 +851,29 @@ export type SeccionDelCaso = {
   seccion: string | null;
   etiqueta: string | null;
   variables: VariableDelCaso[];
+  /** M4: preguntas de origen respuesta, cuántas tienen valor y cuántas quedaron vacías por salto. */
+  n_preguntas: number | null;
+  n_respondidas: number | null;
+  n_vacias_por_salto: number | null;
 };
 
-export type HallazgoDelCaso = {
+/** Un registro marcado de un grupo repetido, en un hallazgo de una hija. */
+export type RegistroDelHallazgo = { fila: number | null; indice: string | null; esperado: EnunciadoEsperado | null };
+
+export type HallazgoDelCaso = NarrativaDeRegla & {
   id_regla: string;
-  nombre: string | null;
-  /** `hallazgo_kind` de la cola: `inconsistencia_xlsform`, `inconsistencia_usuario` o `caso_validar`. */
-  clase: string | null;
+  /** Desde M4, la clase del catálogo; el valor del motor (`inconsistencia_xlsform`, `caso_validar`...) va en `hallazgo_kind`. */
+  hallazgo_kind: string | null;
   tipo_regla: string | null;
   tabla: string | null;
   variables: Array<{ variable: string; etiqueta: string | null }>;
+  /** El enunciado del primer registro marcado. */
+  esperado: EnunciadoEsperado | null;
+  /** `null` en la tabla principal; en un grupo repetido, un elemento por registro marcado del encuestado. */
+  registros: RegistroDelHallazgo[] | null;
 };
+
+export type AvisoDelCaso = { codigo: string; texto: string };
 
 export type CasoCompleto = {
   id_caso: string;
@@ -601,7 +889,22 @@ export type CasoCompleto = {
   instrumento_leido: boolean;
   secciones: SeccionDelCaso[];
   hallazgos: HallazgoDelCaso[];
+  /** M4: qué columnas de contexto declaró el estudio y los datos del caso. */
+  contexto: ColumnasDeContexto;
+  metadatos: ContextoDeCaso | null;
+  codigos_especiales_declarados: Array<{ codigo: string; etiqueta: string | null }>;
+  avisos: AvisoDelCaso[];
+  catalogo_leido: boolean | null;
 };
+
+function enumerado<T extends string>(value: unknown, validos: readonly T[]): T | null {
+  const t = texto(value);
+  return (validos as readonly string[]).includes(t) ? (t as T) : null;
+}
+
+function enunciadoSuelto(value: unknown): EnunciadoEsperado | null {
+  return vacio(value) ? null : normalizarEsperado([escalar(value)], 1)[0];
+}
 
 export function normalizarCaso(value: unknown): CasoCompleto {
   const r = registro(value);
@@ -633,38 +936,196 @@ export function normalizarCaso(value: unknown): CasoCompleto {
             valor: textoONulo(v.valor),
             valor_etiqueta: textoONulo(v.valor_etiqueta),
             opciones: lista(v.opciones)
-              .map((o) => ({ codigo: textoONulo(o.codigo), etiqueta: textoONulo(o.etiqueta) }))
+              .map((o) => ({
+                codigo: textoONulo(o.codigo),
+                etiqueta: textoONulo(o.etiqueta),
+                ...(o.especial === undefined ? {} : { especial: booleano(o.especial) }),
+              }))
               .filter((o): o is OpcionMarcada => o.codigo !== null),
+            origen: enumerado(v.origen, ORIGENES_RESPUESTA),
+            estado: enumerado(v.estado, ESTADOS_RESPUESTA),
+            especial: booleano(v.especial),
+            especial_etiqueta: textoONulo(v.especial_etiqueta),
+            fuera_de_opciones: aplicableONulo(v.fuera_de_opciones),
           };
         })
         .filter((x): x is VariableDelCaso => x !== null),
+      n_preguntas: enteroONulo(s.n_preguntas),
+      n_respondidas: enteroONulo(s.n_respondidas),
+      n_vacias_por_salto: enteroONulo(s.n_vacias_por_salto),
     })),
     hallazgos: lista(r.hallazgos)
       .map((h): HallazgoDelCaso | null => {
         const idRegla = textoONulo(h.id_regla);
         if (!idRegla) return null;
+        const registros = h.registros === null || h.registros === undefined || h.registros === "NA"
+          ? null
+          : lista(h.registros).map((x) => ({
+              fila: enteroONulo(x.fila),
+              indice: textoONulo(x.indice),
+              esperado: enunciadoSuelto(x.esperado),
+            }));
         return {
+          ...normalizarNarrativa(h),
           id_regla: idRegla,
-          nombre: textoONulo(h.nombre),
-          clase: textoONulo(h.clase),
+          // Un motor anterior a M4 mandaba el valor del motor en `clase`.
+          hallazgo_kind: textoONulo(h.hallazgo_kind)
+            ?? (texto(h.clase) === "inconsistencia" || texto(h.clase) === "caso_a_revisar" ? null : textoONulo(h.clase)),
           tipo_regla: textoONulo(h.tipo_regla),
           tabla: textoONulo(h.tabla),
           variables: lista(h.variables)
             .map((v) => ({ variable: textoONulo(v.variable), etiqueta: textoONulo(v.etiqueta) }))
             .filter((v): v is { variable: string; etiqueta: string | null } => v.variable !== null),
+          esperado: enunciadoSuelto(h.esperado),
+          registros,
         };
       })
       .filter((x): x is HallazgoDelCaso => x !== null),
+    contexto: normalizarColumnasDeContexto(r.contexto),
+    metadatos: normalizarContextoDeCaso(r.metadatos),
+    codigos_especiales_declarados: lista(r.codigos_especiales_declarados)
+      .map((c) => ({ codigo: textoONulo(c.codigo), etiqueta: textoONulo(c.etiqueta) }))
+      .filter((c): c is { codigo: string; etiqueta: string | null } => c.codigo !== null),
+    avisos: lista(r.avisos)
+      .map((a) => ({ codigo: texto(a.codigo), texto: texto(a.texto) }))
+      .filter((a) => a.texto),
+    catalogo_leido: aplicableONulo(r.catalogo_leido),
   };
 }
 
 /** El caso completo de la última auditoría. 404 `E_CASO_NO_ENCONTRADO` si ningún caso tiene ese id. */
-export async function apiCaso(idCaso: string, baseNombre?: string | null): Promise<CasoCompleto> {
+export async function apiCaso(
+  idCaso: string,
+  baseNombre?: string | null,
+  opciones: { signal?: AbortSignal } = {},
+): Promise<CasoCompleto> {
   const qs = new URLSearchParams({ id: idCaso });
   const crudo = await handle<unknown>(
     await apiFetch(`/api/validacion/v2/caso?${qs.toString()}`, {
       headers: encabezados(baseNombre),
+      signal: opciones.signal,
     }),
   );
   return normalizarCaso(crudo);
+}
+
+// --- Efecto previsto de una decisión (contrato M4, sección 4) -----------------
+
+/**
+ * Lo que haría la decisión si se guardara lista, además de las demás listas.
+ * Base de las cifras: los casos evaluados en la última auditoría; nivel caso.
+ * No guarda nada ni marca el proyecto como modificado.
+ */
+export type EfectoDeDecision = SeguimientoDeDecision & {
+  accion: string | null;
+  variable: string | null;
+  /** Filas que excluye o con al menos una celda que cambia. */
+  n_filas: number | null;
+  /** Celdas que cambian (0 al excluir o ignorar). */
+  n_celdas: number | null;
+  n_casos_cuentan_antes: number | null;
+  n_casos_cuentan_despues: number | null;
+  aplicable: boolean | null;
+  motivo_no_aplicable: MotivoNoAplicable | null;
+  /** La causa en llano, del motor; si no la mandó, la de `textoDeMotivoNoAplicable`. */
+  texto_no_aplicable: string | null;
+  base_cifras: string | null;
+};
+
+export function normalizarEfecto(value: unknown): EfectoDeDecision {
+  const r = registro(value);
+  const aplicable = aplicableONulo(r.aplicable);
+  const motivoLeido = aplicable === false ? motivo(r.motivo_no_aplicable) : null;
+  const textoMotor = aplicable === false ? textoONulo(r.texto_no_aplicable) : null;
+  return {
+    ...normalizarSeguimiento(r),
+    accion: textoONulo(r.accion),
+    variable: textoONulo(r.variable),
+    n_filas: enteroONulo(r.n_filas),
+    n_celdas: enteroONulo(r.n_celdas),
+    n_casos_cuentan_antes: enteroONulo(r.n_casos_cuentan_antes),
+    n_casos_cuentan_despues: enteroONulo(r.n_casos_cuentan_despues),
+    aplicable,
+    motivo_no_aplicable: motivoLeido,
+    texto_no_aplicable: textoMotor
+      ?? (motivoLeido ? textoDeMotivoNoAplicable(motivoLeido, textoONulo(r.motivo_no_aplicable)) : null),
+    base_cifras: textoONulo(r.base_cifras),
+  };
+}
+
+/**
+ * El efecto previsto de un borrador (`POST /limpieza/decision/efecto`). El
+ * cuerpo es el mismo que guardaría `POST /limpieza/decision`. `signal` cancela
+ * el pedido anterior cuando el borrador cambia antes de la respuesta.
+ */
+export async function apiEfectoDeDecision(
+  cuerpo: Record<string, unknown>,
+  baseNombre?: string | null,
+  opciones: { signal?: AbortSignal } = {},
+): Promise<EfectoDeDecision> {
+  const crudo = await handle<unknown>(
+    await apiFetch("/api/validacion/v2/limpieza/decision/efecto", {
+      method: "POST",
+      headers: encabezados(baseNombre, { "Content-Type": "application/json" }),
+      body: JSON.stringify(cuerpo),
+      signal: opciones.signal,
+    }),
+  );
+  return normalizarEfecto(crudo);
+}
+
+// --- Catálogo con los límites de rango y restricción (contrato M3) -----------
+
+/**
+ * Los límites de una regla de rango o de restricción, como los publica el
+ * catálogo (`limites`). `null` en las demás. Los valores llegan como texto.
+ */
+export type LimitesDeRegla = {
+  tipo: string | null;
+  min: string | null;
+  max: string | null;
+  inclusive_min: boolean;
+  inclusive_max: boolean;
+  /** La restricción legible. */
+  restriccion: string | null;
+};
+
+export function normalizarLimites(value: unknown): LimitesDeRegla | null {
+  if (vacio(value)) return null;
+  const r = registro(escalar(value));
+  const limites: LimitesDeRegla = {
+    tipo: textoONulo(r.tipo),
+    min: textoONulo(r.min),
+    max: textoONulo(r.max),
+    inclusive_min: r.inclusive_min === undefined ? booleano(r.inclusive) : booleano(r.inclusive_min),
+    inclusive_max: r.inclusive_max === undefined ? booleano(r.inclusive) : booleano(r.inclusive_max),
+    restriccion: textoONulo(r.restriccion),
+  };
+  return limites.min === null && limites.max === null ? null : limites;
+}
+
+export type CatalogoDeHallazgos = {
+  completo: CatalogoCompleto;
+  /** Por id del motor (`id_motor`, el `source_id` de la cola). */
+  limites: Record<string, LimitesDeRegla>;
+};
+
+/**
+ * El catálogo de reglas para Hallazgos: el completo de Reglas y, del mismo
+ * pedido, los límites que su normalizador no lee (`limites`), por id del motor.
+ */
+export async function apiCatalogoDeHallazgos(
+  baseNombre?: string | null,
+  opciones: { signal?: AbortSignal } = {},
+): Promise<CatalogoDeHallazgos> {
+  const crudo = await handle<unknown>(
+    await apiFetch("/api/validacion/v2/reglas/catalogo", { headers: encabezados(baseNombre), signal: opciones.signal }),
+  );
+  const limites: Record<string, LimitesDeRegla> = {};
+  for (const regla of lista(registro(crudo).reglas)) {
+    const id = textoONulo(regla.id_motor) ?? textoONulo(regla.id);
+    const l = normalizarLimites(regla.limites);
+    if (id && l) limites[id] = l;
+  }
+  return { completo: normalizarCatalogoCompleto(crudo), limites };
 }

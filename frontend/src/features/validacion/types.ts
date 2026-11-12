@@ -270,7 +270,11 @@ export type LimpiezaQueueItem = {
   /** @deprecated usar `tipo_variable` */
   tipo_observacion: string | null;
   // --- Estado y conteo ---
-  severidad: string;
+  /**
+   * Una sola por regla, la que la regla declara (M4); `null` si la regla no
+   * está ni en el plan ni en la auditoría. Antes de M4 salía por porcentaje.
+   */
+  severidad: string | null;
   variables: string[];
   n_casos: number;
   n_casos_cubiertos?: number;

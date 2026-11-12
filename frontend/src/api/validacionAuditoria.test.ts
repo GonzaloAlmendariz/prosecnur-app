@@ -4,7 +4,15 @@ import {
   apiAuditar,
   apiAuditoriaEstado,
   apiCaso,
+  apiCatalogoDeHallazgos,
+  apiEfectoDeDecision,
   apiReglaProbar,
+  normalizarContextoPorCaso,
+  normalizarEfecto,
+  normalizarLimites,
+  normalizarNarrativa,
+  normalizarSeguimiento,
+  textoDeMotivoNoAplicable,
   normalizarAplicabilidad,
   normalizarAuditoriaEstado,
   normalizarCaseIds,
@@ -101,12 +109,15 @@ describe("identificacion_casos", () => {
 });
 
 describe("aplicable y motivo_no_aplicable", () => {
-  it("lee los cinco motivos del contrato", () => {
-    for (const m of ["columna_ausente", "numeracion_anterior", "auditoria_sin_fila_de_origen", "regla_sin_casos", "sin_filas_en_principal"]) {
+  it("lee los seis motivos del contrato (M4 suma sin_casos_al_decidir) y cada uno tiene su causa en llano", () => {
+    for (const m of ["columna_ausente", "numeracion_anterior", "auditoria_sin_fila_de_origen", "regla_sin_casos", "sin_filas_en_principal", "sin_casos_al_decidir"] as const) {
       const a = normalizarAplicabilidad({ aplicable: false, motivo_no_aplicable: m });
       expect(a.aplicable).toBe(false);
       expect(a.motivo_no_aplicable).toBe(m);
+      expect(textoDeMotivoNoAplicable(m)).not.toBe(textoDeMotivoNoAplicable("otro"));
     }
+    expect(textoDeMotivoNoAplicable("sin_casos_al_decidir")).toBe("la regla no marcaba casos cuando se dio por lista");
+    expect(textoDeMotivoNoAplicable("llave_declarada", "llave_repetida")).toBe("la llave que identifica los casos repite valores");
   });
 
   it("los motivos de la llave declarada se agrupan y uno desconocido queda como otro, con su texto", () => {
@@ -246,11 +257,131 @@ describe("estado de la auditoría, prueba de regla y caso", () => {
     });
     expect(c.secciones[0].variables.map((v) => v.variable)).toEqual(["edad", "servicios"]);
     expect(c.secciones[0].variables[1].opciones).toHaveLength(2);
-    expect(c.hallazgos).toEqual([
-      { id_regla: "VR_constraint_cbe6c3cc", nombre: null, clase: "inconsistencia_xlsform", tipo_regla: null, tabla: null,
-        variables: [{ variable: "edad", etiqueta: "Edad" }] },
-    ]);
+    // Motor anterior a M4: `clase` traía el valor del motor; se lee la clase y se guarda el valor en `hallazgo_kind`.
+    expect(c.hallazgos).toHaveLength(1);
+    expect(c.hallazgos[0]).toMatchObject({
+      id_regla: "VR_constraint_cbe6c3cc", nombre: null, clase: "inconsistencia", hallazgo_kind: "inconsistencia_xlsform",
+      severidad: null, tipo_regla: null, tabla: null, variables: [{ variable: "edad", etiqueta: "Edad" }], esperado: null, registros: null,
+    });
     expect(() => normalizarCaso({ ok: true })).toThrow(/identificador del caso/);
+  });
+
+  it("M4: estado, origen y código especial de cada respuesta, conteos por sección, metadatos y hallazgo de una hija", () => {
+    const c = normalizarCaso({
+      ok: true, id_caso: "AUD-009", instrumento_leido: true, catalogo_leido: true,
+      metadatos: { fecha_respuesta: null, recopilador: null, fecha_envio: null, duracion_min: null, n_respondidas: 21, n_preguntas: 23 },
+      contexto: { fecha_respuesta: null, recopilador: { variable: "enc", etiqueta: "Encuestador", fuente: "agente_declarado" } },
+      codigos_especiales_declarados: [{ codigo: "99", etiqueta: "No responde" }],
+      avisos: [{ codigo: "rotulos_especiales_ilegibles", texto: "Las listas del formulario no se leyeron." }],
+      secciones: [{ seccion: "identificacion", etiqueta: "Identificacion", n_preguntas: 17, n_respondidas: 16, n_vacias_por_salto: 1, variables: [
+        { variable: "edad", etiqueta: "Edad", tipo: "integer", valor: "99", origen: "respuesta", estado: "respondida", especial: true, especial_etiqueta: "No responde", fuera_de_opciones: null },
+        { variable: "p21", etiqueta: "Frecuencia", tipo: "select_one", valor: null, origen: "respuesta", estado: "vacia_por_salto", especial: false, fuera_de_opciones: null },
+        { variable: "start", tipo: "start", valor: "2026-11-03", origen: "metadato", estado: "rara" },
+      ] }],
+      hallazgos: [{
+        id_regla: "VR_rep", nombre: "Servicio repetido", clase: "caso_a_revisar", hallazgo_kind: "caso_validar", severidad: "advertencia",
+        origen_regla: "formulario", familia: "grupo_repetido", frase: [{ texto: "Se marca cuando " }, { pregunta: "srv", etiqueta: "Servicio", tipo: "unica" }],
+        esperado: { anomalia_tipo: "valor_invalido", subtipo: "catalogo", sujeto: "AUD-009", hecho: "respondió \"7\" en Servicio" },
+        registros: [{ fila: 12, indice: "3", esperado: null }],
+      }],
+    });
+    const [edad, p21, start] = c.secciones[0].variables;
+    expect([edad.especial, edad.especial_etiqueta, edad.estado]).toEqual([true, "No responde", "respondida"]);
+    expect(p21.estado).toBe("vacia_por_salto");
+    expect([start.origen, start.estado]).toEqual(["metadato", null]);
+    expect([c.secciones[0].n_preguntas, c.secciones[0].n_respondidas, c.secciones[0].n_vacias_por_salto]).toEqual([17, 16, 1]);
+    expect(c.metadatos?.n_respondidas).toBe(21);
+    expect(c.contexto.recopilador?.variable).toBe("enc");
+    expect(c.contexto.fecha_respuesta).toBeNull();
+    expect(c.codigos_especiales_declarados).toEqual([{ codigo: "99", etiqueta: "No responde" }]);
+    expect(c.avisos[0].codigo).toBe("rotulos_especiales_ilegibles");
+    const h = c.hallazgos[0];
+    expect([h.clase, h.hallazgo_kind, h.severidad, h.origen_regla]).toEqual(["caso_a_revisar", "caso_validar", "advertencia", "formulario"]);
+    expect(h.frase.map((p) => p.tipo)).toEqual(["texto", "pregunta"]);
+    expect(h.esperado?.subtipo).toBe("catalogo");
+    expect(h.registros).toEqual([{ fila: 12, indice: "3", esperado: null }]);
+  });
+});
+
+describe("M4: narrativa, seguimiento, efecto, contexto y límites", () => {
+  it("la narrativa de la cola: el nombre del catálogo y una severidad que puede faltar", () => {
+    const n = normalizarNarrativa({ nombre_regla: "\"Edad\" entre 18 y 80", clase: "inconsistencia", severidad: null, en_catalogo: true, id_catalogo: "VR_1" }, "nombre_regla");
+    expect([n.nombre, n.clase, n.severidad, n.en_catalogo, n.id_catalogo]).toEqual(["\"Edad\" entre 18 y 80", "inconsistencia", null, true, "VR_1"]);
+    // Un motor anterior sin clase: sale del kind.
+    expect(normalizarNarrativa({ hallazgo_kind: "caso_validar" }).clase).toBe("caso_a_revisar");
+    expect(normalizarNarrativa({}).clase).toBeNull();
+  });
+
+  it("seguimiento: casos_nuevos null fuera de las congeladas y [] en una congelada sin nuevos", () => {
+    const real = normalizarSeguimiento({
+      seguimiento: "congelada", n_casos_al_decidir: 1, casos_nuevos: ["AUD-041"], casos_que_ya_no_marca: [], n_casos_aplicados: 1, alcance: "caso",
+    });
+    expect(real).toEqual({ seguimiento: "congelada", n_casos_al_decidir: 1, casos_nuevos: ["AUD-041"], casos_que_ya_no_marca: [], n_casos_aplicados: 1, alcance: "caso" });
+    expect(normalizarSeguimiento({ seguimiento: "sigue_a_la_regla", casos_nuevos: null, casos_que_ya_no_marca: null }).casos_nuevos).toBeNull();
+    expect(normalizarSeguimiento({ seguimiento: "congelada", casos_nuevos: [] }).casos_nuevos).toEqual([]);
+    expect(normalizarSeguimiento({ alcance: "encuestado", seguimiento: "otra" })).toMatchObject({ alcance: "encuestado", seguimiento: null });
+  });
+
+  it("efecto previsto: la respuesta real de excluir y la causa de una no aplicable", () => {
+    const e = normalizarEfecto({
+      ok: true, base_nombre: "auditoria", accion: "exclude_cases", variable: null, n_filas: 2, n_celdas: 0,
+      n_casos_cuentan_antes: 72, n_casos_cuentan_despues: 70, aplicable: true, motivo_no_aplicable: null, texto_no_aplicable: null,
+      alcance: "caso", seguimiento: "congelada", n_casos_al_decidir: 2, casos_nuevos: [], casos_que_ya_no_marca: [], n_casos_aplicados: 2,
+      base_cifras: "casos evaluados en la última auditoría",
+    });
+    expect([e.n_filas, e.n_casos_cuentan_antes, e.n_casos_cuentan_despues, e.alcance, e.texto_no_aplicable]).toEqual([2, 72, 70, "caso", null]);
+    const no = normalizarEfecto({ aplicable: false, motivo_no_aplicable: "sin_casos_al_decidir" });
+    expect(no.texto_no_aplicable).toBe("la regla no marcaba casos cuando se dio por lista");
+    expect(normalizarEfecto({ aplicable: false, motivo_no_aplicable: "x", texto_no_aplicable: "dicho por el motor" }).texto_no_aplicable).toBe("dicho por el motor");
+  });
+
+  it("contexto por caso: mismo largo que casos, null donde no hay fila", () => {
+    const c = normalizarContextoPorCaso([{ n_respondidas: 21, n_preguntas: 23, duracion_min: 14.5 }, null], 3);
+    expect(c).toHaveLength(3);
+    expect(c[0]).toMatchObject({ n_respondidas: 21, duracion_min: 14.5, recopilador: null });
+    expect(c[1]).toBeNull();
+    expect(c[2]).toBeNull();
+  });
+
+  it("límites: un lado basta; sin ninguno no hay límite", () => {
+    expect(normalizarLimites({ tipo: "numero", min: "18", max: "80", inclusive: true })).toMatchObject({ min: "18", max: "80", inclusive_min: true, inclusive_max: true });
+    expect(normalizarLimites({ tipo: "numero", min: null, max: "100" })?.max).toBe("100");
+    expect(normalizarLimites({ tipo: "numero", min: null, max: null })).toBeNull();
+    expect(normalizarLimites(null)).toBeNull();
+  });
+});
+
+describe("M4: clientes nuevos", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function espiar(cuerpo: unknown) {
+    const f = vi.fn(async (_url: string, _init?: RequestInit) =>
+      new Response(JSON.stringify(cuerpo), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", f);
+    vi.stubGlobal("localStorage", { getItem: vi.fn(() => "sid-prueba"), setItem: vi.fn(), removeItem: vi.fn() });
+    return f;
+  }
+
+  it("el efecto es un POST con el borrador tal cual y la base en la cabecera", async () => {
+    const f = espiar({ ok: true, accion: "nullify_fields", n_celdas: 2, aplicable: true });
+    const cuerpo = { source_id: "VR_1", action_type: "nullify_fields", target_variable: "edad" };
+    const r = await apiEfectoDeDecision(cuerpo, "auditoria");
+    expect(r.n_celdas).toBe(2);
+    const [url, init] = f.mock.calls[0];
+    expect(String(url)).toContain("/api/validacion/v2/limpieza/decision/efecto");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual(cuerpo);
+    expect((init?.headers as Record<string, string>)["X-Base-Nombre"]).toBe("auditoria");
+  });
+
+  it("el catálogo de Hallazgos lee los límites por id del motor", async () => {
+    espiar({ plan_construido: true, familias: [], reglas: [
+      { id: "VR_1", id_motor: "VR_1", origen: "formulario", familia: "restriccion", nombre: "Edad", limites: { tipo: "numero", min: "18", max: "80" } },
+      { id: "VR_2", id_motor: "VR_2", origen: "formulario", familia: "salto", nombre: "Salto", limites: null },
+    ] });
+    const c = await apiCatalogoDeHallazgos("auditoria");
+    expect(Object.keys(c.limites)).toEqual(["VR_1"]);
+    expect(c.completo.reglas).toHaveLength(2);
   });
 });
 

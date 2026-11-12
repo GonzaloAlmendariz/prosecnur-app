@@ -650,9 +650,56 @@ export function limpieza(opciones: {
   };
 }
 
+/**
+ * El efecto previsto de un borrador (M4), armado desde el cuerpo como lo mide
+ * el motor sobre 120 casos: excluir saca los casos elegidos (o los 2 de la
+ * regla), cambiar valores toca una celda por caso, dejar como está no cambia
+ * nada.
+ */
+export function efectoPrevisto(cuerpo: string) {
+  const d = JSON.parse(cuerpo || "{}") as { action_type?: string; target_case_ids?: string[]; target_variable?: string };
+  const n = d.target_case_ids?.length || 2;
+  const accion = d.action_type ?? "ignore_rule";
+  const excluye = accion === "exclude_cases";
+  const cambia = !excluye && accion !== "ignore_rule";
+  return {
+    ok: true, base_nombre: null, accion, variable: d.target_variable ?? null,
+    n_filas: excluye || cambia ? n : 0, n_celdas: cambia ? n : 0,
+    n_casos_cuentan_antes: 120, n_casos_cuentan_despues: excluye ? 120 - n : 120,
+    aplicable: true, motivo_no_aplicable: null, texto_no_aplicable: null, alcance: "caso",
+    seguimiento: accion === "ignore_rule" ? "sigue_a_la_regla" : d.target_case_ids?.length ? "casos_elegidos" : "congelada",
+    n_casos_al_decidir: accion === "ignore_rule" ? null : n, casos_nuevos: accion === "ignore_rule" ? null : [],
+    casos_que_ya_no_marca: [], n_casos_aplicados: n, base_cifras: "casos evaluados en la última auditoría",
+  };
+}
+
+/** El caso completo (M4) de un caso de los escenarios. */
+export function casoCompleto(id: string) {
+  return {
+    ok: true, base_nombre: null, id_caso: id, tabla: "principal", fila: 1, n_filas_con_el_id: 1, en_otras_tablas: [],
+    auditada_en: "2026-11-08T15:00:00Z", instrumento_leido: true, catalogo_leido: true,
+    identificacion_casos: { metodo: "columna_candidata", columna: "_uuid", n_filas: 120, n_filas_sin_llave: 0 },
+    contexto: { fecha_respuesta: null, recopilador: null, fecha_envio: null, inicio: null, fin: null },
+    metadatos: { fecha_respuesta: null, recopilador: null, fecha_envio: null, duracion_min: null, n_respondidas: 2, n_preguntas: 3 },
+    codigos_especiales_declarados: [], avisos: [],
+    secciones: [{
+      seccion: "datos", etiqueta: "Datos generales", n_preguntas: 3, n_respondidas: 2, n_vacias_por_salto: 0,
+      variables: [
+        { variable: "edad", etiqueta: "Edad en años cumplidos", tipo: "integer", valor: null, origen: "respuesta", estado: "vacia", especial: false, fuera_de_opciones: null },
+        { variable: "sexo", etiqueta: "Sexo", tipo: "select_one", valor: "1", valor_etiqueta: "Mujer", origen: "respuesta", estado: "respondida", especial: false, fuera_de_opciones: false },
+        { variable: "distrito", etiqueta: "Distrito", tipo: "text", valor: "Cercado", origen: "respuesta", estado: "respondida", especial: false, fuera_de_opciones: null },
+      ],
+    }],
+    hallazgos: [{ id_regla: "R_REQ_EDAD", nombre: "Edad obligatoria", clase: "inconsistencia", hallazgo_kind: "inconsistencia_xlsform", severidad: "error", variables: [{ variable: "edad", etiqueta: "Edad en años cumplidos" }] }],
+  };
+}
+
 export function rutasLimpieza(resumen: LimpiezaSummary): Ruta[] {
   return [
     ["GET", "/api/validacion/v2/limpieza", resumen],
+    // Hallazgos (rebanada V3): el efecto previsto y el caso completo. El catálogo va aparte (`rutasHallazgos`).
+    ["POST", "/api/validacion/v2/limpieza/decision/efecto", (_url: string, cuerpo: string) => efectoPrevisto(cuerpo)],
+    ["GET", /^\/api\/validacion\/v2\/caso\?/, (url: string) => casoCompleto(new URLSearchParams(url.split("?")[1] ?? "").get("id") ?? "")],
     RUTA_DRILL,
     ["POST", "/api/validacion/v2/limpieza/decision", (_url: string, cuerpo: string) => ({
       ok: true,
@@ -662,4 +709,9 @@ export function rutasLimpieza(resumen: LimpiezaSummary): Ruta[] {
     ["POST", "/api/validacion/v2/limpieza/revertir-promocion", { ok: true }],
     ["POST", "/api/validacion/v2/limpieza/finalize", { ok: true, job_id: "job-cierre" }],
   ];
+}
+
+/** Las de la limpieza más el catálogo de reglas, para la mesa de Hallazgos sola (rebanada V3). */
+export function rutasHallazgos(resumen: LimpiezaSummary): Ruta[] {
+  return [...rutasLimpieza(resumen), rutaCatalogo(catalogoDeReglas({ plan: true, auditoria: resumen.progreso.auditoria_corrida }))];
 }

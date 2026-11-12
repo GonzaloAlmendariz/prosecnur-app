@@ -251,6 +251,8 @@ export function renderActionSpecificFields(
   form: EditorForm,
   setForm: Dispatch<SetStateAction<EditorForm>>,
   choiceOptions: ChoiceOption[],
+  /** La pregunta es numérica: los ejemplos de los campos son cifras (V3, Hallazgos). */
+  numerica = false,
 ) {
   if (form.action_type === "replace_value") {
     return (
@@ -263,7 +265,7 @@ export function renderActionSpecificFields(
               setForm((current) => ({ ...current, replace_from: replaceFrom }));
             }}
             style={inputStyle}
-            placeholder="Ej. Sii"
+            placeholder={numerica ? "Ej. 17" : "Ej. Sii"}
           />
         </FormField>
         <FormField label="Valor corregido">
@@ -274,7 +276,7 @@ export function renderActionSpecificFields(
               setForm((current) => ({ ...current, replace_to: replaceTo }));
             }}
             style={inputStyle}
-            placeholder="Ej. Sí"
+            placeholder={numerica ? "Ej. 18" : "Ej. Sí"}
           />
         </FormField>
       </div>
@@ -291,7 +293,7 @@ export function renderActionSpecificFields(
             setForm((current) => ({ ...current, set_value: setValue }));
           }}
           style={inputStyle}
-          placeholder="Ej. No aplica"
+          placeholder={numerica ? "Ej. 99" : "Ej. No aplica"}
         />
       </FormField>
     );

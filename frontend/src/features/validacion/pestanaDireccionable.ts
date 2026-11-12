@@ -16,9 +16,8 @@
 // fidelidad, rebanada V0):
 //   - Reglas: `familia=<clave>` (la familia de la columna izquierda) y
 //     `foco=<id de regla>` (la ficha de la derecha).
-//   - Hallazgos: `foco=<id de regla>` (el hallazgo de la cola). Mientras el
-//     detalle de transición use `panel=regla`, ese foco es del panel y no del
-//     hallazgo.
+//   - Hallazgos: `foco=<id de regla>` (el hallazgo de la cola). Con el caso
+//     abierto (`panel=caso`) el foco es el id del caso.
 //   - Explorar: `foco=<código de la pregunta>` (la pregunta que se explora,
 //     rebanada V5). "Ver en Explorar" llega con `searchDeExplorar`.
 // `familia` es un parámetro propio de Reglas, fuera de los cinco niveles de la
@@ -32,7 +31,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { conNivel } from "../../lib/navegacion/direccion";
 import { searchConNivel, useDireccion, useSeccion } from "../../lib/navegacion/useDireccion";
 import { esAliasDelDetalleDeRegla, resolverPestanaValidacion } from "./pestanaValidacion";
-import { PANEL_REGLA_VALIDACION } from "./panelesValidacion";
+import { PANEL_CASO_VALIDACION, PANEL_REGLA_VALIDACION } from "./panelesValidacion";
 import { PARAM_PREGUNTA, PARAM_TIPO } from "./reglas/panel/usePanelRegla";
 import { useValidacionStore } from "./store";
 import type { ValidacionTabId } from "./types";
@@ -76,8 +75,11 @@ export function seleccionDeLaDireccion(direccion: {
     return { familia, foco: delEditor ? null : foco };
   }
   if (pestana === "hallazgos") {
-    const delPanel = !!direccion.panel && direccion.panel === PANEL_REGLA_VALIDACION.id;
-    return { familia: null, foco: delPanel ? null : foco };
+    // Con el caso abierto (`panel=caso`) el foco es del caso. El enlace viejo al
+    // detalle de una regla (`panel=regla&foco=<id>`) abre el hallazgo de esa
+    // regla (rebanada V3).
+    const delCaso = !!direccion.panel && direccion.panel === PANEL_CASO_VALIDACION.id;
+    return { familia: null, foco: delCaso ? null : foco };
   }
   if (pestana === "explorar") return { familia: null, foco };
   return { familia: null, foco: null };

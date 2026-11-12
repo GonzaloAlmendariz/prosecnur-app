@@ -22,8 +22,8 @@
     "pedidos": "09874f060d7a227d6f8622de30809473ed0a9d4dd5fec4bef3863db3f902913b"
   },
   "reglas-panel_guardar-y-auditar": {
-    "marcado": "5e7382e778cec584221475affaba1624cafc551dfda182114cdcc26a0d765cc6",
-    "pedidos": "1272acce2d9cff5582cdde4b8fc7e043e0fb284228aa5a5fb6d010116125b661",
+    "marcado": "2a500062f0b47102299ad242293eb4eac3134dfb81dcc1121dbcfc4803dc0487",
+    "pedidos": "b89ab43183ff541d3cb612b9d9d5a94bbb5359b97041137429e5ff5d3378250f",
     "guardado": [
       "PUT /api/validacion/v2/reglas_custom/RC_001 [base=default]\n{\"id\":\"RC_001\",\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}",
       "POST /api/validacion/v2/auditoria [base=default]\n"

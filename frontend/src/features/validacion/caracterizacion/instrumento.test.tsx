@@ -84,21 +84,24 @@ describe("Validación, Reglas del formulario: estados", () => {
     fijar("instrumento_sin-plan");
   });
 
-  escenario("instrumento_plan-sin-auditoria", "plan construido sin auditoría: pasos 1 y 2", async () => {
-    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, false) });
-    expect(hay("button", "Ejecutar auditoría")).toBe(true);
+  escenario("instrumento_plan-sin-auditoria", "plan construido sin auditoría: Hallazgos ofrece Auditar (rebanada V3)", async () => {
+    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, false, rutasLimpieza(limpieza({ auditoria: false }))) });
+    expect(hay(".pulso-cabecera-pestana-acciones button", "Auditar")).toBe(true);
     fijar("instrumento_plan-sin-auditoria");
   });
 
-  escenario("instrumento_con-auditoria", "auditoría corrida: resultados con todos los grupos de reglas", async () => {
-    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, true) });
-    expect(hay("button", "Ejecutar de nuevo")).toBe(true);
+  escenario("instrumento_con-auditoria", "auditoría corrida: la mesa de Hallazgos con Volver a auditar", async () => {
+    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, true, rutasLimpieza(limpieza({ auditoria: true, cola: COLA_TRES_CLASES }))) });
+    expect(hay(".pulso-cabecera-pestana-acciones button", "Volver a auditar")).toBe(true);
     fijar("instrumento_con-auditoria");
   });
 
-  escenario("instrumento_con-auditoria_despliega-sin-casos", "auditoría corrida: despliega las validaciones que pasaron", async () => {
-    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, true) });
-    await pulsar("button[aria-expanded]", "Validaciones que pasaron");
+  // Rebanada V3: el desplegable de las que pasaron sin casos es la línea "N reglas no encontraron casos" con "Ver".
+  escenario("instrumento_con-auditoria_despliega-sin-casos", "auditoría corrida: las reglas sin casos se ven en Reglas", async () => {
+    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, true, rutasLimpieza(limpieza({ auditoria: true, cola: COLA_TRES_CLASES }))) });
+    expect(hay(".pulso-hz-resto", "reglas no encontraron casos")).toBe(true);
+    await pulsar(".pulso-hz-resto button", "Ver");
+    expect(direccionActual()).toBe("/validacion?pestana=reglas");
     fijar("instrumento_con-auditoria_despliega-sin-casos");
   });
 
@@ -112,36 +115,46 @@ describe("Validación, Reglas del formulario: estados", () => {
   });
 
   escenario("instrumento_dos-bases", "dos bases: la base activa viaja en cada pedido", async () => {
-    await montar({ ...DOS_BASES, pestana: "hallazgos", rutas: rutas(true, true) });
+    await montar({ ...DOS_BASES, pestana: "hallazgos", rutas: rutas(true, true, rutasLimpieza(limpieza({ auditoria: true, cola: COLA_TRES_CLASES }))) });
     fijar("instrumento_dos-bases");
   });
 
   escenario("instrumento_madre-e-hija", "madre con hija de un grupo repetido: auditoría sobre la hija", async () => {
-    await montar({ ...MADRE_E_HIJA, pestana: "hallazgos", rutas: rutas(true, true) });
+    await montar({ ...MADRE_E_HIJA, pestana: "hallazgos", rutas: rutas(true, true, rutasLimpieza(limpieza({ auditoria: true, cola: COLA_TRES_CLASES }))) });
     fijar("instrumento_madre-e-hija");
   });
 });
 
+// Rebanada V3: el detalle de transición de Hallazgos (`panel=regla`) se retiró. El
+// enlace viejo abre el hallazgo de esa regla en la cola, sin panel; una regla que no
+// está en la cola abre el primero por decidir. Clic en la cola escribe el foco.
 describe("Validación, Reglas del formulario: panel de la regla", () => {
-  escenario("instrumento_panel-por-direccion_con-casos", "panel=regla con foco en una regla con casos: carga sus casos", async () => {
-    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_REQ_EDAD", rutas: rutas(true, true) });
+  const CON_COLA = () => rutas(true, true, rutasLimpieza(limpieza({ auditoria: true, cola: COLA_TRES_CLASES })));
+
+  escenario("instrumento_panel-por-direccion_con-casos", "panel=regla con foco en una regla con casos: abre su hallazgo, sin panel", async () => {
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_REQ_EDAD", rutas: CON_COLA() });
+    expect(direccionActual()).toBe("/validacion?pestana=hallazgos&foco=R_REQ_EDAD");
+    expect(hay(".pulso-panel-de-mesa--hallazgo .pulso-panel-de-mesa-titulo", "Edad obligatoria")).toBe(true);
     fijar("instrumento_panel-por-direccion_con-casos");
   });
 
-  escenario("instrumento_panel-por-direccion_sin-casos", "panel=regla con foco en una regla sin casos: solo la explicación", async () => {
-    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_SALTO_P21", rutas: rutas(true, true) });
+  escenario("instrumento_panel-por-direccion_sin-casos", "panel=regla con foco en una regla sin casos: abre el primero por decidir", async () => {
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_SALTO_P21", rutas: CON_COLA() });
+    expect(direccionActual()).toBe("/validacion?pestana=hallazgos&foco=R_SALTO_P21");
+    expect(hay(".pulso-panel-de-mesa--hallazgo .pulso-panel-de-mesa-titulo", "Edad entre 16 y 25")).toBe(true);
     fijar("instrumento_panel-por-direccion_sin-casos");
   });
 
-  escenario("instrumento_panel-por-direccion_inexistente", "panel=regla con foco en una regla que no está: dice por qué", async () => {
-    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_NO_ESTA", rutas: rutas(true, true) });
+  escenario("instrumento_panel-por-direccion_inexistente", "panel=regla con foco en una regla que no está: abre el primero por decidir", async () => {
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&panel=regla&foco=R_NO_ESTA", rutas: CON_COLA() });
+    expect(hay(".pulso-panel-de-mesa--hallazgo .pulso-panel-de-mesa-titulo", "Edad entre 16 y 25")).toBe(true);
     fijar("instrumento_panel-por-direccion_inexistente");
   });
 
-  escenario("instrumento_panel-por-clic", "clic en una regla con casos: la dirección nombra el panel", async () => {
-    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, true) });
-    await pulsar("article.pulso-vv2-rule-card[role=button]", "5 casos");
-    expect(direccionActual()).toContain("panel=regla");
+  escenario("instrumento_panel-por-clic", "clic en un hallazgo de la cola: la dirección nombra su foco", async () => {
+    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: CON_COLA() });
+    await pulsar("button.pulso-hz-fila", "Edad obligatoria");
+    expect(direccionActual()).toBe("/validacion?pestana=hallazgos&foco=R_REQ_EDAD");
     fijar("instrumento_panel-por-clic");
   });
 
@@ -168,7 +181,7 @@ describe("Validación, Reglas del formulario: panel de la regla", () => {
 describe("Validación, controles del operativo sin aplicar entre pestañas", () => {
   escenario("instrumento_controles-sin-aplicar-entre-pestanas", "un control editado en Reglas bloquea la auditoría en Hallazgos y sigue al volver", async () => {
     const SWITCH = 'button[role="switch"][aria-label="Declarar Identidad del caso"]';
-    await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutas(true, true) });
+    await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutas(true, true, rutasLimpieza(limpieza({ auditoria: true, cola: COLA_TRES_CLASES }))) });
     // Los roles viven en su panel, que se abre desde la familia "Del operativo" (D-F7b).
     await pulsar(".pulso-rl-familias-accesos button", "Cómo se identifica un caso");
     expect(direccionActual()).toBe("/validacion?pestana=reglas&panel=roles");
@@ -182,14 +195,18 @@ describe("Validación, controles del operativo sin aplicar entre pestañas", () 
     expect(hay(".pulso-franja-aviso", "Los controles del operativo tienen cambios sin aplicar")).toBe(true);
 
     await pulsar("#validacion-tab-hallazgos");
-    expect((control("button", "Ejecutar de nuevo") as HTMLButtonElement).disabled).toBe(true);
-    expect(hay("button", "Ir a Reglas")).toBe(true);
+    // Rebanada V3: "Volver a auditar" se bloquea con su causa y el aviso lleva a los controles.
+    const volver = control(".pulso-cabecera-pestana-acciones button", "Volver a auditar") as HTMLButtonElement;
+    expect(volver.disabled).toBe(true);
+    expect(volver.getAttribute("title")).toBe("Los controles del operativo tienen cambios sin aplicar.");
+    expect(hay(".pulso-hz-franja-avisos", "Los controles del operativo tienen cambios sin aplicar")).toBe(true);
 
-    await pulsar("button", "Ir a Reglas");
-    expect(direccionActual()).toBe("/validacion?pestana=reglas");
+    await pulsar(".pulso-hz-franja-avisos button", "Revisar los controles");
+    expect(direccionActual()).toBe("/validacion?pestana=reglas&panel=operativo");
+    expect(hay("button", "Aplicar y reconstruir el plan")).toBe(true);
+    await pulsar('button[aria-label="Cerrar los controles del operativo"]');
     await pulsar(".pulso-rl-familias-accesos button", "Cómo se identifica un caso");
     expect(control(SWITCH).getAttribute("aria-checked")).toBe("true");
-    expect(hay("button", "Aplicar y reconstruir el plan")).toBe(true);
     fijar("instrumento_controles-sin-aplicar-entre-pestanas");
   });
 
@@ -223,24 +240,24 @@ describe("Validación, Hallazgos tras ejecutar la auditoría", () => {
       id: "job-auditoria", kind: "validacion.v2.auditoria", status: "done", started_at: "2026-01-01T00:00:00Z",
       finished_at: "2026-01-01T00:00:01Z", has_file_result: false, result_filename: null, result_data: {}, progress: null, error: "",
     };
+    // Rebanada V3: "Auditar" lanza la auditoría completa (`POST /auditoria`, antes `/instrumento/auditoria`).
     const conEstado: Ruta[] = [
-      ["POST", "/api/validacion/v2/instrumento/auditoria", () => {
+      ["POST", "/api/validacion/v2/auditoria", () => {
         auditada = true;
-        return { ok: true, job_id: "job-auditoria" };
+        return { ok: true, job_id: "job-auditoria", n_reglas: 6, n_plan: 6, n_propias: 0 };
       }],
       ["GET", "/api/jobs/job-auditoria", JOB_TERMINADO],
       ["GET", "/api/validacion/v2/instrumento/estado", () => estadoInstrumento(true, auditada)],
       ["GET", "/api/validacion/v2/limpieza", () => limpieza({ auditoria: auditada, cola: auditada ? COLA_TRES_CLASES : [] })],
     ];
     await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: [...conEstado, ...rutas(true, false), ...rutasLimpieza(limpieza({ auditoria: false }))] });
-    expect(hay("div", "La cola aparece después de correr la auditoría.")).toBe(true);
-    await pulsar("button", "Ejecutar auditoría");
+    expect(hay(".pulso-panel-de-mesa--cola", "La base no se ha auditado")).toBe(true);
+    await pulsar(".pulso-cabecera-pestana-acciones button", "Auditar");
     await asentar(20);
     expect(direccionActual()).toBe("/validacion?pestana=hallazgos");
-    expect(hay("button", "Ejecutar de nuevo")).toBe(true);
-    expect(hay("div", "La cola aparece después de correr la auditoría.")).toBe(false);
-    expect(hay("#pulso-limpieza-cola-titulo", "(3)")).toBe(true);
-    expect(hay(".pulso-limpieza-estado", "Sin auditoría")).toBe(false);
+    expect(hay(".pulso-cabecera-pestana-acciones button", "Volver a auditar")).toBe(true);
+    expect(hay(".pulso-panel-de-mesa--cola", "La base no se ha auditado")).toBe(false);
+    expect(control(".pulso-panel-de-mesa--cola .pulso-panel-de-mesa-conteo").textContent).toBe("3");
     fijar("instrumento_auditoria-refresca-la-cola");
   });
 });
@@ -252,23 +269,32 @@ describe("Validación, Reglas del formulario: lo que se guarda", () => {
     fijar("instrumento_construir-plan");
   });
 
+  // Rebanada V3: lanza la auditoría completa (`POST /auditoria`), como "Auditar" en Reglas.
   escenario("instrumento_ejecutar-auditoria", "ejecutar la auditoría lanza el trabajo", async () => {
-    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, false) });
-    await pulsar("button", "Ejecutar auditoría");
+    await montar({
+      ...UNA_BASE,
+      pestana: "hallazgos",
+      rutas: rutas(true, false, [
+        ["POST", "/api/validacion/v2/auditoria", { ok: true, job_id: "job-auditoria", n_reglas: 6, n_plan: 6, n_propias: 0 }],
+        ...rutasLimpieza(limpieza({ auditoria: false })),
+      ]),
+    });
+    await pulsar(".pulso-cabecera-pestana-acciones button", "Auditar");
     fijar("instrumento_ejecutar-auditoria");
   });
 
+  // Rebanada V3: las preguntas fuera de la auditoría viven en Reglas (familia propia, D-F7c).
   escenario("instrumento_excluir-variable", "excluir una variable pide el motivo y lo manda", async () => {
-    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, true) });
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&familia=fuera-de-auditoria", rutas: rutas(true, true) });
     await pulsar('button[role="switch"][aria-label="Excluir edad"]');
     expect(hay('input[aria-label="Motivo para excluir edad"]')).toBe(true);
     await escribir('input[aria-label="Motivo para excluir edad"]', "La edad se valida en otra base");
-    await pulsar("button", "Excluir");
+    await pulsar(".pulso-dialog__actions button", "Excluir");
     fijar("instrumento_excluir-variable");
   });
 
   escenario("instrumento_reponer-variable", "reponer una variable excluida no pide motivo", async () => {
-    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutas(true, true) });
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&familia=fuera-de-auditoria", rutas: rutas(true, true) });
     expect(control('button[role="switch"][aria-label="Excluir obs_campo"]').getAttribute("aria-checked")).toBe("true");
     await pulsar('button[role="switch"][aria-label="Excluir obs_campo"]');
     fijar("instrumento_reponer-variable");
