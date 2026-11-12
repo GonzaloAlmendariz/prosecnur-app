@@ -7,6 +7,7 @@
 // el suyo: se cambia de base con el selector de Analítica.
 
 import type { VariableInstrumento } from "../../../api/client";
+import { Segmentado } from "../ponderacion/Segmentado";
 import type { LecturaVariables } from "./variablesDeLaBase";
 import "./PesoPorColumna.css";
 
@@ -70,25 +71,17 @@ export function PesoPorColumna({
         <strong id="pulso-peso-columna-titulo">De dónde sale el peso</strong>
         {baseActiva && <small>Se guarda para la base {baseActiva}. Cada base declara el suyo.</small>}
       </div>
-      <div className="analitica-segmented" role="radiogroup" aria-label="De dónde sale el peso" data-qa-geometry-member>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={modo === "calibracion"}
-          className={modo === "calibracion" ? "is-on" : ""}
-          onClick={() => onModo("calibracion")}
-        >
-          Calcular pesos
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={modo === "columna"}
-          className={modo === "columna" ? "is-on" : ""}
-          onClick={() => onModo("columna")}
-        >
-          Usar una columna de la base como peso
-        </button>
+      {/* El segmentado del kit: una parada de tabulador y las flechas eligen. */}
+      <div className="pulso-peso-columna-origen" data-qa-geometry-member>
+        <Segmentado
+          etiquetadoPor="pulso-peso-columna-titulo"
+          valor={modo}
+          onCambio={onModo}
+          opciones={[
+            { valor: "calibracion", rotulo: "Calcular pesos", ayuda: "Los pesos salen del peso base y de las metas de la población." },
+            { valor: "columna", rotulo: "Tomarlo de una columna", ayuda: "El peso es una columna que la base ya trae, como el factor de una medición anterior." },
+          ]}
+        />
       </div>
 
       {modo === "columna" && (

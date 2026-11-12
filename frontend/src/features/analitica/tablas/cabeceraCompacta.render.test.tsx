@@ -46,6 +46,7 @@ vi.mock("../../../api/analitica", async (original) => ({
 }));
 vi.mock("../../../lib/SessionContext", () => ({ useSession: () => ({ state: { ...sesion }, refresh: async () => undefined }) }));
 vi.mock("../useAnaliticaAutosave", () => ({ useAnaliticaAutosave: () => undefined }));
+vi.mock("../../project/ProjectModulesContext", () => ({ useProjectModules: () => ({ overview: null }) }));
 vi.mock("../useReporteRun", () => ({
   useReporteRun: () => ({
     generacion: { estado: { fase: "inactiva" }, cerrar: () => undefined },
@@ -123,14 +124,36 @@ describe("cabecera de las pestañas con vista previa", () => {
     expect(host.querySelector("#analitica-panel")?.hasAttribute("data-cabecera-propia")).toBe(true);
   });
 
-  it("las demás pestañas conservan la cabecera estándar con la banda de casos debajo y la fuente arriba", async () => {
+  it("las demás pestañas llevan la cabecera común del kit, con la banda de casos debajo y la fuente en las acciones", async () => {
     await montar("datos");
     const tabHeading = cabeceraDeLaPagina()?.querySelector<HTMLElement>(".pulso-tab-heading");
-    expect(tabHeading?.getAttribute("data-variante")).toBe("estandar");
+    // Plan 4.7: la cabecera del kit (`CabeceraDePestana`), con el antetítulo "Analítica" y sin "pestaña n de m".
+    expect(cabeceraDeLaPagina()?.querySelector(".pulso-cabecera-pestana")).not.toBeNull();
+    expect(tabHeading?.querySelector(".pulso-tab-heading-eyebrow")?.textContent).toBe("Analítica");
+    expect(tabHeading?.querySelector("h2")?.textContent).toBe("Datos");
+    expect(cabeceraDeLaPagina()?.textContent).not.toMatch(/[Pp]estaña \d+ de \d+/);
+    expect(tabHeading?.querySelector(".pulso-cabecera-pestana-acciones .pulso-analitica-sourcebar")).not.toBeNull();
     expect(cabeceraDeLaPagina()?.querySelector(":scope > .pulso-analitica-universo-banda .pulso-universo")).not.toBeNull();
     expect(tabHeading?.querySelector(".pulso-analitica-sourcebar")).not.toBeNull();
     expect(cabeceraPropia()).toBeNull();
     expect(host.querySelector("#analitica-panel")?.hasAttribute("data-cabecera-propia")).toBe(false);
+  });
+});
+
+describe("cabecera de Ponderación", () => {
+  it("dibuja la suya, la del kit con su interruptor, y la fuente baja a Ajustes", async () => {
+    await montar("ponderacion");
+    expect(cabeceraDeLaPagina()).toBeNull();
+    expect(host.querySelectorAll(".pulso-tab-heading")).toHaveLength(1);
+    const cabecera = host.querySelector<HTMLElement>(".pond-cabecera");
+    expect(cabecera?.querySelector("h2")?.textContent).toBe("Ponderación");
+    expect(cabecera?.querySelector(".pulso-tab-heading-eyebrow")?.textContent).toBe("Analítica");
+    expect(cabecera?.querySelector('[role="switch"]')).not.toBeNull();
+    expect(cabecera?.textContent).not.toMatch(/[Pp]estaña \d+ de \d+/);
+    expect(cabecera?.querySelector(".pulso-analitica-sourcebar")).toBeNull();
+    expect(host.querySelector(".pulso-panel-de-mesa--ajustes .pond-datos .pulso-analitica-sourcebar")).not.toBeNull();
+    expect(host.querySelector(".pulso-panel-de-mesa--ajustes .pulso-universo")).not.toBeNull();
+    expect(host.querySelector("#analitica-panel")?.hasAttribute("data-cabecera-propia")).toBe(true);
   });
 });
 

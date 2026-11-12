@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
+import { MesaDePestana, PilaDeMesa } from "../../../components/procesamiento/MesaDePestana";
 import { useSession } from "../../../lib/SessionContext";
-import { BandaPonderacion } from "../ponderacion/BandaPonderacion";
+import { CabeceraDePonderacion } from "../ponderacion/CabeceraDePonderacion";
 import { lecturaDelEfecto, ultimoResultado } from "../ponderacion/calculoDePonderacion";
 import { GuiaDeCriterios } from "../ponderacion/GuiaDeCriterios";
 import { PanelMuestraPoblacion } from "../ponderacion/PanelMuestraPoblacion";
+import { pasosDePonderacion } from "../ponderacion/pasosDelRecorrido";
+import { PasosDePonderacion } from "../ponderacion/PasosDePonderacion";
 import { useBaseDelCalculo } from "../ponderacion/useBaseDelCalculo";
 import { usePreviewDePonderacion } from "../ponderacion/usePreviewDePonderacion";
 import { useAnaliticaStore } from "../store";
@@ -14,16 +17,21 @@ import "./PonderacionPane.css";
 import "../ponderacion/ponderacion.css";
 
 // PonderacionPane: pondera frecuencias, cruces y dimensiones para que
-// representen a la población. Dos columnas a todo el alto: a la izquierda lo
-// que se declara (origen del peso, población, peso base y variables de ajuste
-// con sus metas) y a la derecha lo que resulta (efecto de ponderar) con los
-// ajustes de la calibración. La config se guarda con el autosave de Analítica
-// (`analitica_config.ponderacion`) y el motor recalcula el peso; aquí solo se
-// previsualiza.
+// representen a la población. Con la forma del prototipo (Analítica ›
+// Ponderación): la cabecera de la pestaña con su estado, sus cifras y el
+// interruptor; el recorrido por pasos; y una mesa de dos columnas que llegan al
+// pie: a la izquierda "Muestra frente a población" (las metas), a la derecha
+// "Efecto de ponderar" y "Ajustes". La config se guarda con el autosave de
+// Analítica (`analitica_config.ponderacion`) y el motor recalcula el peso; aquí
+// solo se previsualiza.
 
-export function PonderacionPane() {
+export function PonderacionPane({ datos }: {
+  /** De qué datos sale el cálculo y la plantilla de Analítica, que la página pone en los ajustes. */
+  datos?: ReactNode;
+} = {}) {
   const pond = useAnaliticaStore((s) => s.config.ponderacion);
   const setPonderacion = useAnaliticaStore((s) => s.setPonderacion);
+  const setDesign = useAnaliticaStore((s) => s.setPonderDesign);
   const setRake = useAnaliticaStore((s) => s.setPonderRake);
   const setTrim = useAnaliticaStore((s) => s.setPonderTrim);
 
@@ -41,49 +49,47 @@ export function PonderacionPane() {
   const base = useBaseDelCalculo();
   const { calculo, reintentar } = usePreviewDePonderacion(pond, pond.enabled && !porColumna, base);
   const preview = ultimoResultado(calculo);
+  const lectura = lecturaDelEfecto(calculo);
 
   return (
-    <div className="pond-superficie">
-      <BandaPonderacion
-        pond={pond}
-        preview={preview}
-        onAlternar={() => setPonderacion({ enabled: !pond.enabled })}
+    <MesaDePestana
+      grupo="analitica/ponderacion"
+      columnas={2}
+      cabecera={(
+        <CabeceraDePonderacion
+          pond={pond}
+          lectura={lectura}
+          preview={preview}
+          onAlternar={() => setPonderacion({ enabled: !pond.enabled })}
+        />
+      )}
+      franja={<PasosDePonderacion pasos={pasosDePonderacion(pond, lectura)} />}
+    >
+      <PanelMuestraPoblacion
+        variables={variables}
+        comparacion={preview?.ok ? preview.margins : undefined}
+        recalculando={calculo.fase === "calculando" && preview !== null}
       />
-      {/* C1: dos contenedores de ancho distinto que llegan al borde inferior;
-          cada uno es dueño de su scroll y de su vacío. */}
-      <div
-        className="pond-mesa"
-        data-qa-geometry-group="analitica/ponderacion-mesa"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <PanelMuestraPoblacion
+      <PilaDeMesa grupo="analitica/ponderacion-lateral">
+        {pond.enabled ? (
+          <PonderacionEfecto lectura={lectura} etiquetaDe={etiquetaDe} onReintentar={reintentar} />
+        ) : (
+          <GuiaDeCriterios />
+        )}
+        <PonderacionAjustes
+          pond={pond}
           lecturaVariables={lecturaVariables}
           variables={variables}
           baseActiva={baseActiva}
-          comparacion={preview?.ok ? preview.margins : undefined}
-          recalculando={calculo.fase === "calculando" && preview !== null}
+          datos={datos}
+          onPonderacion={setPonderacion}
+          onDesign={setDesign}
+          onEscala={(escala) => setPonderacion({ escala })}
+          onTotal={(total_poblacion) => setPonderacion({ total_poblacion })}
+          onRake={setRake}
+          onTrim={setTrim}
         />
-        <div
-          className="pond-lateral"
-          data-qa-geometry-group="analitica/ponderacion-lateral"
-          data-qa-geometry-contract="intrinsic"
-        >
-          {pond.enabled ? (
-            <PonderacionEfecto lectura={lecturaDelEfecto(calculo)} etiquetaDe={etiquetaDe} onReintentar={reintentar} />
-          ) : (
-            <GuiaDeCriterios />
-          )}
-          {pond.enabled && !porColumna ? (
-            <PonderacionAjustes
-              pond={pond}
-              onEscala={(escala) => setPonderacion({ escala })}
-              onTotal={(total_poblacion) => setPonderacion({ total_poblacion })}
-              onRake={setRake}
-              onTrim={setTrim}
-            />
-          ) : null}
-        </div>
-      </div>
-    </div>
+      </PilaDeMesa>
+    </MesaDePestana>
   );
 }

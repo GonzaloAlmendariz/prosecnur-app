@@ -31,7 +31,8 @@
 .cruces-hoja {
   --cruces-cat: 200px;
   --cruces-col: 92px;
-  --cruces-total: 104px;
+  /* La pista de la barra (32), su separación y "100.00" en negrita, con el relleno de la celda. */
+  --cruces-total: 112px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -200,14 +201,22 @@
   white-space: nowrap;
 }
 
+/* La barra se mide sobre una pista fija de 32 px. Antes su ancho era un
+   porcentaje de la propia línea, que se calcula con la cifra dentro: la línea
+   crecía con la barra y la cifra salía 11 px de su celda (QA de remates). */
+.cruces-linea:has(> .cruces-barra) {
+  display: inline-grid;
+  grid-template-columns: 32px auto;
+  align-items: center;
+  column-gap: var(--pulso-space-1);
+}
+
 .cruces-barra {
-  display: inline-block;
-  flex: none;
-  inline-size: calc(var(--cruces-barra, 0%) * 0.4);
+  display: block;
+  justify-self: start;
+  inline-size: var(--cruces-barra, 0%);
   min-inline-size: 2px;
-  max-inline-size: 40px;
   block-size: 6px;
-  margin-inline-end: var(--pulso-space-1);
   border-radius: 3px;
   background: var(--pulso-data-seq-4);
 }
@@ -522,7 +531,7 @@
   .cruces-hoja {
     --cruces-cat: 168px;
     --cruces-col: 84px;
-    --cruces-total: 96px;
+    --cruces-total: 104px;
   }
 }
 

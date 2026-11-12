@@ -416,9 +416,16 @@
   overflow-wrap: anywhere;
 }
 
+/* La pregunta en dos líneas como máximo; la completa va en el `title` del
+   botón. Las de un estudio real (A1_leg y sus vecinas) ocupaban tres y cuatro
+   líneas a 1440 (QA de remates). */
 .tablas-pregunta-etiqueta {
+  display: -webkit-box;
   min-width: 0;
+  overflow: hidden;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .tablas-panel--preguntas .tablas-panel-cuerpo > .pulso-loading-block,
@@ -1095,14 +1102,12 @@
     overflow-x: auto;
   }
 
+  /* Ajustes y Archivo, uno debajo del otro a todo el ancho. Lado a lado, la
+     columna de Archivo (122 px de alto) quedaba vacía mientras duraban los
+     ajustes (1,105 a 1,423 px): un hueco sin dueño (QA de remates, C3). */
   .tablas-lateral {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
-    align-items: start;
-  }
-
-  .tablas-lateral > .tablas-panel--archivo {
-    align-self: start;
+    display: flex;
+    flex-direction: column;
   }
 
   .tablas-panel--ajustes .tablas-panel-cuerpo {

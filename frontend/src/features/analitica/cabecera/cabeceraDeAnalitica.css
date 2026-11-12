@@ -1,0 +1,48 @@
+/* La cabecera común de las pestañas de Analítica que todavía no se rehicieron
+ * (`CabeceraDeAnalitica`): la del kit, con el mismo margen que el cuerpo de la
+ * pestaña, y la línea de los casos que cuentan debajo. Solo tokens.
+ *
+ * La barra de fuente va en las acciones del kit; la regla de theme.css que le
+ * da su forma de píldora apunta al control del TabHeading viejo, así que aquí
+ * se le da la misma forma en su lugar nuevo. */
+
+.pulso-analitica-panel-head.analitica-cabecera-comun {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: 14px 14px 0;
+}
+
+.analitica-cabecera-comun .pulso-analitica-universo-banda {
+  padding: 0 var(--pulso-space-1);
+  border-bottom: 0;
+}
+
+.analitica-cabecera-kit .pulso-cabecera-pestana-acciones {
+  min-width: 0;
+}
+
+.analitica-cabecera-kit .pulso-cabecera-pestana-acciones > .pulso-analitica-sourcebar--panel {
+  position: relative;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: auto;
+  max-width: min(100%, 508px);
+  margin: 0;
+  padding: 3px 4px;
+  overflow: visible;
+  border-color: color-mix(in srgb, var(--pulso-success-border) 72%, var(--pulso-border));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--pulso-success-bg) 60%, var(--pulso-surface));
+  box-shadow: none;
+}
+
+/* El panel de la pestaña toma el alto que deja la cabecera. La regla de
+   theme.css descuenta 286 px, medidos con la cabecera vieja (una línea con el
+   TabHeading); el contenedor del kit y la línea de casos piden 36 px más. Sin
+   esto, el área de contenido se desplazaba 15 px además del panel: dos dueños
+   de scroll en la misma columna. */
+.pulso-analitica-content:has(> .analitica-cabecera-comun) .pulso-analitica-panel-body > .pulso-panel {
+  min-height: clamp(420px, calc(100vh - 322px), 720px);
+}

@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { TabHeading } from "../../components/TabHeading";
-import { UniversoAnalisis } from "./UniversoAnalisis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import { toast } from "../../components/toasterStore";
@@ -45,7 +43,8 @@ import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
 import { PanelVariablesExcluidas } from "./PanelVariablesExcluidas";
 import { PanelUniverso } from "./PanelUniverso";
 import { useAnaliticaStore } from "./store";
-import { cabeceraCompacta } from "./tablas/cabeceraCompacta";
+import { CabeceraDeAnalitica } from "./cabecera/CabeceraDeAnalitica";
+import { cabeceraPropia } from "./cabecera/cabeceraDeLaPestana";
 import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
@@ -122,11 +121,10 @@ export default function AnaliticaPage() {
   const raw = analiticaParams.get(PARAMS_DIRECCION.pestana) ?? analiticaParams.get("reporte");
   const active: Reporte = (reportes.find((r) => r.key === raw)?.key) ?? "datos";
   const activeMeta = reportes.find((r) => r.key === active) ?? reportes[0] ?? REPORTES[0];
-  const ActiveIcon = activeMeta.icon;
-  // Frecuencias y Cruces dibujan su propia cabecera, con sus cifras y su acción
-  // (prototipo del rediseño): la página no pinta la suya y les pasa la pestaña y
-  // la barra de fuente, que va a sus ajustes.
-  const propia = cabeceraCompacta(activeMeta.key);
+  // Frecuencias, Cruces y Ponderación dibujan su propia cabecera, con sus cifras
+  // y su acción (prototipo del rediseño): la página no pinta la suya y les pasa
+  // la pestaña y la barra de fuente, que va a sus ajustes.
+  const propia = cabeceraPropia(activeMeta.key);
   const fuente = <AnaliticaHeader prepBusy={prepBusy} prepError={prepError} variant="panel" />;
   const encabezado = {
     titulo: activeMeta.label,
@@ -268,28 +266,11 @@ export default function AnaliticaPage() {
             />
           ) : (
             <>
-              {/* Sección superior: identidad del reporte (ícono + título + desc)
-                  a la izquierda y el control de fuente/plantilla a la derecha.
-                  La identidad es el TabHeading del kit (L14) —no un header
-                  interno— y cada pane
-                  deja su docbar como banda de stats (su -icon/-copy se ocultan
-                  vía CSS). El rail sigue siendo el 3er nivel de navegación. */}
+              {/* Las pestañas que no dibujan la suya llevan la cabecera común del kit
+                  (plan 4.7): antetítulo "Analítica", título y la barra de fuente;
+                  debajo, los casos que cuentan. */}
               {propia ? null : (
-                <div className="pulso-analitica-panel-head">
-                  <TabHeading
-                    eyebrow="Analítica"
-                    titulo={activeMeta.label}
-                    icono={ActiveIcon}
-                    detalle={activeMeta.desc}
-                    pestanaN={encabezado.pestanaN}
-                    pestanaDe={encabezado.pestanaDe}
-                    control={fuente}
-                  />
-                  {/* Cuántos casos cuentan si Validación declara "Qué caso cuenta". */}
-                  <div className="pulso-analitica-universo-banda">
-                    <UniversoAnalisis />
-                  </div>
-                </div>
+                <CabeceraDeAnalitica titulo={activeMeta.label} icono={activeMeta.icon} fuente={fuente} />
               )}
 
               {independentSiblings ? <ProcessingReleasePanel activeBase={state?.active_base} /> : null}
@@ -312,7 +293,7 @@ export default function AnaliticaPage() {
                     )}
                     {active === "codebook"     && <CodebookPane />}
                     {active === "bases"        && <BasesPane />}
-                    {active === "ponderacion"  && <PonderacionPane />}
+                    {active === "ponderacion"  && <PonderacionPane datos={fuente} />}
                     {active === "frecuencias"  && <FrecuenciasPane encabezado={encabezado} datos={fuente} />}
                     {active === "multibase"    && <MultibaseTablasPane />}
                     {active === "comparativos" && <ComparativosPane />}

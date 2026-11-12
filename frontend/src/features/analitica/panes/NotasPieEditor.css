@@ -81,6 +81,7 @@
 }
 
 .analitica-notas-pie-list {
+  container: notas-pie / inline-size;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -189,4 +190,23 @@
 
 .analitica-notas-pie--abierta .analitica-notas-pie-fields {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* En una columna angosta (los ajustes de Frecuencias y Cruces) la variable va
+   arriba y el campo debajo, a todo el ancho: al lado quedaba de 76 a 132 px y
+   su ejemplo se cortaba (QA de remates). */
+@container notas-pie (max-width: 520px) {
+  .analitica-notas-pie-row,
+  .analitica-notas-pie-row.has-action {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: var(--pulso-space-1);
+  }
+
+  .analitica-notas-pie-row > .analitica-notas-pie-row-var {
+    grid-column: 1 / -1;
+  }
+
+  .analitica-notas-pie-row:not(.has-action) > input {
+    grid-column: 1 / -1;
+  }
 }

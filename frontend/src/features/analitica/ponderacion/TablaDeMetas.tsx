@@ -32,13 +32,11 @@ export function TablaDeMetas({ modo, nombre, grupos, vacio, recalculando = false
           <span role="columnheader">Categoría</span>
           {modo === "ajuste" ? (
             <>
-              {/* La leyenda de las barras es la cabecera de su columna. */}
-              <span className="pond-leyenda" role="columnheader" aria-label="Distribución de la muestra y de la meta">
-                <span><i className="pond-barra is-muestra" aria-hidden="true" />Muestra</span>
-                <span><i className="pond-barra is-meta" aria-hidden="true" />Meta</span>
-              </span>
+              {/* La leyenda de las barras va sobre la tabla (`LeyendaDeMetas`), como en el prototipo. */}
+              <span role="columnheader">Distribución</span>
               <span className="pond-metas-cifra" role="columnheader">Muestra %</span>
-              <span className="pond-metas-cifra" role="columnheader">Meta</span>
+              {/* La meta que se teclea es la población de la categoría: en porcentaje o en conteo. */}
+              <span className="pond-metas-cifra" role="columnheader">Población</span>
               <span className="pond-metas-cifra" role="columnheader">Ponderado %</span>
             </>
           ) : (

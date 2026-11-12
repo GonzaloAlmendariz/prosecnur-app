@@ -5,7 +5,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { PonderacionConfig } from "../store";
+import { MemoryRouter } from "react-router-dom";
+import type { PonderPreview } from "../../../api/analitica";
 import { BandaPonderacion } from "./BandaPonderacion";
+import { CabeceraDePonderacion } from "./CabeceraDePonderacion";
 import { TablaDeMetas, type GrupoDeLaTabla } from "./TablaDeMetas";
 
 /**
@@ -26,6 +29,10 @@ const fuentes = [
     .map((f) => path.join(panes, f)),
 ];
 const leer = (f: string) => readFileSync(f, "utf8");
+const PREVIEW: PonderPreview = {
+  ok: true, rake_applied: true, escala: "expansion", total_poblacion: 486,
+  diagnostics: { n: 112, n_eff: 97, deff: 1.15, cv: 0.4, loss_pct: 13, min: 0.71, max: 1.62, mean: 1, median: 1, ratio_max_min: 2.3 },
+};
 const nombre = (f: string) => path.basename(f);
 
 /** Los patrones que este contrato prohíbe, como funciones para poder probarlos contra un caso que los rompe. */
@@ -53,18 +60,54 @@ describe("superficie de Ponderación", () => {
     expect(tieneCasilla('<input type="range" />')).toBe(false);
   });
 
-  it("C1: la mesa y sus dos contenedores declaran grupo y contrato", () => {
+  it("C1: la mesa es la del kit, con sus dos columnas, y los contenedores declaran grupo y contrato", () => {
     const pane = leer(path.join(panes, "PonderacionPane.tsx"));
-    for (const grupo of ["analitica/ponderacion-mesa", "analitica/ponderacion-lateral"]) {
-      expect(pane).toMatch(new RegExp(`data-qa-geometry-group="${grupo}"\\s+data-qa-geometry-contract="intrinsic"`));
-    }
+    // MesaDePestana declara "analitica/ponderacion-mesa" y PilaDeMesa "analitica/ponderacion-lateral-pila".
+    expect(pane).toMatch(/<MesaDePestana\s+grupo="analitica\/ponderacion"\s+columnas=\{2\}/);
+    expect(pane).toMatch(/<PilaDeMesa grupo="analitica\/ponderacion-lateral">/);
     const izquierda = leer(path.join(aqui, "PanelMuestraPoblacion.tsx"));
     expect(izquierda).toMatch(/data-qa-geometry-group="analitica\/ponderacion-declarado"\s+data-qa-geometry-contract="intrinsic"/);
-    // El vacío de cada contenedor tiene dueño declarado.
-    expect(izquierda.match(/data-qa-geometry-capacity="owned"/g)?.length).toBe(2);
+    // El vacío de cada contenedor es del cuerpo de PanelDeMesa (capacidad declarada en el kit):
+    // una segunda declaración por dentro haría leer el relleno como capacidad.
+    for (const f of ["PanelMuestraPoblacion.tsx", "GuiaDeCriterios.tsx"]) {
+      expect(leer(path.join(aqui, f)), f).toContain("<PanelDeMesa");
+      expect(leer(path.join(aqui, f)), f).not.toContain('data-qa-geometry-capacity="owned"');
+    }
+    for (const f of ["PonderacionEfecto.tsx", "PonderacionAjustes.tsx"]) {
+      expect(leer(path.join(panes, f)), f).toContain("<PanelDeMesa");
+      expect(leer(path.join(panes, f)), f).not.toContain('data-qa-geometry-capacity="owned"');
+    }
+    // El recorrido declara su fila de pasos.
+    expect(leer(path.join(aqui, "PasosDePonderacion.tsx"))).toMatch(/data-qa-geometry-group="analitica\/ponderacion-pasos"\s+data-qa-geometry-contract="intrinsic"/);
   });
 
-  it("la banda dice lo declarado y enciende la ponderación; no repite el efecto", () => {
+  it("la cabecera es la del kit: antetítulo, título, estado, lo declarado y el interruptor; no repite el efecto", () => {
+    const pond: PonderacionConfig = { enabled: true, rake: { margins: [{ var: "sexo", targets: { "1": 61.3, "2": 38.7 } }] } };
+    const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(CabeceraDePonderacion, {
+      pond,
+      lectura: { tipo: "efecto", preview: PREVIEW, recalculando: false },
+      preview: PREVIEW,
+      onAlternar: () => undefined,
+    })));
+    expect(html).toContain("pulso-cabecera-pestana");
+    expect(html).toContain(">Analítica<");
+    expect(html).toContain(">Ponderación</h2>");
+    expect(html).toContain('data-tono="listo">Activa<');
+    expect(html).not.toMatch(/Pestaña \d+ de \d+/);
+    expect(html).toContain("variables de ajuste");
+    expect(html).toContain("suma de pesos");
+    expect(html).toContain(">486<");
+    expect(html).toContain('role="switch"');
+    expect(html).toContain('aria-checked="true"');
+    expect(html).toContain("Usar pesos en frecuencias, cruces y dimensiones");
+    // El hueco declarado: lo que el prototipo dibuja y el motor no publica.
+    expect(html).toContain("data-cifras-pendientes=");
+    for (const delEfecto of ["Tamaño efectivo", "Efecto de diseño", "Peso mínimo", "Peso máximo", ">97<", ">1.15<"]) {
+      expect(html, delEfecto).not.toContain(delEfecto);
+    }
+  });
+
+  it("la banda anterior (sin uso en la pestaña) dice lo declarado y no repite el efecto", () => {
     const pond: PonderacionConfig = { enabled: true, rake: { margins: [{ var: "sexo", targets: { "1": 61.3, "2": 38.7 } }] } };
     const html = renderToStaticMarkup(createElement(BandaPonderacion, {
       pond,
@@ -104,10 +147,15 @@ describe("tabla de metas", () => {
     }));
   const cabecera = (html: string) => html.match(/role="columnheader"/g)?.length ?? 0;
 
-  it("C2: la cabecera es la misma con cero, una y varias variables", () => {
+  it("C2: la cabecera de la tabla es la misma con cero, una y varias variables", () => {
     expect(cabecera(render([]))).toBe(5);
     expect(cabecera(render([grupo("sexo")]))).toBe(5);
     expect(cabecera(render([grupo("sexo"), grupo("edad"), grupo("nivel")]))).toBe(5);
+  });
+
+  it("las columnas son las del prototipo: Distribución, Muestra %, Población y el resultado ponderado", () => {
+    const cabeceras = [...render([grupo("sexo")]).matchAll(/role="columnheader"[^>]*>([^<]+)</g)].map((m) => m[1]);
+    expect(cabeceras).toEqual(["Categoría", "Distribución", "Muestra %", "Población", "Ponderado %"]);
   });
 
   it("C3: sin variables, el vacío va dentro de la tabla y no hay filas", () => {
