@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 /** Caracterización de Carga: grupo "revision". Ver arnes.tsx. */
-import { describe } from "vitest";
+import { describe, expect, vi } from "vitest";
 import {
   UNA_BASE_COMPLETA,
   VARIAS_SEPARADAS,
@@ -11,6 +11,7 @@ import {
   fijar,
   montar,
   prepararGrupo,
+  pedidosHechos,
   pulsar,
   revision,
   rutasDeRevision,
@@ -31,16 +32,32 @@ describe("CargaPage, una base: Revisión leída", () => {
     fijar("una-base_revision_con-pendientes");
   });
 
-  escenario("una-base_revision_dialogo-de-mapeo", "con pendientes: diálogo de mapeo abierto", async () => {
+  escenario("una-base_revision_dialogo-de-mapeo", "con pendientes: diálogo de mapeo abierto desde su comprobación", async () => {
     await montar({ estado: UNA_BASE_COMPLETA, pestana: "revision", rutas: rutasDeRevision(true) });
-    await pulsar("button.pulso-carga-review-mapping-button");
+    await pulsar("button.pulso-revision-item", "Códigos de las opciones");
+    await pulsar("button.pulso-revision-revisar-mapeo");
     fijar("una-base_revision_dialogo-de-mapeo");
   });
 
-  escenario("una-base_revision_dialogo-de-extras", "con pendientes: diálogo de variables extra abierto", async () => {
-    await montar({ estado: UNA_BASE_COMPLETA, pestana: "revision", rutas: rutasDeRevision(true) });
-    await pulsar("button.pulso-recon-panel-button");
-    fijar("una-base_revision_dialogo-de-extras");
+  // Antes las columnas fuera del formulario se decidían en un diálogo ("Revisar variables extra"); ahora en la
+  // mesa. Lo que se guarda es lo mismo: el POST de la reconciliación con la lista de columnas que entran.
+  escenario("una-base_revision_columnas-guardar", "con pendientes: decide en la mesa qué columnas entran y guarda", async () => {
+    await montar({
+      estado: UNA_BASE_COMPLETA,
+      pestana: "revision",
+      rutas: [...rutasDeRevision(true), ["POST", "/api/carga/review/reconciliation", revision(null, false)]],
+    });
+    const cuerpos: unknown[] = [];
+    const delArnes = globalThis.fetch;
+    vi.stubGlobal("fetch", (entrada: RequestInfo | URL, init?: RequestInit) => {
+      if (String(init?.method).toUpperCase() === "POST") cuerpos.push(JSON.parse(String(init?.body)));
+      return delArnes(entrada, init);
+    });
+    await pulsar('button[role="switch"][aria-label="Incorporar obs_campo"]');
+    await pulsar("button.pulso-button--primary", "Guardar");
+    expect(cuerpos).toEqual([{ base_nombre: null, incluidas: ["obs_campo"] }]);
+    expect(pedidosHechos()).toContain("POST /api/carga/review/reconciliation");
+    fijar("una-base_revision_columnas-guardar");
   });
 });
 

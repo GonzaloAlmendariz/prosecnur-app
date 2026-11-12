@@ -1,0 +1,77 @@
+/* Carga › Revisión, Formulario y Respuestas con la mesa del kit de
+ * Procesamiento (`components/procesamiento/MesaDePestana`): la pestaña toma
+ * el alto que le queda al área de Carga para que sus columnas lleguen al pie
+ * (C3) y cada contenedor desplace su cuerpo (C4). Misma receta que Bases
+ * (`pestanas/bases/bases.css`), con la clase `pulso-carga-workbench--kit` que
+ * pone `MesaDeCarga`. Esta hoja no dibuja cajas: los marcos son del kit.
+ */
+
+.pulso-carga-mesa-kit {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-carga-scrollarea:has(> .pulso-carga-mesa-kit),
+.pulso-carga-content:not(.pulso-carga-content--framed):has(> .pulso-carga-mesa-kit) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* En escritorio bajo Carga pasa el scroll al cuerpo de la página; estas
+   pestañas conservan el alto de la ventana, como Bases. */
+:root .pulso-carga-frame.pulso-page-frame--scroll-panels .pulso-page-frame-body > .pulso-carga-workbench.pulso-carga-workbench--kit {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+:root .pulso-carga-frame .pulso-carga-workbench.pulso-carga-workbench--kit > .pulso-adaptive-main {
+  height: 100%;
+  min-height: 0;
+}
+
+:root .pulso-carga-frame .pulso-carga-workbench--kit .pulso-carga-content.pulso-carga-content--framed {
+  /* La cabecera vive dentro de la pestaña: el marco tiene una sola fila. */
+  grid-template-rows: minmax(0, 1fr);
+}
+
+:root .pulso-carga-frame .pulso-carga-workbench--kit .pulso-carga-content--framed > .pulso-carga-scrollarea {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Hasta 1100 px de ventana la mesa apila sus columnas (MesaDePestana) y se
+   desplaza la pestaña entera: el área de Carga es el dueño de ese scroll. */
+@media (max-width: 1100px) {
+  :root .pulso-carga-frame .pulso-carga-workbench--kit .pulso-carga-content--framed > .pulso-carga-scrollarea,
+  .pulso-carga-content:not(.pulso-carga-content--framed):has(> .pulso-carga-mesa-kit) {
+    overflow-y: auto;
+  }
+
+  .pulso-carga-mesa-kit {
+    flex: none;
+  }
+}
+
+/* Una tabla del kit dentro de un contenedor de la mesa: ocupa el alto libre
+   del cuerpo y es ella la que desplaza, con la cabecera pegada. Sin el marco
+   propio de la tabla: el marco es el del contenedor. */
+.pulso-carga-mesa-kit .pulso-panel-de-mesa-cuerpo > .pulso-carga-tabla-llena,
+.pulso-carga-mesa-kit .pulso-carga-tabla-llena {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pulso-carga-mesa-kit .pulso-carga-tabla-llena .pulso-table-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 1px 0 var(--pulso-border);
+}

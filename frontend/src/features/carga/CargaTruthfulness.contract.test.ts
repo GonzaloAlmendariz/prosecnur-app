@@ -65,8 +65,9 @@ describe("CargaPage truthfulness contracts", () => {
     expect.soft(source).toMatch(
       /<PestanaRevision[\s\S]*?basesPrimarias=\{topologyBases\.map\(/,
     );
+    // P4b R4: la mesa de Revisión recibe las bases primarias para su selector y su resumen.
     expect.soft(revisionPestana).toMatch(
-      /<CargaReviewSummary[\s\S]*?bases=\{basesPrimarias\.length\}/,
+      /<MesaDeRevision[\s\S]*?basesPrimarias=\{basesPrimarias\}/,
     );
   });
 

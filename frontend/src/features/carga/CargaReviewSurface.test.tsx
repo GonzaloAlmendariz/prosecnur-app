@@ -12,6 +12,15 @@ const revisionSource = fs.readFileSync(
   fileURLToPath(new URL("./pestanas/PestanaRevision.tsx", import.meta.url)),
   "utf8",
 );
+// P4b R4: Revisión es una sola mesa para una y varias bases (pestanas/revision/MesaDeRevision.tsx).
+const mesaRevisionSource = fs.readFileSync(
+  fileURLToPath(new URL("./pestanas/revision/MesaDeRevision.tsx", import.meta.url)),
+  "utf8",
+);
+const marcoKitSource = fs.readFileSync(
+  fileURLToPath(new URL("./pestanas/revision/marcoDeMesa.css", import.meta.url)),
+  "utf8",
+);
 const mesaSource = fs.readFileSync(
   fileURLToPath(new URL("./pestanas/MesaDeCarga.tsx", import.meta.url)),
   "utf8",
@@ -42,24 +51,6 @@ function reviewCheck(html: string, label: "Instrumento" | "Respuestas") {
   return item ?? "";
 }
 
-// PestanaRevision trae las dos variantes: `if (varias)` abre la de varias bases y
-// el `return` que sigue es el de una sola base.
-const MARCA_UNA_BASE = "  return (\n    <>\n      {botonMapeo}";
-
-function singleReviewBranch(source: string) {
-  const start = source.indexOf(MARCA_UNA_BASE);
-  expect(start, "No se encontró la variante de una base de Revisión").toBeGreaterThan(-1);
-  return source.slice(start);
-}
-
-function multiReviewBranch(source: string) {
-  const start = source.indexOf("if (varias) {");
-  const end = source.indexOf(MARCA_UNA_BASE, start);
-  expect(start, "No se encontró la variante de varias bases de Revisión").toBeGreaterThan(-1);
-  expect(end, "No se encontró el límite de la variante de varias bases").toBeGreaterThan(start);
-  return source.slice(start, end);
-}
-
 describe("superficie de Revisión en Carga", () => {
   it("expone cobertura parcial multibase sin marcar instrumento ni respuestas como listos", () => {
     const html = renderToStaticMarkup(
@@ -84,23 +75,16 @@ describe("superficie de Revisión en Carga", () => {
   });
 
   it("ofrece el filtro de universo en single siempre que haya datos confirmados", () => {
-    const reviewSource = singleReviewBranch(revisionSource);
-
-    expect(reviewSource).toMatch(
-      /\{\s*tieneRespuestas\s*&&\s*!mapeoPendiente\s*&&\s*\([\s\S]*?<CargaUniverseFilter/u,
-    );
-    expect(reviewSource).not.toMatch(
-      /sourceMode\s*!==\s*"monitoring"[\s\S]*?<CargaUniverseFilter/u,
-    );
+    expect(revisionSource).toMatch(/conDeclaraciones=\{varias \? Boolean\(baseElegida\) : tieneRespuestas && !mapeoPendiente\}/u);
+    expect(mesaRevisionSource).toMatch(/\{conDeclaraciones \?[\s\S]*?<CargaUniverseFilter/u);
+    expect(mesaRevisionSource).not.toMatch(/sourceMode\s*!==\s*"monitoring"/u);
   });
 
   it("permite reabrir un mapeo pendiente también en un estudio de base única", () => {
-    const reviewSource = singleReviewBranch(revisionSource);
-
-    // El botón se arma una vez, antes de las variantes, y la de una base lo monta.
-    expect(revisionSource).toMatch(/choice_mapping\.pending[\s\S]*?Revisar mapeo/iu);
-    expect(revisionSource).toContain("revision.choice_mapping.maps");
-    expect(reviewSource).toContain("{botonMapeo}");
+    // Una sola composición: el botón vive en la decisión de "Códigos de las opciones".
+    expect(mesaRevisionSource).toMatch(/choice_mapping\.pending[\s\S]*?Revisar mapeo/iu);
+    expect(mesaRevisionSource).toContain("revision.choice_mapping.maps");
+    expect(mesaRevisionSource).not.toMatch(/if \(varias\)/u);
   });
 
   it("impide que el resumen se encoja y oculte hallazgos a cualquier alto", () => {
@@ -178,15 +162,13 @@ describe("superficie de Revisión en Carga", () => {
   });
 
   it("recarga y guarda la revisión con la base elegida por el selector multibase", () => {
-    const reviewSource = multiReviewBranch(revisionSource);
-
-    expect(reviewSource).toMatch(/Base revisada[\s\S]*?<select[\s\S]*?value=\{baseElegida\}/u);
-    expect(reviewSource).toMatch(/<CargaReviewSummary[\s\S]*?review=\{revision\}/u);
+    expect(mesaRevisionSource).toMatch(/<SelectorDeBaseCarga[\s\S]*?elegida=\{baseElegida\}/u);
+    expect(revisionSource).toMatch(/<MesaDeRevision[\s\S]*?revision=\{props\.revision\}/u);
     expect(pageSource).toContain("apiCargaReview(selectedCargaBase)");
     expect(pageSource).toContain("apiCargaReviewReconciliation(selectedCargaBase, incluidas)");
     expect(pageSource).toContain("apiCargaReviewSummary()");
-    expect(reviewSource).toMatch(/reviewSummary=\{resumenDeBases\}/u);
-    expect(reviewSource).toMatch(/action=\{puedeContinuar \? <ContinuarCTA/u);
+    expect(revisionSource).toMatch(/resumenDeBases=\{props\.resumenDeBases\}/u);
+    expect(mesaRevisionSource).toMatch(/puedeContinuar \? \([\s\S]*?Ir a Validación/u);
     // Con varias bases el CTA lo habilita el resumen agregado, no la base elegida.
     expect(pageSource).toMatch(/\? Boolean\(cargaReviewSummary\?\.all_ready && !busy && !error\)/u);
     expect(pageSource).toMatch(
@@ -299,11 +281,8 @@ describe("superficie de Revisión en Carga", () => {
   });
 
   it("reabre el mapeo pendiente del payload y confirma esa misma base", () => {
-    const reviewSource = multiReviewBranch(revisionSource);
-
-    expect(revisionSource).toMatch(/choice_mapping\.pending[\s\S]*?Revisar mapeo/iu);
-    expect(reviewSource).toContain("{botonMapeo}");
-    expect(revisionSource).toContain("revision.choice_mapping.maps");
+    expect(mesaRevisionSource).toMatch(/choice_mapping\.pending[\s\S]*?Revisar mapeo/iu);
+    expect(mesaRevisionSource).toContain("revision.choice_mapping.maps");
     expect(pageSource).toContain("apiCargaConfirmChoiceMapping(selectedCargaBase)");
   });
 });
@@ -578,21 +557,16 @@ describe("CargaReviewSummary, fuentes emparejadas por pregunta (ADR 0099)", () =
     expect(verPreguntasSource).toMatch(/searchConEmparejamiento\(location\.search, props\.surveyId, props\.baseNombre\)/u);
   });
 
-  it('el selector de Revisión se llama "Base revisada", sin arrastrar la opción elegida', () => {
-    expect(revisionSource).toMatch(
-      /<span id="pulso-carga-review-base-label">Base revisada<\/span>[\s\S]*?<select\s+aria-labelledby="pulso-carga-review-base-label"/u,
-    );
+  it("el selector de Revisión es el común de Carga, con las bases primarias", () => {
+    // SelectorDeBaseCarga: PulsoField "Base" con el select del kit, solo con dos o más bases.
+    expect(mesaRevisionSource).toMatch(/<SelectorDeBaseCarga bases=\{basesPrimarias\}/u);
   });
 
-  it("C3/C4: en escritorios bajos Revisión crece y el scroll es del PageFrame, ganando por especificidad", () => {
-    // Medido 2026-10-11 a 1024x600: workbench de 393 px con contenido de 543 px.
-    expect(findingsStyleSource).toMatch(
-      /@media \(max-height: 720px\) \{\s*:root \.pulso-carga-frame\.pulso-page-frame--scroll-panels \.pulso-page-frame-body > \.pulso-carga-workbench--revision \{[^}]*flex: 1 0 auto;[^}]*height: auto;/u,
+  it("C3/C4: Revisión conserva el alto de la ventana y cada contenedor desplaza su cuerpo, también en escritorio bajo", () => {
+    expect(mesaSource).toMatch(/PESTANAS_CON_MESA_DEL_KIT[^\n]*"revision"/u);
+    expect(marcoKitSource).toMatch(
+      /:root \.pulso-carga-frame\.pulso-page-frame--scroll-panels \.pulso-page-frame-body > \.pulso-carga-workbench\.pulso-carga-workbench--kit \{[^}]*height: 100%;/u,
     );
-    expect(findingsStyleSource).toMatch(
-      /:root\[data-pulso-layout-mode="short"\] \.pulso-carga-frame\.pulso-page-frame--scroll-panels \.pulso-carga-workbench--revision \.pulso-carga-scrollarea \{[^}]*overflow: visible;/u,
-    );
-    expect(mesaSource).toContain('activa === "revision" ? " pulso-carga-workbench--revision" : ""');
   });
 
   it("la readiness de Revisión espera a la lectura de la base elegida y se escribe en false", () => {

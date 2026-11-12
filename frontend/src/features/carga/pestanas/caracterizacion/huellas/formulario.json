@@ -1,42 +1,42 @@
 {
   "una-base_con-insumos_estructura": {
-    "marcado": "7633f3e1f87a5f73ab6d68e3aca90023b44f245418cc2ebad979befd9b95ecff",
+    "marcado": "dcdc98054a9627c9d02226e7f7338473684269208ba25443e04da961dd98647d",
     "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
   },
   "una-base_con-insumos_formulario": {
-    "marcado": "826b9a57e63724016c7552ddfc3a58d4291ae7011fb60f8504912af0eb303dc2",
+    "marcado": "8bf96b5bfa8d15e6137956d428068edd24eb0b268957bc58ed2338bb3ce811e1",
     "pedidos": "6152e3de3ae5f183a7578c29cf0bb26e8e30260c3086056fec43c761d215019b"
   },
   "una-base_sin-archivos_estructura": {
-    "marcado": "182f622cac22bf8b7ab4564d7d938a21b5e96b443ab8daed1622e4016fc875a2",
+    "marcado": "1cff2daf2d7bdcf36c789a72fa7e45777de6e891612ace869235863c378c365b",
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "una-base_sin-archivos_formulario": {
-    "marcado": "4a4f639056843ce68172baa956b08fd201108abbba0f52f74fe93a5a52c0e37a",
+    "marcado": "255f873cf7a91e18ac99deb563280165638e22795489a894da25d5e9be114635",
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "varias_integradas_estructura": {
-    "marcado": "b4ce2cf461e9b2fd75604ac66772cb09b6c8eae32d24dcf5cc7bac7486e10245",
+    "marcado": "833cfa32538e8cf7d449aeee2538287255e1c800edea56ff6afdf09be6af69b7",
     "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
   },
   "varias_integradas_formulario": {
-    "marcado": "d752c221e4f40fec2f7501949fe07a9cfd505fbc9b37c1ce9085d26751b5ffd4",
+    "marcado": "91fa9e50ec43173c3735d20322bd67d9c6135ac6bc041dc9f061752a3705e277",
     "pedidos": "1fdfd21575a33862aa71209ec6b6ee704434b3ea116d9b54b94ed7e2592a3199"
   },
   "varias_separadas_estructura": {
-    "marcado": "e34c5e021e7d71325bd8273ab771158054242540d7416feee90994fb18f50135",
+    "marcado": "ab875bf993371a47c841772fc40d0fb94410ae5cb435afdbe80b2199bec833e4",
     "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
   },
   "varias_separadas_formulario": {
-    "marcado": "3c8a00925a96efee83449758c4c55a1b250161685462a74fc3122b0401838306",
+    "marcado": "21194115dfe8115a809845db1431d818437a273d0efa3abeb7148935676df2b4",
     "pedidos": "7b8b8786e6933ae543f3c04f2f16c35e3a0e935a6e88589827d5851445c0f237"
   },
   "varias_sin-bases_estructura": {
-    "marcado": "3d8b83e76dba51eeeed7582551be2d5734392a834ad655a962893817eb4c7c97",
+    "marcado": "abe9987e7d41a19f6be180d1740210b82427ff808cb08671b24b95717da3f2ad",
     "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
   },
   "varias_sin-bases_formulario": {
-    "marcado": "d090c8a032ce7ccff87daa84ac231adedd5584b18f3db8c59f18c02d12186770",
+    "marcado": "0b6c4c1a99472ce8e6d8fe670d295764b78ac08bb5313063e8b71f51547cb75e",
     "pedidos": "e9754bc7cac83a6ea533e75848c07045e30d55af0583029d16964cc459054d23"
   }
 }

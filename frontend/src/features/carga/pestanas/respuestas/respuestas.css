@@ -1,0 +1,33 @@
+/* Carga › Respuestas (prototipo "carga-respuestas"): bajo la cabecera, la
+ * hoja de la base a todo el ancho y hasta el pie. La hoja es su propio marco y
+ * el dueño de su scroll (ProcessingSheetViewer); aquí solo se le da el alto.
+ */
+
+.pulso-respuestas-hoja {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pulso-respuestas-hoja > .pulso-carga-base-shell {
+  flex: 1 1 auto;
+}
+
+.pulso-respuestas-hoja .pulso-processing-sheet {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Respuestas no apila nada: en todo tamaño la hoja llega al pie y desplaza
+   su tabla, en vez de dejar que se desplace la pestaña (marcoDeMesa.css). */
+.pulso-respuestas .pulso-mesa-pestana-marco {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 1100px) {
+  .pulso-carga-mesa-kit.pulso-respuestas {
+    flex: 1 1 auto;
+  }
+}

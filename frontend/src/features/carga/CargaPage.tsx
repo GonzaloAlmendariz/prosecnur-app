@@ -28,7 +28,6 @@ import "./carga-scroll-corto.css";
 import { PageFrame } from "../../components/PageFrame";
 import { ChoiceMappingReviewDialog } from "./ChoiceMappingReviewDialog";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
-import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
 import { useCargaStore, type CargaTopologyIntent, type MultiBaseStrategy } from "./store";
 import {
   equivalenciasDisponibles,
@@ -65,7 +64,6 @@ import {
 } from "./pestanas/cargaPaginaModelo";
 import { quitarInsumo, subirInsumo } from "./pestanas/accionesDeInsumos";
 import { AvisosDeCarga } from "./pestanas/AvisosDeCarga";
-import { AvisoVariablesExtra } from "./pestanas/AvisoVariablesExtra";
 import { traerTrabajoDeCampo } from "./pestanas/traerTrabajoDeCampo";
 import { MesaDeCarga } from "./pestanas/MesaDeCarga";
 import { useModeloCarga } from "./pestanas/useModeloCarga";
@@ -76,7 +74,7 @@ import { PestanaFormulario } from "./pestanas/PestanaFormulario";
 import { PestanaRespuestas } from "./pestanas/PestanaRespuestas";
 import { PestanaRevision } from "./pestanas/PestanaRevision";
 import { PestanaVariables } from "./pestanas/PestanaVariables";
-import { baseDeVariables, type ContextoDeCarga } from "./pestanas/contextoDeCarga";
+import { BASE_UNICA, baseDeVariables, type ContextoDeCarga } from "./pestanas/contextoDeCarga";
 import { useEstructuraDeBase, useLecturaDeEstructura } from "./pestanas/useEstructuraDeBase";
 import { useElegirBaseDeVariables } from "./pestanas/useElegirBaseDeVariables";
 
@@ -245,7 +243,6 @@ export default function CargaPage() {
     showInspection,
     workspaceHasInstrument,
     workspaceHasData,
-    workspaceAllReady,
     topologyHasStudy,
     topologyResolution,
     resolvedTopologyIntent,
@@ -626,6 +623,10 @@ export default function CargaPage() {
     error,
     todoListo: allReady,
   };
+  // La base que muestra Revisión: con varias, la elegida; con una, la única del estudio.
+  const baseRevisada = isMultiBase
+    ? topologyBases.find((base) => base.nombre === selectedCargaBase) ?? null
+    : estudio?.bases?.[BASE_UNICA] ?? null;
   const basesDeVariables = isMultiBase ? cargaBaseOptions.map((base) => base.nombre) : [];
   const contextoDeVariables: ContextoDeCarga = {
     ...contextoDeCarga,
@@ -724,19 +725,17 @@ export default function CargaPage() {
       leyendo={!revisionEstado.datosLeidos}
       revision={cargaReview}
       mapeoPendiente={pendingChoiceMapping}
-      tieneFormulario={hasXlsform}
-      tieneRespuestas={hasData}
-      todoListo={workspaceAllReady}
+      tieneFormulario={isMultiBase ? Boolean(baseRevisada?.xlsform_file_id) : hasXlsform}
+      tieneRespuestas={isMultiBase ? Boolean(baseRevisada?.data_file_id) : hasData}
       onRevisarMapeo={setChoiceMappingReview}
       onLecturaUniverso={marcarLecturaUniverso}
       onUniversoAplicado={alAplicarUniverso}
+      onGuardarColumnas={onSaveReconciliacion}
       basesPrimarias={topologyBases.map((base) => base.nombre)}
       baseElegida={selectedCargaBase}
       onCambiarBase={setSelectedCargaBase}
       resumenDeBases={cargaReviewSummary}
-      formulariosEnBases={multiBaseInstrumentCount}
-      respuestasEnBases={multiBaseDataCount}
-      basesDeLaSesion={state?.n_bases ?? 0}
+      filasDeLaBase={baseRevisada?.n_filas ?? null}
       puedeContinuar={isMultiBase
         ? Boolean(cargaReviewSummary?.all_ready && !busy && !error)
         : Boolean(cargaReview?.ready && allReady && !busy && !error)}
@@ -787,14 +786,6 @@ export default function CargaPage() {
     >
       {(busy || error || handoffMessage) && (
         <AvisosDeCarga ocupado={busy} error={error} avisoDeTraspaso={handoffMessage} refAvisos={feedbackRef} />
-      )}
-
-      {activeCargaTab === "revision" && reconInfo && reconInfo.n_extra > 0 && (
-        <AvisoVariablesExtra
-          baseNombre={cargaReview?.base_nombre}
-          resumen={reconSummaryLabel(reconInfo)}
-          onRevisar={() => setReconDialogOpen(true)}
-        />
       )}
 
       {reconDialogOpen && reconInfo && (

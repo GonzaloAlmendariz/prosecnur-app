@@ -13,6 +13,7 @@ export function CargaBaseSheetPane({
   baseOptions,
   selectedBase,
   onSelectedBaseChange,
+  selectorFuera = false,
 }: {
   isMultiBase?: boolean;
   allReady: boolean;
@@ -21,6 +22,8 @@ export function CargaBaseSheetPane({
   baseOptions: readonly EstudioBase[];
   selectedBase: string;
   onSelectedBaseChange: (base: string) => void;
+  /** El selector de base va en la cabecera de la pestaña (Respuestas): la hoja no repite el suyo. */
+  selectorFuera?: boolean;
 }) {
   const activeBase = baseOptions.find((base) => base.nombre === selectedBase) ?? baseOptions[0] ?? null;
   const hasMultiBase = isMultiBase && baseOptions.length > 0;
@@ -35,22 +38,29 @@ export function CargaBaseSheetPane({
     ? `Carga de ${cargaBaseLabel(activeBase)}, antes de validación, limpieza y codificación`
     : "Carga, antes de validación, limpieza y codificación";
 
+  // Con el selector en la cabecera, el vacío nombra la base elegida (plan R6).
+  const baseSinRespuestas = selectorFuera && isMultiBase && Boolean(activeBase) && !activeBaseHasData;
+
   if (!enabled) {
     return (
       <section className="pulso-carga-base-shell" data-carga-surface="data" aria-label="Base de carga">
-        <EstadoVacio
-          tamano="normal"
-          icono={<Table2 size={18} />}
-          titulo="Aún no hay datos de Carga para explorar"
-          descripcion={disabledMessage}
-        />
+        {baseSinRespuestas ? (
+          <EstadoVacio tamano="normal" icono={<Table2 size={18} />} titulo="Esta base todavía no tiene respuestas" descripcion="Se cargan en Bases." />
+        ) : (
+          <EstadoVacio
+            tamano="normal"
+            icono={<Table2 size={18} />}
+            titulo="Aún no hay datos de Carga para explorar"
+            descripcion={disabledMessage}
+          />
+        )}
       </section>
     );
   }
 
   return (
     <section className="pulso-carga-base-shell" data-carga-surface="data" aria-label="Base de carga">
-      {isMultiBase && baseOptions.length > 1 && (
+      {isMultiBase && !selectorFuera && baseOptions.length > 1 && (
         <div className="pulso-carga-base-picker">
           <div>
             <strong>Base visible</strong>

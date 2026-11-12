@@ -1,0 +1,272 @@
+/* Carga › Formulario (prototipo "carga-formulario"): secciones, tabla de
+ * preguntas e inspector. Los marcos son del kit (PanelDeMesa, PulsoTable);
+ * esta hoja ordena lo de adentro. Color por tipo con `--tipo-*`. Solo tokens.
+ */
+
+/* ---------- Secciones ---------- */
+
+.pulso-formulario-secciones {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--pulso-space-3);
+  list-style: none;
+}
+
+.pulso-formulario-seccion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--pulso-space-3);
+  align-items: start;
+  inline-size: 100%;
+  padding: var(--pulso-space-3);
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-standard);
+}
+
+.pulso-formulario-seccion:hover {
+  background: var(--pulso-surface-2);
+}
+
+.pulso-formulario-seccion[aria-pressed="true"] {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 35%, transparent);
+}
+
+.pulso-formulario-seccion:focus-visible {
+  outline: var(--mov-foco, 2px solid var(--pulso-primary));
+  outline-offset: 1px;
+}
+
+.pulso-formulario-seccion-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-formulario-seccion-texto b {
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.pulso-formulario-seccion-texto span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.pulso-formulario-seccion-n {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-formulario-seccion-n em {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Preguntas ---------- */
+
+.pulso-formulario-barra {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.pulso-formulario-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-formulario-buscar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 220px;
+  min-width: 160px;
+}
+
+.pulso-formulario-buscar > svg {
+  position: absolute;
+  inset-inline-start: 10px;
+  color: var(--pulso-text-faint);
+  pointer-events: none;
+}
+
+.pulso-formulario-buscar .pulso-input {
+  inline-size: 100%;
+  padding-inline-start: 32px;
+}
+
+.pulso-formulario-codigo,
+.pulso-formulario-dl code,
+.pulso-formulario-opciones code,
+.pulso-formulario-abre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* La pregunta, el código y la condición no se cortan: bajan de línea (C4). */
+.pulso-formulario .pulso-table td:nth-child(1),
+.pulso-formulario .pulso-table td:nth-child(2),
+.pulso-formulario .pulso-table td:nth-child(4) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding-block: var(--pulso-space-2);
+  line-height: 1.3;
+}
+
+.pulso-formulario-vista .pulso-canvas-card-typebadge {
+  white-space: nowrap;
+}
+
+.pulso-formulario-etiqueta {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-formulario-aparece {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-formulario-obligatoria {
+  color: var(--pulso-success-fg);
+}
+
+/* El tipo en su color (tokens --tipo-*), como una pastilla sin caja propia. */
+.pulso-formulario-tipo {
+  display: inline-flex;
+  align-items: center;
+  block-size: 22px;
+  padding: 0 var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-formulario-tipo[data-tono="so"] { background: var(--tipo-so-bg); box-shadow: inset 0 0 0 1px var(--tipo-so-border); color: var(--tipo-so-fg); }
+.pulso-formulario-tipo[data-tono="sm"] { background: var(--tipo-sm-bg); box-shadow: inset 0 0 0 1px var(--tipo-sm-border); color: var(--tipo-sm-fg); }
+.pulso-formulario-tipo[data-tono="int"] { background: var(--tipo-int-bg); box-shadow: inset 0 0 0 1px var(--tipo-int-border); color: var(--tipo-int-fg); }
+.pulso-formulario-tipo[data-tono="text"] { background: var(--tipo-text-bg); box-shadow: inset 0 0 0 1px var(--tipo-text-border); color: var(--tipo-text-fg); }
+
+/* La fila del inspector, con el tono del módulo. */
+.pulso-formulario .pulso-table tr[data-selected="true"] td {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.pulso-formulario .pulso-table tbody tr[tabindex] {
+  cursor: pointer;
+}
+
+/* ---------- Inspector ---------- */
+
+.pulso-formulario-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-5);
+}
+
+.pulso-formulario-dl {
+  display: grid;
+  grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-formulario-dl dt,
+.pulso-formulario-dl dd {
+  padding: var(--pulso-space-2) 0;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-formulario-dl dt {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-formulario-dl dd {
+  margin: 0;
+  min-width: 0;
+  font-weight: var(--pulso-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.pulso-formulario-opciones,
+.pulso-formulario-abre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.pulso-formulario-opciones li,
+.pulso-formulario-abre li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-formulario-opciones-resto {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-formulario-ruta h4 {
+  margin: 0 0 var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.02em;
+}
+
+.pulso-formulario-cadena {
+  margin: 0;
+}
+
+.pulso-formulario-cadena span {
+  display: inline-block;
+  padding: var(--pulso-space-1) var(--pulso-space-3);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  font-size: var(--pulso-type-body-size);
+  overflow-wrap: anywhere;
+}
+
+.pulso-formulario-abre svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+/* La vista previa del editor en la columna angosta: sus marcas no se parten. */
+.pulso-formulario-vista .pulso-canvas-card-required,
+.pulso-formulario-vista .pulso-canvas-card-conditional {
+  white-space: nowrap;
+}

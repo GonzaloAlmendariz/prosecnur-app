@@ -429,7 +429,7 @@ function EmptyReadout({ text }: { text: string }) {
   return <EstadoVacio icono={<Inbox size={16} />} titulo={<>{text}</>} />;
 }
 
-function toChoiceItems(pregunta: Pregunta): ChoiceItem[] {
+export function toChoiceItems(pregunta: Pregunta): ChoiceItem[] {
   return (pregunta.choices ?? []).map((choice, rowIndex) => ({
     rowIndex,
     name: choice.name,
@@ -545,7 +545,7 @@ function calculationConsumers(
   return out;
 }
 
-function buildReadOnlyLogicInputs(
+export function buildReadOnlyLogicInputs(
   preguntas: Pregunta[],
   secciones: Seccion[],
 ): { structure: BuilderStructure; catalogs: CatalogSummary[] } {
@@ -648,7 +648,7 @@ function buildReadOnlyLogicInputs(
   };
 }
 
-function toBuilderNode(pregunta: Pregunta): BuilderNode {
+export function toBuilderNode(pregunta: Pregunta): BuilderNode {
   return {
     rowIndex: (pregunta.row_index ?? 1) - 1,
     depth: 0,

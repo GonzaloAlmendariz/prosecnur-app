@@ -1,46 +1,46 @@
 {
   "una-base_con-insumos_revision": {
-    "marcado": "01e58ac2076eefe5e9cb69b79b62404f04aad398661b9b17ca5bc01371652491",
+    "marcado": "e9c86936c54e046d30c211247b620aa29c396cd2f981d33ee0bac27e66a5debf",
     "pedidos": "dcfff690f09f91dffe5bedf03c93e611c3b798e113158cf5de308c45663e0b41"
   },
-  "una-base_revision_con-pendientes": {
-    "marcado": "580870abb28be900957036e9c460bec5fafe4f2e6c2b2eb2576a07612433ca15",
-    "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
+  "una-base_revision_columnas-guardar": {
+    "marcado": "553ea0a21c71881b106f157abb0a210fe4780c8f081d37ccdcf2cd12fe4d4234",
+    "pedidos": "505d8e108f65fc8a68d1b9620278a7ec2e3c965f250dde85d40c6207e219739d"
   },
-  "una-base_revision_dialogo-de-extras": {
-    "marcado": "9b840f376c4befcc464d4e3f40df225e55e7c3c501de043fbceca3abffe798da",
+  "una-base_revision_con-pendientes": {
+    "marcado": "f168bbc024fb7d0fb234f36d813ba68a472d4aa09dfa9ba985b9af012838bfe0",
     "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
   },
   "una-base_revision_dialogo-de-mapeo": {
-    "marcado": "9b840f376c4befcc464d4e3f40df225e55e7c3c501de043fbceca3abffe798da",
+    "marcado": "4c802e21c5172f58addcf2ae6ff73400d880034db9e2939f21b2e98d8010b36f",
     "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
   },
   "una-base_revision_lista": {
-    "marcado": "170c8becf8ac839f1a38436251fab734838cb245ce8b605949bd79e0d98d872d",
+    "marcado": "553ea0a21c71881b106f157abb0a210fe4780c8f081d37ccdcf2cd12fe4d4234",
     "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
   },
   "una-base_sin-archivos_revision": {
-    "marcado": "9957e271c1b844bf04a2145ab5fa3b428f903011b4b3e497098684f98ba1a120",
+    "marcado": "c8075b6b68b754b70e7f598ea496bc30018f7b19f128aeba4efd9b5a014f1ce9",
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "varias_integradas_revision": {
-    "marcado": "261eb098a883671da07d5d9eeaa4f265cdf0a22ee3a50d39899d2dad91011d62",
+    "marcado": "210a803cd3593c97e3a45d498441361c63ce132146144ff108e6d025e6fcd1ff",
     "pedidos": "7d5ff1f31a097521bafe4b7b7dfa39547784f10a47a43005a03b88faa790c508"
   },
   "varias_separadas_revision": {
-    "marcado": "bd58ef3aa3bf8bedf3456806ac80c1d587aeeb90215310904ad9b4cd7785edd6",
+    "marcado": "19667e691ec929d7f2d40ca24a8ba0eed59cb614725f01cc23fdecd60c9c0a34",
     "pedidos": "67350f9f68c9932bd9c60583b3e0c5a085e224e92a71573c2d343ff16040f1c6"
   },
   "varias_separadas_revision_con-pendientes": {
-    "marcado": "2c455c39ffeda6ce7d8c6f3049c46315ae4391bed7075aa005c2cd322d0f77d8",
+    "marcado": "e5cfa9ea1a55891ad9c27b91ecd46241af93e00452695ece86302b04193c854c",
     "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
   },
   "varias_separadas_revision_lista": {
-    "marcado": "8444183157f1e788e22e91e9cc813fc720fb89f3d9b506a7be48de65b2d61989",
+    "marcado": "60b019a8c8a75f72517f1ffbbc466f748a1b42d18c25232477c122fae9b99a91",
     "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
   },
   "varias_sin-bases_revision": {
-    "marcado": "57900d0902415e44028c0d5dc2d0c0a06b8e64c2e2cc8e9580eeaee91262f49a",
+    "marcado": "ec7ef9a5cede3cdd27e29458d04f6abf410fe6a307f9184a5d49d9303e0fdc2f",
     "pedidos": "d6c7987f7904e9dc37c115d29436bda92a53f1f2bc5d90f743d0f9279431a62e"
   }
 }

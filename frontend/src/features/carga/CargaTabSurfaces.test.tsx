@@ -16,6 +16,7 @@ const estructuraPestana = readSibling("./pestanas/PestanaEstructura.tsx");
 const hojaBase = readSibling("./pestanas/HojaBaseCarga.tsx");
 const planSource = readSibling("./CargaPlanOverview.tsx");
 const reviewSource = readSibling("./CargaReviewSummary.tsx");
+const mesaDeRevision = readSibling("./pestanas/revision/MesaDeRevision.tsx");
 const structureSource = readSibling("./CargaStructureWorkbench.tsx");
 
 const emptyTopology = resolveCargaTopology({
@@ -100,10 +101,12 @@ describe("superficies conceptuales de Carga", () => {
     expect(html).toContain("<dt>Bases</dt><dd>2</dd>");
   });
 
-  it("usa en Revisión un resumen compacto en lugar del tablero completo de Plan", () => {
-    expect(revisionPestana.includes('from "../CargaReviewSummary"')).toBe(true);
-    expect(revisionPestana.includes("<CargaReviewSummary")).toBe(true);
-    expect(reviewSource.includes('data-carga-surface="review"')).toBe(true);
+  it("usa en Revisión la mesa de comprobaciones en lugar del tablero completo de Plan", () => {
+    // P4b R4: Revisión es la mesa del prototipo (comprobaciones, detalle y decisión).
+    expect(revisionPestana.includes('from "./revision/MesaDeRevision"')).toBe(true);
+    expect(revisionPestana.includes("<MesaDeRevision")).toBe(true);
+    expect(mesaDeRevision.includes('data-carga-surface="review"')).toBe(true);
+    expect(mesaDeRevision.includes("CargaReadinessBoard")).toBe(false);
     expect(reviewSource.includes("CargaReadinessBoard")).toBe(false);
   });
 

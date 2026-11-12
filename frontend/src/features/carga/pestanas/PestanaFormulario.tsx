@@ -1,21 +1,27 @@
+import type { Pregunta, Seccion } from "../../../api/client";
 import type { ContextoDeCarga } from "./contextoDeCarga";
-import { PestanaEstructura, type PestanaEstructuraProps } from "./PestanaEstructura";
+import { MesaDeFormulario } from "./formulario/MesaDeFormulario";
 
 export type PestanaFormularioProps = {
   contexto: ContextoDeCarga;
-} & Pick<PestanaEstructuraProps, "hayEstructura" | "estructura" | "baseDelEsquema" | "onCambiarBaseDelEsquema">;
+  hayEstructura: boolean;
+  estructura: { secciones: Seccion[]; preguntas: Pregunta[] } | null;
+  baseDelEsquema: string;
+  onCambiarBaseDelEsquema: (nombre: string) => void;
+};
 
 /**
- * Formulario (ADR 0142, antes Estructura): secciones, preguntas y lógica de la
- * base elegida. Por ahora envuelve la vista de Estructura con el contexto de
- * Carga; su selector de base propio se unifica en el rediseño de la pestaña.
+ * Formulario (ADR 0142, P4b R6): secciones, preguntas y lógica de la base
+ * elegida, con la mesa del prototipo "carga-formulario" (`MesaDeFormulario`).
  */
-export function PestanaFormulario({ contexto, ...resto }: PestanaFormularioProps) {
+export function PestanaFormulario({ contexto, hayEstructura, estructura, baseDelEsquema, onCambiarBaseDelEsquema }: PestanaFormularioProps) {
   return (
-    <PestanaEstructura
-      {...resto}
+    <MesaDeFormulario
+      estructura={hayEstructura ? estructura : null}
       varias={contexto.esVarias}
       bases={contexto.estudio?.bases ?? null}
+      baseDelEsquema={baseDelEsquema}
+      onCambiarBaseDelEsquema={onCambiarBaseDelEsquema}
     />
   );
 }
