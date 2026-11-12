@@ -165,7 +165,7 @@ shutdown_requested <- function() isTRUE(.shutdown_flag$value)
     return(haven::read_sav(path))
   }
   if (ext == "csv") {
-    return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8"))
+    return(.read_csv_data(path, fileEncoding = "UTF-8"))
   }
   stop_api(400, "E_BAD_DATA_EXT", sprintf("Extensión no soportada: %s", ext))
 }

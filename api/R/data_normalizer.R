@@ -988,6 +988,8 @@ normalize_data_for_xlsform <- function(data,
   # H67: el texto de «Otro» que SPSS guarda como `<VAR>_O` (u _OTRO, _OTRA, _OTHER, _ESP) llega a `<var>_other`.
   other_info <- .dn_alias_other_text_columns(out, survey, choices, sm_rows)
   out <- other_info$data
+  # Lo que el formulario declara texto llega como texto (carga_ceros_iniciales.R).
+  out <- .dn_texto_declarado(out, survey)
   aliased_combined <- c(aliased_combined, other_info$aliased)
 
   if (isTRUE(add_metadata) &&

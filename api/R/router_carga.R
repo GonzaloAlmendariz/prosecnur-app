@@ -329,7 +329,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
     ext,
     xlsx = suppressWarnings(.read_excel_data(path)),
     xls  = suppressWarnings(.read_excel_data(path)),
-    csv  = utils::read.csv(path, stringsAsFactors = FALSE),
+    csv  = .read_csv_data(path),
     sav  = haven::read_sav(path),
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Extensión de datos no soportada: %s. Usa CSV, XLSX, XLS o SAV.", ext))
   )
@@ -516,7 +516,7 @@ read_data_preview <- function(path, ext, n_preview = 100L, instrumento = NULL, c
 .read_data_any_path <- function(path, ext) {
   ext <- tolower(ext %||% tools::file_ext(path))
   if (ext %in% c("xlsx", "xls")) return(suppressWarnings(.read_excel_data(path)))
-  if (ext == "csv") return(utils::read.csv(path, stringsAsFactors = FALSE, fileEncoding = "UTF-8"))
+  if (ext == "csv") return(.read_csv_data(path, fileEncoding = "UTF-8"))
   if (ext == "sav") {
     if (!requireNamespace("haven", quietly = TRUE)) {
       stop_api(500, "E_NO_HAVEN", "haven no está disponible para leer .sav")
@@ -1810,7 +1810,8 @@ mount_carga <- function(pr) {
       if (!(meta$kind %in% c("xlsform"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind='xlsform'")
       }
-      inst <- leer_instrumento_xlsform(meta$path)
+      # Un formulario que no se puede leer no queda como el último subido.
+      inst <- .carga_sin_rastro_si_falla(sid, file_id, leer_instrumento_xlsform(meta$path))
       session_set(sid, "instrumento", inst)
       session_set(sid, "inst_limpieza", NULL)
       # Si ya hay data subida, esto auto-crea/refresca la base "default"
@@ -1832,40 +1833,10 @@ mount_carga <- function(pr) {
       meta <- get_file(sid, file_id)
       if (!(meta$kind %in% c("data", "sav", "sav_bundle"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind in {'data','sav','sav_bundle'}")
-	      }
-	      meta <- .carga_resolve_data_upload_meta(sid, meta)
-	      file_id <- meta$file_id
-	      preview_inst <- .carga_current_instrumento_for_data(sid)
-	      if (is.null(preview_inst)) {
-	        stop_api(
-	          409,
-	          "E_XLSFORM_REQUIRED_FOR_DATA",
-	          "Primero carga el XLSForm. La data se normaliza y valida usando ese formulario."
-		        )
-		      }
-		      session_set(sid, "choice_code_maps_confirmed", NULL)
-		      preview <- read_data_preview(
-		        meta$path,
-		        meta$ext,
-		        instrumento = preview_inst,
-		        choice_code_maps = .carga_editor_choice_code_maps(sid)
-		      )
-		      .carga_store_choice_code_maps(
-		        sid,
-		        preview$normalizacion$choice_code_maps %||% list(),
-		        confirmed = FALSE
-		      )
-		      previa_meta <- session_get(sid)$data_raw_meta
-		      session_set(sid, "data_raw_meta", list(file_id = file_id, path = meta$path, ext = meta$ext))
-		      # Si ya hay xlsform subido, este punto cierra el par y auto-crea la
-		      # base "default" — el caso típico cuando el user va Carga →
-		      # Validación sin pasar por Analítica primero.
-		      estudio_init_default_base(sid)
-		      # Reemplazo: qué cambió y si la codificación debe volver a adaptarse.
-		      cambios <- tryCatch(carga_cambios_contra_archivo_previo(sid, previa_meta, meta),
-		                          error = function(e) NULL)
-		      list(ok = TRUE, preview = preview, cambios = cambios)
-		    })) |>
+      }
+      # Si algo falla de aquí en adelante, la sesión queda como antes del pedido.
+      .carga_sin_rastro_si_falla(sid, file_id, .carga_procesar_data(sid, meta))
+    })) |>
     plumber::pr_post("/api/carga/choice-mapping/confirm", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       body <- .carga_parse_json_body(req)

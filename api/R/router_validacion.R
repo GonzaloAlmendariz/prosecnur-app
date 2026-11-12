@@ -515,7 +515,7 @@
   switch(ext,
     xlsx = .read_excel_data(path),
     xls  = .read_excel_data(path),
-    csv  = utils::read.csv(path, stringsAsFactors = FALSE),
+    csv  = .read_csv_data(path),
     sav  = haven::read_sav(path),
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Unsupported data extension: %s", ext))
   )

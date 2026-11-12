@@ -307,7 +307,7 @@
   switch(ext,
     xlsx = .read_excel_data(meta$path),
     xls  = .read_excel_data(meta$path),
-    csv  = utils::read.csv(meta$path, stringsAsFactors = FALSE),
+    csv  = .read_csv_data(meta$path),
     sav  = haven::read_sav(meta$path),
     stop_api(400, "E_UNSUPPORTED_EXT", sprintf("Ext no soportada: %s", ext))
   )

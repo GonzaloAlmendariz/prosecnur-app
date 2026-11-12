@@ -740,7 +740,7 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL,
   }
 
   df <- switch(ext,
-    csv = utils::read.csv(path, stringsAsFactors = FALSE),
+    csv = .read_csv_data(path),
     sav = haven::read_sav(path),
     stop(sprintf("Unsupported data extension for AST runtime: %s", ext))
   )

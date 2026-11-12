@@ -160,7 +160,7 @@ normalize_carga_universe_filter <- function(config = NULL, require_real_values =
   } else if (ext %in% c("xlsx", "xls")) {
     suppressWarnings(.read_excel_data(meta$path))
   } else if (identical(ext, "csv")) {
-    utils::read.csv(meta$path, stringsAsFactors = FALSE, check.names = FALSE)
+    .read_csv_data(meta$path, check.names = FALSE)
   } else if (identical(ext, "sav")) {
     haven::read_sav(meta$path)
   } else {
