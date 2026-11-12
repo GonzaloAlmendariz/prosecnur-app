@@ -50,4 +50,10 @@ describe("casosQueCuentan", () => {
     expect(casosQueCuentan(cadena({ momento: "prevista" }))?.detalle).toMatch(/Vista previa/);
     expect(casosQueCuentan(cadena({ cuadra: false }))?.detalle).toMatch(/no cuadra/);
   });
+
+  it("con la base sin cerrar no dice que los casos están en la base limpia", () => {
+    expect(casosQueCuentan(cadena({ momento: "prevista" }))?.resto).toBe("de 115 casos quedarían en la base limpia");
+    expect(casosQueCuentan(cadena({ momento: null }))?.resto).toBe("de 115 casos quedarían en la base limpia");
+    expect(casosQueCuentan(cadena({ momento: "al_cerrar" }))?.resto).toBe("de 115 casos en la base limpia");
+  });
 });

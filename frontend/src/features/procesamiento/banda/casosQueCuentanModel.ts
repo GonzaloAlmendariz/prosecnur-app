@@ -35,7 +35,9 @@ export function casosQueCuentan(cadena: CadenaDeCasos | null | undefined): Casos
   const recibidosTexto = formatoConteo(recibidos);
   // "Cuentan" queda reservado al universo de análisis de Analítica ("Qué casos cuentan"): esta
   // cifra es la base limpia, así que dice eso. El sustantivo concuerda con los recibidos.
-  const resto = `de ${recibidosTexto} ${recibidos === 1 ? "caso" : "casos"} en la base limpia`;
+  // Solo una base cerrada tiene base limpia; antes la cifra es lo que quedaría al cerrar.
+  const cerrada = cadena.momento === "al_cerrar";
+  const resto = `de ${recibidosTexto} ${recibidos === 1 ? "caso" : "casos"} ${cerrada ? "en" : "quedarían en"} la base limpia`;
   const momento = cadena.momento === "prevista" ? " Vista previa: la base sigue abierta." : "";
   const cuadra = cadena.cuadra === false ? " La resta de la cadena no cuadra; revisa Validación, Cierre." : "";
   const detalle = `${cuentanTexto} de ${recibidosTexto} casos recibidos en la base activa quedan para el análisis después de la limpieza.${momento}${cuadra}`;
