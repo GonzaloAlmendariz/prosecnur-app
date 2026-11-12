@@ -14,6 +14,7 @@ import type { DndContext as DndContextReal, DragEndEvent, DragStartEvent } from 
 import type { Grupo, RespuestasResponse } from "../../../api/codificacion";
 import { useVistaCodificar } from "../tabla/vistaCodificarStore";
 import { useFiltroRespuestas } from "./filtroRespuestasStore";
+import type { MarcoDeCodificar } from "./marcoDeCodificar";
 
 const api = vi.hoisted(() => ({ respuestas: vi.fn(), grupos: vi.fn(), sugerencias: vi.fn() }));
 vi.mock("../../../api/client", async (importOriginal) => ({
@@ -46,6 +47,23 @@ vi.mock("@dnd-kit/core", async (importOriginal) => {
 
 const { RespuestasCodificador } = await import("../RespuestasCodificador");
 
+/** El marco de la pestaña reducido a lo que la mesa le pasa: sus cifras, sus acciones y sus columnas. */
+const marco: MarcoDeCodificar = ({ cifras = [], acciones, columnas }) => (
+  <div>
+    <dl className="prueba-cifras">
+      {cifras.map((c) => (
+        <div key={c.clave}>{`${c.valor}${c.base ? ` de ${c.base}` : ""} ${c.rotulo}`}</div>
+      ))}
+    </dl>
+    <div className="prueba-acciones">{acciones}</div>
+    {columnas}
+  </div>
+);
+
+function Mesa() {
+  return <RespuestasCodificador parent="p3" marco={marco} cabeceraDePregunta={() => <header className="prueba-pregunta">p3</header>} />;
+}
+
 const RESPUESTAS = ["menos colas", "mejor trato", "mas sillas", "horario corto"];
 
 function carga(tipo: string, otros: RespuestasResponse["sm_otros"], grupos: Grupo[] = []): RespuestasResponse {
@@ -72,7 +90,8 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers();
   useVistaCodificar.setState(useVistaCodificar.getInitialState());
-  useFiltroRespuestas.setState(useFiltroRespuestas.getInitialState());
+  // Estas pruebas miran todas las respuestas; el filtro de entrada ("Por codificar") tiene la suya.
+  useFiltroRespuestas.setState({ filtro: "todas" });
   api.respuestas.mockReset();
   api.grupos.mockReset().mockResolvedValue({ ok: true });
   api.sugerencias.mockReset();
@@ -92,7 +111,7 @@ const SM_CON_OTROS = { dummy_col: "p3/96", n_otros_marcados: 12 };
 async function montar(tipo: string, otros: RespuestasResponse["sm_otros"] = null, grupos: Grupo[] = []) {
   api.respuestas.mockResolvedValue(carga(tipo, otros, grupos));
   await act(async () => {
-    root.render(<MemoryRouter><RespuestasCodificador parent="p3" /></MemoryRouter>);
+    root.render(<MemoryRouter><Mesa /></MemoryRouter>);
   });
 }
 
@@ -213,10 +232,13 @@ describe("Codificar en tarjetas: teclado y deshacer", () => {
 
   test("con la opción Otros, el contador de casos va sobre los que la marcaron", async () => {
     await montar("select_multiple", SM_CON_OTROS, [{ id: "ex_1", codigo: "1", etiqueta: "Trato", respuestas: ["menos colas"], origen: "existente" }]);
+    // El avance en respuestas va en la cabecera de la pestaña; los casos, junto a la barra.
+    // Una definición en toda la sección: "respuestas" son casos (4 de 10) y "textos distintos" las únicas.
+    expect(host.querySelector(".prueba-cifras")?.textContent).toContain("4 de 10 respuestas con código");
     const cifras = host.querySelector(".pulso-cc-cifras")?.textContent ?? "";
-    expect(cifras).toContain("1 de 4 respuestas con código");
-    expect(cifras).toContain("4 de 12 casos con código");
-    expect(cifras).toContain("10 con texto");
+    expect(cifras).not.toContain("respuestas con código");
+    expect(cifras).toContain("1 de 4 textos distintos con código");
+    expect(cifras).toContain('12 marcaron "Otro"');
   });
 });
 
@@ -249,7 +271,7 @@ describe("el contador y la fila que no decía su estado", () => {
       { id: "ex_1", codigo: "1", etiqueta: "Trato", respuestas: ["mejor trato", "mas sillas"], origen: "existente" },
       { id: "ex_2", codigo: "2", etiqueta: "Espera", respuestas: ["horario corto"], origen: "existente" },
     ]);
-    expect(host.querySelector(".pulso-cc-cifras")?.textContent).toContain("3 de 4 respuestas con código");
+    expect(host.querySelector(".prueba-cifras")?.textContent).toContain("6 de 10 respuestas con código");
     const activa = host.querySelector(".pulso-ct-fila[data-activa]");
     expect(activa?.textContent).toContain("menos colas");
     expect(activa?.querySelector(".pulso-ct-vacia")?.textContent).toBe("Sin código");
@@ -258,7 +280,7 @@ describe("el contador y la fila que no decía su estado", () => {
 
 describe("Codificar en tarjetas: la fila de una respuesta", () => {
   test("la propuesta de módulo va en un segundo renglón bajo el texto, sin quitarle ancho; sin propuesta no hay rótulo", async () => {
-    const propuesta = { codigo: "m1", seccion: "s1", etiqueta: "Antes de completar", puntaje: 0.6, palabras: ["colas"] };
+    const propuesta = { codigo: "m1", seccion: "s1", etiqueta: "Antes de completar", puntaje: 0.6, palabras: ["colas", "menos"] };
     api.sugerencias.mockResolvedValue({
       variable: "p3_otro",
       base: "",
@@ -287,38 +309,43 @@ describe("Codificar en tarjetas: la fila de una respuesta", () => {
 });
 
 describe("Codificar en tarjetas: tarjetas de código", () => {
-  test("una tarjeta sin respuestas es un renglón: número, nombre, estado y acciones, sin barra ni lista", async () => {
+  test("una tarjeta sin respuestas: tesela con el número, nombre, casos, barra en cero y su tecla; sin chip de origen", async () => {
     await montar("select_one");
-    const tarjeta = host.querySelector<HTMLElement>('[aria-label="Código 1. Trato del personal"]');
-    expect(tarjeta?.children).toHaveLength(1);
+    const tarjeta = host.querySelector<HTMLElement>('article[aria-label^="Código 1. Trato del personal"]');
+    expect(tarjeta).not.toBeNull();
     const cab = tarjeta?.querySelector(".pulso-cc-codigo-cab");
-    // Que no tenga barra ni cifras ya dice que está vacía: el renglón no lo repite con texto.
-    expect(cab?.textContent).not.toContain("Sin respuestas");
-    expect(cab?.textContent).toContain("Existente");
-    expect(cab?.querySelectorAll("button")).toHaveLength(2);
+    expect(cab?.querySelector(".pulso-cc-codigo-ficha")?.getAttribute("title")).toBe("Categoría que ya trae la pregunta");
+    expect(cab?.querySelector(".pulso-cc-codigo-casos")?.textContent).toBe("0");
+    expect(cab?.textContent).not.toContain("Existente");
+    expect(tarjeta?.querySelector(".pulso-cc-codigo-tecla")?.textContent).toBe("1");
+    // Sin respuestas no hay "Respuestas" ni "Parecidas": solo el orden.
+    expect(Array.from(tarjeta?.querySelectorAll(".pulso-cc-codigo-pie button") ?? []).map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual([
+      "Subir el código 1. Trato del personal",
+      "Bajar el código 1. Trato del personal",
+    ]);
   });
 
-  test("con respuestas, la barra mide los casos del código sobre los casos con texto de la pregunta", async () => {
+  test("con respuestas, la barra mide los casos del código sobre los casos con texto de la pregunta y los ejemplos van debajo", async () => {
     // Casos con texto: 4 + 3 + 2 + 1 = 10. El código 2 lleva "mejor trato" (3) y "horario corto" (1).
     await montar("select_one", null, [{ id: "ex_2", codigo: "2", etiqueta: "Espera", respuestas: ["mejor trato", "horario corto"], origen: "existente" }]);
-    const tarjeta = host.querySelector<HTMLElement>('[aria-label="Código 2. Tiempos de espera"]');
+    const tarjeta = host.querySelector<HTMLElement>('article[aria-label^="Código 2. Tiempos de espera"]');
     expect(tarjeta?.style.getPropertyValue("--cc-proporcion")).toBe("0.4");
-    expect(tarjeta?.querySelector(".pulso-cc-codigo-proporcion")).not.toBeNull();
-    expect(tarjeta?.querySelector(".pulso-cc-codigo-cifras")?.textContent).toContain("2 respuestas, 4 casos");
+    expect(tarjeta?.getAttribute("aria-label")).toBe("Código 2. Tiempos de espera, 4 casos, 2 respuestas");
+    expect(tarjeta?.querySelector(".pulso-cc-codigo-casos")?.textContent).toBe("4");
+    expect(tarjeta?.querySelector(".pulso-cc-codigo-ejemplos")?.textContent).toBe("mejor trato, horario corto");
   });
 
-  test("sin códigos, la columna tiene una sola tarjeta punteada, que es el vacío y el destino, y el botón de la cabecera", async () => {
+  test("sin códigos, la columna tiene una sola tarjeta punteada, que es el vacío y el destino", async () => {
     api.respuestas.mockResolvedValue({ ...carga("text", null), opciones_existentes: [] });
     api.sugerencias.mockRejectedValue(new Error("sin módulos"));
     await act(async () => {
-      root.render(<MemoryRouter><RespuestasCodificador parent="p3" /></MemoryRouter>);
+      root.render(<MemoryRouter><Mesa /></MemoryRouter>);
     });
-    const panel = host.querySelector('[aria-label="Códigos"]');
+    const panel = host.querySelector('[role="region"][aria-label="Códigos"]');
     expect(panel?.querySelector(".pulso-estado-vacio")).toBeNull();
     expect(panel?.querySelectorAll(".pulso-cc-nuevo")).toHaveLength(1);
     expect(panel?.querySelector(".pulso-cc-nuevo")?.textContent).toContain("Nuevo código");
     expect(panel?.querySelector(".pulso-cc-nuevo-apoyo")).not.toBeNull();
-    expect(Array.from(panel?.querySelectorAll(".pulso-cc-panel-cab button") ?? []).map((b) => b.textContent)).toEqual(["Nuevo código"]);
   });
 
   test("al arrastrar, la tarjeta dice con su base cuántos casos ya tenían marcada la opción", async () => {
@@ -329,11 +356,11 @@ describe("Codificar en tarjetas: tarjetas de código", () => {
       ),
     });
     await act(async () => {
-      root.render(<MemoryRouter><RespuestasCodificador parent="p3" /></MemoryRouter>);
+      root.render(<MemoryRouter><Mesa /></MemoryRouter>);
     });
     const activo = { id: "respuesta:menos colas" };
     act(() => dnd.props?.onDragStart?.({ active: activo } as never));
-    const tarjeta = host.querySelector('[aria-label="Código 1. Trato del personal"]');
+    const tarjeta = host.querySelector('article[aria-label^="Código 1. Trato del personal"]');
     expect(tarjeta?.querySelector(".pulso-cc-codigo-marcada")?.textContent).toBe("3 de 4 casos ya tenían marcada esta opción");
   });
 });
@@ -344,23 +371,30 @@ describe("Codificar en tarjetas: lo que cuenta la tarjeta de un código", () => 
       { id: "ex_1", codigo: "1", etiqueta: "Trato", respuestas: ["menos colas", "texto de una base anterior", "otro que ya no está"], origen: "existente" },
       { id: "g9", codigo: "9", etiqueta: "Trabajo", respuestas: ["trabajo", "en su trabajo"], origen: "nuevo" },
     ]);
-    const uno = host.querySelector('[aria-label="Código 1. Trato del personal"]');
-    expect(uno?.querySelector(".pulso-cc-codigo-cifras")?.textContent).toContain("1 respuesta, 4 casos");
+    const uno = host.querySelector('article[aria-label^="Código 1. Trato del personal"]');
+    expect(uno?.getAttribute("aria-label")).toBe("Código 1. Trato del personal, 4 casos, 1 respuesta");
     expect(uno?.querySelector(".pulso-cc-codigo-fuera")?.textContent).toBe("2 textos guardados no están en la base actual");
     // El caso de acnur_acg: un código con textos guardados que la base ya no trae nunca dice "N respuestas, 0 casos".
-    const nueve = host.querySelector('[aria-label="Código 9. Trabajo"]');
-    expect(nueve?.textContent).not.toMatch(/respuestas?, 0 casos/);
+    const nueve = host.querySelector('article[aria-label^="Código 9. Trabajo"]');
+    expect(nueve?.getAttribute("aria-label")).toBe("Código 9. Trabajo, 0 casos, 0 respuestas");
     expect(nueve?.querySelector(".pulso-cc-codigo-fuera")?.textContent).toBe("2 textos guardados no están en la base actual");
-    expect(nueve?.querySelectorAll("li[data-fuera-de-la-base]")).toHaveLength(2);
+    // Las respuestas del código se ven al pedirlas; las que la base ya no trae se marcan.
+    act(() => {
+      Array.from(nueve?.querySelectorAll("button") ?? []).find((b) => b.textContent === "Respuestas")?.click();
+    });
+    expect(nueve?.parentElement?.querySelectorAll("li[data-fuera-de-la-base]")).toHaveLength(2);
   });
 
   test("con un solo texto guardado que la base no trae, la frase va en singular", async () => {
     await montar("select_one", null, [
       { id: "ex_1", codigo: "1", etiqueta: "Trato", respuestas: ["menos colas", "texto de una base anterior"], origen: "existente" },
     ]);
-    const uno = host.querySelector('[aria-label="Código 1. Trato del personal"]');
+    const uno = host.querySelector('article[aria-label^="Código 1. Trato del personal"]');
     expect(uno?.querySelector(".pulso-cc-codigo-fuera")?.textContent).toBe("1 texto guardado no está en la base actual");
-    expect(uno?.querySelectorAll("li[data-fuera-de-la-base]")).toHaveLength(1);
+    act(() => {
+      Array.from(uno?.querySelectorAll("button") ?? []).find((b) => b.textContent === "Respuestas")?.click();
+    });
+    expect(uno?.parentElement?.querySelectorAll("li[data-fuera-de-la-base]")).toHaveLength(1);
   });
 });
 
@@ -368,5 +402,35 @@ describe("Codificar en tarjetas: el fantasma del arrastre", () => {
   test("la capa del fantasma mide lo que el fantasma, no lo que la fila arrastrada", async () => {
     await montar("select_one");
     expect(dnd.capa?.style).toMatchObject({ width: "max-content", height: "auto" });
+  });
+});
+
+describe("Codificar: un código que guarda el texto tal cual (punto 0 de la pasada de fidelidad)", () => {
+  test("cuenta como asignado a la respuesta con su misma forma normalizada, como en el motor", async () => {
+    // Lo que guardó la matriz: el texto con mayúsculas y tildes. La lista llega con su clave normalizada.
+    api.sugerencias.mockRejectedValue(new Error("sin módulos"));
+    await montar("text", null, [{ id: "g1", codigo: "101", etiqueta: "Colas", respuestas: ["  Menos   Colas ", "Mejor TRATO"], origen: "nuevo" }]);
+    expect(host.querySelector(".prueba-cifras")?.textContent).toContain("7 de 10 respuestas con código");
+    const tarjeta = host.querySelector('article[aria-label^="Código 101"]');
+    expect(tarjeta?.querySelector(".pulso-cc-codigo-fuera")).toBeNull();
+    expect(tarjeta?.getAttribute("aria-label")).toBe("Código 101. Colas, 7 casos, 2 respuestas");
+  });
+});
+
+describe("Codificar: sugerencias con un marcador del formulario sin reemplazar", () => {
+  test("un módulo cuyo rótulo trae ${...} no se ofrece como código", async () => {
+    const conMarcador = { codigo: "m2", seccion: "s2", etiqueta: "Recepción en Espacio de Protección de ${sede_ppl}", puntaje: 0.9, palabras: ["edp", "sede"] };
+    api.sugerencias.mockResolvedValue({
+      variable: "p3_otro",
+      base: "",
+      requiereConfirmacion: true,
+      modulos: [{ codigo: "m2", seccion: "s2", etiqueta: conMarcador.etiqueta, nTerminos: 2 }],
+      otro: { codigo: "80", etiqueta: "Otro" },
+      respuestas: [{ idCaso: "c0", fila: 1, texto: "menos colas", noRespuesta: false, candidatoOtro: false, propuestas: [conMarcador] }],
+      resumen: { escribieron: 4, conContenido: 4, conPropuesta: 1, candidatosOtro: 0, porModulo: { m2: 1 } },
+    });
+    await montar("text");
+    expect(host.textContent).not.toContain("${");
+    expect(host.querySelector(".pulso-cc-fila-sugerencia")).toBeNull();
   });
 });

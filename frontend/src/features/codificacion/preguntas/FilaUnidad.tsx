@@ -1,11 +1,18 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { sinMarcadores } from "../sugerenciasModulo";
 import type { PreguntaAbierta } from "../../../api/codificacion";
 import { BloquePregunta } from "../../../components/procesamiento/BloquePregunta";
+import { FichaPregunta } from "../../../components/procesamiento/FichaPregunta";
+import { formatoConteo } from "../../../lib/formatoNumero";
 import { textoPlano } from "../../../lib/textoPlano";
-import { GripVertical } from "../../../vendor/lucide-react";
+import { ArrowRight, GripVertical } from "../../../vendor/lucide-react";
+import { AnilloDeAvance } from "./AnilloDeAvance";
 import { EstadoUnidad } from "./EstadoUnidad";
 import { LazoUnidad } from "./LazoUnidad";
-import { admiteEmparejar, cifrasDeUnidad, formaDeUnidad, tipoDeFicha, type DestinoDeArrastre, type Unidad } from "./modeloUnidades";
+import { useAvances, unidadesConAvance } from "../avanceStore";
+import { porcentajeDeAvance } from "../avanceDeCodificacion";
+import { tipoResultanteActivo } from "../codificar/tipoResultante";
+import { admiteEmparejar, cifrasDeUnidad, formaDeUnidad, resultanteDeUnidad, tipoDeFicha, type DestinoDeArrastre, type Unidad } from "./modeloUnidades";
 
 /** El papel de la fila mientras se arrastra otra: de dónde salió, si la recibe o si queda fuera. */
 export type PapelEnArrastre = "origen" | DestinoDeArrastre | "fuera";
@@ -25,7 +32,7 @@ export type FilaUnidadProps = {
 
 /** El bloque de una pregunta de la lista: su código, su tipo y su etiqueta sin marcado. */
 function bloqueDe(p: PreguntaAbierta) {
-  const etiqueta = textoPlano(p.parent_label);
+  const etiqueta = sinMarcadores(textoPlano(p.parent_label));
   return { tipo: tipoDeFicha(p.tipo), codigo: etiqueta ? p.parent : undefined, etiqueta: etiqueta || p.parent };
 }
 
@@ -44,6 +51,12 @@ export function FilaUnidad({ unidad, seleccionada, tabulable, ocupada, reciente,
   const destino = useDroppable({ id: unidad.id, disabled: !empareja });
   const forma = formaDeUnidad(unidad);
   const cifras = cifrasDeUnidad(unidad);
+  // El avance y el tipo de una abierta ya codificada salen de sus respuestas (avanceStore.ts), lo mismo que
+  // en Codificar; mientras no se leen, la fila va sin anillo.
+  const dato = useAvances((s) => s.porPregunta[unidad.principal.parent]);
+  const conAvance = unidadesConAvance([unidad]).length > 0;
+  const avance = conAvance && dato ? dato.avance : null;
+  const resultante = resultanteDeUnidad(unidad) ?? (dato?.grupos ? tipoResultanteActivo(unidad.principal, unidad.arquetipo, dato.grupos) : null);
 
   return (
     <li
@@ -72,7 +85,8 @@ export function FilaUnidad({ unidad, seleccionada, tabulable, ocupada, reciente,
         aria-busy={ocupada || undefined}
         onClick={() => onSeleccionar(unidad.id)}
       >
-        <span className="pulso-preg-lados">
+        {/* C1: los lados de la unidad (pregunta cerrada, lazo y texto) son piezas distintas, no pares. */}
+        <span className="pulso-preg-lados" data-qa-geometry-group="codificacion/preguntas-lados" data-qa-geometry-contract="intrinsic">
           {forma === "pareja" ? (
             <>
               <BloquePregunta {...bloqueDe(unidad.principal)} />
@@ -88,8 +102,27 @@ export function FilaUnidad({ unidad, seleccionada, tabulable, ocupada, reciente,
             <BloquePregunta {...bloqueDe(unidad.principal)} detalle={cifras} ancho={forma === "abierta" ? "completo" : "lado"} />
           )}
         </span>
+        <span className="pulso-preg-res">
+          {resultante ? (
+            <>
+              <ArrowRight size={16} className="pulso-preg-res-flecha" aria-label="sale como" />
+              {resultante.tipo ? (
+                <FichaPregunta tipo={resultante.tipo} etiqueta={resultante.rotulo} />
+              ) : (
+                <span className="pulso-cc-por-definir">{resultante.rotulo}</span>
+              )}
+              {resultante.leyenda ? <small className="pulso-preg-res-leyenda">{resultante.leyenda}</small> : null}
+            </>
+          ) : null}
+        </span>
         <span className="pulso-preg-fila-estado">
-          <EstadoUnidad unidad={unidad} />
+          {avance && avance.casos > 0 ? (
+            <AnilloDeAvance
+              porcentaje={porcentajeDeAvance(avance)}
+              detalle={`${formatoConteo(avance.casosConCodigo)} de ${formatoConteo(avance.casos)} ${avance.casos === 1 ? "respuesta" : "respuestas"} con código`}
+            />
+          ) : null}
+          <EstadoUnidad unidad={unidad} avance={avance} />
         </span>
       </button>
       {/* El nodo punteado y el asa van después del botón en el marcado (el foco llega primero a la fila). */}

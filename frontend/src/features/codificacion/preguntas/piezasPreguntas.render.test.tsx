@@ -90,7 +90,7 @@ describe("lista de unidades", () => {
     expect(p3).toMatch(/data-tipo="texto" data-ancho="lado">.*?<code[^>]*>p3_otro<\/code><span[^>]*>Texto<\/span>/);
     expect(p3).toMatch(/<span class="pulso-preg-lazo" data-lazo="unido"/);
     expect(p3).toContain("emparejada con");
-    expect(p3).toContain('pulso-bloque-pregunta-detalle">23 respuestas, 14 únicas<');
+    expect(p3).toContain('pulso-bloque-pregunta-detalle">23 respuestas, 14 distintas<');
     expect(p3).toContain("Codificada");
     // El nodo de una pareja es un dibujo, no un sitio donde soltar.
     expect(p3).not.toContain('data-lazo="suelto"');
@@ -107,7 +107,7 @@ describe("lista de unidades", () => {
     expect(p10otro).toContain('data-forma="abierta"');
     expect(bloques(p10otro)).toBe(1);
     expect(p10otro).toContain('data-tipo="texto" data-ancho="completo"');
-    expect(p10otro).toContain('pulso-bloque-pregunta-detalle">18 respuestas, 15 únicas<');
+    expect(p10otro).toContain('pulso-bloque-pregunta-detalle">18 respuestas, 15 distintas<');
     expect(p10otro).toMatch(/<button[^>]*class="pulso-preg-lazo" data-lazo="suelto"[^>]*aria-label="Emparejar p10_otro con otra pregunta"/);
   });
 
@@ -189,7 +189,7 @@ describe("barra de filtros", () => {
       <BarraPreguntas filtro="con-texto" conteos={contarFiltros(unidades)} consulta="" onFiltro={nada} onBuscar={nada} />,
     );
     const rotulos = [...html.matchAll(/<button[^>]*aria-pressed="(?:true|false)"[^>]*>.*?<span>([^<]+)<\/span><span[^>]*>(\d+)<\/span>/g)].map((m) => `${m[1]} ${m[2]}`);
-    expect(rotulos).toEqual(["Con texto 6", "Pendientes 2", "Codificadas 1", "Todas 7"]);
+    expect(rotulos).toEqual(["Con texto 6", "Por decidir 3", "Cerradas con &quot;Otro&quot; 2", "Todas 7"]);
     expect(html).toMatch(/aria-pressed="true"[^>]*>(?:(?!<\/button>).)*Con texto/s);
     expect(html.split('aria-pressed="true"').length - 1).toBe(1);
     expect(html).not.toContain("Emparejadas");
@@ -233,7 +233,7 @@ describe("inspector de la unidad", () => {
       pregunta("p3_otro", "text", { col_efectiva: "p3_otro", preview: ["Minería"] }),
     ])[0];
     const html = inspector(conEjemplos, { incluir: <span>interruptor</span> });
-    for (const titulo of ["Ejemplos de respuestas", "Modo de codificación", "Codificación"]) {
+    for (const titulo of ["Lo que escribieron", "Modo de codificación", "Se codifica"]) {
       expect(html, titulo).toContain(`<h4 class="pulso-preg-insp-rotulo">${titulo}</h4>`);
     }
     expect(html).not.toContain("pulso-section-eyebrow");
@@ -283,11 +283,11 @@ describe("inspector de la unidad", () => {
     });
 
     it("sin elegir es lo que falta decidir: va antes de los ejemplos; ya elegida, después", () => {
-      const [otros, ejemplos, codificacion] = orden(con(""), "Opción &quot;Otros, especifique&quot;", "Ejemplos de respuestas", ">Codificación<");
+      const [otros, ejemplos, codificacion] = orden(con(""), "Opción &quot;Otros, especifique&quot;", "Lo que escribieron", ">Se codifica<");
       expect(otros).toBeGreaterThan(-1);
       expect(otros).toBeLessThan(ejemplos);
       expect(ejemplos).toBeLessThan(codificacion);
-      const [otros2, ejemplos2, codificacion2] = orden(con("D1/99"), "Opción &quot;Otros, especifique&quot;", "Ejemplos de respuestas", ">Codificación<");
+      const [otros2, ejemplos2, codificacion2] = orden(con("D1/99"), "Opción &quot;Otros, especifique&quot;", "Lo que escribieron", ">Se codifica<");
       expect(ejemplos2).toBeGreaterThan(-1);
       expect(ejemplos2).toBeLessThan(otros2);
       expect(otros2).toBeLessThan(codificacion2);
@@ -333,7 +333,7 @@ describe("inspector de la unidad", () => {
     expect(html).toContain("<span>Única</span><span>Aporta las respuestas</span>");
     expect(html).toContain("Desemparejar");
     expect(html).not.toContain("Cambiar texto");
-    expect(html).not.toContain("Ejemplos de respuestas");
+    expect(html).not.toContain("Lo que escribieron");
     const filaHtml = fila(lista({ secciones: seccionesVisibles(recibeTexto, "todas", "") }), "transport_other");
     expect(filaHtml).toContain('data-forma="pareja"');
     expect(bloques(filaHtml)).toBe(2);
@@ -347,14 +347,14 @@ describe("inspector de la unidad", () => {
       pregunta("p5_otro", "text", { col_efectiva: "p5_otro", preview: ["Otro"] }),
     ])[0];
     const html = inspector(sinModo);
-    expect(html.indexOf("Modo de codificación")).toBeLessThan(html.indexOf("Ejemplos de respuestas"));
+    expect(html.indexOf("Modo de codificación")).toBeLessThan(html.indexOf("Lo que escribieron"));
     expect(html).not.toContain('aria-pressed="true"');
     // Con el modo ya puesto, la sección baja después de los ejemplos.
     const conModo = inspector(armarUnidades([
       pregunta("p5", "select_one", { modo_so: "hijo", pareja: { child_col: "p5_otro", modo_so: "hijo", dummy_col: "" } }),
       pregunta("p5_otro", "text", { col_efectiva: "p5_otro", preview: ["Otro"] }),
     ])[0]);
-    expect(conModo.indexOf("Ejemplos de respuestas")).toBeLessThan(conModo.indexOf("Modo de codificación"));
+    expect(conModo.indexOf("Lo que escribieron")).toBeLessThan(conModo.indexOf("Modo de codificación"));
     expect(conModo).toMatch(/aria-pressed="true"[^>]*>(?:(?!<\/button>).)*Codificar texto aparte/s);
   });
 
@@ -373,14 +373,14 @@ describe("inspector de la unidad", () => {
   it("muestra ejemplos de respuestas cuando la pregunta los trae, y la sección falta cuando no", () => {
     const conEjemplos = armarUnidades([pregunta("p9", "text", { preview: ["Minería", "Consultoría ambiental"] })])[0];
     const html = inspector(conEjemplos);
-    expect(html).toContain("Ejemplos de respuestas");
+    expect(html).toContain("Lo que escribieron");
     expect(html).toContain("<li>Minería</li>");
-    expect(inspector(una("p10"))).not.toContain("Ejemplos de respuestas");
+    expect(inspector(una("p10"))).not.toContain("Lo que escribieron");
   });
 
   it("el control de incluir va en su sección solo cuando la unidad lo admite", () => {
     expect(inspector(una("p9"), { incluir: <span>interruptor</span> })).toContain("interruptor");
-    expect(inspector(una("p9"))).not.toContain(">Codificación<");
+    expect(inspector(una("p9"))).not.toContain(">Se codifica<");
   });
 });
 

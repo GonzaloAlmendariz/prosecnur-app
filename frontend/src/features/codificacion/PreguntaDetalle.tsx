@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { rotuloSinMarcador, sinMarcadores } from "./sugerenciasModulo";
 import { NavLink, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { apiCodifPreguntasAbiertas, arquetipoOf, PreguntaAbierta } from "../../api/client";
@@ -6,6 +7,7 @@ import { Panel } from "../../components/Panel";
 import { PageFrame } from "../../components/PageFrame";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
+import { marcoSencillo } from "./codificar/marcoSencillo";
 import { IntegerCodificador } from "./IntegerCodificador";
 import { AgruparCategoriasCodificador, ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
 import { textoPlano } from "../../lib/textoPlano";
@@ -40,7 +42,7 @@ export default function PreguntaDetalle() {
   }, [parent]);
 
   if (error) return <ErrorBlock label="No se pudo cargar la pregunta" detail={error} />;
-  if (!pregunta) return <LoadingBlock label="Cargando pregunta…" />;
+  if (!pregunta) return <LoadingBlock label="Cargando la pregunta" />;
 
   const arq = arquetipoOf(pregunta);
   const ts = TIPO_STYLE[pregunta.tipo] ?? TIPO_STYLE.text;
@@ -59,7 +61,7 @@ export default function PreguntaDetalle() {
     // Sin PageFrame el `main` del shell no desplaza (es viewport) y un
     // codificador alto quedaba atrapado. El cuerpo del marco es el dueño del scroll.
     <PageFrame
-      title={sinEnfasis(pregunta.parent_label) || pregunta.parent}
+      title={sinMarcadores(sinEnfasis(pregunta.parent_label)) || pregunta.parent}
       headerMode="sr-only"
       layout="document"
       scrollOwner="body"
@@ -93,7 +95,7 @@ export default function PreguntaDetalle() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontSize: "var(--pulso-type-title-size)", lineHeight: 1.3, fontWeight: 700 }}>
-              <TextoConEnfasis texto={pregunta.parent_label} />
+              <TextoConEnfasis texto={sinMarcadores(pregunta.parent_label)} />
             </h2>
             <code
               title={`ID del formulario: ${pregunta.parent}`}
@@ -118,9 +120,9 @@ export default function PreguntaDetalle() {
               {pregunta.modo_so === "padre" && " (padre)"}
             </span>
           </div>
-          {textoPlano(pregunta.section_label) && (
+          {rotuloSinMarcador(textoPlano(pregunta.section_label)) && (
             <div style={{ fontSize: "var(--pulso-type-caption-size)", color: "var(--pulso-text-soft)", marginTop: 4 }}>
-              {textoPlano(pregunta.section_label)}
+              {rotuloSinMarcador(textoPlano(pregunta.section_label))}
             </div>
           )}
         </div>
@@ -140,10 +142,10 @@ export default function PreguntaDetalle() {
               ? (
                 <ModoSelectOneTabs
                   parent={pregunta.parent}
-                  codificarRespuestas={<RespuestasCodificador parent={pregunta.parent} />}
+                  codificarRespuestas={<RespuestasCodificador parent={pregunta.parent} marco={marcoSencillo} cabeceraDePregunta={() => null} />}
                 />
               )
-              : <RespuestasCodificador parent={pregunta.parent} />}
+              : <RespuestasCodificador parent={pregunta.parent} marco={marcoSencillo} cabeceraDePregunta={() => null} />}
         </Panel>
       ) : arq === "config-so" || arq === "pareja-so" ? (
         // Una select_one sin modo decidido igual puede agrupar sus categorías (ítem 1f).
@@ -151,21 +153,17 @@ export default function PreguntaDetalle() {
           <AgruparCategoriasCodificador parent={pregunta.parent} />
         </Panel>
       ) : (
-        <Panel eyebrow={arq.replace("-", " ")} title="Esta vista llega en la próxima sub-parte">
-          <div style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", lineHeight: 1.6 }}>
-            Esta pregunta tiene <strong>{formatoConteo(pregunta.n_respuestas)}</strong> respuestas
-            ({<strong>{formatoConteo(pregunta.n_unicas)}</strong>} únicas) en la columna <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>{pregunta.col_efectiva}</code>.
-            <br /><br />
-            {arq === "pareja-sm" && "Las preguntas de opción múltiple tienen su propia vista de codificación por opciones (próximo commit)."}
-            {arq === "no-aplica" && "Esta pregunta está desactivada."}
-          </div>
-          {pregunta.preview && pregunta.preview.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div className="pulso-section-eyebrow">Respuestas más frecuentes</div>
-              <ul style={{ fontSize: "var(--pulso-type-body-size)", paddingLeft: 20, marginTop: 8 }}>
-                {pregunta.preview.map((p, i) => <li key={i}>“{p}”</li>)}
-              </ul>
-            </div>
+        // Esta ruta vieja no codifica esta clase de pregunta: lo dice y lleva a la pestaña que sí lo hace.
+        <Panel title={arq === "no-aplica" ? "Pregunta desactivada" : "Esta pregunta se codifica en Codificar"}>
+          <p className="pulso-cc-sin-mesa">
+            {arq === "no-aplica"
+              ? "No entra a codificación. Se incluye desde la pestaña Preguntas."
+              : `Tiene ${formatoConteo(pregunta.n_respuestas)} respuestas en la columna ${pregunta.col_efectiva}.`}
+          </p>
+          {arq === "no-aplica" ? null : (
+            <NavLink className="pulso-button pulso-button--primary pulso-button--sm" to={`/codificacion?pestana=codificar&foco=${encodeURIComponent(pregunta.parent)}`}>
+              Abrir en Codificar
+            </NavLink>
           )}
         </Panel>
       )}

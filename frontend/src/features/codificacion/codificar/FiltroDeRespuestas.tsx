@@ -1,23 +1,23 @@
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
-import { formatoConteo } from "../../../lib/formatoNumero";
 import type { FiltroDeRespuestas as Filtro } from "./modeloDeCodificar";
 // El segmentado es el mismo del conmutador de vista.
 import "../tabla/tablaCodificar.css";
 
 const FILTROS = [
-  { id: "todas", rotulo: "Todas" },
   { id: "sin-codigo", rotulo: "Por codificar" },
+  { id: "todas", rotulo: "Todas" },
 ] as const satisfies readonly { id: Filtro; rotulo: string }[];
 
 export type FiltroDeRespuestasProps = {
   filtro: Filtro;
-  /** Respuestas de la pregunta sin código: la única aparición de esa cifra en la pantalla. */
-  pendientes: number;
   onElegir: (filtro: Filtro) => void;
 };
 
-/** Todas las respuestas o solo las que faltan por codificar, con cuántas faltan. */
-export function FiltroDeRespuestas({ filtro, pendientes, onElegir }: FiltroDeRespuestasProps) {
+/**
+ * Las que faltan por codificar o todas, como en el prototipo. Cuántas se ven lo dice el conteo del
+ * contenedor; cuántas faltan, la cabecera de la pestaña.
+ */
+export function FiltroDeRespuestas({ filtro, onElegir }: FiltroDeRespuestasProps) {
   return (
     <GlidingRadioGroup
       value={filtro}
@@ -27,16 +27,7 @@ export function FiltroDeRespuestas({ filtro, pendientes, onElegir }: FiltroDeRes
       className="pulso-ct-vista pulso-cc-filtro"
       aria-label="Respuestas a la vista"
     >
-      {(opcion) => (
-        <>
-          <span>{opcion.rotulo}</span>
-          {opcion.id === "sin-codigo" ? (
-            <span className="pulso-cc-cuenta" data-aviso={pendientes > 0 ? "" : undefined}>
-              {formatoConteo(pendientes)}
-            </span>
-          ) : null}
-        </>
-      )}
+      {(opcion) => <span>{opcion.rotulo}</span>}
     </GlidingRadioGroup>
   );
 }

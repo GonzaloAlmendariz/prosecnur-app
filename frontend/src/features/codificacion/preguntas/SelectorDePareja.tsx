@@ -1,6 +1,7 @@
 // Emparejar sin arrastrar: la pregunta abierta elige con cuál va. Al elegir pasa lo mismo que al
 // soltarla encima (un texto con una cerrada queda emparejado de inmediato).
 
+import { rotuloSinMarcador, sinMarcadores } from "../sugerenciasModulo";
 import { useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { PreguntaAbierta } from "../../../api/codificacion";
@@ -23,7 +24,7 @@ export function candidatasQueCoinciden(candidatas: readonly PreguntaAbierta[], c
 }
 
 function ficha(p: PreguntaAbierta) {
-  const etiqueta = textoPlano(p.parent_label);
+  const etiqueta = sinMarcadores(textoPlano(p.parent_label));
   return <FichaPregunta tipo={tipoDeFicha(p.tipo)} codigo={etiqueta ? p.parent : undefined} etiqueta={etiqueta || p.parent} />;
 }
 
@@ -85,7 +86,7 @@ export function SelectorDePareja({ origen, candidatas, onElegir, onCancelar }: {
                     {ficha(candidata)}
                     <span className="pulso-preg-lado-pie">
                       <span>{tipoEnPalabras(tipoDeFicha(candidata.tipo))}</span>
-                      <span>{textoPlano(candidata.section_label) || "Sin sección"}</span>
+                      <span>{rotuloSinMarcador(textoPlano(candidata.section_label)) || "Sin sección"}</span>
                     </span>
                   </button>
                 </li>

@@ -350,3 +350,13 @@
 .pulso-agrupar-seccion .pulso-panel-heading {
   flex-basis: auto;
 }
+
+/* C4 en ancho: los encabezados no parten a media palabra y el selector de categoría muestra su opción
+   entera; si la tabla no cabe, su lista (ya con `overflow-x: auto`) la desplaza a lo ancho. */
+.pulso-agrupar-tabla th {
+  white-space: nowrap;
+}
+
+.pulso-agrupar-tabla select {
+  min-inline-size: 9rem;
+}

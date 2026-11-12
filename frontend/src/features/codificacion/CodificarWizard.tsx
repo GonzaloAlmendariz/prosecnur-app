@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { sinMarcadores } from "./sugerenciasModulo";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, ClipboardList } from "../../vendor/lucide-react";
+import { ArrowLeft, ClipboardList, List } from "../../vendor/lucide-react";
 import { apiCodifPreguntasAbiertas, arquetipoOf, PreguntaAbierta } from "../../api/client";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { RespuestasCodificador } from "./RespuestasCodificador";
 import { IntegerCodificador } from "./IntegerCodificador";
-import { ModoSelectOneTabs } from "./AgruparCategoriasCodificador";
+import { AgruparCategoriasCodificador } from "./AgruparCategoriasCodificador";
 import { textoPlano } from "../../lib/textoPlano";
 import { sinEnfasis } from "../../lib/enfasisTexto";
 import { conNivel } from "../../lib/navegacion/direccion";
@@ -17,9 +18,20 @@ import { apiCodifMarcar } from "../../api/codificacion";
 import { resolverFocoCodificar } from "./focoCodificar";
 import { FocoSinIncluirAviso } from "./FocoSinIncluirAviso";
 import { Panel } from "../../components/Panel";
+import { MesaDePestana } from "../../components/procesamiento/MesaDePestana";
+import { PanelDeMesa } from "../../components/procesamiento/PanelDeMesa";
+import type { EstadoDePestana } from "../../components/procesamiento/CabeceraDePestana";
+import type { CifraDePestana } from "../../components/procesamiento/CifrasDePestana";
+import type { TipoDePregunta } from "../../components/procesamiento/FichaPregunta";
+import type { Grupo } from "../../api/codificacion";
+import { CabeceraDeCodificacion } from "./CabeceraDeCodificacion";
 import { CabeceraDePregunta } from "./codificar/CabeceraDePregunta";
 import { ListaDePreguntas } from "./codificar/ListaDePreguntas";
-import { tipoDeFicha } from "./preguntas/modeloUnidades";
+import type { MarcoDeCodificar, PartesDeMesa } from "./codificar/marcoDeCodificar";
+import { ModoDeLaPregunta, useModoDeLaPregunta } from "./codificar/ModoDeLaPregunta";
+import { tipoResultanteActivo } from "./codificar/tipoResultante";
+import { useAvances, useCargarAvances } from "./avanceStore";
+import { estadoDeAvance, porcentajeDeAvance, type AvanceDeCodificacion } from "./avanceDeCodificacion";
 import "./codificar/codificar.css";
 import "./codificar/lista.css";
 import "./codificar/codigos.css";
@@ -27,24 +39,41 @@ import "./codificar/ventanas.css";
 
 type Props = {
   onBackToOrganizar: () => void;
+  /** El nombre de la base activa cuando la banda no lo muestra. */
+  baseActual?: ReactNode;
 };
 
-const TIPOS: Record<string, string> = {
-  select_multiple: "Múltiple",
-  select_one: "Opción única",
-  integer: "Numérica",
-  text: "Texto abierto",
-};
+/**
+ * El estado de la pestaña con los nombres del prototipo ("Codificada", "En curso", "Por iniciar"), del avance
+ * de cada pregunta incluida leído de sus respuestas (`avanceDeCodificacion`). Una pregunta sin avance leído
+ * todavía usa el estado del motor.
+ */
+export function estadoDeCodificar(
+  marcadas: readonly PreguntaAbierta[],
+  avances: Readonly<Record<string, { avance: AvanceDeCodificacion } | undefined>> = {},
+): EstadoDePestana | null {
+  if (marcadas.length === 0) return null;
+  const estados = marcadas.map((p) => {
+    const a = avances[p.parent]?.avance;
+    if (a) return estadoDeAvance(a);
+    return p.status === "completo" ? "codificada" : p.status === "en-curso" ? "en-curso" : "por-iniciar";
+  });
+  if (estados.every((e) => e === "codificada")) return { tono: "listo", texto: "Codificada" };
+  if (estados.some((e) => e !== "por-iniciar")) return { tono: "parcial", texto: "En curso" };
+  return { tono: "neutro", texto: "Por iniciar" };
+}
 
 /** Rótulo de la pregunta con su énfasis markdown del formulario (`*…*`) intacto. */
 function questionLabel(p: PreguntaAbierta): string {
-  const label = (p.parent_label ?? "").trim();
+  const label = sinMarcadores((p.parent_label ?? "").trim());
   if (label && label !== p.parent) return label;
   return p.parent;
 }
 
-export function CodificarWizard({ onBackToOrganizar }: Props) {
+export function CodificarWizard({ onBackToOrganizar, baseActual }: Props) {
   const [data, setData] = useState<PreguntaAbierta[] | null>(null);
+  // Dónde estaba la lista de preguntas: sobrevive a que la mesa se vuelva a montar con otra pregunta.
+  const posicionLista = useRef(0);
   const [error, setError] = useState<string>("");
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,113 +147,145 @@ export function CodificarWizard({ onBackToOrganizar }: Props) {
     if (activeIdx >= 0 && activeIdx < marcadas.length - 1) setActiveParent(marcadas[activeIdx + 1].parent);
   }
 
+  // El avance de cada pregunta, el mismo que ven Preguntas y Aplicar (avanceStore.ts).
+  useCargarAvances(data);
+  const avances = useAvances((s) => s.porPregunta);
+  const codificadas = marcadas.filter((p) => {
+    const a = avances[p.parent]?.avance;
+    return a ? estadoDeAvance(a) === "codificada" : p.status === "completo";
+  }).length;
+  const cifraPreguntas: CifraDePestana = {
+    clave: "preguntas",
+    valor: formatoConteo(codificadas),
+    base: formatoConteo(marcadas.length),
+    rotulo: "preguntas codificadas",
+    rango: 1,
+  };
+
+  /** La cabecera y la mesa de tres columnas; la pregunta en curso pone sus cifras y sus dos columnas. */
+  const marco: MarcoDeCodificar = ({ cifras = [], acciones, pendientes, columnas }: PartesDeMesa) => (
+    <MesaDePestana
+      grupo="codificacion/codificar"
+      columnas={3}
+      cabecera={(
+        <CabeceraDeCodificacion
+          pestana="codificar"
+          estado={estadoDeCodificar(marcadas, avances)}
+          cifras={marcadas.length ? [cifraPreguntas, ...cifras] : cifras}
+          pendientes={pendientes}
+          acciones={acciones || baseActual ? <>{acciones}{baseActual}</> : undefined}
+        />
+      )}
+    >
+      <PanelDeMesa zona="preguntas" titulo="Preguntas" icono={<List size={15} />} conteo={marcadas.length} etiquetaCuerpo="Preguntas para codificar">
+        {data ? (
+          <ListaDePreguntas preguntas={marcadas} activa={activeParent} etiquetaDe={questionLabel} onElegir={setActiveParent} avanceDe={(q) => {
+            const a = avances[q.parent]?.avance;
+            return a && a.casos > 0 ? { porcentaje: porcentajeDeAvance(a), codificadas: a.casosConCodigo, total: a.casos } : null;
+          }} posicion={posicionLista} />
+        ) : null}
+      </PanelDeMesa>
+      {columnas}
+    </MesaDePestana>
+  );
+
   if (error) {
-    return (
-      <ErrorBlock
-        label="No se pudieron cargar las preguntas para codificar"
-        detail={error}
-        queda="Los códigos guardados siguen como estaban"
-        acciones={
-          <PulsoButton variant="secondary" size="sm" onClick={() => { setError(""); void cargar(); }}>
-            Reintentar
-          </PulsoButton>
-        }
-      />
-    );
+    return marco({
+      columnas: (
+        <Panel noPadding className="pulso-cc-ancho">
+          <ErrorBlock
+            label="No se pudieron cargar las preguntas para codificar"
+            detail={error}
+            queda="Los códigos guardados siguen como estaban"
+            acciones={
+              <PulsoButton variant="secondary" size="sm" onClick={() => { setError(""); void cargar(); }}>
+                Reintentar
+              </PulsoButton>
+            }
+          />
+        </Panel>
+      ),
+    });
   }
-  if (!data) return <LoadingBlock label="Cargando las preguntas para codificar" />;
+  if (!data) {
+    return marco({ columnas: <Panel noPadding className="pulso-cc-ancho"><LoadingBlock label="Cargando las preguntas para codificar" /></Panel> });
+  }
 
   if (marcadas.length === 0) {
-    if (aviso) return aviso;
-    return (
-      <>
-        <span data-audit-ready="codificacion-codificar" hidden />
-        <EstadoVacio
-          tamano="normal"
-          icono={<ClipboardList size={18} />}
-          titulo="No hay preguntas marcadas para codificar"
-          descripcion='Márcalas en Preguntas, o empareja las de opción con su "Otros, especifique".'
-          accion={
-            <PulsoButton variant="secondary" size="sm" onClick={onBackToOrganizar}>
-              <ArrowLeft size={13} aria-hidden="true" /> Volver a Preguntas
-            </PulsoButton>
-          }
-        />
-      </>
-    );
-  }
-
-  return (
-    <div className="pulso-cc-wizard">
-      <ListaDePreguntas
-        preguntas={marcadas}
-        activa={activeParent}
-        etiquetaDe={questionLabel}
-        onElegir={setActiveParent}
-        onVolver={onBackToOrganizar}
-      />
-
-      <main className="pulso-cc-principal">
-        {aviso ?? (activePregunta ? (
-          <CodificadorPane
-            p={activePregunta}
-            onPrev={gotoPrev}
-            onNext={gotoNext}
-            prevLabel={activeIdx > 0 ? sinEnfasis(questionLabel(marcadas[activeIdx - 1])) : ""}
-            nextLabel={activeIdx < marcadas.length - 1 ? sinEnfasis(questionLabel(marcadas[activeIdx + 1])) : ""}
-          />
-        ) : (
+    if (aviso) return marco({ columnas: <div className="pulso-cc-ancho">{aviso}</div> });
+    return marco({
+      columnas: (
+        <Panel noPadding className="pulso-cc-ancho" data-audit-ready="codificacion-codificar">
           <EstadoVacio
             tamano="normal"
             icono={<ClipboardList size={18} />}
-            titulo="Selecciona una pregunta"
-            descripcion="Elige una pregunta del listado de la izquierda para empezar a codificar."
+            titulo="No hay preguntas marcadas para codificar"
+            descripcion='Márcalas en Preguntas, o empareja las de opción con su "Otros, especifique".'
+            accion={
+              <PulsoButton variant="secondary" size="sm" onClick={onBackToOrganizar}>
+                <ArrowLeft size={13} aria-hidden="true" /> Volver a Preguntas
+              </PulsoButton>
+            }
           />
-        ))}
-      </main>
-    </div>
+        </Panel>
+      ),
+    });
+  }
+
+  if (aviso) return marco({ columnas: <div className="pulso-cc-ancho">{aviso}</div> });
+  if (!activePregunta) {
+    return marco({
+      columnas: (
+        <Panel noPadding className="pulso-cc-ancho">
+          <EstadoVacio
+            tamano="normal"
+            icono={<ClipboardList size={18} />}
+            titulo="Sin pregunta elegida"
+            descripcion="Elige una pregunta de la lista para codificarla."
+          />
+        </Panel>
+      ),
+    });
+  }
+  return (
+    <CodificadorPane
+      p={activePregunta}
+      marco={marco}
+      onPrev={gotoPrev}
+      onNext={gotoNext}
+      prevLabel={activeIdx > 0 ? sinEnfasis(questionLabel(marcadas[activeIdx - 1])) : ""}
+      nextLabel={activeIdx < marcadas.length - 1 ? sinEnfasis(questionLabel(marcadas[activeIdx + 1])) : ""}
+    />
   );
 }
 
-/** Cómo se codifica la pregunta, con las palabras de la pestaña Preguntas. */
-function rotuloDeTipo(p: PreguntaAbierta, arq: ReturnType<typeof arquetipoOf>): string {
-  if (arq === "pareja-sm") return "Recodificación múltiple";
-  const base = TIPOS[p.tipo] ?? TIPOS.text;
-  if (p.modo_so === "hijo") return `${base}, texto aparte`;
-  if (p.modo_so === "padre") return `${base}, pregunta original`;
-  return base;
+/** El tipo de la columna que se codifica: el texto de un "Otro" o de una abierta, una numérica o las categorías de una única. */
+function tipoDeOrigen(arq: ReturnType<typeof arquetipoOf>): TipoDePregunta {
+  if (arq === "auto") return "numerica";
+  if (arq === "config-so") return "unica";
+  return "texto";
 }
 
-function CodificadorPane({ p, onPrev, onNext, prevLabel, nextLabel }: {
+function CodificadorPane({ p, marco, onPrev, onNext, prevLabel, nextLabel }: {
   p: PreguntaAbierta;
+  marco: MarcoDeCodificar;
   onPrev: () => void;
   onNext: () => void;
   prevLabel: string;
   nextLabel: string;
 }) {
   const arq = arquetipoOf(p);
+  const conModo = arq === "pareja-so" || arq === "config-so";
+  const { modo, elegir } = useModoDeLaPregunta();
 
-  // Todos los arquetipos que codifican valores discretos o texto abierto
-  // usan el mismo RespuestasCodificador (agrupar respuestas \u2192 c\u00f3digo).
-  // SM emparejada con text_col se codifica igual que SO-hijo (los textos
-  // libres de quienes marcaron "Otros"); el bridge xlsx final genera las
-  // nuevas columnas dummy. SO sin modo se trata como codificar valores
-  // originales (modo padre impl\u00edcito) cuando el analista la marc\u00f3.
-  const codificableInline =
-    arq === "solitaria" ||
-    arq === "adoptada" ||
-    arq === "huerfana" ||
-    arq === "auto" || // integer
-    arq === "pareja-so" ||
-    arq === "pareja-sm" || // SM con text_col
-    arq === "config-so";
-
-  return (
-    <section className="pulso-cc-pane">
+  // La pregunta sobre la lista: su columna, el tipo que sale (de sus códigos) y, en una de opción única,
+  // si se codifican sus respuestas o se agrupan sus categorías.
+  const cabeceraDePregunta = (grupos: readonly Grupo[]) => (
+    <div className="pulso-cc-pregunta-zona">
       <CabeceraDePregunta
-        codigo={p.parent}
-        tipo={arq === "pareja-sm" ? "multiple" : tipoDeFicha(p.tipo)}
-        rotuloDeTipo={rotuloDeTipo(p, arq)}
+        codigo={p.col_efectiva || p.parent}
+        tipoOrigen={tipoDeOrigen(arq)}
+        resultante={tipoResultanteActivo(p, arq, grupos)}
         etiqueta={questionLabel(p)}
         seccion={textoPlano(p.section_label) || undefined}
         anterior={prevLabel}
@@ -232,30 +293,50 @@ function CodificadorPane({ p, onPrev, onNext, prevLabel, nextLabel }: {
         onAnterior={onPrev}
         onSiguiente={onNext}
       />
-
-      {codificableInline ? (
-        arq === "auto"
-          // Las mesas de numéricas y de agrupar categorías conservan su marco de una sola tarjeta.
-          ? <Panel className="pulso-cc-otra-mesa"><IntegerCodificador key={p.parent} parent={p.parent} /></Panel>
-          : arq === "pareja-so" || arq === "config-so"
-            // Una select_one ofrece además agrupar sus categorías (ítem 1f).
-            ? (
-              <ModoSelectOneTabs
-                key={p.parent}
-                parent={p.parent}
-                codificarRespuestas={<RespuestasCodificador parent={p.parent} />}
-              />
-            )
-            : <RespuestasCodificador key={p.parent} parent={p.parent} />
-      ) : (
-        <Panel className="pulso-cc-otra-mesa" data-audit-ready="codificacion-codificar">
-          <p className="pulso-cc-sin-mesa">
-            Esta pregunta tiene <strong>{formatoConteo(p.n_respuestas)}</strong> respuestas
-            ({<strong>{formatoConteo(p.n_unicas)}</strong>} únicas) en la columna <code>{p.col_efectiva}</code>.
-            {arq === "no-aplica" ? " Esta pregunta está desactivada." : null}
-          </p>
-        </Panel>
-      )}
-    </section>
+      {conModo ? <ModoDeLaPregunta modo={modo} onElegir={elegir} /> : null}
+    </div>
   );
+
+  // Todos los arquetipos que codifican valores discretos o texto abierto usan el mismo
+  // RespuestasCodificador (agrupar respuestas en códigos). Una múltiple emparejada con su texto se
+  // codifica igual que un "Otro" de única; la numérica y agrupar categorías tienen su propia mesa, que
+  // ocupa las dos columnas.
+  const codificableInline =
+    arq === "solitaria" ||
+    arq === "adoptada" ||
+    arq === "huerfana" ||
+    arq === "auto" ||
+    arq === "pareja-so" ||
+    arq === "pareja-sm" ||
+    arq === "config-so";
+
+  const ancha = (contenido: ReactNode, conReadiness = false) =>
+    marco({
+      columnas: conReadiness ? (
+        // Sin mesa propia, la vista termina aquí y publica su marca.
+        <Panel noPadding className="pulso-cc-ancho" data-audit-ready="codificacion-codificar">
+          {cabeceraDePregunta([])}
+          <div className="pulso-cc-otra-mesa">{contenido}</div>
+        </Panel>
+      ) : (
+        <Panel noPadding className="pulso-cc-ancho">
+          {cabeceraDePregunta([])}
+          <div className="pulso-cc-otra-mesa">{contenido}</div>
+        </Panel>
+      ),
+    });
+
+  if (!codificableInline) {
+    return ancha(
+      <p className="pulso-cc-sin-mesa">
+        Esta pregunta tiene <strong>{formatoConteo(p.n_respuestas)}</strong> respuestas
+        ({<strong>{formatoConteo(p.n_unicas)}</strong>} únicas) en la columna <code>{p.col_efectiva}</code>.
+        {arq === "no-aplica" ? " Esta pregunta está desactivada." : null}
+      </p>,
+      true,
+    );
+  }
+  if (arq === "auto") return ancha(<IntegerCodificador key={p.parent} parent={p.parent} />);
+  if (conModo && modo === "agrupar") return ancha(<AgruparCategoriasCodificador key={p.parent} parent={p.parent} />);
+  return <RespuestasCodificador key={p.parent} parent={p.parent} marco={marco} cabeceraDePregunta={cabeceraDePregunta} />;
 }

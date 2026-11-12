@@ -1,8 +1,7 @@
+import type { ReactNode } from "react";
 import type { Grupo, RespuestaUnica } from "../../../api/codificacion";
-import { Panel } from "../../../components/Panel";
-import { PulsoButton } from "../../../components/PulsoButton";
-import { formatoConteo } from "../../../lib/formatoNumero";
-import { Plus } from "../../../vendor/lucide-react";
+import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
+import { Tags } from "../../../vendor/lucide-react";
 import { GrupoCodificacionCard } from "../GrupoCodificacionCard";
 import { respuestasParecidas, type AvisoDelLote, type TarjetaDeCodigo } from "./modeloDeCodificar";
 import { TarjetaCodigoNuevo } from "./TarjetaCodigoNuevo";
@@ -22,6 +21,10 @@ export type PanelCodigosProps = {
   siguiente: string;
   /** Respuestas que esperan el nombre del código nuevo; `null` con el formulario cerrado. */
   pendientesDeNuevo: number | null;
+  /** Las herramientas de un texto abierto en la cabecera: "Sugerir códigos" y "Palabras". */
+  herramientas?: ReactNode;
+  /** "Códigos" junto a las tarjetas; "Libro de códigos" junto a la tabla, como en el prototipo. */
+  titulo?: string;
   onAbrirNuevo: () => void;
   onCrear: (nombre: string) => void;
   onCancelarNuevo: () => void;
@@ -33,9 +36,9 @@ export type PanelCodigosProps = {
 };
 
 /**
- * Los códigos de la pregunta, cada uno en su tarjeta, y al final la tarjeta punteada que crea uno. El
- * cuerpo es el dueño del desplazamiento y del vacío del panel. Lo comparten la vista de tarjetas y la de
- * tabla.
+ * Los códigos de la pregunta en tarjetas de dos columnas (`pp-codigos` del prototipo) y al final la
+ * tarjeta punteada que crea uno, pulsándola o soltando respuestas sobre ella. El cuerpo del contenedor es
+ * el dueño del desplazamiento y del vacío. Lo comparten la vista de tarjetas y la de tabla.
  */
 export function PanelCodigos({
   tarjetas,
@@ -47,6 +50,8 @@ export function PanelCodigos({
   avisos,
   siguiente,
   pendientesDeNuevo,
+  herramientas,
+  titulo = "Códigos",
   onAbrirNuevo,
   onCrear,
   onCancelarNuevo,
@@ -57,25 +62,17 @@ export function PanelCodigos({
   onAgregarRespuesta,
 }: PanelCodigosProps) {
   return (
-    <Panel noPadding className="pulso-cc-panel pulso-cc-codigos pulso-cv2-col" aria-label="Códigos" data-arrastrando={arrastrando ? "" : undefined}>
-      <div className="pulso-cc-panel-cab">
-        <h3 className="pulso-cc-panel-titulo">Códigos</h3>
-        <span className="pulso-cc-cuenta" title={tarjetas.length === 1 ? "1 código" : `${formatoConteo(tarjetas.length)} códigos`}>
-          {formatoConteo(tarjetas.length)}
-        </span>
-        <PulsoButton variant="secondary" size="sm" className="pulso-cc-panel-accion" onClick={onAbrirNuevo}>
-          <Plus size={14} aria-hidden="true" />
-          Nuevo código
-        </PulsoButton>
-      </div>
-      <div
-        className="pulso-cc-codigos-cuerpo"
-        // C1: cada tarjeta mide lo que sus respuestas; el cuerpo es el dueño del desplazamiento y del vacío.
-        data-qa-geometry-group="codificacion/grupos"
-        data-qa-geometry-contract="intrinsic"
-        data-qa-geometry-capacity="owned"
-      >
-        <ul className="pulso-cc-codigos-lista pulso-codificacion-grupos-list">
+    <PanelDeMesa
+      zona="codigos"
+      titulo={titulo}
+      icono={<Tags size={15} />}
+      conteo={tarjetas.length}
+      acciones={herramientas}
+      grupo="codificacion/grupos"
+    >
+      <div className="pulso-cc-codigos-cuerpo" data-arrastrando={arrastrando ? "" : undefined}>
+        {/* C1: las tarjetas de un renglón comparten el alto; una que muestra sus respuestas crece sola. */}
+        <ul className="pulso-cc-codigos-lista pulso-codificacion-grupos-list" data-qa-geometry-group="codificacion/codigos-tarjetas" data-qa-geometry-contract="intrinsic">
           {tarjetas.map((tarjeta, i) => {
             const id = tarjeta.grupo.id;
             return (
@@ -111,6 +108,6 @@ export function PanelCodigos({
           </li>
         </ul>
       </div>
-    </Panel>
+    </PanelDeMesa>
   );
 }

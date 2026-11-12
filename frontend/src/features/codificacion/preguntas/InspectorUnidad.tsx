@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ConfirmarDesemparejar } from "./ConfirmarDesemparejar";
+import { sinMarcadores } from "../sugerenciasModulo";
 import type { PreguntaAbierta } from "../../../api/codificacion";
 import { EstadoVacio } from "../../../components/EstadoVacio";
 import { Panel } from "../../../components/Panel";
@@ -18,6 +20,8 @@ import {
   tipoDeFicha,
   type ModoSo,
   type Unidad,
+  resultanteDeUnidad,
+  cifrasDeUnidad,
 } from "./modeloUnidades";
 import { SmDummyPicker } from "./SmDummyPicker";
 
@@ -65,6 +69,7 @@ function identidades(unidad: Unidad): Identidad[] {
 export function InspectorUnidad({
   unidad, ocupada, incluir, onEmparejar, onCambiar, onDesemparejar, onElegirModo, onElegirOtros,
 }: InspectorUnidadProps) {
+  const [confirmando, setConfirmando] = useState(false);
   if (!unidad) {
     return (
       <Panel noPadding className="pulso-preg-inspector" aria-label="Pregunta seleccionada">
@@ -112,13 +117,16 @@ export function InspectorUnidad({
     </>
   );
   const pendiente = faltaModo(unidad) || (conOpciones && otros === "");
+  const resultante = resultanteDeUnidad(unidad);
   // El título dice qué es la unidad; el texto de sus preguntas va debajo, entero y una sola vez.
   const titulo = esPareja ? "Pregunta emparejada" : unidad.arquetipo === "no-aplica" ? "Pregunta desactivada" : "Pregunta suelta";
 
   return (
     <Panel noPadding className="pulso-preg-inspector" aria-label="Pregunta seleccionada" aria-busy={ocupada || undefined}>
       <header className="pulso-preg-insp-cab">
-        <h3 className="pulso-preg-insp-titulo">{titulo}</h3>
+        {/* El título es la pregunta, como en el prototipo; debajo, qué clase de unidad es. */}
+        <h3 className="pulso-preg-insp-titulo">{sinMarcadores(textoPlano((unidad.aporta ?? p).parent_label)) || p.parent}</h3>
+        <span className="pulso-preg-insp-clase">{titulo}</span>
       </header>
 
       <div className="pulso-preg-insp-cuerpo">
@@ -149,12 +157,14 @@ export function InspectorUnidad({
 
         {muestras.length > 0 ? (
           <section className="pulso-preg-insp-seccion">
-            <h4 className="pulso-preg-insp-rotulo">Ejemplos de respuestas</h4>
+            <h4 className="pulso-preg-insp-rotulo">Lo que escribieron</h4>
             <ul className="pulso-preg-ejemplos">
               {muestras.map((texto, i) => (
                 <li key={`${i}:${texto}`}>{texto}</li>
               ))}
             </ul>
+            {/* Cuántas respuestas y textos distintos hay detrás de los ejemplos (prototipo). */}
+            {cifrasDeUnidad(unidad) ? <p className="pulso-preg-insp-ayuda">{cifrasDeUnidad(unidad)}</p> : null}
           </section>
         ) : null}
 
@@ -171,9 +181,23 @@ export function InspectorUnidad({
           </section>
         ) : null}
 
+        {resultante ? (
+          <section className="pulso-preg-insp-seccion">
+            <h4 className="pulso-preg-insp-rotulo">Tipo resultante</h4>
+            <p className="pulso-preg-insp-tipo">
+              {resultante.tipo ? (
+                <FichaPregunta tipo={resultante.tipo} etiqueta={resultante.rotulo} className="pulso-preg-ficha" />
+              ) : (
+                <span className="pulso-cc-por-definir">{resultante.rotulo}</span>
+              )}
+              {resultante.leyenda ? <span>{resultante.leyenda}</span> : null}
+            </p>
+          </section>
+        ) : null}
+
         {incluir ? (
           <section className="pulso-preg-insp-seccion">
-            <h4 className="pulso-preg-insp-rotulo">Codificación</h4>
+            <h4 className="pulso-preg-insp-rotulo">Se codifica</h4>
             {incluir}
           </section>
         ) : null}
@@ -187,10 +211,19 @@ export function InspectorUnidad({
               Cambiar texto
             </PulsoButton>
           ) : null}
-          <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={() => onDesemparejar(unidad)}>
+          <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={() => setConfirmando(true)}>
             <Link2Off size={14} aria-hidden="true" />
             Desemparejar
           </PulsoButton>
+          <ConfirmarDesemparejar
+            pregunta={p.parent}
+            abierto={confirmando}
+            onCancelar={() => setConfirmando(false)}
+            onConfirmar={() => {
+              setConfirmando(false);
+              onDesemparejar(unidad);
+            }}
+          />
         </footer>
       ) : selector ? (
         <footer className="pulso-preg-insp-pie">

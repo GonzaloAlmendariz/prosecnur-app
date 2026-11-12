@@ -38,38 +38,77 @@ export function resumenDelPlan(plan: Pick<PlanAdaptacion, "preguntas">): Resumen
   };
 }
 
-export const ETIQUETA_FRANJA = "De la codificación a la base codificada";
+export const ETIQUETA_FRANJA = "Qué se agrega a la base";
 export const AVISO_BASE_CAMBIO = "La base cambió después de la última aplicación: ya no tiene los campos de códigos";
 
 export type FranjaDeAplicar = {
   etiqueta: string;
   grupos: GrupoDeFranja[];
-  destino: DestinoDeFranja;
+  destino?: DestinoDeFranja;
   avisos: AvisoDeFranja[];
 };
 
-/** La franja de recorrido: de dónde sale lo que se aplica y a dónde llega. */
-export function franjaDeAplicar(resumen: ResumenAplicar, opciones: { baseCambio?: boolean } = {}): FranjaDeAplicar {
-  const n = resumen.aplicables.length;
+/**
+ * Las columnas que agrega la aplicación: una por pregunta y, en una de opción múltiple (campo con
+ * comodín), una por código.
+ */
+export function columnasNuevas(aplicables: readonly PlanPregunta[]): number {
+  return aplicables.reduce((suma, p) => {
+    const campo = (p.nueva_variable ?? "").trim();
+    if (!campo) return suma;
+    return suma + (campo.includes("*") ? entero(p.n_codigos_nuevos) + entero(p.n_codigos_reutilizados) : 1);
+  }, 0);
+}
+
+/**
+ * La franja (`pp-via` del prototipo): lo que se agrega a la base (columnas, códigos nuevos y respuestas con
+ * código) y, aparte, las preguntas con códigos que no entran todavía. "Sin código propio" (cuántas quedan en
+ * "Otro") no sale del plan: el motor no la cuenta antes de aplicar.
+ */
+export const AVISO_ORIGINALES = "Las respuestas originales se conservan";
+
+export function franjaDeAplicar(
+  resumen: ResumenAplicar,
+  opciones: { baseCambio?: boolean; sinCodigo?: number | null } = {},
+): FranjaDeAplicar {
+  const columnas = columnasNuevas(resumen.aplicables);
+  const respuestas = resumen.aplicables.reduce((suma, p) => suma + entero(p.n_respuestas_afectadas), 0);
+  const fuera = resumen.fuera.length;
+  const grupos: GrupoDeFranja[] = [
+    {
+      id: "se-agrega",
+      rotulo: "Se agrega a la base",
+      cifras: [
+        { id: "columnas", cifra: formatoConteo(columnas), texto: columnas === 1 ? "columna" : "columnas" },
+        { id: "codigos-nuevos", cifra: formatoConteo(resumen.codigosNuevos), texto: resumen.codigosNuevos === 1 ? "código nuevo" : "códigos nuevos" },
+        { id: "respuestas", cifra: formatoConteo(respuestas), texto: respuestas === 1 ? "respuesta con código" : "respuestas con código" },
+      ],
+    },
+  ];
+  // "Sin código propio": las respuestas de las preguntas que se aplican que entran sin código (la misma
+  // cuenta que "Faltan N" en la lista). Sin el avance leído, el tramo no se dibuja.
+  const sinCodigo = opciones.sinCodigo;
+  if (typeof sinCodigo === "number") {
+    grupos.push({
+      id: "sin-codigo",
+      rotulo: "Sin código propio",
+      cifras: [{ id: "sin-codigo", cifra: formatoConteo(sinCodigo), texto: sinCodigo === 1 ? "respuesta queda sin código" : "respuestas quedan sin código", ...(sinCodigo > 0 ? { tono: "aviso" as const } : {}) }],
+    });
+  }
+  grupos.push({
+    id: "no-entran",
+    rotulo: "No entran todavía",
+    aparte: true,
+    cifras: [{ id: "preguntas-fuera", cifra: formatoConteo(fuera), texto: fuera === 1 ? "pregunta" : "preguntas", ...(fuera > 0 ? { tono: "aviso" as const } : {}) }],
+  });
   return {
     etiqueta: ETIQUETA_FRANJA,
-    grupos: [
-      { id: "codificacion", rotulo: "Codificación", cifras: [{ id: "preguntas", cifra: n, texto: n === 1 ? "pregunta" : "preguntas" }] },
-      {
-        id: "codigos",
-        rotulo: "Códigos",
-        cifras: [
-          { id: "codigos-nuevos", cifra: resumen.codigosNuevos, texto: resumen.codigosNuevos === 1 ? "nuevo" : "nuevos" },
-          { id: "codigos-existentes", cifra: resumen.codigosExistentes, texto: resumen.codigosExistentes === 1 ? "ya existente" : "ya existentes" },
-        ],
-      },
+    grupos,
+    avisos: [
+      ...(opciones.baseCambio ? [{ id: "base-cambio", tono: "aviso" as const, texto: AVISO_BASE_CAMBIO }] : []),
+      // Aplicar agrega columnas de códigos; no reescribe las respuestas.
+      { id: "originales", tono: "conforme" as const, texto: AVISO_ORIGINALES },
     ],
-    destino: {
-      rotulo: "Base codificada",
-      cifra: resumen.camposNuevos,
-      nota: resumen.camposNuevos === 1 ? "campo nuevo" : "campos nuevos",
-    },
-    avisos: opciones.baseCambio ? [{ id: "base-cambio", tono: "aviso", texto: AVISO_BASE_CAMBIO }] : [],
   };
 }
 
@@ -122,6 +161,32 @@ export function filaTrasTecla(tecla: string, desde: number, total: number): numb
   return null;
 }
 
+/**
+ * El nombre del campo nuevo como se lee. Una pregunta de opción múltiple agrega una columna por código y
+ * el motor la declara con un comodín (`D1_information/*_recod`); se muestra con el primer código de la
+ * pregunta en lugar del comodín (`D1_information/1_recod`) y el patrón completo queda en el `title`.
+ */
+export function campoLegible(
+  campo: string,
+  p: Pick<PlanPregunta, "codigos_nuevos" | "codigos_reutilizados">,
+): { nombre: string; porCodigo: boolean; titulo: string } {
+  const limpio = campo.trim();
+  if (!limpio.includes("*")) return { nombre: limpio, porCodigo: false, titulo: limpio };
+  const primero = [...(Array.isArray(p.codigos_nuevos) ? p.codigos_nuevos : []), ...(Array.isArray(p.codigos_reutilizados) ? p.codigos_reutilizados : [])]
+    .map((c) => String(c.codigo ?? "").trim())
+    .find(Boolean);
+  return {
+    nombre: primero ? limpio.replace("*", primero) : limpio.replace("*", "código"),
+    porCodigo: true,
+    titulo: `Una columna por código: ${limpio.replace("*", "código")}`,
+  };
+}
+
+/** El rótulo que acompaña al campo: "Campo nuevo" o, en una múltiple, "Una columna por código, como". */
+export function rotuloDeCampo(porCodigo: boolean): string {
+  return porCodigo ? "Una columna por código, como" : "Campo nuevo";
+}
+
 export type FilaDeAplicar = {
   /** `claveDePregunta`. */
   id: string;
@@ -129,8 +194,10 @@ export type FilaDeAplicar = {
   etiqueta: string;
   tipo: TipoDePregunta | null;
   tipoEnPalabras: string;
-  /** El campo que se agrega a la base. Vacío si el plan no lo declara. */
+  /** El campo que se agrega a la base, como se lee (`campoLegible`). Vacío si el plan no lo declara. */
   campo: string;
+  /** El patrón que declara el motor, para el `title`. */
+  campoTitulo: string;
   /** Una pregunta de opción múltiple agrega un campo por código. */
   variosCampos: boolean;
   /**
@@ -152,8 +219,9 @@ export function filaDeAplicar(p: PlanPregunta, opciones: { unica?: boolean } = {
     etiqueta: etiquetaDePregunta(p),
     tipo: tipoDeFicha(p.tipo),
     tipoEnPalabras: tipoEnPalabras(p),
-    campo: (p.nueva_variable ?? "").trim(),
-    variosCampos: p.tipo === "select_multiple",
+    campo: campoLegible(p.nueva_variable ?? "", p).nombre,
+    campoTitulo: campoLegible(p.nueva_variable ?? "", p).titulo,
+    variosCampos: p.tipo === "select_multiple" || campoLegible(p.nueva_variable ?? "", p).porCodigo,
     codigos: opciones.unica ? "" : enumerar([
       nuevos > 0 && formatoConteoDe(nuevos, "código nuevo", "códigos nuevos"),
       existentes > 0 && formatoConteoDe(existentes, nuevos > 0 ? "ya existente" : "código ya existente", nuevos > 0 ? "ya existentes" : "códigos ya existentes"),
@@ -203,4 +271,21 @@ export const EFECTO_SIN_APLICAR = "No se escribe nada en la base.";
 /** Lo que pasa al pulsar "Aplicar a la base", dicho antes de pulsar. */
 export function efectoDeAplicar(nPreguntas: number, baseYaCodificada: boolean): string {
   return nPreguntas > 0 && !baseYaCodificada ? EFECTO_APLICAR : EFECTO_SIN_APLICAR;
+}
+
+/**
+ * Antes y después de aplicar una pregunta (`pp-cambio` del prototipo): la columna que la base trae hoy
+ * (el texto que se codificó, o la pregunta) y el campo que se agrega, con su tipo. `null` si el plan no
+ * declara el campo nuevo.
+ */
+export function cambioDeLaBase(
+  p: Pick<PlanPregunta, "parent" | "text_col" | "tipo" | "modo_so" | "nueva_variable" | "codigos_nuevos" | "codigos_reutilizados">,
+): { hoy: string; hoyTipo: string; agrega: string; agregaTitulo: string; agregaTipo: string } | null {
+  const campo = campoLegible(p.nueva_variable ?? "", p);
+  if (!campo.nombre) return null;
+  const texto = (p.text_col ?? "").trim();
+  const hoy = texto || p.parent;
+  const hoyTipo = texto ? "Texto" : p.tipo === "integer" ? "Numérica" : p.tipo === "select_one" ? "Opción única" : p.tipo === "select_multiple" ? "Opción múltiple" : "Texto";
+  const agregaTipo = p.tipo === "select_multiple" || campo.porCodigo ? "Opción múltiple" : "Opción única";
+  return { hoy, hoyTipo, agrega: campo.nombre, agregaTitulo: campo.titulo, agregaTipo };
 }

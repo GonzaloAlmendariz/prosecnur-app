@@ -11,6 +11,6 @@ type EstadoFiltroRespuestas = {
 };
 
 export const useFiltroRespuestas = create<EstadoFiltroRespuestas>((set) => ({
-  filtro: "todas",
+  filtro: "sin-codigo",
   elegirFiltro: (filtro) => set({ filtro }),
 }));

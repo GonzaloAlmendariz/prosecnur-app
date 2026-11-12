@@ -1,5 +1,5 @@
 import { FilterChip } from "../../../components/FilterChip";
-import { CheckCircle2, LayoutGrid, MessageSquareText, PencilLine, Search, X } from "../../../vendor/lucide-react";
+import { ListChecks, LayoutGrid, MessageSquareText, PencilLine, Search, X } from "../../../vendor/lucide-react";
 import type { ConteosDeFiltro, FiltroPreguntas } from "./modeloUnidades";
 
 export type BarraPreguntasProps = {
@@ -26,14 +26,14 @@ export function BarraPreguntas({ filtro, conteos, consulta, onFiltro, onBuscar }
           active={filtro === "con-texto"} onClick={() => onFiltro("con-texto")}
         />
         <FilterChip
-          label="Pendientes" count={conteos["por-codificar"]}
+          label="Por decidir" count={conteos["por-decidir"]}
           icon={PencilLine} tone="warn"
-          active={filtro === "por-codificar"} onClick={() => onFiltro("por-codificar")}
+          active={filtro === "por-decidir"} onClick={() => onFiltro("por-decidir")}
         />
         <FilterChip
-          label="Codificadas" count={conteos.codificadas}
-          icon={CheckCircle2} tone="success"
-          active={filtro === "codificadas"} onClick={() => onFiltro("codificadas")}
+          label={'Cerradas con "Otro"'} count={conteos["cerradas-otro"]}
+          icon={ListChecks} tone="neutral"
+          active={filtro === "cerradas-otro"} onClick={() => onFiltro("cerradas-otro")}
         />
         <FilterChip
           label="Todas" count={conteos.todas}
@@ -47,7 +47,7 @@ export function BarraPreguntas({ filtro, conteos, consulta, onFiltro, onBuscar }
           type="search"
           value={consulta}
           onChange={(evento) => onBuscar(evento.target.value)}
-          placeholder="Buscar pregunta"
+          placeholder="Buscar pregunta o código"
           aria-label="Buscar preguntas por nombre, etiqueta o sección"
           className="pulso-cv2-search-input"
         />

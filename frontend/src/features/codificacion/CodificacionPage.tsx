@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import { AlertCircle, ChevronDown, Database, FileSpreadsheet, Tags } from "lucide-react";
@@ -9,7 +9,6 @@ import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../components/ContextTabRail";
-import { TabHeading } from "../../components/TabHeading";
 import {
   PROCESAMIENTO_PESTANAS,
   type CodificacionTabId,
@@ -19,6 +18,8 @@ import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
 import { AdaptarPane } from "./AdaptarPane";
 import { useCodifSource } from "./useCodifSource";
+import { CabeceraDeCodificacion } from "./CabeceraDeCodificacion";
+import { useAvances } from "./avanceStore";
 import { CodingConfigActions } from "./CodingConfigActions";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import "./codificacion-v2.css";
@@ -34,6 +35,10 @@ export default function CodificacionPage() {
   // de base (ver comentario abajo en los key={codifActive}).
   const codifSource = useCodifSource();
   const codifActive = `${codifSource.active ?? "default"}:${importRevision}`;
+  // El avance compartido de las preguntas es de la base activa: se vacía al cambiarla o al importar.
+  useEffect(() => {
+    useAvances.getState().vaciar();
+  }, [codifActive]);
 
   const prereqOk = !!state?.xlsform && !!state?.data;
   // El selector común de la banda no se monta con bases independientes.
@@ -49,7 +54,12 @@ export default function CodificacionPage() {
     rawStep === "matrices" ? "matrices" :
     rawStep === "adaptar" ? "adaptar" :
     "organizar";
-  const pasoActivo = CODIFICACION_STEPS.find((paso) => paso.key === step) ?? CODIFICACION_STEPS[0];
+  const baseActual = codifSource.active && !(selectorEnBanda && codifSource.options.length > 1) ? (
+    <span className="pulso-codificacion-base-actual" title="Base activa">
+      <Database size={12} aria-hidden="true" />
+      {codifSource.labelFor(codifSource.active)}
+    </span>
+  ) : undefined;
 
   function goStep(next: Step) {
     const sp = new URLSearchParams(location.search);
@@ -114,7 +124,7 @@ export default function CodificacionPage() {
       >
         <main
           id="codificacion-panel"
-          className={`pulso-codificacion-content pulso-content-area${prereqOk ? " con-cabecera" : ""}`}
+          className={`pulso-codificacion-content pulso-content-area${prereqOk && step === "matrices" ? " con-cabecera" : ""}`}
           role="tabpanel"
           aria-labelledby={`codificacion-step-${step}`}
           data-audit-ready={
@@ -150,26 +160,13 @@ export default function CodificacionPage() {
             />
           ) : (
             <>
-              {/* La cabecera única de pestaña (L14), la misma de Carga, Validación
-                  y Analítica: la base activa va en el control porque es un nombre.
-                  Cuando la banda ya la nombra en su selector (dos o más bases que
-                  no son independientes) aquí no se repite. */}
-              <TabHeading
-                eyebrow="Codificación"
-                titulo={pasoActivo.label}
-                icono={pasoActivo.icon}
-                detalle={pasoActivo.detail}
-                pestanaN={CODIFICACION_STEPS.findIndex((paso) => paso.key === step) + 1}
-                pestanaDe={CODIFICACION_STEPS.length}
-                control={codifSource.active && !(selectorEnBanda && codifSource.options.length > 1) ? (
-                  <span className="pulso-codificacion-base-actual">
-                    <Database size={12} aria-hidden="true" />
-                    {codifSource.labelFor(codifSource.active)}
-                  </span>
-                ) : undefined}
-              />
+              {/* La cabecera de cada pestaña la monta la pestaña con su estado, sus cifras y su acción
+                  (CabeceraDeCodificacion, la del kit). Matrices, que espera la decisión 5 del plan, lleva
+                  la misma cabecera sin cifras. La base activa va en la cabecera solo cuando la banda no
+                  la nombra en su selector (una base, o bases independientes). */}
+              {step === "matrices" ? <CabeceraDeCodificacion pestana="matrices" acciones={baseActual} /> : null}
               {codifSource.loading && (
-                <LoadingBlock label="Cargando base de codificación…" />
+                <LoadingBlock label="Cargando la base de codificación" />
               )}
               {!codifSource.loading && (
                 <div
@@ -181,8 +178,8 @@ export default function CodificacionPage() {
                       useEffect([]) que refetchean familias/preguntas/columnas del
                       backend; al remontarse cargan el estado scoped de la base
                       nueva sin tener que refactorear 8 archivos con listeners. */}
-                  {step === "organizar" && <PreguntasLanding key={codifActive} />}
-                  {step === "codificar" && <CodificarWizard key={codifActive} onBackToOrganizar={() => goStep("organizar")} />}
+                  {step === "organizar" && <PreguntasLanding key={codifActive} baseActual={baseActual} />}
+                  {step === "codificar" && <CodificarWizard key={codifActive} baseActual={baseActual} onBackToOrganizar={() => goStep("organizar")} />}
                   {step === "matrices" && (
                     <CodingConfigActions
                       key={codifActive}
@@ -196,6 +193,7 @@ export default function CodificacionPage() {
                     <AdaptarPane
                       key={codifActive}
                       base={codifSource.active}
+                      baseActual={baseActual}
                       onBackToCodificar={() => goStep("codificar")}
                       onBackToMatrices={() => goStep("matrices")}
                     />

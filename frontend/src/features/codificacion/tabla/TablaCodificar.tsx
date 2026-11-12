@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Grupo, RespuestaUnica } from "../../../api/codificacion";
 import { EstadoVacio } from "../../../components/EstadoVacio";
@@ -8,6 +8,7 @@ import { ArrowDown, ArrowUp, Inbox, Search } from "../../../vendor/lucide-react"
 import { BuscadorRespuestas } from "./BuscadorRespuestas";
 import { CampoCodigo } from "./CampoCodigo";
 import { FilaCodificar } from "./FilaCodificar";
+import { agruparParecidas, clavesDeFila } from "./agruparParecidas";
 import { ListaCodigos, idDeOpcion } from "./ListaCodigos";
 import {
   EDITOR_INICIAL,
@@ -47,6 +48,17 @@ export type TablaCodificarProps = {
   onQuitar: (clave: string, grupoId: string) => void;
   /** Crea un código con ese nombre y se lo asigna a la respuesta. */
   onCrear: (clave: string, nombre: string) => void;
+  /** Las respuestas elegidas con su casilla, para asignarlas juntas (la barra de selección la pone quien monta). */
+  elegidas?: ReadonlySet<string>;
+  onAlternar?: (claves: readonly string[]) => void;
+  /** Una fila que junta parecidas asigna, crea o quita en todas sus respuestas de una vez. */
+  onAsignarLote?: (claves: readonly string[], grupoId: string) => void;
+  onCrearLote?: (claves: readonly string[], nombre: string) => void;
+  onQuitarLote?: (claves: readonly string[], grupoId: string) => void;
+  /** La propuesta de código de una respuesta sin código (prototipo: sugerencia con "Aceptar"). */
+  sugerenciaDe?: (clave: string) => ReactNode;
+  /** Al pie, junto a las teclas: "Aceptar las N sugeridas". */
+  pie?: ReactNode;
 };
 
 /** Alto de la cabecera mientras no se mide (`--pulso-control-height-lg`). */
@@ -76,12 +88,23 @@ export function TablaCodificar({
   onAsignar,
   onQuitar,
   onCrear,
+  elegidas,
+  onAlternar,
+  onAsignarLote,
+  onCrearLote,
+  onQuitarLote,
+  sugerenciaDe,
+  pie,
 }: TablaCodificarProps) {
   const orden = useVistaCodificar((s) => s.orden);
   const elegirOrden = useVistaCodificar((s) => s.elegirOrden);
+  const agrupar = useVistaCodificar((s) => s.agrupar);
 
   const codigos = useMemo(() => codigosDeTabla(grupos, respuestas), [grupos, respuestas]);
-  const filas = useMemo(() => filasDeTabla(tramos, grupos, codigos, orden), [tramos, grupos, codigos, orden]);
+  const filas = useMemo(() => {
+    const base = filasDeTabla(tramos, grupos, codigos, orden);
+    return agrupar ? agruparParecidas(base) : base;
+  }, [tramos, grupos, codigos, orden, agrupar]);
   const elementos = useMemo(() => elementosDeTabla(filas), [filas]);
 
   const [editor, despachar] = useReducer(reducirEditor, EDITOR_INICIAL);
@@ -188,7 +211,11 @@ export function TablaCodificar({
   function elegir(indice: number, avanza: boolean) {
     const opcion = opciones[indice];
     if (!opcion || !filaActiva) return;
-    if (opcion.tipo === "crear") onCrear(filaActiva.clave, opcion.nombre);
+    const claves = clavesDeFila(filaActiva);
+    if (claves.length > 1 && onCrearLote && onAsignarLote) {
+      if (opcion.tipo === "crear") onCrearLote(claves, opcion.nombre);
+      else onAsignarLote(claves, opcion.codigo.id);
+    } else if (opcion.tipo === "crear") onCrear(filaActiva.clave, opcion.nombre);
     else onAsignar(filaActiva.clave, opcion.codigo.id);
     const siguiente = avanza ? filaSiguienteSinCodigo(filas, filaActiva.clave) : null;
     if (siguiente) activar(siguiente);
@@ -224,10 +251,23 @@ export function TablaCodificar({
         despachar({ tipo: "activar", clave: filaActiva.clave });
         break;
       case "quitar-ultimo":
-        onQuitar(filaActiva.clave, filaActiva.codigos[filaActiva.codigos.length - 1].id);
+        quitar(filaActiva.clave, filaActiva.codigos[filaActiva.codigos.length - 1].id);
         break;
     }
   }
+
+  /** Quitar un código de una fila que junta parecidas lo quita de todas sus respuestas. */
+  function quitar(clave: string, grupoId: string) {
+    const fila = filas.find((f) => f.clave === clave);
+    const claves = fila ? clavesDeFila(fila) : [clave];
+    if (claves.length > 1 && onQuitarLote) onQuitarLote(claves, grupoId);
+    else onQuitar(clave, grupoId);
+  }
+
+  const conCasillas = Boolean(elegidas && onAlternar);
+  const visiblesClaves = filas.flatMap(clavesDeFila);
+  const todasElegidas = conCasillas && visiblesClaves.length > 0 && visiblesClaves.every((c) => elegidas?.has(c));
+  const algunaElegida = conCasillas && visiblesClaves.some((c) => elegidas?.has(c));
 
   const marcador =
     filaActiva && filaActiva.codigos.length > 0
@@ -251,11 +291,25 @@ export function TablaCodificar({
           <div
             role="table"
             className="pulso-ct-tabla"
+            data-con-casillas={conCasillas ? "" : undefined}
             aria-label={`Respuestas de ${pregunta} y sus códigos`}
             aria-rowcount={elementos.length + 1}
           >
             <div ref={cabecera} role="rowgroup" className="pulso-ct-cab">
               <div role="row" aria-rowindex={1} className="pulso-ct-cab-fila">
+                {conCasillas ? (
+                  <div role="columnheader" className="pulso-ct-c-elegir">
+                    {/* Elegir todas las filas a la vista: botón de dos estados, como la elección de una fila. */}
+                    <button
+                      type="button"
+                      className="pulso-ct-casilla"
+                      aria-pressed={todasElegidas ? true : algunaElegida ? "mixed" : false}
+                      aria-label={todasElegidas ? "Soltar todas las respuestas a la vista" : "Elegir todas las respuestas a la vista"}
+                      title={todasElegidas ? "Soltar todas" : "Elegir todas"}
+                      onClick={() => onAlternar?.(todasElegidas ? visiblesClaves.filter((c) => elegidas?.has(c)) : visiblesClaves.filter((c) => !elegidas?.has(c)))}
+                    />
+                  </div>
+                ) : null}
                 {/* El orden se elige en la cabecera, como en las tablas del kit: por texto o por veces. */}
                 <div role="columnheader" className="pulso-ct-c-resp" aria-sort={orden === "alfabetico" ? "ascending" : undefined}>
                   <button type="button" className="pulso-table-orden" title="Ordenar alfabéticamente" onClick={() => elegirOrden("alfabetico")}>
@@ -289,7 +343,7 @@ export function TablaCodificar({
                     aria-rowindex={indice + 2}
                     data-index={indice}
                   >
-                    <div role="cell" aria-colspan={3} className="pulso-cv2-resp-tramo">
+                    <div role="cell" aria-colspan={conCasillas ? 4 : 3} className="pulso-cv2-resp-tramo">
                       <span className="pulso-cv2-resp-tramo-titulo">No responden</span>
                       <span className="pulso-cv2-resp-tramo-n">
                         {formatoConteo(elemento.n)} {elemento.n === 1 ? "respuesta" : "respuestas"} como "No", "." o "Ninguno"
@@ -302,8 +356,15 @@ export function TablaCodificar({
                     fila={elemento.fila}
                     indice={indice}
                     activa={elemento.fila.clave === claveActiva}
+                    sugerencia={elemento.fila.clave !== claveActiva ? sugerenciaDe?.(elemento.fila.clave) : undefined}
+                    elegida={conCasillas ? clavesDeFila(elemento.fila).every((c) => elegidas?.has(c)) : undefined}
+                    onElegir={conCasillas ? () => {
+                      const claves = clavesDeFila(elemento.fila);
+                      const todas = claves.every((c) => elegidas?.has(c));
+                      onAlternar?.(todas ? claves : claves.filter((c) => !elegidas?.has(c)));
+                    } : undefined}
                     onActivar={activar}
-                    onQuitar={onQuitar}
+                    onQuitar={quitar}
                     alMontar={virtualiza ? virtualizador.measureElement : undefined}
                     campo={
                       elemento.fila.clave === claveActiva ? (
@@ -332,6 +393,7 @@ export function TablaCodificar({
         )}
       </div>
 
+      {pie ? <div className="pulso-ct-pie">{pie}</div> : null}
       <p id={ayudaId} className="pulso-ct-teclas">
         <span>
           <kbd>

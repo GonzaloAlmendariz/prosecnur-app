@@ -35,7 +35,9 @@ export function AdaptarOmitidas({
     <div className="pulso-aplicar-fuera" role="group" aria-labelledby={idTitulo} data-testid="codificacion-aplicar-fuera">
       <h4 id={idTitulo} className="pulso-aplicar-fuera-titulo">
         <span className="pulso-aplicar-fuera-punto" aria-hidden="true" />
-        {preguntas.length === 1 ? "1 pregunta no se puede aplicar" : `${preguntas.length} preguntas no se pueden aplicar`}
+        {/* El grupo del prototipo, "No entran todavía"; cuántas y por qué, en sus filas y en la franja. */}
+        No entran todavía
+        <span className="pulso-sr-only">: {preguntas.length === 1 ? "1 pregunta no se puede aplicar" : `${preguntas.length} preguntas no se pueden aplicar`}</span>
       </h4>
       <ul
         className="pulso-aplicar-fuera-lista"

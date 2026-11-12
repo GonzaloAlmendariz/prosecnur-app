@@ -45,6 +45,10 @@ type Props = {
   yaListadas?: readonly string[];
   /** Lo que va en el cuerpo del panel antes del resultado: la lista y las preguntas que no se pueden aplicar. */
   children?: ReactNode;
+  /** La acción principal va en la cabecera de la pestaña (`BotonAplicar`): el pie no la repite. */
+  botonEnCabecera?: boolean;
+  /** Cuántas veces se pulsó el botón de la cabecera: cada pulsación lleva el foco al avance. */
+  pedidoExterno?: number;
 };
 
 const TEXTO_APLICANDO = "Revisando la codificación contra la base; puede tardar un par de minutos.";
@@ -62,7 +66,7 @@ export function pulsarAdaptar(pedirFoco: () => void, adaptar: () => void): void 
   adaptar();
 }
 
-export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null, yaListadas = [], children }: Props) {
+export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBackToMatrices, yaCodificadaEn = null, yaListadas = [], children, botonEnCabecera = false, pedidoExterno = 0 }: Props) {
   const { refresh } = useSession();
   const entrada = useAplicarAvisosStore(selectAplicarEntrada(clave));
   const cerrarEntrega = useAplicarAvisosStore((s) => s.cerrarEntrega);
@@ -98,6 +102,8 @@ export function AdaptarAplicacion({ clave, nPreguntas, onBackToCodificar, onBack
       onCancelar={jobId ? () => cancelarAdaptacion(jobId) : undefined}
       onCerrarEntrega={() => cerrarEntrega(clave)}
       onEnfocado={() => marcarEnfocado(clave)}
+      botonEnCabecera={botonEnCabecera}
+      pedidoExterno={pedidoExterno}
     >
       {children}
     </AdaptarAplicacionVista>
@@ -117,6 +123,8 @@ type VistaProps = {
   yaCodificadaEn?: string | null;
   yaListadas?: readonly string[];
   children?: ReactNode;
+  botonEnCabecera?: boolean;
+  pedidoExterno?: number;
 };
 
 /** Presentación pura de la entrada del store; testeable sin DOM. */
@@ -132,6 +140,8 @@ export function AdaptarAplicacionVista({
   yaCodificadaEn = null,
   yaListadas = [],
   children,
+  botonEnCabecera = false,
+  pedidoExterno = 0,
 }: VistaProps) {
   const { aplicando, jobId, avisos, sinRecodificar, salida, enfocarPendiente } = entrada;
   // Cada pulsación pide el foco otra vez: también "Reintentar", que desaparece al volver a correr.
@@ -170,7 +180,7 @@ export function AdaptarAplicacionVista({
 
           {/* El avance, el fallo o los dos archivos codificados: una sola señal en
               movimiento (la línea del contenedor); el botón sólo se deshabilita. */}
-          <ContenedorEntregable estado={entrega} forma="bloque" enfocar={pedidoDeFoco} onCerrar={onCerrarEntrega} />
+          <ContenedorEntregable estado={entrega} forma="bloque" enfocar={pedidoDeFoco + pedidoExterno} onCerrar={onCerrarEntrega} />
 
           {/* La aplicación terminó con avisos: lo dice aquí, junto a los archivos, y lleva al primero.
               Un resultado no mueve lo que ya estaba en pantalla (C2): no va sobre la franja. */}
@@ -208,7 +218,7 @@ export function AdaptarAplicacionVista({
         >
           {aplicando ? TEXTO_APLICANDO : jobId ? TEXTO_CORRIENDO : ""}
         </span>
-        {motivoDeshabilitado && !sinBoton && (
+        {motivoDeshabilitado && !sinBoton && !botonEnCabecera && (
           <span id="codificacion-adaptar-disabled-reason" className="pulso-sr-only">
             {motivoDeshabilitado}
           </span>
@@ -225,7 +235,7 @@ export function AdaptarAplicacionVista({
           </PulsoButton>
           {sinBoton && yaCodificadaEn ? (
             <AvisoBaseYaCodificada base={yaCodificadaEn} />
-          ) : (
+          ) : botonEnCabecera ? null : (
             <PulsoButton
               variant="primary"
               size="lg"

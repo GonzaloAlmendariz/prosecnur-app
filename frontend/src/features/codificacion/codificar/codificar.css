@@ -1,148 +1,120 @@
-/* Codificación, Codificar (etapa P3c del rediseño de Procesamiento).
+/* Codificación, Codificar (etapa P3c del rediseño de Procesamiento; pasada de fidelidad).
  *
- * Tres paneles del kit (`components/Panel`) que llegan al pie de la superficie: las preguntas, las
- * respuestas y los códigos. Sobre los dos últimos, la pregunta en una línea y la cabecera de cifras y
- * herramientas en otra: todo lo demás del alto es para la lista y las tarjetas.
+ * La mesa del kit (`MesaDePestana`, `PanelDeMesa`) con las tres columnas del prototipo (`pp-m3c`):
+ * Preguntas de 280, Respuestas y Códigos a partes iguales. Esta hoja ajusta el reparto, la columna de
+ * preguntas, la pregunta que se codifica, la barra de avance y el buscador.
  *
- * Esta hoja no dibuja cajas: los marcos son `Panel`, la tarjeta de un código es `.pulso-cv2-grupo`
- * (codificacion-v2.css) y el punteado se usa en un solo lugar, la tarjeta donde se suelta o se crea.
- * Solo tokens --pulso-*, --tipo-* y --motion-*; la letra va por rol (app/tipografia.css).
+ * Esta hoja no dibuja cajas: los marcos son del kit, la tarjeta de un código es `.pulso-cv2-grupo`
+ * (codificacion-v2.css) y el punteado se usa donde se suelta o se crea algo. Solo tokens --pulso-*,
+ * --tipo-* y --motion-*; la letra va por rol.
  *
- * Esta hoja trae el marco, la cabecera y las cifras. La siguen, en este orden, lista.css, codigos.css y
- * ventanas.css: el orden es el de la cascada y no se altera. */
+ * La siguen, en este orden, lista.css, codigos.css y ventanas.css. */
 
-/* ---------- Marco: preguntas a la izquierda, la mesa a la derecha ---------- */
+/* ---------- Mesa: 280 | respuestas | códigos ---------- */
 
-.pulso-codificacion-frame .pulso-cc-wizard {
+.pulso-codificacion-frame .pulso-mesa-pestana-superficie {
   --cc-acento: var(--module-accent, var(--pulso-primary));
-  --cc-riel: var(--pulso-space-4);
-  display: grid;
-  flex: 1 1 auto;
-  grid-template-columns: 264px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: var(--pulso-space-4);
-  min-width: 0;
-  min-height: 0;
+  --cc-riel: var(--pulso-space-5);
 }
 
-@media (min-width: 1600px) {
-  .pulso-codificacion-frame .pulso-cc-wizard {
-    grid-template-columns: 320px minmax(0, 1fr);
-    gap: var(--pulso-space-5);
+@container mesa-pestana (min-width: 980px) {
+  .pulso-codificacion-frame .pulso-mesa-pestana[data-qa-geometry-group="codificacion/codificar-mesa"] {
+    grid-template-columns: 280px minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
-@media (max-width: 1100px) {
-  .pulso-codificacion-frame .pulso-cc-wizard {
-    grid-template-columns: 216px minmax(0, 1fr);
-    gap: var(--pulso-space-3);
+@container mesa-pestana (min-width: 980px) and (max-width: 1299px) {
+  .pulso-codificacion-frame .pulso-mesa-pestana[data-qa-geometry-group="codificacion/codificar-mesa"] {
+    grid-template-columns: 230px minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
-.pulso-cc-principal,
-.pulso-cc-pane {
+/* Lo que ocupa las dos columnas de la derecha: la numérica, agrupar categorías, un error o la carga. */
+.pulso-codificacion-frame .pulso-cc-ancho {
   display: flex;
-  flex: 1 1 auto;
+  grid-column: 2 / -1;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-}
-
-.pulso-cc-pane {
-  gap: var(--pulso-space-2);
-}
-
-/* Los paneles ocupan el alto que les toca; lo que se desplaza es su cuerpo. */
-.pulso-cc-panel.pulso-panel {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  margin-bottom: 0;
+  margin: 0;
   overflow: hidden;
 }
 
-.pulso-cc-panel-cab {
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
-  min-height: var(--pulso-control-height-lg);
-  padding: calc(var(--pulso-space-1) + 2px) var(--cc-riel, var(--pulso-space-4));
-  border-bottom: 1px solid var(--pulso-border);
+.pulso-cc-ancho > .pulso-cc-otra-mesa {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--pulso-space-5);
+  overflow: auto;
 }
 
-.pulso-cc-panel-titulo {
-  margin: 0;
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-subtitle-size);
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.3;
+/* Respuestas: la pregunta, el avance y el buscador miden lo suyo; la lista se queda con el resto y es la
+   única que desplaza (su marco, `.pulso-cc-lista-marco`). */
+.pulso-panel-de-mesa--respuestas > .pulso-panel-de-mesa-cuerpo {
+  overflow: hidden;
 }
 
-.pulso-cc-panel-accion {
-  margin-inline-start: auto;
+.pulso-panel-de-mesa--respuestas .pulso-codificacion-respuestas.pulso-cc-mesa {
+  gap: 0;
 }
 
-/* Conteo en píldora: cuántos elementos tiene lo que rotula. */
-.pulso-cc-cuenta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--pulso-space-5);
-  padding: 1px var(--pulso-space-2);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-3);
-  color: var(--pulso-text-muted, var(--pulso-text-soft));
-  font-size: var(--pulso-type-eyebrow-size);
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.5;
+/* Hasta 1100 de ventana la mesa pasa a dos columnas y la pestaña se desplaza: Respuestas toma un alto que
+   cabe en la ventana, sea cual sea la cantidad de respuestas (C2), y Códigos baja a todo el ancho. */
+@container mesa-pestana (max-width: 979px) {
+  /* Las tres columnas toman el mismo alto, sea cual sea su contenido (C2): Preguntas y Respuestas lado a
+     lado, Códigos debajo; cada una desplaza lo suyo. */
+  .pulso-codificacion-frame .pulso-mesa-pestana[data-qa-geometry-group="codificacion/codificar-mesa"] > .pulso-panel-de-mesa,
+  .pulso-codificacion-frame .pulso-mesa-pestana[data-qa-geometry-group="codificacion/codificar-mesa"] > .pulso-cc-ancho {
+    block-size: max(22rem, min(560px, calc(100dvh - 10rem)));
+    max-block-size: none;
+  }
 }
 
-.pulso-cc-cuenta[data-aviso] {
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
+/* Con la cabecera angosta el nombre de la base se recoge (la banda lo dice cuando hay más de una) y el
+   guardado de la cabecera de Respuestas queda en su punto; las cifras y la vista quedan a la vista. */
+@container cabecera-pestana (max-width: 1099px) {
+  .pulso-codificacion-cabecera .pulso-codificacion-base-actual {
+    display: none;
+  }
 }
 
-.pulso-cc-panel-pie {
-  display: flex;
-  flex: 0 0 auto;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border-top: 1px solid var(--pulso-border);
-  background: color-mix(in srgb, var(--pulso-surface-3) 55%, var(--pulso-surface));
+@container mesa-pestana (max-width: 979px) {
+  .pulso-panel-de-mesa--respuestas .pulso-cc-pregunta-zona {
+    gap: var(--pulso-space-2);
+    padding-block: var(--pulso-space-3);
+  }
+
+  .pulso-panel-de-mesa--respuestas .pulso-cc-pregunta-titulo {
+    -webkit-line-clamp: 1;
+  }
+
+  .pulso-panel-de-mesa--respuestas .pulso-cc-avance,
+  .pulso-panel-de-mesa--respuestas .pulso-cc-busca {
+    padding-block: var(--pulso-space-2);
+  }
 }
 
-/* ---------- Preguntas para codificar ---------- */
+/* ---------- Preguntas para codificar (`colaCod` del prototipo) ---------- */
 
 .pulso-cc-preguntas-lista {
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   gap: var(--pulso-space-1);
-  min-height: 0;
   margin: 0;
   padding: var(--pulso-space-2);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   list-style: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--pulso-border-strong) transparent;
 }
 
+/* Pregunta y porcentaje en el primer renglón; tipo y origen en el segundo; la barra debajo. */
 .pulso-cc-preguntas-fila {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: var(--pulso-space-1);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
   width: 100%;
   max-width: none;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
+  padding: var(--pulso-space-3);
   border: 0;
-  border-radius: var(--pulso-radius);
+  border-radius: 10px;
   background: none;
   box-shadow: none;
   color: var(--pulso-text);
@@ -156,34 +128,21 @@
 
 @media (hover: hover) {
   .pulso-cc-preguntas-fila:hover:not([aria-current]) {
+    border: 0;
     background: var(--pulso-surface-2);
+    box-shadow: none;
+    transform: none;
   }
 }
 
-/* La pregunta en curso lleva el fondo suave del módulo y su anillo; sin franja lateral. */
+/* La pregunta en curso lleva el fondo suave del módulo y su borde; sin franja lateral. */
 .pulso-cc-preguntas-fila[aria-current] {
-  background: color-mix(in srgb, var(--cc-acento) 7%, var(--pulso-surface));
-  box-shadow: inset 0 0 0 1.5px var(--cc-acento);
+  background: color-mix(in srgb, var(--cc-acento) 8%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cc-acento) 55%, var(--pulso-border));
 }
 
 .pulso-cc-preguntas-fila:focus-visible {
   outline-offset: -2px;
-}
-
-.pulso-cc-preguntas-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--pulso-space-2);
-  min-width: 0;
-}
-
-.pulso-cc-preguntas-codigo.pulso-ficha-pregunta {
-  overflow: hidden;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: var(--pulso-type-eyebrow-size);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* La etiqueta se lee en dos renglones; entera va en el `title` de la fila. */
@@ -191,42 +150,133 @@
   display: -webkit-box;
   overflow: hidden;
   font-size: var(--pulso-type-body-size);
-  font-weight: var(--pulso-weight-medium);
+  font-weight: var(--pulso-weight-semibold);
   line-height: 1.35;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
-/* ---------- La pregunta, en una línea ---------- */
-
-.pulso-cc-pregunta {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--pulso-space-3);
-  min-width: 0;
-  min-height: var(--pulso-control-height-sm);
-}
-
-.pulso-cc-pregunta-ficha.pulso-ficha-pregunta {
-  flex: 0 1 auto;
-  overflow: hidden;
+.pulso-cc-preguntas-pct {
+  color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
-  text-overflow: ellipsis;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
   white-space: nowrap;
 }
 
-.pulso-cc-pregunta-titulo {
-  flex: 1 1 0;
+.pulso-cc-preguntas-tipo {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
   min-width: 0;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-cc-preguntas-origen {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-cc-preguntas-barra {
+  display: block;
+  grid-column: 1 / -1;
+  overflow: hidden;
+  height: 4px;
+  margin-top: var(--pulso-space-1);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+}
+
+.pulso-cc-preguntas-barra > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cc-acento);
+  transform: scaleX(var(--cc-avance, 0));
+  transform-origin: left center;
+}
+
+.pulso-cc-preguntas-barra[data-completa] > span {
+  background: var(--pulso-success-fg);
+}
+
+/* "Por definir": el tipo todavía no existe; contorno punteado, como un hueco por llenar. */
+.pulso-cc-por-definir {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: inset 0 0 0 1px var(--pulso-border-strong);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.6;
+}
+
+/* ---------- La pregunta que se codifica (`pp-preg-cab`) ---------- */
+
+.pulso-cc-pregunta-zona {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-cc-pregunta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-cc-pregunta-codigo {
+  padding: 3px var(--pulso-space-2);
+  border-radius: 6px;
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  white-space: nowrap;
+}
+
+.pulso-cc-pregunta-texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+.pulso-cc-pregunta-titulo {
+  display: -webkit-box;
   margin: 0;
   overflow: hidden;
   color: var(--pulso-text);
   font-size: var(--pulso-type-title-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pulso-cc-pregunta-tipo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-cc-pregunta-leyenda {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-cc-pregunta-paso {
@@ -235,12 +285,48 @@
   gap: var(--pulso-space-1);
 }
 
-/* Las mesas de numéricas y de agrupar categorías van en una sola tarjeta que desplaza. */
-.pulso-cc-otra-mesa.pulso-panel {
+.pulso-cc-modo {
+  align-self: flex-start;
+}
+
+/* ---------- Avance y buscador ---------- */
+
+.pulso-cc-avance {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-cc-avance > .pulso-barra-avance {
   flex: 1 1 auto;
-  min-height: 0;
-  margin-bottom: 0;
-  overflow: auto;
+  min-width: var(--pulso-space-9);
+}
+
+.pulso-cc-avance > .pulso-cc-cifras {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+}
+
+.pulso-cc-busca {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+}
+
+.pulso-cc-busca > .pulso-cv2-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+/* Las mesas de numéricas y de agrupar categorías van bajo la pregunta, en el mismo contenedor. */
+.pulso-cc-otra-mesa > .pulso-panel {
+  margin: 0;
 }
 
 .pulso-cc-sin-mesa {
@@ -255,7 +341,7 @@
 .pulso-codificacion-frame .pulso-cc-mesa.pulso-cv2-rc,
 .pulso-cc-mesa {
   --cc-acento: var(--module-accent, var(--pulso-primary));
-  --cc-riel: var(--pulso-space-4);
+  --cc-riel: var(--pulso-space-5);
   display: flex;
   flex: 1 1 0;
   flex-direction: column;
@@ -321,15 +407,6 @@
   color: var(--pulso-warn-fg);
 }
 
-.pulso-cc-cifra--avance {
-  gap: var(--pulso-space-3);
-}
-
-.pulso-cc-cifra--avance .pulso-barra-avance {
-  flex: 0 0 auto;
-  inline-size: calc(var(--pulso-space-9) + var(--pulso-space-6));
-}
-
 .pulso-cc-giro {
   transition: transform var(--motion-dur-fast) var(--motion-ease-out);
 }
@@ -353,15 +430,47 @@
   margin: 0;
 }
 
-.pulso-cv2-split.pulso-cc-split {
-  gap: var(--pulso-space-4);
+/* La ruta vieja de una pregunta (PreguntaDetalle): las acciones y las dos columnas, sin la mesa de la pestaña. */
+.pulso-cc-sencillo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
 }
 
-/* Tarjetas y Tabla reparten el ancho igual: al cambiar de vista, la columna de códigos no salta. La de
-   respuestas lleva algo más porque la tabla necesita sus tres columnas sin apilar la del código. */
-@media (min-width: 901px) {
-  .pulso-cv2-split.pulso-cc-split,
-  .pulso-cv2-split.pulso-cc-split.pulso-ct-split {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  }
+.pulso-cc-sencillo-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pulso-space-2);
+}
+
+.pulso-cc-sencillo-mesa {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pulso-space-4);
+  min-block-size: 32rem;
+}
+
+/* El orden y "Agrupar parecidas" de la tabla, en la fila del buscador; la fila parte en dos si no cabe. */
+.pulso-cc-busca {
+  flex-wrap: wrap;
+}
+
+.pulso-cc-busca > .pulso-cv2-search {
+  flex-basis: 12rem;
+}
+
+.pulso-cc-orden {
+  flex: 0 0 auto;
+  inline-size: 12rem;
+}
+
+.pulso-cc-agrupar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
 }

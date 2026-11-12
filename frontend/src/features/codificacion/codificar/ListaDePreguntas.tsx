@@ -1,13 +1,10 @@
-import type { PreguntaAbierta, PreguntaStatus } from "../../../api/codificacion";
-import { EstadoChip } from "../../../components/EstadoChip";
-import { Panel } from "../../../components/Panel";
-import { PulsoButton } from "../../../components/PulsoButton";
+import { useLayoutEffect, useRef, type CSSProperties, type MutableRefObject } from "react";
+import { arquetipoOf, type PreguntaAbierta } from "../../../api/codificacion";
 import { FichaPregunta } from "../../../components/procesamiento/FichaPregunta";
 import { sinEnfasis } from "../../../lib/enfasisTexto";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import { TextoConEnfasis } from "../../../lib/TextoConEnfasis";
-import { ArrowLeft } from "../../../vendor/lucide-react";
-import { tipoDeFicha } from "../preguntas/modeloUnidades";
+import { origenDeLista, tipoResultanteDeLista } from "./tipoResultante";
 
 export type ListaDePreguntasProps = {
   preguntas: readonly PreguntaAbierta[];
@@ -15,64 +12,93 @@ export type ListaDePreguntasProps = {
   activa: string | null;
   etiquetaDe: (pregunta: PreguntaAbierta) => string;
   onElegir: (parent: string) => void;
-  onVolver: () => void;
+  /**
+   * El avance de cada pregunta en respuestas con código, el mismo del anillo de Preguntas (`avanceStore.ts`): en una pareja cuenta
+   * los textos distintos del texto que aporta las respuestas, no los de la pregunta cerrada.
+   */
+  avanceDe: (pregunta: PreguntaAbierta) => { porcentaje: number; codificadas: number; total: number } | null;
+  /**
+   * El desplazamiento de la lista, guardado por la pestaña: al cambiar de pregunta la mesa se vuelve a
+   * montar y la lista vuelve a donde estaba en vez de al principio.
+   */
+  posicion?: MutableRefObject<number>;
 };
 
-type TonoDeEstado = "success" | "info" | "neutral" | "warn";
-
-function estadoDe(status: PreguntaStatus): { rotulo: string; tono: TonoDeEstado } {
-  if (status === "completo") return { rotulo: "Codificada", tono: "success" };
-  if (status === "en-curso") return { rotulo: "En curso", tono: "info" };
-  if (status === "sin-datos") return { rotulo: "Sin datos", tono: "neutral" };
-  return { rotulo: "Pendiente", tono: "warn" };
+/** Mueve lo justo el contenedor para que el elemento quede a la vista. */
+function dejarALaVista(cuerpo: HTMLElement, elemento: HTMLElement) {
+  const c = cuerpo.getBoundingClientRect();
+  const e = elemento.getBoundingClientRect();
+  if (e.top < c.top) cuerpo.scrollTop -= c.top - e.top;
+  else if (e.bottom > c.bottom) cuerpo.scrollTop += e.bottom - c.bottom;
 }
 
 /**
- * Las preguntas incluidas en la codificación, en el orden del formulario. El cuerpo es el dueño del
- * desplazamiento; el pie lleva la vuelta a la pestaña donde se eligen.
+ * Las preguntas incluidas en la codificación, en el orden del formulario (`colaCod` del prototipo): la
+ * pregunta, su avance en porcentaje y en barra, el tipo de la columna que sale y de dónde viene. El avance
+ * cuenta textos distintos con código sobre los textos distintos, la misma base de "respuestas con código"
+ * en la cabecera. Va dentro del contenedor "Preguntas" de la mesa, que es el dueño del desplazamiento.
  */
-export function ListaDePreguntas({ preguntas, activa, etiquetaDe, onElegir, onVolver }: ListaDePreguntasProps) {
+export function ListaDePreguntas({ preguntas, activa, etiquetaDe, onElegir, avanceDe, posicion }: ListaDePreguntasProps) {
+  const lista = useRef<HTMLUListElement | null>(null);
+
+  // El dueño del desplazamiento es el cuerpo del contenedor (PanelDeMesa): se le devuelve la posición
+  // guardada, se deja a la vista la pregunta elegida y cada desplazamiento se vuelve a guardar.
+  useLayoutEffect(() => {
+    const cuerpo = lista.current?.closest<HTMLElement>(".pulso-panel-de-mesa-cuerpo");
+    if (!cuerpo || !posicion) return undefined;
+    cuerpo.scrollTop = posicion.current;
+    const elegida = lista.current?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (elegida) dejarALaVista(cuerpo, elegida);
+    const guardar = () => {
+      posicion.current = cuerpo.scrollTop;
+    };
+    guardar();
+    cuerpo.addEventListener("scroll", guardar, { passive: true });
+    return () => cuerpo.removeEventListener("scroll", guardar);
+  }, [posicion, activa]);
+
   return (
-    <Panel noPadding className="pulso-cc-panel pulso-cc-preguntas" aria-label="Preguntas para codificar">
-      <div className="pulso-cc-panel-cab">
-        <h3 className="pulso-cc-panel-titulo">Preguntas</h3>
-        <span className="pulso-cc-cuenta" title={preguntas.length === 1 ? "1 pregunta para codificar" : `${formatoConteo(preguntas.length)} preguntas para codificar`}>
-          {formatoConteo(preguntas.length)}
-        </span>
-      </div>
-      {/* C1: una fila por pregunta; mide lo que su etiqueta. */}
-      <ul className="pulso-cc-preguntas-lista" data-qa-geometry-group="codificacion/preguntas-codificar" data-qa-geometry-contract="intrinsic" data-qa-geometry-capacity="owned">
-        {preguntas.map((p) => {
-          const etiqueta = etiquetaDe(p);
-          const estado = estadoDe(p.status);
-          const esActiva = p.parent === activa;
-          return (
-            <li key={p.parent} data-qa-geometry-member="">
-              <button
-                type="button"
-                className="pulso-cc-preguntas-fila"
-                onClick={() => onElegir(p.parent)}
-                aria-current={esActiva ? "true" : undefined}
-                title={`${sinEnfasis(etiqueta)} (${p.parent})`}
-              >
-                <span className="pulso-cc-preguntas-meta">
-                  <FichaPregunta tipo={tipoDeFicha(p.tipo)} etiqueta={p.parent} className="pulso-cc-preguntas-codigo" />
-                  <EstadoChip label={estado.rotulo} tone={estado.tono} />
-                </span>
-                <span className="pulso-cc-preguntas-etiqueta">
-                  <TextoConEnfasis texto={etiqueta} />
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="pulso-cc-panel-pie">
-        <PulsoButton variant="ghost" size="sm" onClick={onVolver}>
-          <ArrowLeft size={13} aria-hidden="true" />
-          Volver a Preguntas
-        </PulsoButton>
-      </div>
-    </Panel>
+    // C1: una fila por pregunta; cada una mide lo que su etiqueta (una o dos líneas).
+    <ul ref={lista} className="pulso-cc-preguntas-lista" data-qa-geometry-group="codificacion/preguntas-codificar" data-qa-geometry-contract="intrinsic">
+      {preguntas.map((p) => {
+        const etiqueta = etiquetaDe(p);
+        const arquetipo = arquetipoOf(p);
+        const resultante = tipoResultanteDeLista(p, arquetipo);
+        const avance = avanceDe(p);
+        const esActiva = p.parent === activa;
+        const detalleAvance = avance
+          ? `${formatoConteo(avance.codificadas)} de ${formatoConteo(avance.total)} ${avance.total === 1 ? "respuesta" : "respuestas"} con código`
+          : "Sin respuestas";
+        return (
+          <li key={p.parent} data-qa-geometry-member="">
+            <button
+              type="button"
+              className="pulso-cc-preguntas-fila"
+              onClick={() => onElegir(p.parent)}
+              aria-current={esActiva ? "true" : undefined}
+              title={`${sinEnfasis(etiqueta)} (${p.parent}). ${detalleAvance}`}
+            >
+              <span className="pulso-cc-preguntas-etiqueta">
+                <TextoConEnfasis texto={etiqueta} />
+              </span>
+              <span className="pulso-cc-preguntas-pct" data-completa={avance?.porcentaje === 100 ? "" : undefined}>
+                {avance ? `${avance.porcentaje} %` : null}
+              </span>
+              <span className="pulso-cc-preguntas-tipo">
+                {resultante?.tipo ? (
+                  <FichaPregunta tipo={resultante.tipo} etiqueta={resultante.rotulo} className="pulso-cc-preguntas-ficha" />
+                ) : resultante ? (
+                  <span className="pulso-cc-por-definir">{resultante.rotulo}</span>
+                ) : null}
+                <span className="pulso-cc-preguntas-origen">{origenDeLista(p, arquetipo)}</span>
+              </span>
+              <span className="pulso-cc-preguntas-barra" aria-hidden="true" data-completa={avance?.porcentaje === 100 ? "" : undefined}>
+                <span style={{ "--cc-avance": String((avance?.porcentaje ?? 0) / 100) } as CSSProperties} />
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

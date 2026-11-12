@@ -122,3 +122,19 @@ export function seleccionTrasAsignar(
   const cursor = ultima !== null && orden.includes(ultima) ? ultima : null;
   return { claves: [], ancla: cursor, cursor };
 }
+
+/**
+ * Alterna varias claves a la vez (la casilla de la tabla, la de una fila que junta parecidas o la de
+ * elegir todas): las que estaban elegidas salen y las demás entran, en el orden de la lista.
+ */
+export function alternarVarias(actual: SeleccionRespuestas, claves: readonly string[], orden: readonly string[]): SeleccionRespuestas {
+  const validas = claves.filter((c) => orden.includes(c));
+  if (validas.length === 0) return actual;
+  const elegidas = new Set(actual.claves);
+  for (const c of validas) {
+    if (elegidas.has(c)) elegidas.delete(c);
+    else elegidas.add(c);
+  }
+  const ultima = validas[validas.length - 1];
+  return { claves: enOrden(orden, elegidas), ancla: ultima, cursor: ultima };
+}

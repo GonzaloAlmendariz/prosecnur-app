@@ -4,7 +4,7 @@
 // inspector de la unidad seleccionada. Este archivo solo compone: las piezas, el modelo y la hoja viven
 // en `preguntas/`. Emparejar se hace arrastrando una suelta sobre otra o con "Emparejar con" del inspector.
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -18,7 +18,6 @@ import {
 } from "@dnd-kit/core";
 import type { PreguntaAbierta } from "../../api/codificacion";
 import { Alert } from "../../components/Alert";
-import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { ErrorBlock } from "../../components/States";
 import { Switch } from "../../components/Switch";
@@ -34,6 +33,11 @@ import { FantasmaArrastre } from "./preguntas/FantasmaArrastre";
 import { InspectorUnidad } from "./preguntas/InspectorUnidad";
 import { ListaUnidades } from "./preguntas/ListaUnidades";
 import { admiteIncluir, contarFiltros, filtroVigente, seccionesVisibles, selectorDeEmparejar, type Unidad } from "./preguntas/modeloUnidades";
+import { MesaDePestana } from "../../components/procesamiento/MesaDePestana";
+import { PanelDeMesa } from "../../components/procesamiento/PanelDeMesa";
+import { List } from "../../vendor/lucide-react";
+import { CabeceraDePreguntas } from "./preguntas/CabeceraDePreguntas";
+import { useCargarAvances } from "./avanceStore";
 import { SelectorDePareja } from "./preguntas/SelectorDePareja";
 import { usePreguntasCodificacion } from "./preguntas/usePreguntasCodificacion";
 import { useVistaPreguntas } from "./preguntas/vistaPreguntasStore";
@@ -41,8 +45,10 @@ import "./preguntas/preguntas.css";
 
 export { defaultModoSoForQuickAdopt, modoSoOptionsForDisplay } from "./preguntas/modeloUnidades";
 
-export function PreguntasLanding() {
+export function PreguntasLanding({ baseActual }: { baseActual?: ReactNode } = {}) {
   const mesa = usePreguntasCodificacion();
+  // El avance de cada pregunta, leído de sus respuestas: el mismo que ven Codificar y Aplicar.
+  useCargarAvances(mesa.preguntas);
   const { filtro: filtroElegido, consulta, seleccion, elegirFiltro, buscar, seleccionar } = useVistaPreguntas();
   const [levantadaId, setLevantadaId] = useState<string | null>(null);
 
@@ -59,8 +65,29 @@ export function PreguntasLanding() {
   const seleccionada = useMemo(() => unidades.find((u) => u.id === seleccion) ?? null, [unidades, seleccion]);
   const levantada = useMemo(() => unidades.find((u) => u.id === levantadaId) ?? null, [unidades, levantadaId]);
 
-  if (mesa.errorDeCarga) return <ErrorBlock label="No se pudieron cargar las preguntas" detail={mesa.errorDeCarga} />;
-  if (!mesa.preguntas) return <CargaPreguntas />;
+  const cabecera = <CabeceraDePreguntas unidades={unidades} cargadas={mesa.preguntas !== null} baseActual={baseActual} />;
+
+  if (mesa.errorDeCarga) {
+    return (
+      <MesaDePestana grupo="codificacion/preguntas" columnas={2} cabecera={cabecera}>
+        <div className="pulso-preg-ancho">
+          <PanelDeMesa zona="lista" titulo="Preguntas del formulario" icono={<List size={15} />}>
+            <ErrorBlock label="No se pudieron cargar las preguntas" detail={mesa.errorDeCarga} queda="Las decisiones guardadas siguen como estaban" />
+          </PanelDeMesa>
+        </div>
+      </MesaDePestana>
+    );
+  }
+  if (!mesa.preguntas) {
+    return (
+      <MesaDePestana grupo="codificacion/preguntas" columnas={2} cabecera={cabecera}>
+        <div className="pulso-preg-ancho">
+          <CargaPreguntas />
+        </div>
+      </MesaDePestana>
+    );
+  }
+  const visibles = secciones.reduce((suma, seccion) => suma + seccion.unidades.length, 0);
 
   function alLevantar(evento: DragStartEvent) {
     setLevantadaId(String(evento.active.id));
@@ -100,8 +127,14 @@ export function PreguntasLanding() {
 
         <GruposTrasDesemparejar pendiente={mesa.gruposPendientes} onListo={mesa.resolverGrupos} />
 
-        <div className="pulso-preg-mesa">
-          <Panel noPadding className="pulso-preg-lista" aria-label="Preguntas del formulario">
+        <MesaDePestana grupo="codificacion/preguntas" columnas={2} cabecera={cabecera}>
+          <PanelDeMesa
+            zona="lista"
+            titulo="Preguntas del formulario"
+            icono={<List size={15} />}
+            conteo={visibles}
+            etiquetaCuerpo="Preguntas del formulario"
+          >
             <BarraPreguntas filtro={filtro} conteos={conteos} consulta={consulta} onFiltro={elegirFiltro} onBuscar={buscar} />
             <ListaUnidades
               secciones={secciones}
@@ -118,7 +151,7 @@ export function PreguntasLanding() {
                 buscar("");
               }}
             />
-          </Panel>
+          </PanelDeMesa>
 
           <InspectorUnidad
             unidad={seleccionada}
@@ -139,7 +172,7 @@ export function PreguntasLanding() {
             onElegirModo={mesa.elegirModo}
             onElegirOtros={mesa.elegirOpcionOtros}
           />
-        </div>
+        </MesaDePestana>
 
         <div aria-live="polite" aria-atomic="true" className="pulso-sr-only">{mesa.anuncio}</div>
 

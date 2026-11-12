@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { PlanPregunta } from "../../../api/dashboard";
 import {
   AVISO_BASE_CAMBIO,
+  AVISO_ORIGINALES,
   claveDePregunta,
   codigosDeDetalle,
   EFECTO_APLICAR,
@@ -11,6 +12,8 @@ import {
   filaDeAplicar,
   filaTrasTecla,
   franjaDeAplicar,
+  campoLegible,
+  cambioDeLaBase,
   preguntaElegida,
   resumenDelPlan,
   ROTULO_DE_ORIGEN,
@@ -68,31 +71,52 @@ describe("resumenDelPlan", () => {
 });
 
 describe("franjaDeAplicar", () => {
-  it("dice de dónde sale (preguntas y códigos) y a dónde llega (campos nuevos en la base codificada)", () => {
+  it("dice qué se agrega a la base (columnas, códigos nuevos, respuestas con código) y, aparte, lo que no entra", () => {
     const f = franjaDeAplicar(resumenDelPlan({ preguntas: [P9, FUERA, P3, P20] }));
-    expect(f.etiqueta).toBe("De la codificación a la base codificada");
-    // Dos grupos con conector: las preguntas y sus códigos. Ninguna cifra se repite entre grupos y destino.
-    expect(f.grupos.map((g) => [g.rotulo, g.aparte ?? false])).toEqual([["Codificación", false], ["Códigos", false]]);
-    expect(f.grupos[0].cifras.map((c) => [c.cifra, c.texto])).toEqual([[3, "preguntas"]]);
-    expect(f.grupos[1].cifras.map((c) => [c.cifra, c.texto])).toEqual([
-      [7, "nuevos"],
-      [3, "ya existentes"],
+    expect(f.etiqueta).toBe("Qué se agrega a la base");
+    expect(f.grupos.map((g) => [g.rotulo, g.aparte ?? false])).toEqual([["Se agrega a la base", false], ["No entran todavía", true]]);
+    // Con el avance leído aparece "Sin código propio" entre los dos.
+    expect(franjaDeAplicar(resumenDelPlan({ preguntas: [P9, FUERA] }), { sinCodigo: 15 }).grupos.map((g) => `${g.rotulo}:${g.cifras.map((c) => `${c.cifra} ${c.texto}`).join("|")}`)).toEqual([
+      "Se agrega a la base:1 columna|6 códigos nuevos|1,142 respuestas con código",
+      "Sin código propio:15 respuestas quedan sin código",
+      "No entran todavía:1 pregunta",
     ]);
-    expect(f.destino).toEqual({ rotulo: "Base codificada", cifra: 3, nota: "campos nuevos" });
-    expect(f.avisos).toEqual([]);
+    // Columnas: p9 y p20 una cada una; p3 es múltiple, una por código (1). Las 40 y 9 de p66 no suman.
+    expect(f.grupos[0].cifras.map((c) => [c.cifra, c.texto])).toEqual([
+      ["3", "columnas"],
+      ["7", "códigos nuevos"],
+      ["1,207", "respuestas con código"],
+    ]);
+    expect(f.grupos[1].cifras.map((c) => [c.cifra, c.texto])).toEqual([["1", "pregunta"]]);
+    expect(f.destino).toBeUndefined();
+    expect(f.avisos).toEqual([{ id: "originales", tono: "conforme", texto: AVISO_ORIGINALES }]);
   });
 
-  it("concuerda en singular", () => {
-    const f = franjaDeAplicar(resumenDelPlan({ preguntas: [pregunta({ parent: "p1", n_codigos_nuevos: 1, n_codigos_reutilizados: 1 })] }));
-    expect(f.grupos.flatMap((g) => g.cifras.map((c) => `${c.cifra} ${c.texto}`))).toEqual(["1 pregunta", "1 nuevo", "1 ya existente"]);
-    expect(`${f.destino.cifra} ${f.destino.nota}`).toBe("1 campo nuevo");
+  it("concuerda en singular y sin preguntas fuera dice cero en el grupo aparte", () => {
+    const f = franjaDeAplicar(resumenDelPlan({ preguntas: [pregunta({ parent: "p1", n_codigos_nuevos: 1, n_codigos_reutilizados: 1, n_respuestas_afectadas: 1 })] }));
+    expect(f.grupos).toHaveLength(2);
+    expect(f.grupos.flatMap((g) => g.cifras.map((c) => `${c.cifra} ${c.texto}`))).toEqual(["1 columna", "1 código nuevo", "1 respuesta con código", "0 preguntas"]);
   });
 
   it("si la base cambió después de la última aplicación, lo avisa con su causa", () => {
     const r = resumenDelPlan({ preguntas: [P9] });
-    expect(franjaDeAplicar(r, { baseCambio: true }).avisos).toEqual([{ id: "base-cambio", tono: "aviso", texto: AVISO_BASE_CAMBIO }]);
-    expect(franjaDeAplicar(r, { baseCambio: false }).avisos).toEqual([]);
+    expect(franjaDeAplicar(r, { baseCambio: true }).avisos[0]).toEqual({ id: "base-cambio", tono: "aviso", texto: AVISO_BASE_CAMBIO });
+    expect(franjaDeAplicar(r, { baseCambio: false }).avisos.map((a) => a.id)).toEqual(["originales"]);
     expect(AVISO_BASE_CAMBIO).not.toMatch(/adapta|_recod/);
+  });
+});
+
+describe("campoLegible y cambioDeLaBase", () => {
+  it("el campo de una múltiple se lee con su primer código en lugar del comodín; el patrón queda en el title", () => {
+    const p = pregunta({ parent: "D1_information", tipo: "select_multiple", nueva_variable: "D1_information/*_recod", codigos_nuevos: [{ codigo: "9", etiqueta: "Trabajo", n_respuestas: 0 }], codigos_reutilizados: [{ codigo: "1", etiqueta: "Redes", n_respuestas: 3 }] });
+    expect(campoLegible(p.nueva_variable, p)).toEqual({ nombre: "D1_information/9_recod", porCodigo: true, titulo: "Una columna por código: D1_information/código_recod" });
+    expect(campoLegible("p9_recod", P9)).toEqual({ nombre: "p9_recod", porCodigo: false, titulo: "p9_recod" });
+    expect(filaDeAplicar(p).campo).not.toContain("*");
+  });
+
+  it("antes y después: la columna de hoy y lo que se agrega", () => {
+    expect(cambioDeLaBase(P9)).toEqual({ hoy: "p9_otro", hoyTipo: "Texto", agrega: "p9_recod", agregaTitulo: "p9_recod", agregaTipo: "Opción única" });
+    expect(cambioDeLaBase(pregunta({ parent: "p1", nueva_variable: "" }))).toBeNull();
   });
 });
 
@@ -105,6 +129,7 @@ describe("filaDeAplicar", () => {
       tipo: "texto",
       tipoEnPalabras: "Texto abierto",
       campo: "p9_recod",
+      campoTitulo: "p9_recod",
       variosCampos: false,
       codigos: "6 códigos nuevos y 2 ya existentes",
       respuestas: "1,142 respuestas con código",

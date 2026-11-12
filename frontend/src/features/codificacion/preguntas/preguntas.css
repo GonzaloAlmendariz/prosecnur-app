@@ -15,6 +15,7 @@
   --preg-riel: var(--pulso-space-5);
   --preg-lazo: var(--pulso-control-height-md);
   --preg-estado: 10.5rem;
+  --preg-res: 9.5rem;
   container: pulso-preg / inline-size;
   position: relative;
   display: flex;
@@ -26,25 +27,32 @@
 }
 
 /* El inspector mide 400 con ancho de sobra, 330 en una ventana media y 300 en la compacta. */
-.pulso-preg-mesa {
-  display: grid;
-  flex: 1 1 auto;
-  grid-template-columns: minmax(0, 1fr) 400px;
-  gap: var(--pulso-space-5);
+/* La mesa es la del kit (`MesaDePestana`, dos columnas: la lista y el inspector de 400). La lista es un
+   `PanelDeMesa`; su cuerpo no desplaza: lo hace la lista de unidades, para que los filtros y el rótulo de
+   cada sección queden arriba. Hasta 1100 de ventana la mesa pasa a una columna y la pestaña se desplaza. */
+.pulso-panel-de-mesa--lista > .pulso-panel-de-mesa-cuerpo {
+  overflow: hidden;
+}
+
+.pulso-codificacion-frame .pulso-preg-ancho {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-direction: column;
+  min-width: 0;
   min-height: 0;
 }
 
-@container pulso-preg (max-width: 1240px) {
-  .pulso-preg-mesa {
-    grid-template-columns: minmax(0, 1fr) 330px;
-    gap: var(--pulso-space-4);
-  }
+/* La pista del arrastre, en la cabecera de la pestaña, donde el prototipo la pone. */
+.pulso-preg-pista {
+  max-inline-size: 16rem;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
 }
 
-@container pulso-preg (max-width: 920px) {
-  .pulso-preg-mesa {
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: var(--pulso-space-3);
+@container cabecera-pestana (max-width: 1099px) {
+  .pulso-preg-pista {
+    display: none;
   }
 }
 
@@ -147,7 +155,7 @@
 .pulso-preg-fila {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--preg-lazo) minmax(0, 1fr) var(--preg-estado);
+  grid-template-columns: minmax(0, 1fr) var(--preg-lazo) minmax(0, 1fr) var(--preg-res) var(--preg-estado);
   column-gap: var(--pulso-space-3);
   align-items: stretch;
   padding: var(--pulso-space-2) var(--pulso-space-3);
@@ -181,7 +189,7 @@
   display: grid;
   grid-column: 1 / -1;
   grid-row: 1;
-  grid-template-columns: minmax(0, 1fr) var(--preg-lazo) minmax(0, 1fr) var(--preg-estado);
+  grid-template-columns: minmax(0, 1fr) var(--preg-lazo) minmax(0, 1fr) var(--preg-res) var(--preg-estado);
   column-gap: var(--pulso-space-3);
   align-items: stretch;
   justify-content: stretch;
@@ -338,9 +346,89 @@
 
 .pulso-preg-fila-estado {
   display: flex;
-  grid-column: 4;
+  grid-column: 5;
+  align-items: center;
   align-self: center;
+  gap: var(--pulso-space-3);
   min-width: 0;
+}
+
+/* ---------- El tipo que sale: flecha, tipo y su razón (`pp-u-res`) ---------- */
+
+.pulso-preg-res {
+  display: flex;
+  grid-column: 4;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  padding-inline-start: var(--pulso-space-5);
+  position: relative;
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-preg-res-flecha {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 3px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-preg-res-leyenda {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+/* ---------- El anillo de avance (`pp-anillo`) ---------- */
+
+.pulso-preg-anillo {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+}
+
+.pulso-preg-anillo > svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  transform: rotate(-90deg);
+}
+
+.pulso-preg-anillo circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.pulso-preg-anillo-fondo {
+  stroke: var(--pulso-surface-3);
+}
+
+.pulso-preg-anillo-valor {
+  stroke: var(--preg-acento);
+  stroke-dasharray: var(--preg-avance, 0) 100;
+  stroke-linecap: round;
+}
+
+/* En cero no se dibuja el arco: con el extremo redondeado quedaría un punto. */
+.pulso-preg-anillo[data-cero] .pulso-preg-anillo-valor {
+  display: none;
+}
+
+.pulso-preg-anillo[data-completo] .pulso-preg-anillo-valor {
+  stroke: var(--pulso-success-fg);
+}
+
+.pulso-preg-anillo > b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-eyebrow-size);
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
 }
 
 .pulso-preg-estado {
@@ -790,9 +878,10 @@
 
 /* ---------- Lista angosta: la columna de estado se estrecha, no cambia de sitio ---------- */
 
-@container pulso-preg-unidades (max-width: 640px) {
+@container pulso-preg-unidades (max-width: 760px) {
   .pulso-preg-fila {
     --preg-estado: 8.25rem;
+    --preg-res: 7.5rem;
     column-gap: var(--pulso-space-2);
   }
 
@@ -827,36 +916,6 @@
   }
 }
 
-/* ---------- Ventana angosta: una columna y la pestaña entera se desplaza ---------- */
-
-@media (max-width: 900px) {
-  .pulso-codificacion-frame .pulso-preg {
-    overflow-y: auto;
-  }
-
-  .pulso-preg-mesa {
-    display: flex;
-    flex: 0 0 auto;
-    flex-direction: column;
-  }
-
-  .pulso-preg-lista.pulso-panel,
-  .pulso-preg-inspector.pulso-panel {
-    flex: 0 0 auto;
-    overflow: visible;
-  }
-
-  .pulso-preg-unidades,
-  .pulso-preg-insp-cuerpo {
-    flex: 0 0 auto;
-    overflow: visible;
-  }
-
-  .pulso-preg-seccion-rotulo {
-    position: static;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .pulso-preg-fila,
   .pulso-preg-lazo {
@@ -870,4 +929,27 @@
   .pulso-preg-lazo[data-lazo="suelto"]:active {
     transform: none;
   }
+}
+
+/* El tipo que sale, en el inspector: la ficha del tipo y su razón en una línea. */
+.pulso-preg-insp-tipo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+}
+
+/* Bajo el título del inspector, la clase de unidad: emparejada, suelta o desactivada. */
+.pulso-preg-insp-clase {
+  display: block;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Los bloques de la unidad llenan el alto de su fila (C3: el interior sin usar es el mismo en todos). */
+.pulso-preg-lados > .pulso-bloque-pregunta {
+  align-self: stretch;
 }

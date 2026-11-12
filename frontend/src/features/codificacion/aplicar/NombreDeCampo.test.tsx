@@ -4,9 +4,9 @@ import { describe, expect, test } from "vitest";
 import { NombreDeCampo } from "./NombreDeCampo";
 
 describe("NombreDeCampo", () => {
-  test("ofrece el corte de línea solo después de una barra o de un guion bajo", () => {
+  test("con barra ofrece el corte solo después de la barra; sin barra, después de un guion bajo", () => {
     const html = renderToStaticMarkup(<NombreDeCampo nombre="D1_information/*_recod" />);
-    expect(html).toBe('<code title="D1_information/*_recod">D1_<wbr/>information/<wbr/>*_<wbr/>recod</code>');
+    expect(html).toBe('<code title="D1_information/*_recod">D1_information/<wbr/>*_recod</code>');
   });
 
   test("un nombre sin separadores va entero, sin puntos de corte", () => {

@@ -66,8 +66,9 @@ describe("ListaAplicar", () => {
     expect(p9).toContain("Campo nuevo p9_recod");
     expect(p9).toContain("6 códigos nuevos y 2 ya existentes");
     expect(p9).toContain("142 respuestas con código");
-    // Una de opción múltiple agrega un campo por código.
-    expect(p3).toContain("Campos nuevos p3/*_recod");
+    // Una de opción múltiple agrega un campo por código: se nombra con su primer código, sin comodín.
+    expect(p3).toMatch(/Una columna por código, como p3\/\S+_recod/);
+    expect(p3).not.toContain("*");
     expect(p3).toContain("3 códigos nuevos");
   });
 
@@ -95,5 +96,30 @@ describe("ListaAplicar", () => {
     expect(sinDatos).toContain('<div class="pulso-aplicar-celda pulso-aplicar-celda--campo"></div>');
     expect(sinDatos).toContain('<div class="pulso-aplicar-celda pulso-aplicar-celda--cifras"></div>');
     expect(texto(sinDatos)).toBe("p7 Opción única, texto codificado aparte");
+  });
+});
+
+describe("ListaAplicar agrupada (prototipo: Listas, En curso)", () => {
+  it("pinta el rótulo de cada grupo antes de su primera fila y el estado de cada pregunta", () => {
+    const grupos = [
+      { id: "listas" as const, rotulo: "Listas", preguntas: [PREGUNTAS[0]] },
+      { id: "en-curso" as const, rotulo: "En curso", preguntas: [PREGUNTAS[1]] },
+    ];
+    const html = renderToStaticMarkup(
+      <ListaAplicar
+        // El plan las trae en otro orden: la lista sigue el de los grupos.
+        preguntas={[PREGUNTAS[1], PREGUNTAS[0]]}
+        elegida={null}
+        onElegir={() => undefined}
+        grupos={grupos}
+        estadoDe={(p) => (p.parent === "p9" ? { texto: "Lista", tono: "listo" } : { texto: "Faltan 81", tono: "curso" })}
+      />,
+    );
+    const t = texto(html);
+    expect(t.indexOf("Listas")).toBeLessThan(t.indexOf("Ocupación principal"));
+    expect(t.indexOf("En curso")).toBeLessThan(t.indexOf("Otra carrera"));
+    expect(html).toContain('role="presentation" class="pulso-aplicar-grupo"');
+    expect(filas(html)[0]).toContain(">Lista<");
+    expect(filas(html)[1]).toContain(">Faltan 81<");
   });
 });

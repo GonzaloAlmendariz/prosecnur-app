@@ -85,6 +85,8 @@ async function montar() {
 
 const boton = (rotulo: string) =>
   Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent?.trim() === rotulo) ?? null;
+/** La acción principal: va en la cabecera de la pestaña y dice cuántas preguntas aplica. */
+const aplicar = () => host.querySelector<HTMLButtonElement>('[data-testid="codificacion-adaptar-boton"]');
 const veces = (fragmento: string) => (host.textContent ?? "").split(fragmento).length - 1;
 const lista = () => host.querySelector('[data-qa-geometry-group="codificacion/aplicar-preguntas"]');
 const filas = () => Array.from(lista()?.querySelectorAll<HTMLLIElement>(':scope > li[role="option"]') ?? []);
@@ -99,7 +101,7 @@ const barras = () => filasDeCodigos().map((fila) => (fila.querySelector<HTMLElem
 const marcoIgual = () => {
   const seccion = host.querySelector("section.pulso-codificacion-adaptar.pulso-aplicar");
   expect(seccion, "la sección de la pantalla").not.toBeNull();
-  expect(seccion?.querySelector(":scope > .pulso-aplicar-mesa > section.pulso-panel.pulso-aplicar-panel--preguntas h3")?.textContent).toBe("Preguntas por aplicar");
+  expect(seccion?.querySelector(":scope > .pulso-aplicar-mesa > section.pulso-panel.pulso-aplicar-panel--preguntas h3")?.textContent).toBe("Qué entra a la base");
   return seccion as HTMLElement;
 };
 
@@ -108,11 +110,11 @@ describe("AdaptarPane: cargando el plan", () => {
     espia.plan.mockImplementation(() => new Promise(() => undefined));
     await montar();
     const seccion = marcoIgual();
-    expect(seccion.hasAttribute("data-audit-ready")).toBe(false);
+    expect(host.querySelector("[data-audit-ready]")).toBeNull();
     expect(host.querySelector('.pulso-loading-block[role="status"]')?.textContent).toContain("Cargando las preguntas por aplicar");
     expect(host.querySelector(".pulso-franja-recorrido")).toBeNull();
     expect(detalle()).toBeNull();
-    expect(boton("Aplicar a la base")).toBeNull();
+    expect(aplicar()).toBeNull();
   });
 });
 
@@ -121,12 +123,12 @@ describe("AdaptarPane: error al leer el plan", () => {
     espia.plan.mockRejectedValueOnce(new Error("El motor no respondió a tiempo. E_TIMEOUT"));
     await montar();
     const seccion = marcoIgual();
-    expect(seccion.hasAttribute("data-audit-ready")).toBe(false);
+    expect(host.querySelector("[data-audit-ready]")).toBeNull();
     const alerta = host.querySelector('[role="alert"]');
     expect(alerta?.textContent).toContain("No se pudieron leer las preguntas por aplicar");
     expect(alerta?.textContent).toContain("El motor no respondió a tiempo.");
     expect(alerta?.textContent).toContain("La base y la codificación siguen como estaban.");
-    expect(boton("Aplicar a la base")).toBeNull();
+    expect(aplicar()).toBeNull();
 
     espia.plan.mockResolvedValueOnce(PLAN);
     await act(async () => { boton("Reintentar")?.click(); });
@@ -141,7 +143,7 @@ describe("AdaptarPane: sin nada que aplicar", () => {
     espia.plan.mockResolvedValueOnce(plan([]));
     await montar();
     const seccion = marcoIgual();
-    expect(seccion.getAttribute("data-audit-ready")).toBe("codificacion-adaptar");
+    expect(host.querySelector("[data-audit-ready]")?.getAttribute("data-audit-ready")).toBe("codificacion-adaptar");
     const vacio = host.querySelector(".pulso-estado-vacio");
     expect(vacio?.textContent).toContain("Ninguna pregunta tiene códigos por aplicar");
     expect(vacio?.textContent).toContain("Los códigos se asignan en Codificar o se importan en Matrices.");
@@ -150,7 +152,7 @@ describe("AdaptarPane: sin nada que aplicar", () => {
     // Sin preguntas no hay detalle, y la mesa no reserva su columna.
     expect(detalle()).toBeNull();
     expect(host.querySelector(".pulso-aplicar-mesa")?.hasAttribute("data-con-detalle")).toBe(false);
-    expect(boton("Aplicar a la base")?.disabled).toBe(true);
+    expect(aplicar()?.disabled).toBe(true);
     expect(host.textContent).toContain("No se escribe nada en la base.");
 
     // Un solo camino a Codificar: el del pie. El vacío no lo duplica.
@@ -167,7 +169,7 @@ describe("AdaptarPane: sin nada que aplicar", () => {
     expect(detalle()).toBeNull();
     expect(host.querySelector('[data-testid="codificacion-aplicar-fuera"]')).not.toBeNull();
     expect(host.querySelector(".pulso-aplicar-aviso")).toBeNull();
-    expect(boton("Aplicar a la base")?.disabled).toBe(true);
+    expect(aplicar()?.disabled).toBe(true);
   });
 
   it("si la base cambió y no hay preguntas aplicables, lo dice el panel: sin franja el aviso no se pierde", async () => {
@@ -185,23 +187,24 @@ describe("AdaptarPane: con el plan leído", () => {
     espia.plan.mockResolvedValueOnce(PLAN);
     await montar();
     const seccion = marcoIgual();
-    expect(seccion.getAttribute("data-audit-ready")).toBe("codificacion-adaptar");
+    expect(host.querySelector("[data-audit-ready]")?.getAttribute("data-audit-ready")).toBe("codificacion-adaptar");
     expect(seccion.getAttribute("data-qa-geometry-contract")).toBe("intrinsic");
 
     const franja = host.querySelector('.pulso-franja-recorrido[role="group"]');
-    expect(franja?.getAttribute("aria-label")).toBe("De la codificación a la base codificada");
+    expect(franja?.getAttribute("aria-label")).toBe("Qué se agrega a la base");
     expect(franja?.querySelector('[data-qa-geometry-group="codificacion/aplicar-franja"]')).not.toBeNull();
-    // 2 preguntas, 2 + 4 códigos nuevos y 1 + 0 ya existentes: los 50 de p66, que queda fuera, no suman.
+    // Columnas: p9 una y p3 (múltiple) una por código, 4. Códigos nuevos 2 + 4 y respuestas 52 + 21: los 50 de
+    // p66, que queda fuera, no suman; p66 se cuenta aparte, como pregunta que no entra todavía.
     expect([...(franja?.querySelectorAll(".pulso-franja-grupo") ?? [])].map((g) => g.textContent)).toEqual([
-      "Codificación2preguntas", "Códigos6nuevos1ya existente",
+      "Se agrega a la base5columnas6códigos nuevos73respuestas con código", "No entran todavía1pregunta",
     ]);
-    expect(franja?.querySelector(".pulso-franja-destino")?.textContent).toBe("Base codificada2campos nuevos");
+    expect(franja?.querySelector(".pulso-franja-destino")).toBeNull();
     // Ni los totales del motor (99) ni una cifra de la franja repetida en los paneles.
     // Texto con las celdas separadas: "19" y "96" de filas vecinas no forman un "99".
     expect(host.innerHTML.replace(/<[^>]+>/g, " ")).not.toMatch(/\b99\b/);
-    for (const cifra of ["2preguntas", "6nuevos", "1ya existente", "2campos nuevos"]) expect(veces(cifra), cifra).toBe(1);
+    for (const cifra of ["5columnas", "6códigos nuevos", "73respuestas con código"]) expect(veces(cifra), cifra).toBe(1);
     const paneles = `${panelDePreguntas()?.textContent ?? ""} ${detalle()?.textContent ?? ""}`;
-    expect(paneles).not.toMatch(/\b6 códigos\b|\b2 (?:preguntas|campos)\b/);
+    expect(paneles).not.toMatch(/\b6 códigos\b|\b5 columnas\b|\b73 respuestas\b/);
 
     expect(filas()).toHaveLength(2);
     expect(host.querySelector(".pulso-estado-vacio")).toBeNull();
@@ -212,7 +215,7 @@ describe("AdaptarPane: con el plan leído", () => {
     espia.plan.mockResolvedValueOnce(PLAN);
     await montar();
     const fuera = panelDePreguntas()?.querySelector('[data-testid="codificacion-aplicar-fuera"]');
-    expect(fuera?.querySelector("h4")?.textContent).toBe("1 pregunta no se puede aplicar");
+    expect(fuera?.querySelector("h4")?.textContent).toBe("No entran todavía: 1 pregunta no se puede aplicar");
     expect(fuera?.textContent).toContain('La columna de texto "p66_otro" no está en la base.');
     expect(lista()?.textContent).not.toContain("p66");
   });
@@ -230,16 +233,20 @@ describe("AdaptarPane: con el plan leído", () => {
     expect(pie?.querySelector(".pulso-pie-efecto-linea")?.textContent).toBe(
       "Escribe los campos nuevos en la base y genera la base codificada y el formulario codificado.",
     );
+    // La acción principal sube a la cabecera de la pestaña (prototipo); el pie conserva las salidas.
     expect([...(pie?.querySelectorAll("button") ?? [])].map((b) => b.textContent?.trim())).toEqual([
-      "Volver a Codificar", "Revisar matrices", "Aplicar a la base",
+      "Volver a Codificar", "Revisar matrices",
     ]);
-    expect(boton("Aplicar a la base")?.disabled).toBe(false);
+    expect(aplicar()?.closest(".pulso-cabecera-pestana")).not.toBeNull();
+    expect(aplicar()?.textContent?.trim()).toBe("Aplicar 2 preguntas");
+    expect(aplicar()?.disabled).toBe(false);
   });
 
   it('"Actualizar" vuelve a leer el plan sin desmontar la lista, y avisa en la franja si la base cambió', async () => {
     espia.plan.mockResolvedValueOnce(PLAN);
     await montar();
-    expect(host.querySelector(".pulso-franja-aviso")).toBeNull();
+    // Sin cambios en la base solo va el aviso conforme de que las respuestas originales se conservan.
+    expect(host.querySelector('.pulso-franja-aviso[data-tono="aviso"]')).toBeNull();
 
     let resolver: (p: PlanAdaptacion) => void = () => {};
     espia.plan.mockImplementationOnce(() => new Promise<PlanAdaptacion>((r) => { resolver = r; }));
@@ -263,8 +270,8 @@ describe("AdaptarPane: el resultado de una aplicación no mueve el marco", () =>
     espia.plan.mockResolvedValue(PLAN);
     await montar();
     const seccion = marcoIgual();
-    const hijosAntes = Array.from(seccion.children).map((h) => h.className.split(" ")[0]);
-    expect(hijosAntes).toEqual(["pulso-franja-recorrido", "pulso-aplicar-mesa"]);
+    const hijosAntes = Array.from(seccion.children).filter((h) => !h.hasAttribute("data-audit-ready")).map((h) => h.className.split(" ")[0]);
+    expect(hijosAntes).toEqual(["pulso-cabecera-pestana", "pulso-franja-recorrido", "pulso-aplicar-mesa"]);
 
     const clave = claveAplicar("sid-1", "egresados");
     await act(async () => {
@@ -280,14 +287,14 @@ describe("AdaptarPane: el resultado de una aplicación no mueve el marco", () =>
       ] });
     });
     // Los mismos hijos, en el mismo orden: nada nuevo sobre la franja.
-    expect(Array.from(seccion.children).map((h) => h.className.split(" ")[0])).toEqual(hijosAntes);
+    expect(Array.from(seccion.children).filter((h) => !h.hasAttribute("data-audit-ready")).map((h) => h.className.split(" ")[0])).toEqual(hijosAntes);
     const resultado = panelDePreguntas()?.querySelector(".pulso-aplicar-cuerpo > .pulso-aplicar-resultado");
     expect(resultado?.querySelector("h4")?.textContent).toBe("Archivos codificados");
     expect(resultado?.querySelector(".pulso-aplicar-resultado-nota")?.textContent).toBe("Base codificada y formulario codificado");
     expect(resultado?.querySelector('[data-testid="codificacion-adaptar-resumen"]')?.textContent).toContain("La aplicación terminó con 1 aviso.");
     expect(host.querySelectorAll('[data-testid="codificacion-adaptar-resumen"]')).toHaveLength(1);
     // El pie sigue y el botón vuelve a estar disponible.
-    expect(boton("Aplicar a la base")?.disabled).toBe(false);
+    expect(aplicar()?.disabled).toBe(false);
   });
 });
 
@@ -298,12 +305,13 @@ describe("AdaptarPane: detalle de la pregunta elegida", () => {
     expect(elegidas()).toEqual(["p9"]);
     expect(host.querySelector(".pulso-aplicar-mesa")?.hasAttribute("data-con-detalle")).toBe(true);
     const d = detalle();
-    expect(d?.querySelector("h3")?.textContent).toBe("Códigos de la pregunta");
+    // El título es la pregunta, como en el prototipo; el detalle dice qué tiene hoy la base y qué se agrega.
+    expect(d?.querySelector("h3")?.textContent).toBe("Ocupación principal");
     expect(d?.getAttribute("aria-label")).toBe("Códigos de p9");
     // La lista gobierna este panel.
     expect(lista()?.getAttribute("aria-controls")).toBe(d?.id);
     expect(d?.querySelector(".pulso-aplicar-detalle-cab .pulso-ficha-pregunta")?.textContent).toBe("p9Ocupación principal");
-    expect(d?.querySelector(".pulso-aplicar-detalle-campo")?.textContent).toBe("Campo nuevop9_recod");
+    expect(d?.querySelector(".pulso-aplicar-cambio")?.textContent).toBe("Hoy en la basep9TextoSe agregap9_recodOpción única");
     expect(codigos()).toEqual([
       ["08", "Educación superior", "Nuevo", "24"],
       ["12", "Minería", "Nuevo", "19"],
@@ -357,7 +365,9 @@ describe("AdaptarPane: detalle de la pregunta elegida", () => {
     await act(async () => { filas()[1].click(); });
     expect(elegidas()).toEqual(["p3"]);
     expect(detalle()?.getAttribute("aria-label")).toBe("Códigos de p3");
-    expect(detalle()?.querySelector(".pulso-aplicar-detalle-campo")?.textContent).toBe("Campos nuevosp3/*_recod");
+    // El campo de una múltiple se lee con su primer código en lugar del comodín; el patrón queda en el title.
+    expect(detalle()?.querySelector(".pulso-aplicar-cambio")?.textContent).toBe("Hoy en la basep3Opción múltipleSe agregap3/21_recodOpción múltiple");
+    expect(detalle()?.querySelector("[data-agrega] code")?.getAttribute("title")).toBe("Una columna por código: p3/código_recod");
     // Sin etiqueta lo dice; sin conteo no inventa un cero.
     expect(codigos()).toEqual([
       ["21", "Diseño", "Nuevo", "14"],
@@ -411,14 +421,18 @@ describe("AdaptarPane: detalle de la pregunta elegida", () => {
   it("con una sola pregunta aplicable la fila no repite los conteos de códigos de la franja, y el campo sale una vez en la fila y una en el detalle", async () => {
     espia.plan.mockResolvedValueOnce(plan([P3, P66]));
     await montar();
-    expect([...(host.querySelectorAll(".pulso-franja-grupo") ?? [])].map((g) => g.textContent)).toEqual(["Codificación1pregunta", "Códigos4nuevos0ya existentes"]);
+    expect([...(host.querySelectorAll(".pulso-franja-grupo") ?? [])].map((g) => g.textContent)).toEqual([
+      "Se agrega a la base4columnas4códigos nuevos21respuestas con código", "No entran todavía1pregunta",
+    ]);
     const fila = filas()[0].textContent ?? "";
     expect(fila).not.toMatch(/códigos nuevos|ya existente/);
     expect(fila).toContain("21 respuestas con código");
     expect(veces("4 códigos")).toBe(0);
-    expect(veces("p3/*_recod")).toBe(2);
-    expect(filas()[0].textContent).toContain("p3/*_recod");
-    expect(detalle()?.querySelector(".pulso-aplicar-detalle-campo")?.textContent).toContain("p3/*_recod");
+    // El campo, legible y sin comodín, una vez en la fila y una en el detalle.
+    expect(veces("p3/21_recod")).toBe(2);
+    expect(veces("*_recod")).toBe(0);
+    expect(filas()[0].textContent).toContain("p3/21_recod");
+    expect(detalle()?.querySelector(".pulso-aplicar-cambio")?.textContent).toContain("p3/21_recod");
   });
 
   it("si la pregunta elegida desaparece del plan al actualizar, vuelve a elegirse la primera", async () => {

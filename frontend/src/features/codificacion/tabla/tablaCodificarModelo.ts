@@ -42,7 +42,12 @@ export type FilaTabla = {
   /** Va en el tramo final de las no respuestas ("No", ".", "Ninguno"). */
   noResponde: boolean;
   yaMarcadas?: readonly MarcaPrevia[];
+  /** Con "Agrupar parecidas": los textos casi iguales que la fila junta (`agruparParecidas`). */
+  miembros?: readonly MiembroDeFila[];
 };
+
+/** Un texto que una fila junta por parecido: se lista debajo y recibe los mismos códigos. */
+export type MiembroDeFila = { clave: string; texto: string; titulo: string; veces: number };
 
 export type TramosDeRespuestas = {
   conContenido: readonly RespuestaUnica[];

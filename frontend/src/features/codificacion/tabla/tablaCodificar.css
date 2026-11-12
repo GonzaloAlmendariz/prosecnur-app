@@ -362,3 +362,161 @@
     transition: none;
   }
 }
+
+/* ---------- Casilla de elegir (prototipo: columna de selección) ---------- */
+
+/* Con casillas, la primera columna es la de elegir; el resto no cambia. */
+.pulso-ct-tabla[data-con-casillas] .pulso-ct-cab-fila,
+.pulso-ct-tabla[data-con-casillas] .pulso-ct-fila {
+  grid-template-columns: var(--pulso-space-8) var(--pulso-ct-columnas);
+}
+
+.pulso-ct-c-elegir {
+  display: grid;
+  place-items: center;
+  padding-block: var(--pulso-space-2);
+}
+
+/* Un botón de dos estados con la forma de una casilla, como `pp-check` del prototipo. */
+.pulso-ct-casilla {
+  inline-size: 16px;
+  block-size: 16px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1.5px var(--pulso-border-strong);
+  background: var(--pulso-surface);
+  cursor: pointer;
+}
+
+.pulso-ct-casilla[aria-pressed="true"] {
+  box-shadow: none;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-ct-casilla[aria-pressed="mixed"] {
+  box-shadow: inset 0 0 0 4px var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-ct-fila[data-elegida] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 9%, var(--pulso-surface));
+}
+
+/* Las parecidas que junta una fila, bajo su texto. */
+.pulso-ct-miembros {
+  display: block;
+  margin-top: 2px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.35;
+}
+
+@container pulso-ct (max-width: 30rem) {
+  .pulso-ct-tabla[data-con-casillas] .pulso-ct-cab-fila,
+  .pulso-ct-tabla[data-con-casillas] .pulso-ct-fila {
+    grid-template-columns: var(--pulso-space-8) minmax(0, 1fr) auto;
+  }
+}
+
+/* ---------- Libro de códigos (prototipo, vista de tabla) ---------- */
+
+.pulso-ct-libro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4) var(--pulso-space-5);
+}
+
+.pulso-ct-libro-buscar.pulso-cv2-search {
+  margin: 0;
+}
+
+.pulso-ct-libro-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Número, nombre con su ejemplo, casos; la barra del código debajo, a todo el ancho del renglón. */
+.pulso-ct-libro-fila {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  transition: background-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.pulso-ct-libro-fila[data-destino] {
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, var(--pulso-surface));
+}
+
+.pulso-ct-libro-fila[data-sobre] {
+  background: color-mix(in srgb, var(--cv2-chip-accent, var(--module-accent)) 12%, var(--pulso-surface));
+}
+
+.pulso-ct-libro-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pulso-ct-libro-texto > b {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-ct-libro-texto > small {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-ct-libro-casos {
+  font-size: var(--pulso-type-body-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-ct-libro-barra {
+  grid-column: 2 / -1;
+}
+
+.pulso-ct-libro-nota,
+.pulso-ct-libro-pie {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-ct-libro-pie strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-ct-casilla[aria-pressed="mixed"] {
+  box-shadow: inset 0 0 0 1.5px var(--module-accent, var(--pulso-primary));
+  background: linear-gradient(var(--module-accent, var(--pulso-primary)), var(--module-accent, var(--pulso-primary))) center / 8px 2px no-repeat var(--pulso-surface);
+}
+
+/* La propuesta de una fila sin código y el pie con "Aceptar las sugeridas". */
+.pulso-ct-sugerencia {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.pulso-ct-pie {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--pulso-space-2) var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+}

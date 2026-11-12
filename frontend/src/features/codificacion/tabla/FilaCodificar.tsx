@@ -9,8 +9,13 @@ export type FilaCodificarProps = {
   /** Posición entre todo lo que pinta la tabla (filas y separador), contando desde cero. */
   indice: number;
   activa: boolean;
+  /** Con casillas: si la fila está elegida. Sin casillas, `undefined`. */
+  elegida?: boolean;
+  onElegir?: () => void;
   /** El campo donde se escribe el código; solo lo recibe la fila activa. */
   campo?: ReactNode;
+  /** La propuesta de código para una fila sin código ("Aceptar"), como en tarjetas. */
+  sugerencia?: ReactNode;
   onActivar: (clave: string) => void;
   onQuitar: (clave: string, grupoId: string) => void;
   /** Recibe el elemento de la fila: lo usan la medición de la lista virtual y el desplazamiento a la fila activa. */
@@ -22,6 +27,9 @@ export const FilaCodificar = memo(function FilaCodificar({
   fila,
   indice,
   activa,
+  sugerencia,
+  elegida,
+  onElegir,
   campo,
   onActivar,
   onQuitar,
@@ -37,8 +45,24 @@ export const FilaCodificar = memo(function FilaCodificar({
       data-index={indice}
       data-activa={activa ? "" : undefined}
       className="pulso-ct-fila"
+      data-elegida={elegida ? "" : undefined}
       onClick={() => onActivar(fila.clave)}
     >
+      {onElegir ? (
+        <div role="cell" className="pulso-ct-c-elegir">
+          {/* Elegir la fila no la activa: el clic se queda en la casilla. */}
+          <button
+            type="button"
+            className="pulso-ct-casilla"
+            aria-pressed={Boolean(elegida)}
+            aria-label={`${elegida ? "Soltar" : "Elegir"} "${fila.texto}"`}
+            onClick={(evento) => {
+              evento.stopPropagation();
+              onElegir();
+            }}
+          />
+        </div>
+      ) : null}
       <div role="cell" className="pulso-ct-c-resp">
         <span className="pulso-ct-texto" title={fila.titulo}>
           {fila.codigoDeRespuesta ? <code className="pulso-cv2-resp-code">{fila.codigoDeRespuesta}</code> : null}
@@ -46,6 +70,12 @@ export const FilaCodificar = memo(function FilaCodificar({
         </span>
         {fila.variantes > 1 ? (
           <span className="pulso-ct-variantes">{formatoConteo(fila.variantes)} variantes</span>
+        ) : null}
+        {fila.miembros?.length ? (
+          // Las parecidas que la fila junta, debajo del texto, como en el prototipo.
+          <span className="pulso-ct-miembros" title={fila.miembros.map((m) => `${m.texto} (${formatoConteo(m.veces)})`).join(", ")}>
+            {fila.miembros.map((m) => m.texto).join(", ")}
+          </span>
         ) : null}
       </div>
       <div role="cell" className="pulso-ct-c-veces">
@@ -63,7 +93,10 @@ export const FilaCodificar = memo(function FilaCodificar({
             />
           ))}
           {/* La fila activa también dice su estado: con el campo a la vista, una respuesta sin código seguía sin rótulo. */}
-          {fila.codigos.length === 0 ? <span className="pulso-ct-vacia">Sin código</span> : null}
+          {fila.codigos.length === 0 && !sugerencia ? <span className="pulso-ct-vacia">Sin código</span> : null}
+          {fila.codigos.length === 0 && sugerencia ? (
+            <span className="pulso-ct-sugerencia" onClick={(evento) => evento.stopPropagation()}>{sugerencia}</span>
+          ) : null}
           {campo}
         </div>
       </div>

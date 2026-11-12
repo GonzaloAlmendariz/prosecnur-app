@@ -100,7 +100,7 @@ describe("CodificacionPage monta el selector común y conserva el remontaje por 
     );
     expect(sinComentarios).toMatch(/\{selectorEnBanda && <ChromeBaseSelector \/>\}/);
     expect(sinComentarios).toMatch(
-      /control=\{codifSource\.active && !\(selectorEnBanda && codifSource\.options\.length > 1\) \? \(/,
+      /const baseActual = codifSource\.active && !\(selectorEnBanda && codifSource\.options\.length > 1\) \? \(/,
     );
   });
 

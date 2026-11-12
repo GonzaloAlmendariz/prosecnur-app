@@ -128,3 +128,14 @@ describe("qué pide cada tecla en la lista", () => {
     expect(intencionDeLista(tecla("z", { modificador: true }), { cifras: "", seleccionadas: 1 })).toBeNull();
   });
 });
+
+describe("alternarVarias (casillas de la tabla)", () => {
+  test("las elegidas salen, las demás entran y todo queda en el orden de la lista", async () => {
+    const { alternarVarias, SELECCION_VACIA: vacia } = await import("./seleccionRespuestas");
+    const orden = ["a", "b", "c", "d"];
+    const una = alternarVarias(vacia, ["c", "a"], orden);
+    expect(una.claves).toEqual(["a", "c"]);
+    expect(alternarVarias(una, ["a", "b"], orden).claves).toEqual(["b", "c"]);
+    expect(alternarVarias(una, ["x"], orden)).toBe(una);
+  });
+});

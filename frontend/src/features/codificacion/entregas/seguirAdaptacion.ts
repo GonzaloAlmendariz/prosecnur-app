@@ -7,6 +7,7 @@
 // Un job se sigue una sola vez aunque el panel se monte varias veces; el
 // resultado llega al store keyed por base aunque nadie lo esté mirando.
 
+import { causaDeAplicacion } from "./causaDeAplicacion";
 import { apiJobCancel } from "../../../api/jobs";
 import { useBandejaEntregables } from "../../../components/entregables/bandejaStore";
 import { avanceDelJob } from "../../../components/entregables/generacionModelo";
@@ -91,9 +92,8 @@ export function seguirAdaptacion(clave: string, jobId: string, alTerminar: AlTer
         }
       });
     } else if (snap.status === "error") {
-      const mensaje = typeof snap.error === "string" && snap.error.trim()
-        ? snap.error.trim()
-        : "La adaptación terminó sin detalle del error. Reintenta.";
+      // El texto del motor no llega crudo: se dice la causa en castellano (causaDeAplicacion.ts).
+      const mensaje = causaDeAplicacion(typeof snap.error === "string" ? snap.error : "");
       cerrar(() => store().fallar(clave, mensaje));
     } else if (snap.status === "cancelled") {
       cerrar(() => store().cancelar(clave));

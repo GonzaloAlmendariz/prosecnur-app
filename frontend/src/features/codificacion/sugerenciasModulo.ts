@@ -256,3 +256,121 @@ export function rotuloDePropuesta(p: { etiqueta: string; padreEtiqueta?: string 
     completo: p.etiqueta,
   };
 }
+
+/** Un rótulo del formulario con un marcador sin reemplazar ("Espacio de Protección de ${sede_ppl}"). */
+export function tieneMarcadorDelFormulario(texto: string | undefined): boolean {
+  return typeof texto === "string" && /\$\{[^}]*\}/.test(texto);
+}
+
+/**
+ * La propuesta sin los módulos cuyo rótulo trae un marcador del formulario sin reemplazar. Esos rótulos
+ * son secciones o frases del formulario que dependen de otra respuesta (`${sede_ppl}`, `${Enumeratorname}`)
+ * y aquí no hay con qué completarlos: no se ofrecen como código. Una respuesta que se queda sin
+ * propuestas pasa a candidata a "Otro", como cualquier otra sin vocabulario en común.
+ */
+export function sinMarcadoresDelFormulario(sug: CodifSugerenciasSeccion): CodifSugerenciasSeccion {
+  const conMarcador = (m: { etiqueta: string; padreEtiqueta?: string }) =>
+    tieneMarcadorDelFormulario(m.etiqueta) || tieneMarcadorDelFormulario(m.padreEtiqueta);
+  if (!sug.modulos.some(conMarcador) && !sug.respuestas.some((r) => r.propuestas.some(conMarcador))) return sug;
+  const respuestas = sug.respuestas.map((r) => {
+    const propuestas = r.propuestas.filter((p) => !conMarcador(p));
+    if (propuestas.length === r.propuestas.length) return r;
+    return { ...r, propuestas, candidatoOtro: r.candidatoOtro || (!r.noRespuesta && propuestas.length === 0) };
+  });
+  // El conteo por módulo es del motor: se conserva para los módulos que quedan.
+  const quedan = new Set(sug.modulos.filter((m) => !conMarcador(m)).map((m) => m.codigo));
+  const porModulo = Object.fromEntries(Object.entries(sug.resumen.porModulo).filter(([codigo]) => quedan.has(codigo)));
+  return {
+    ...sug,
+    modulos: sug.modulos.filter((m) => quedan.has(m.codigo)),
+    respuestas,
+    resumen: {
+      ...sug.resumen,
+      conPropuesta: respuestas.filter((r) => r.propuestas.length > 0).length,
+      candidatosOtro: respuestas.filter((r) => r.candidatoOtro).length,
+      porModulo,
+    },
+  };
+}
+
+/** Palabras que quedan colgando al final cuando se corta el rótulo antes del marcador. */
+const CONECTORES_FINALES = /(?:\s+(?:de|del|de la|de los|de las|en|a|al|para|con|por|y|o))+\s*$/iu;
+
+/**
+ * Un rótulo del formulario sin el marcador crudo: se corta antes del primer `${...}` y se quitan el
+ * conector y la puntuación que quedan colgando ("Acceso al Espacio de Protección de ${sede_ppl}" pasa a
+ * "Acceso al Espacio de Protección"). Si antes del marcador no queda nada, devuelve "".
+ */
+export function rotuloSinMarcador(texto: string): string {
+  const i = texto.search(/\$\{[^}]*\}/);
+  if (i < 0) return texto;
+  return texto.slice(0, i).replace(/[\s,;:.\-–(]+$/u, "").replace(CONECTORES_FINALES, "").replace(/[\s,;:.\-–(]+$/u, "").trim();
+}
+
+/** Las respuestas con una propuesta todavía sin confirmar y sin código: las que "Aceptar las sugeridas" toma. */
+export function sugeridasPorAceptar(mapa: ReadonlyMap<string, EntradaSugerida>, grupos: readonly Grupo[]): EntradaSugerida[] {
+  const conCodigo = new Set(grupos.flatMap((g) => g.respuestas));
+  return [...mapa.values()].filter((e) => e.propuestas.length > 0 && !conCodigo.has(e.clave) && !estaConfirmada(grupos, e.propuestas[0].codigo, e.clave));
+}
+
+/**
+ * "Aceptar las N sugeridas" de la tabla (prototipo): confirma de una vez la primera propuesta de cada
+ * respuesta sin código, con la misma confirmación que la fila de tarjetas ("Confirmar" en `SugerenciaModuloFila`).
+ */
+export function aceptarSugeridas(grupos: readonly Grupo[], entradas: readonly EntradaSugerida[]): Grupo[] {
+  const porModulo = new Map<string, { propuesta: PropuestaModulo; entradas: EntradaSugerida[] }>();
+  for (const e of entradas) {
+    const p = e.propuestas[0];
+    if (!p) continue;
+    const previo = porModulo.get(p.codigo) ?? { propuesta: p, entradas: [] };
+    previo.entradas.push(e);
+    porModulo.set(p.codigo, previo);
+  }
+  let lista = [...grupos];
+  for (const { propuesta, entradas: suyas } of porModulo.values()) {
+    lista = confirmarSugerencias(lista, { codigo: propuesta.codigo, etiqueta: rotuloDePropuesta(propuesta).grupo }, suyas).grupos;
+  }
+  return lista;
+}
+
+/** Palabras en común que pide una propuesta para ofrecerse como código. */
+export const PALABRAS_MINIMAS_PARA_PROPONER = 2;
+
+/**
+ * La propuesta sin las que se apoyan en una sola palabra en común con el módulo. Los módulos son las
+ * secciones del formulario (así funciona "Sugerir códigos"); con una palabra suelta ("tuve", "conocia",
+ * "telefono") cualquier sección parecía un código ("Detalles de la entrevista", "Información y
+ * Retroalimentación"). Una respuesta que se queda sin propuestas pasa a candidata a "Otro".
+ */
+export function conEvidenciaSuficiente(sug: CodifSugerenciasSeccion, minimo = PALABRAS_MINIMAS_PARA_PROPONER): CodifSugerenciasSeccion {
+  const basta = (p: PropuestaModulo) => (p.palabras?.length ?? 0) >= minimo;
+  if (sug.respuestas.every((r) => r.propuestas.every(basta))) return sug;
+  const respuestas = sug.respuestas.map((r) => {
+    const propuestas = r.propuestas.filter(basta);
+    if (propuestas.length === r.propuestas.length) return r;
+    return { ...r, propuestas, candidatoOtro: r.candidatoOtro || (!r.noRespuesta && propuestas.length === 0) };
+  });
+  return {
+    ...sug,
+    respuestas,
+    resumen: {
+      ...sug.resumen,
+      conPropuesta: respuestas.filter((r) => r.propuestas.length > 0).length,
+      candidatosOtro: respuestas.filter((r) => r.candidatoOtro).length,
+    },
+  };
+}
+
+/**
+ * Un texto del formulario sin sus marcadores crudos (`${sede_ppl}`): se quita el marcador con el conector
+ * que lo introduce y se ordenan los espacios ("¿Cómo se enteró del Espacio de Protección de ${sede_ppl} ?"
+ * pasa a "¿Cómo se enteró del Espacio de Protección?").
+ */
+export function sinMarcadores(texto: string): string {
+  if (!tieneMarcadorDelFormulario(texto)) return texto;
+  return texto
+    .replace(/\s*(?:\b(?:de|del|de la|en|a|al|para)\s+)?\$\{[^}]*\}/giu, "")
+    .replace(/\s+([?!.,;:)])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}

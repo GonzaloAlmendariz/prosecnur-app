@@ -1,7 +1,6 @@
 import { memo, type ReactNode } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { formatoConteo } from "../../../lib/formatoNumero";
-import { GripVertical } from "../../../vendor/lucide-react";
 import { InsigniaCodigo } from "../tabla/InsigniaCodigo";
 import type { FilaDeRespuesta } from "./modeloDeCodificar";
 import { modoDeClic, type ModoDeSeleccion } from "./seleccionRespuestas";
@@ -68,9 +67,19 @@ export const FilaRespuesta = memo(function FilaRespuesta({
       data-sin-codigo={fila.codigos.length === 0 ? "" : undefined}
       onClick={(evento) => onPulsar(fila.clave, modoDeClic(evento))}
     >
-      <span className="pulso-cc-fila-asa" aria-hidden="true">
-        <GripVertical size={14} />
-      </span>
+      {/* La casilla del prototipo: elige o suelta la respuesta sin tocar las demás. La fila entera se sigue
+          arrastrando y eligiendo con clic, Mayús y Cmd o Ctrl como antes. */}
+      <button
+        type="button"
+        className="pulso-ct-casilla pulso-cc-fila-asa"
+        aria-pressed={seleccionada}
+        aria-label={`${seleccionada ? "Soltar" : "Elegir"} "${fila.texto}"`}
+        tabIndex={-1}
+        onClick={(evento) => {
+          evento.stopPropagation();
+          onPulsar(fila.clave, "alternar");
+        }}
+      />
       <button
         type="button"
         className="pulso-cc-fila-boton"

@@ -24,7 +24,8 @@ export type BarraDeCodificarProps = {
 };
 
 /**
- * La cabecera de la mesa, en una fila: a la izquierda las cifras de la pregunta, a la derecha el estado
+ * Sin uso desde la pasada de fidelidad (las cifras y las acciones van en la cabecera de la pestaña);
+ * queda para que el lead decida su borrado. La cabecera de la mesa, en una fila: a la izquierda las cifras de la pregunta, a la derecha el estado
  * del guardado, deshacer, los controles del texto abierto y el conmutador de vista. Es la misma para
  * tarjetas y para tabla.
  */
@@ -32,7 +33,7 @@ export function BarraDeCodificar({ avance, casos, guardado, ultimoPaso, onDeshac
   const deshacer = ultimoPaso ? `Deshacer: ${ultimoPaso}` : "Deshacer";
   return (
     <div className="pulso-cc-barra">
-      <CifrasDeCodificar avance={avance} casos={casos} />
+      <CifrasDeCodificar casos={casos} />
       <div className="pulso-cc-barra-acciones">
         <SaveStatusIndicator state={guardado} variant="badge" />
         <PulsoButton

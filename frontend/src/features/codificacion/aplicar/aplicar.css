@@ -20,6 +20,23 @@
   container: pulso-aplicar / inline-size;
 }
 
+/* La cabecera de la pestaña (la del kit) arriba; la franja y la mesa debajo, con el aire de la mesa. */
+.pulso-codificacion-frame .pulso-codificacion-adaptar.pulso-aplicar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-5);
+}
+
+.pulso-aplicar > .pulso-cabecera-pestana {
+  flex: none;
+}
+
+@media (max-height: 820px) {
+  .pulso-codificacion-frame .pulso-codificacion-adaptar.pulso-aplicar {
+    gap: var(--pulso-space-3);
+  }
+}
+
 .pulso-aplicar-mesa {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -147,7 +164,7 @@
 
 .pulso-aplicar-celda {
   min-inline-size: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .pulso-aplicar-celda--pregunta,
@@ -179,7 +196,7 @@
 .pulso-aplicar-ficha-neutra > code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: var(--pulso-weight-semibold);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* El nombre de un campo parte solo en sus separadores (NombreDeCampo pone el punto de corte tras "/" y
@@ -212,6 +229,55 @@
   font-size: var(--pulso-type-body-size);
 }
 
+/* Antes y después (`pp-cambio`): dos pozos sin sombra, la flecha en medio; lo que se agrega lleva el
+   acento del módulo. Un pozo es segundo nivel: radio 10 y fondo, sin borde (plan 8.2). */
+.pulso-aplicar-cambio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* Los dos lados comparten el alto aunque el nombre de uno parta en dos renglones (C2). */
+  align-items: stretch;
+  gap: var(--pulso-space-3);
+  align-self: stretch;
+  min-inline-size: 0;
+}
+
+.pulso-aplicar-cambio-lado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-inline-size: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-aplicar-cambio-lado[data-agrega] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-primary-border));
+}
+
+.pulso-aplicar-cambio-lado > small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-aplicar-cambio-lado > code {
+  overflow-wrap: break-word;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-aplicar-cambio-lado > span {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-aplicar-cambio-flecha {
+  align-self: center;
+  color: var(--pulso-text-faint);
+}
+
 .pulso-aplicar-detalle-campo {
   display: flex;
   flex-wrap: wrap;
@@ -233,7 +299,7 @@
 
 .pulso-aplicar-codigos-fila {
   display: grid;
-  grid-template-columns: 60px minmax(0, 1.2fr) 100px minmax(104px, 1fr);
+  grid-template-columns: 60px minmax(0, 1.2fr) 100px minmax(140px, 1.2fr);
   align-items: center;
   column-gap: var(--pulso-space-3);
   padding: var(--pulso-space-2) var(--pulso-space-5);
@@ -268,13 +334,13 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: var(--pulso-weight-bold);
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* La categoría se lee entera: parte en renglones, nunca se recorta. */
 .pulso-aplicar-col-categoria {
   min-inline-size: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .pulso-aplicar-col-categoria[data-sin-etiqueta] {
@@ -311,11 +377,15 @@
   min-inline-size: 0;
 }
 
+/* La barra de cada código (prototipo): pista visible y relleno con la secuencia de datos. */
 .pulso-aplicar-barra {
   flex: 1 1 auto;
   display: block;
-  min-inline-size: 0;
-  block-size: 4px;
+  overflow: hidden;
+  min-inline-size: 3rem;
+  block-size: 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
 }
 
 .pulso-aplicar-barra > span {
@@ -461,4 +531,103 @@
   .pulso-aplicar-fila {
     transition: none;
   }
+}
+
+/* ---------- Grupos de la lista (prototipo: "Listas", "No entran todavía") ---------- */
+
+.pulso-aplicar-grupo {
+  padding: var(--pulso-space-4) var(--pulso-space-5) var(--pulso-space-1);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  list-style: none;
+}
+
+/* El estado de la fila: un punto con el color del estado y la palabra. */
+.pulso-aplicar-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.pulso-aplicar-estado::before {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--pulso-success-fg);
+}
+
+.pulso-aplicar-estado[data-tono="curso"]::before {
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+/* La pestaña Respuestas del detalle: texto, veces y código, con las filas de la tabla de códigos. */
+.pulso-aplicar-respuestas-tabla .pulso-aplicar-codigos-fila {
+  grid-template-columns: minmax(0, 1.4fr) 64px minmax(0, 1fr);
+}
+
+.pulso-aplicar-col-veces {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.pulso-aplicar-respuestas-tabla [data-sin-codigo] {
+  color: var(--pulso-text-soft);
+}
+
+/* La fila de la lista en dos renglones, como en el prototipo: la pregunta y sus cifras con su estado
+   arriba; debajo, el campo que agrega a la base (el nombre legible que pidió el encargo). */
+.pulso-aplicar-lista > .pulso-aplicar-fila {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "pregunta cifras"
+    "campo campo";
+  align-items: start;
+}
+
+.pulso-aplicar-lista > .pulso-aplicar-fila > .pulso-aplicar-celda--pregunta {
+  grid-area: pregunta;
+}
+
+.pulso-aplicar-lista > .pulso-aplicar-fila > .pulso-aplicar-celda--cifras {
+  grid-area: cifras;
+}
+
+.pulso-aplicar-lista > .pulso-aplicar-fila > .pulso-aplicar-celda--campo {
+  grid-area: campo;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+}
+
+.pulso-aplicar-lista > .pulso-aplicar-fila > .pulso-aplicar-celda--campo:empty {
+  display: none;
+}
+
+/* Entre 1100 y 1024 de ventana la mesa sigue en dos columnas, como el prototipo a 1024: la lista y el
+   detalle lado a lado; la pantalla se desplaza si hace falta y cada panel acota su alto. */
+@container pulso-aplicar (min-width: 860px) and (max-width: 1039px) {
+  .pulso-aplicar-mesa[data-con-detalle] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: stretch;
+  }
+}
+
+/* La ficha de la pregunta en la lista y el detalle parte entre palabras, nunca a media palabra. */
+.pulso-aplicar .pulso-ficha-pregunta,
+.pulso-aplicar .pulso-ficha-pregunta-etiqueta {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+/* El código va pegado a la etiqueta sin espacio: como bloque en línea, deja cortar entre los dos y no a
+   media palabra de la etiqueta ("Recomendacio" y "n abierta" a 1024). */
+.pulso-aplicar .pulso-ficha-pregunta-codigo {
+  display: inline-block;
 }

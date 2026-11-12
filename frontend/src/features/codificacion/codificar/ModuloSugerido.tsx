@@ -22,13 +22,14 @@ export type BotonModuloSugeridoProps = {
 };
 
 /**
- * Abre y cierra la fila de "Módulo sugerido": la propuesta sigue completa, con sus confirmaciones por
+ * "Sugerir códigos" (prototipo): propone, por respuesta, el módulo del formulario con el que comparte
+ * palabras. Abre y cierra la fila de "Módulo sugerido": la propuesta sigue completa, con sus confirmaciones por
  * módulo, pero ya no ocupa una banda fija sobre la lista.
  */
 export function BotonModuloSugerido({ abierto, controla, porConfirmar, onAlternar }: BotonModuloSugeridoProps) {
   return (
     <PulsoButton variant="secondary" size="sm" aria-expanded={abierto} aria-controls={controla} onClick={onAlternar}>
-      Módulo sugerido
+      Sugerir códigos
       {porConfirmar > 0 ? (
         <span className="pulso-cc-cuenta" title={porConfirmar === 1 ? "1 respuesta con propuesta por confirmar" : `${formatoConteo(porConfirmar)} respuestas con propuesta por confirmar`}>
           {formatoConteo(porConfirmar)}

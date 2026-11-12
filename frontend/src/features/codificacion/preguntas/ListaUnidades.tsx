@@ -92,7 +92,8 @@ export function ListaUnidades({
         secciones.map((seccion, i) => (
           <div key={seccion.id} className="pulso-preg-seccion" role="group" aria-labelledby={`${idBase}-${i}`}>
             <h4 id={`${idBase}-${i}`} className="pulso-preg-seccion-rotulo">{seccion.rotulo}</h4>
-            <ul className="pulso-preg-filas">
+            {/* C1: las unidades de una sección; una pregunta de dos líneas mide más (intrinsic). */}
+            <ul className="pulso-preg-filas" data-qa-geometry-group="codificacion/preguntas-filas" data-qa-geometry-contract="intrinsic">
               {seccion.unidades.map((unidad) => (
                 <FilaUnidad
                   key={unidad.id}

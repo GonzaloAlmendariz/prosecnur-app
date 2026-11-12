@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { sinMarcadores } from "./sugerenciasModulo";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Link2, X } from "lucide-react";
 import { apiCodifColumnas, PreguntaAbierta } from "../../api/client";
@@ -114,7 +115,7 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
           </Dialog.Close>
         </div>
         <Dialog.Description id="pairing-description" style={{ fontSize: "var(--pulso-type-body-size)", color: "var(--pulso-text-soft)", marginBottom: 16 }}>
-          <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", color: "var(--pulso-primary)" }}>{pregunta.parent}</code> {pregunta.parent_label}
+          <code style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", color: "var(--pulso-primary)" }}>{pregunta.parent}</code> {sinMarcadores(pregunta.parent_label)}
         </Dialog.Description>
 
         {/* Paso 1: columna hija */}

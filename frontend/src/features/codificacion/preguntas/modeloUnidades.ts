@@ -12,8 +12,10 @@ import type { ChromeStatusTone } from "../../../components/ModuleCommandBar";
 import { formatoConteoDe } from "../../../lib/formatoNumero";
 import { textoPlano } from "../../../lib/textoPlano";
 import { decisionDePregunta, presentarDecision, restanteDeDecision } from "../decisionCodificacion";
+import { rotuloSinMarcador } from "../sugerenciasModulo";
+import { estadoDeAvance, type AvanceDeCodificacion } from "../avanceDeCodificacion";
 
-export type FiltroPreguntas = "con-texto" | "por-codificar" | "codificadas" | "todas";
+export type FiltroPreguntas = "con-texto" | "por-decidir" | "cerradas-otro" | "todas";
 export type ModoSo = "padre" | "hijo";
 
 export type Unidad = {
@@ -193,17 +195,41 @@ export function formaDeUnidad(u: Unidad): "pareja" | "abierta" | "cerrada" {
  */
 export function unidadEnFiltro(u: Unidad, filtro: FiltroPreguntas): boolean {
   if (filtro === "con-texto") return tieneTexto(u);
-  if (filtro === "por-codificar") return preguntasDeUnidad(u).some(sinDecidir);
-  if (filtro === "codificadas") return preguntasDeUnidad(u).some((p) => p.status === "completo");
+  if (filtro === "por-decidir") return estaPorDecidir(u);
+  if (filtro === "cerradas-otro") return esCerradaConOtro(u);
   return true;
+}
+
+/**
+ * Por decidir (prototipo): una unidad con texto sobre la que no se decidió nada, ni incluirla ni registrar
+ * que no se codifica; o una incluida a la que le falta declarar algo (modo, opción "Otros", configuración).
+ */
+export function estaPorDecidir(u: Unidad): boolean {
+  if (!tieneTexto(u) || u.arquetipo === "no-aplica") return false;
+  const preguntas = preguntasDeUnidad(u);
+  if (preguntas.some((p) => decisionDePregunta(p) === "no_categorizar")) return false;
+  const incluida = preguntas.some((p) => p.marcada || p.marcada_auto);
+  if (!incluida) return true;
+  const abierta = preguntas.find(sinDecidir);
+  return Boolean(abierta && rotuloDeAbierta(u, abierta) === "Sin decidir");
+}
+
+/**
+ * "Cerradas con Otro" (prototipo): una pregunta cerrada que tiene su texto de "Otro", ya emparejado, propuesto
+ * por el motor como candidato o marcado como la opción "Otros" de una múltiple.
+ */
+export function esCerradaConOtro(u: Unidad): boolean {
+  const p = u.principal;
+  if (!esCerrada(p)) return false;
+  return u.clase === "pareja" || (p.candidatos_texto?.length ?? 0) > 0 || (p.opciones_sm ?? []).some((o) => o.es_otros_sugerido);
 }
 
 export function contarFiltros(unidades: readonly Unidad[]): ConteosDeFiltro {
   const cuenta = (filtro: FiltroPreguntas) => unidades.filter((u) => unidadEnFiltro(u, filtro)).length;
   return {
     "con-texto": cuenta("con-texto"),
-    "por-codificar": cuenta("por-codificar"),
-    codificadas: cuenta("codificadas"),
+    "por-decidir": cuenta("por-decidir"),
+    "cerradas-otro": cuenta("cerradas-otro"),
     todas: unidades.length,
   };
 }
@@ -226,7 +252,8 @@ export function seccionesVisibles(unidades: readonly Unidad[], filtro: FiltroPre
   for (const u of unidades) {
     if (!unidadEnFiltro(u, filtro) || !unidadCoincide(u, consulta)) continue;
     const id = u.principal.section || "(sin sección)";
-    const rotulo = textoPlano(u.principal.section_label) || u.principal.section || "Sin sección";
+    // Un rótulo con un marcador del formulario sin reemplazar (`${sede_ppl}`) se corta antes del marcador.
+    const rotulo = rotuloSinMarcador(textoPlano(u.principal.section_label)) || u.principal.section || "Sin sección";
     const seccion = secciones.get(id) ?? { id, rotulo, unidades: [] };
     seccion.unidades.push(u);
     secciones.set(id, seccion);
@@ -236,7 +263,7 @@ export function seccionesVisibles(unidades: readonly Unidad[], filtro: FiltroPre
 
 // ---------- Estado de la unidad ----------
 
-export type ClaveDeEstado = "sin-decidir" | "codificada" | "no-se-codifica" | "sin-respuestas" | "emparejada" | "desactivada";
+export type ClaveDeEstado = "sin-decidir" | "en-curso" | "codificada" | "no-se-codifica" | "sin-respuestas" | "emparejada" | "desactivada";
 
 export type EstadoDeUnidad = {
   clave: ClaveDeEstado;
@@ -268,21 +295,16 @@ export function rotuloDeAbierta(u: Unidad, abierta: PreguntaAbierta): "Sin decid
  * El estado que muestra la fila. Usa las mismas reglas que los filtros: una fila con "Sin decidir" o "Por codificar"
  * es una de las que cuenta ese filtro ("Pendientes"), y lo mismo con "Codificada" y con la pareja.
  */
-export function estadoDeUnidad(u: Unidad): EstadoDeUnidad | null {
+export function estadoDeUnidad(u: Unidad, avance?: AvanceDeCodificacion | null): EstadoDeUnidad | null {
   if (u.arquetipo === "no-aplica") {
     return { clave: "desactivada", rotulo: "Desactivada", tono: "neutral", nota: null, detalle: "No entra a codificación." };
   }
   const preguntas = preguntasDeUnidad(u);
   const abierta = preguntas.find(sinDecidir);
-  if (abierta) {
+  // Lo que falta declarar (modo, opción "Otros", configuración) va antes que el avance: no hay qué codificar.
+  if (abierta && rotuloDeAbierta(u, abierta) === "Sin decidir") {
     const presentacion = presentarDecision(decisionDePregunta(abierta));
-    return {
-      clave: "sin-decidir",
-      rotulo: rotuloDeAbierta(u, abierta),
-      tono: "warn",
-      nota: restanteDeUnidad(u, abierta) ?? presentacion?.etiqueta ?? null,
-      detalle: presentacion?.detalle ?? "",
-    };
+    return { clave: "sin-decidir", rotulo: "Sin decidir", tono: "warn", nota: presentacion?.etiqueta ?? null, detalle: presentacion?.detalle ?? "" };
   }
   const descartada = preguntas.find((p) => decisionDePregunta(p) === "no_categorizar");
   if (descartada) {
@@ -293,6 +315,26 @@ export function estadoDeUnidad(u: Unidad): EstadoDeUnidad | null {
       tono: "neutral",
       nota: motivo,
       detalle: motivo ? `Motivo: ${motivo}` : "Decisión registrada.",
+    };
+  }
+  // Con el avance leído de las respuestas que la base trae hoy, el estado sale de ahí (avanceDeCodificacion.ts):
+  // las claves guardadas que la base ya no trae no hacen "Codificada" a una pregunta.
+  if (avance && avance.casos > 0) {
+    const faltan = avance.casos - avance.casosConCodigo;
+    const estado = estadoDeAvance(avance);
+    if (estado === "codificada") return { clave: "codificada", rotulo: "Codificada", tono: "success", nota: null, detalle: "Todas sus respuestas tienen código." };
+    const nota = `${formatoConteoDe(faltan, "respuesta", "respuestas")} sin código`;
+    if (estado === "en-curso") return { clave: "en-curso", rotulo: "En curso", tono: "info", nota, detalle: "" };
+    return { clave: "sin-decidir", rotulo: "Por codificar", tono: "warn", nota, detalle: "" };
+  }
+  if (abierta) {
+    const presentacion = presentarDecision(decisionDePregunta(abierta));
+    return {
+      clave: "sin-decidir",
+      rotulo: rotuloDeAbierta(u, abierta),
+      tono: "warn",
+      nota: restanteDeUnidad(u, abierta) ?? presentacion?.etiqueta ?? null,
+      detalle: presentacion?.detalle ?? "",
     };
   }
   if (preguntas.some((p) => p.status === "completo")) {
@@ -307,11 +349,11 @@ export function estadoDeUnidad(u: Unidad): EstadoDeUnidad | null {
   return null;
 }
 
-/** "426 respuestas, 425 únicas" del texto que se codifica, o nada si la unidad no tiene de dónde contarlo. */
+/** "426 respuestas, 425 distintas" del texto que se codifica, o nada si la unidad no tiene de dónde contarlo. */
 export function cifrasDeUnidad(u: Unidad): string | null {
   const fuente = fuenteDeRespuestas(u);
   if (!fuente || !(fuente.n_respuestas > 0)) return null;
-  return `${formatoConteoDe(fuente.n_respuestas, "respuesta")}, ${formatoConteoDe(fuente.n_unicas, "única")}`;
+  return `${formatoConteoDe(fuente.n_respuestas, "respuesta")}, ${formatoConteoDe(fuente.n_unicas, "distinta")}`;
 }
 
 // ---------- Tipo de pregunta ----------
@@ -408,4 +450,38 @@ export function admiteCambiarTexto(u: Unidad): boolean {
  */
 export function recibePorDefecto(origen: PreguntaAbierta, destino: PreguntaAbierta): "origen" | "destino" {
   return esCerrada(origen) && !esCerrada(destino) ? "origen" : "destino";
+}
+
+// ---------- Avance, tipo que sale y cifras de la pestaña ----------
+
+
+/**
+ * El tipo de la columna que sale de codificar la unidad (plan 5.3, "Única o múltiple"), con lo que la lista
+ * sabe: una pareja lo hereda de su pregunta cerrada; una abierta sin códigos está "Por definir". Una
+ * abierta con códigos devuelve `null`: puede ser única o múltiple según sus casos con más de un código, y
+ * eso no viene en la lista de preguntas (lo dice Codificar al abrirla).
+ */
+export function resultanteDeUnidad(u: Unidad): { tipo: TipoDePregunta | null; rotulo: string; leyenda: string } | null {
+  if (!tieneTexto(u) || u.arquetipo === "no-aplica") return null;
+  if (preguntasDeUnidad(u).some((p) => decisionDePregunta(p) === "no_categorizar")) return { tipo: null, rotulo: "No se codifica", leyenda: "" };
+  if (u.clase === "pareja") {
+    const tipo = u.principal.tipo === "select_multiple" ? "multiple" : u.principal.tipo === "select_one" ? "unica" : null;
+    if (tipo) return { tipo, rotulo: tipo === "multiple" ? "Múltiple" : "Única", leyenda: `Igual que ${u.principal.parent}` };
+  }
+  if (u.principal.tipo === "integer") return { tipo: "unica", rotulo: "Única", leyenda: "Un código por rango" };
+  if ((u.principal.n_codificadas ?? 0) > 0) return null;
+  return { tipo: null, rotulo: "Por definir", leyenda: "Se define al codificar" };
+}
+
+/**
+ * Las cifras de la cabecera de Preguntas (plan 5.3: "Tres cifras: por camino"): de las unidades con
+ * texto, cuántas se codifican (incluidas) y cuántas no (con la decisión registrada); las demás están por
+ * decidir, que es el estado de la pestaña. El tercer camino del prototipo, "Ya viene codificada" (D14), no existe todavía en el motor.
+ */
+export function cifrasDePreguntas(unidades: readonly Unidad[]): { conTexto: number; seCodifican: number; noSeCodifican: number; porDecidir: number } {
+  const conTexto = unidades.filter((u) => tieneTexto(u) && u.arquetipo !== "no-aplica");
+  const descartada = (u: Unidad) => preguntasDeUnidad(u).some((p) => decisionDePregunta(p) === "no_categorizar");
+  const noSeCodifican = conTexto.filter(descartada).length;
+  const seCodifican = conTexto.filter((u) => preguntasDeUnidad(u).some((p) => p.marcada || p.marcada_auto) && !descartada(u)).length;
+  return { conTexto: conTexto.length, seCodifican, noSeCodifican, porDecidir: conTexto.filter(estaPorDecidir).length };
 }

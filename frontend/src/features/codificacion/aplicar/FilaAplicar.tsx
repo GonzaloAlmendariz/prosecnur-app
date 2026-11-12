@@ -8,7 +8,8 @@
 import type { KeyboardEvent } from "react";
 
 import { FichaDePlan } from "./FichaDePlan";
-import type { FilaDeAplicar } from "./modeloAplicar";
+import { rotuloDeCampo, type FilaDeAplicar } from "./modeloAplicar";
+import type { EstadoDeFila } from "./gruposDeAplicar";
 import { NombreDeCampo } from "./NombreDeCampo";
 
 type Props = {
@@ -16,9 +17,11 @@ type Props = {
   elegida: boolean;
   onElegir: () => void;
   onTecla: (evento: KeyboardEvent<HTMLLIElement>) => void;
+  /** "Lista" o "Faltan N", si se sabe el avance de la pregunta. */
+  estado?: EstadoDeFila | null;
 };
 
-export function FilaAplicar({ fila, elegida, onElegir, onTecla }: Props) {
+export function FilaAplicar({ fila, elegida, onElegir, onTecla, estado = null }: Props) {
   return (
     <li
       className="pulso-aplicar-fila"
@@ -36,14 +39,19 @@ export function FilaAplicar({ fila, elegida, onElegir, onTecla }: Props) {
       <div className="pulso-aplicar-celda pulso-aplicar-celda--campo">
         {fila.campo ? (
           <>
-            <span className="pulso-aplicar-rotulo">{fila.variosCampos ? "Campos nuevos" : "Campo nuevo"}</span>
-            <NombreDeCampo className="pulso-aplicar-campo" nombre={fila.campo} />
+            <span className="pulso-aplicar-rotulo">{rotuloDeCampo(fila.variosCampos)}</span>
+            <NombreDeCampo className="pulso-aplicar-campo" nombre={fila.campo} titulo={fila.campoTitulo} />
           </>
         ) : null}
       </div>
       <div className="pulso-aplicar-celda pulso-aplicar-celda--cifras">
         {fila.codigos ? <span className="pulso-aplicar-codigos-de-fila">{fila.codigos}</span> : null}
         {fila.respuestas ? <span className="pulso-aplicar-respuestas-de-fila">{fila.respuestas}</span> : null}
+        {estado ? (
+          <span className="pulso-aplicar-estado" data-tono={estado.tono}>
+            {estado.texto}
+          </span>
+        ) : null}
       </div>
     </li>
   );

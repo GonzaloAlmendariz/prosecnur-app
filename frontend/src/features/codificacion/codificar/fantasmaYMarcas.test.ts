@@ -37,12 +37,12 @@ describe("la hoja de Codificar", () => {
   const marco = leer("codificar.css");
   const codigos = leer("codigos.css");
 
-  test("la rejilla de dos columnas depende del ancho de la columna de códigos (640 px), no de la ventana", () => {
-    expect(codigos).toMatch(/\.pulso-cc-codigos\.pulso-panel \{\s*container: pulso-cc-codigos \/ inline-size;/);
-    expect(codigos).toMatch(/@container pulso-cc-codigos \(min-width: 640px\) \{\s*\.pulso-cc-codigos-lista \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+  test("las tarjetas de código se reparten por el ancho de su columna, no de la ventana", () => {
+    expect(codigos).toMatch(/\.pulso-panel-de-mesa--codigos \{\s*container: pulso-cc-codigos \/ inline-size;/);
+    expect(codigos).toMatch(/\.pulso-cc-codigos-lista \{\s*display: grid;\s*grid-template-columns: repeat\(auto-fill, minmax\(min\(100%, 13rem\), 1fr\)\);/);
   });
 
-  test("Tarjetas y Tabla reparten igual el ancho entre respuestas y códigos", () => {
-    expect(marco).toMatch(/\.pulso-cv2-split\.pulso-cc-split,\s*\.pulso-cv2-split\.pulso-cc-split\.pulso-ct-split \{\s*grid-template-columns: minmax\(0, 1\.2fr\) minmax\(0, 1fr\);/);
+  test("Tarjetas y Tabla reparten igual el ancho entre respuestas y códigos (prototipo pp-m3c: 280, 1fr, 1fr)", () => {
+    expect(marco).toMatch(/\[data-qa-geometry-group="codificacion\/codificar-mesa"\] \{\s*grid-template-columns: 280px minmax\(0, 1fr\) minmax\(0, 1fr\);/);
   });
 });

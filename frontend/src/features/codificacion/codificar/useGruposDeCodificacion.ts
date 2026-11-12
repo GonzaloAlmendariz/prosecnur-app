@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiCodifGrupos, apiCodifRespuestas, type Grupo, type RespuestaUnica } from "../../../api/client";
 import { cleanCodificacionLabel } from "../codificacionLabels";
 import { podarCasosSugeridos } from "../sugerenciasModulo";
+import { alinearClavesConRespuestas, idsUnicos } from "./clavesDeGrupo";
 import { apilarPaso, deshacerPaso, pasoEntre, type PasoDeHistorial } from "./historialAsignaciones";
 
 export type EstadoDeGuardado = "idle" | "dirty" | "saving" | "saved" | "error";
@@ -65,7 +66,8 @@ export function useGruposDeCodificacion(parent: string, anunciar: (mensaje: stri
         const r = await apiCodifRespuestas(parent);
         if (!vivo) return;
         saltarGuardado.current = true;
-        const unidos = unirConOpciones(r.grupos ?? [], r.opciones_existentes ?? []);
+        // Las claves guardadas se comparan con la lista por su forma normalizada, como lo hace el motor (clavesDeGrupo.ts).
+        const unidos = alinearClavesConRespuestas(idsUnicos(unirConOpciones(r.grupos ?? [], r.opciones_existentes ?? [])), r.respuestas);
         actuales.current = unidos;
         setGrupos(unidos);
         pila.current = [];

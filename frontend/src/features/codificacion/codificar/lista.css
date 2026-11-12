@@ -61,7 +61,7 @@
    un tercio del ancho; si los códigos no caben a su lado, parten en renglones dentro de su columna. */
 .pulso-cc-fila.pulso-cv2-resp-row {
   display: grid;
-  grid-template-columns: var(--pulso-space-4) minmax(min(10rem, 35%), 1fr) minmax(0, max-content) auto;
+  grid-template-columns: var(--pulso-space-5) minmax(min(10rem, 35%), 1fr) minmax(0, max-content) auto;
   column-gap: var(--pulso-space-2);
   row-gap: var(--pulso-space-1);
   align-items: center;
@@ -91,18 +91,9 @@
   opacity: 0.42;
 }
 
+/* La casilla de la fila (prototipo `pp-check`); su forma es la de la tabla (`.pulso-ct-casilla`). */
 .pulso-cc-fila-asa {
-  display: grid;
-  place-items: center;
-  color: var(--pulso-text-faint);
-  opacity: 0.45;
-  cursor: grab;
-}
-
-.pulso-cc-fila:hover .pulso-cc-fila-asa,
-.pulso-cc-fila[data-seleccionada] .pulso-cc-fila-asa {
-  color: var(--cc-acento);
-  opacity: 1;
+  justify-self: center;
 }
 
 /* El texto de la respuesta se lee entero: parte en renglones, no se corta. */
@@ -122,7 +113,7 @@
   font-size: var(--pulso-type-body-size);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   text-align: start;
   white-space: normal;
   transform: none;
@@ -146,9 +137,17 @@
   align-self: center;
 }
 
+/* El primer renglón mide lo mismo con o sin código (C3, `capacity-drift` en codificacion/respuestas): el
+   texto ocupa al menos el alto del chip de un código y se centra en él. */
 .pulso-cc-fila-boton {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: var(--pulso-space-1);
   grid-column: 2;
   grid-row: 1;
+  min-block-size: var(--pulso-control-height-sm);
 }
 
 .pulso-cc-fila-codigos {
@@ -190,10 +189,10 @@
 }
 
 /* Con segundo renglón, los dos van pegados y la fila recorta su aire: la lista sigue mostrando filas. */
+/* Con segundo renglón el relleno es el mismo que sin él (C3: el interior sin usar no cambia entre filas). */
 .pulso-cc-fila.pulso-cv2-resp-row:has(> .pulso-cc-fila-sugerencia),
 .pulso-cc-fila.pulso-cv2-resp-row:has(> .pulso-cc-fila-variantes) {
   row-gap: 0;
-  padding-block: 3px;
 }
 
 .pulso-cc-fila-sugerencia .pulso-cv2-modsug {

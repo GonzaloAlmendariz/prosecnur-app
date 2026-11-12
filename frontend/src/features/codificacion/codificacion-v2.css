@@ -427,7 +427,10 @@ button.pulso-ghost-nav:disabled {
 .pulso-codificacion-frame .pulso-codificacion-panel-body {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* Con ancho, la mesa cabe y cada contenedor desplaza lo suyo; hasta 1100 de ventana la mesa del kit
+     pasa a menos columnas y es la pestaña la que se desplaza (MesaDePestana). */
+  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 0;
 }
 

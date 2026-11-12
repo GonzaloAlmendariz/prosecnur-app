@@ -10,6 +10,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Grupo, RespuestasResponse } from "../../../api/codificacion";
 import { useVistaCodificar } from "./vistaCodificarStore";
+import { useFiltroRespuestas } from "../codificar/filtroRespuestasStore";
+import type { MarcoDeCodificar } from "../codificar/marcoDeCodificar";
 
 const api = vi.hoisted(() => ({ respuestas: vi.fn(), grupos: vi.fn() }));
 vi.mock("../../../api/client", async (importOriginal) => ({
@@ -19,6 +21,14 @@ vi.mock("../../../api/client", async (importOriginal) => ({
 }));
 
 const { RespuestasCodificador } = await import("../RespuestasCodificador");
+
+/** El marco de la pestaña reducido a lo que la mesa le pasa: sus acciones (con el conmutador) y sus columnas. */
+const marco: MarcoDeCodificar = ({ acciones, columnas }) => (
+  <div>
+    <div className="prueba-acciones">{acciones}</div>
+    {columnas}
+  </div>
+);
 
 function carga(tipo: string, otros: RespuestasResponse["sm_otros"]): RespuestasResponse {
   return {
@@ -47,6 +57,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers();
   useVistaCodificar.setState(useVistaCodificar.getInitialState());
+  useFiltroRespuestas.setState({ filtro: "todas" });
   api.respuestas.mockReset();
   api.grupos.mockReset().mockResolvedValue({ ok: true });
   host = document.createElement("div");
@@ -63,7 +74,7 @@ afterEach(() => {
 async function montar(tipo: string, otros: RespuestasResponse["sm_otros"] = null, parent = "p3") {
   api.respuestas.mockResolvedValue(carga(tipo, otros));
   await act(async () => {
-    root.render(<RespuestasCodificador key={parent} parent={parent} />);
+    root.render(<RespuestasCodificador key={parent} parent={parent} marco={marco} cabeceraDePregunta={() => null} />);
   });
 }
 
@@ -110,18 +121,18 @@ describe("RespuestasCodificador: conmutador de vista", () => {
     expect(radio("Tarjetas").getAttribute("aria-checked")).toBe("true");
     expect(tabla()).toBeNull();
     expect(host.querySelectorAll(".pulso-cv2-resp-row")).toHaveLength(2);
-    expect(host.querySelector(".pulso-cv2-split")?.classList.contains("pulso-ct-split")).toBe(false);
+    expect(host.querySelector('[role="region"][aria-label="Códigos"]')).not.toBeNull();
     expect(host.querySelector("[data-audit-ready]")?.getAttribute("data-audit-ready")).toBe("codificacion-codificar");
   });
 
-  test("Tabla cambia la lista por la tabla y deja el libro de grupos a la derecha", async () => {
+  test("Tabla cambia la lista por la tabla y deja el libro de códigos a la derecha", async () => {
     await montar("select_one");
     act(() => radio("Tabla").click());
     expect(radio("Tabla").getAttribute("aria-checked")).toBe("true");
     expect(tabla()).not.toBeNull();
     expect(host.querySelectorAll(".pulso-cv2-resp-row")).toHaveLength(0);
-    expect(host.querySelector(".pulso-cv2-split")?.classList.contains("pulso-ct-split")).toBe(true);
-    expect(host.querySelectorAll(".pulso-cv2-grupo")).toHaveLength(2);
+    expect(host.querySelector('[role="region"][aria-label="Libro de códigos"]')).not.toBeNull();
+    expect(host.querySelectorAll(".pulso-ct-libro-fila")).toHaveLength(2);
     expect(host.querySelector("[data-audit-ready]")?.getAttribute("data-audit-ready")).toBe("codificacion-codificar");
   });
 
@@ -212,5 +223,46 @@ describe("RespuestasCodificador: codificar en la tabla", () => {
     expect(await guardado()).toEqual({ "1": [], "2": [], "3": ["menos colas"] });
     const nuevo = (api.grupos.mock.calls[0][1] as Grupo[]).find((g) => g.codigo === "3");
     expect(nuevo).toMatchObject({ etiqueta: "Limpieza", origen: "nuevo" });
+  });
+});
+
+describe("RespuestasCodificador: la tabla como el prototipo", () => {
+  const conParecidas = (): RespuestasResponse => ({
+    ...carga("select_one", null),
+    respuestas: [
+      { texto_normalizado: "iglesia catolica", texto: "Iglesia catolica", variantes: 1, frecuencia: 4, uuids: [] },
+      { texto_normalizado: "mercado", texto: "Mercado", variantes: 1, frecuencia: 3, uuids: [] },
+      { texto_normalizado: "iglesia catolicas", texto: "Iglesia catolicas", variantes: 1, frecuencia: 1, uuids: [] },
+    ],
+  });
+
+  test("cada fila tiene su casilla y la cabecera la de elegir todas; elegir abre la barra de selección", async () => {
+    api.respuestas.mockResolvedValue(conParecidas());
+    await act(async () => {
+      root.render(<RespuestasCodificador parent="p3" marco={marco} cabeceraDePregunta={() => null} />);
+    });
+    act(() => radio("Tabla").click());
+    const casillas = Array.from(host.querySelectorAll<HTMLButtonElement>(".pulso-ct-fila .pulso-ct-casilla"));
+    expect(casillas).toHaveLength(3);
+    expect(host.querySelector('.pulso-ct-cab-fila .pulso-ct-casilla')?.getAttribute("aria-label")).toBe("Elegir todas las respuestas a la vista");
+    act(() => casillas[0].click());
+    act(() => casillas[1].click());
+    expect(host.querySelectorAll(".pulso-ct-fila[data-elegida]")).toHaveLength(2);
+    expect(host.querySelector('[role="toolbar"][aria-label="Respuestas seleccionadas"]')).not.toBeNull();
+  });
+
+  test("Agrupar parecidas junta las variantes de escritura en una fila y lo asignado llega a todas", async () => {
+    api.respuestas.mockResolvedValue(conParecidas());
+    await act(async () => {
+      root.render(<RespuestasCodificador parent="p3" marco={marco} cabeceraDePregunta={() => null} />);
+    });
+    act(() => radio("Tabla").click());
+    act(() => host.querySelector<HTMLButtonElement>('button[role="switch"][aria-label="Agrupar parecidas"]')?.click());
+    const textos = Array.from(host.querySelectorAll(".pulso-ct-fila .pulso-ct-texto")).map((e) => e.textContent);
+    expect(textos).toEqual(["Iglesia catolica", "Mercado"]);
+    expect(host.querySelector(".pulso-ct-miembros")?.textContent).toBe("Iglesia catolicas");
+    escribir("2");
+    tecla("Enter");
+    expect(await guardado()).toEqual({ "1": [], "2": ["iglesia catolica", "iglesia catolicas"] });
   });
 });

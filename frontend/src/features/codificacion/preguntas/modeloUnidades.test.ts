@@ -3,7 +3,9 @@ import {
   admiteEmparejar,
   admiteIncluir,
   armarUnidades,
+  cifrasDePreguntas,
   cifrasDeUnidad,
+  resultanteDeUnidad,
   contarFiltros,
   admiteCambiarTexto,
   destinoDeArrastre,
@@ -28,6 +30,8 @@ import {
 import { FORMULARIO, pregunta } from "./unidadesDePrueba";
 
 const unidades = armarUnidades(FORMULARIO);
+// Sin incluir: p10_otro y p11. D1 está incluida pero le falta declarar su opción "Otros".
+const POR_DECIDIR = ["D1", "p10_otro", "p11"];
 const una = (id: string): Unidad => {
   const u = unidades.find((x) => x.id === id);
   if (!u) throw new Error(`sin unidad ${id}`);
@@ -170,8 +174,8 @@ describe("quién recibe los códigos por defecto", () => {
 describe("filtros", () => {
   it("cada filtro cuenta exactamente las filas que deja ver", () => {
     const conteos = contarFiltros(unidades);
-    expect(conteos).toEqual({ "con-texto": 6, "por-codificar": 2, codificadas: 1, todas: 7 });
-    const filtros: FiltroPreguntas[] = ["con-texto", "por-codificar", "codificadas", "todas"];
+    expect(conteos).toEqual({ "con-texto": 6, "por-decidir": POR_DECIDIR.length, "cerradas-otro": 2, todas: 7 });
+    const filtros: FiltroPreguntas[] = ["con-texto", "por-decidir", "cerradas-otro", "todas"];
     for (const filtro of filtros) {
       const filas = seccionesVisibles(unidades, filtro, "").flatMap((s) => s.unidades);
       expect(filas.length, filtro).toBe(conteos[filtro]);
@@ -200,14 +204,18 @@ describe("filtros", () => {
     const soloCerradas = contarFiltros(armarUnidades([pregunta("p1", "select_one"), pregunta("p2", "select_multiple", { n_respuestas: 9, n_unicas: 4 })]));
     expect(soloCerradas["con-texto"]).toBe(0);
     expect(filtroVigente("con-texto", soloCerradas)).toBe("todas");
-    expect(filtroVigente("por-codificar", soloCerradas)).toBe("por-codificar");
+    expect(filtroVigente("por-decidir", soloCerradas)).toBe("por-decidir");
     expect(filtroVigente("con-texto", contarFiltros(unidades))).toBe("con-texto");
     expect(filtroVigente("con-texto", contarFiltros([]))).toBe("con-texto");
   });
 
-  it("sin decidir son las que tienen una decisión abierta, no todas las marcadas", () => {
-    expect(unidades.filter((u) => unidadEnFiltro(u, "por-codificar")).map((u) => u.id)).toEqual(["D1", "p9"]);
-    expect(unidadEnFiltro(una("p3"), "por-codificar")).toBe(false);
+  it("por decidir son las que no se incluyeron ni se descartaron, o a las que les falta declarar algo", () => {
+    expect(unidades.filter((u) => unidadEnFiltro(u, "por-decidir")).map((u) => u.id)).toEqual(POR_DECIDIR);
+    // Incluida y sin nada por declarar: ya está decidida aunque falte codificarla.
+    expect(unidadEnFiltro(una("p9"), "por-decidir")).toBe(false);
+    expect(unidadEnFiltro(una("p3"), "por-decidir")).toBe(false);
+    // Las cerradas con su "Otro": las dos parejas.
+    expect(unidades.filter((u) => unidadEnFiltro(u, "cerradas-otro")).map((u) => u.id)).toEqual(["p3", "D1"]);
   });
 
   it("la búsqueda mira el código, la etiqueta, la sección y la columna de texto de la pareja", () => {
@@ -221,7 +229,7 @@ describe("filtros", () => {
 
   it("las secciones salen en el orden del formulario y solo las que tienen filas", () => {
     expect(seccionesVisibles(unidades, "todas", "").map((s) => s.rotulo)).toEqual(["Datos generales", "Situación laboral"]);
-    expect(seccionesVisibles(unidades, "codificadas", "").map((s) => s.rotulo)).toEqual(["Datos generales"]);
+    expect(seccionesVisibles(unidades, "cerradas-otro", "").map((s) => s.rotulo)).toEqual(["Datos generales"]);
   });
 });
 
@@ -244,7 +252,7 @@ describe("estado de la unidad", () => {
       pregunta("reason_edp_other", "text", { col_efectiva: "reason_edp_other", n_respuestas: 72, n_unicas: 67 }),
     ])[0];
     expect(estadoDeUnidad(pareja)?.nota).toBe("27 sin asignar");
-    expect(cifrasDeUnidad(pareja)).toBe("72 respuestas, 67 únicas");
+    expect(cifrasDeUnidad(pareja)).toBe("72 respuestas, 67 distintas");
   });
 
   it("si la columna emparejada no es de ninguna pregunta y la cerrada no la lee, no se da cifra", () => {
@@ -258,7 +266,7 @@ describe("estado de la unidad", () => {
         pareja: { child_col: "p5_otro", modo_so: "hijo", dummy_col: "" },
       }),
     ])[0];
-    expect(cifrasDeUnidad(aparte)).toBe("9 respuestas, 7 únicas");
+    expect(cifrasDeUnidad(aparte)).toBe("9 respuestas, 7 distintas");
     expect(estadoDeUnidad(aparte)?.nota).toBe("5 sin asignar");
   });
 
@@ -308,8 +316,8 @@ describe("estado de la unidad", () => {
   });
 
   it("las cifras concuerdan con el número y faltan cuando no hay respuestas", () => {
-    expect(cifrasDeUnidad(una("p9"))).toBe("142 respuestas, 97 únicas");
-    expect(cifrasDeUnidad(armarUnidades([pregunta("p1", "text", { n_respuestas: 1, n_unicas: 1 })])[0])).toBe("1 respuesta, 1 única");
+    expect(cifrasDeUnidad(una("p9"))).toBe("142 respuestas, 97 distintas");
+    expect(cifrasDeUnidad(armarUnidades([pregunta("p1", "text", { n_respuestas: 1, n_unicas: 1 })])[0])).toBe("1 respuesta, 1 distinta");
     expect(cifrasDeUnidad(una("p10"))).toBeNull();
   });
 });
@@ -398,5 +406,24 @@ describe("presentación", () => {
     expect(papelesDePareja(pregunta("p3", "select_one", { modo_so: "hijo" }))).toEqual({ recibe: "Queda como está", aporta: "Se codifica como texto aparte" });
     expect(papelesDePareja(pregunta("D1", "select_multiple"))).toEqual({ recibe: "Recibe los códigos", aporta: "Aporta las respuestas" });
     expect(papelesDePareja(pregunta("p9", "text"))).toEqual({ recibe: "Recibe los códigos", aporta: "Aporta las respuestas" });
+  });
+});
+
+describe("anillo, tipo que sale y cifras de la cabecera (pasada de fidelidad)", () => {
+  it("el tipo que sale: la pareja lo hereda; la abierta sin códigos está por definir; con códigos no se adivina", () => {
+    expect(resultanteDeUnidad(una("p3"))).toEqual({ tipo: "unica", rotulo: "Única", leyenda: "Igual que p3" });
+    expect(resultanteDeUnidad(una("D1"))).toEqual({ tipo: "multiple", rotulo: "Múltiple", leyenda: "Igual que D1" });
+    expect(resultanteDeUnidad(una("p10_otro"))).toEqual({ tipo: null, rotulo: "Por definir", leyenda: "Se define al codificar" });
+    expect(resultanteDeUnidad(una("p9"))).toBeNull();
+    expect(resultanteDeUnidad(una("p10"))).toBeNull();
+  });
+
+  it("las cifras de la cabecera cuentan por camino sobre las unidades con texto", () => {
+    const c = cifrasDePreguntas(unidades);
+    // p30 está desactivada: no cuenta.
+    expect(c.conTexto).toBe(5);
+    expect(c.seCodifican).toBe(3);
+    expect(c.noSeCodifican).toBe(0);
+    expect(c.porDecidir).toBe(contarFiltros(unidades)["por-decidir"]);
   });
 });

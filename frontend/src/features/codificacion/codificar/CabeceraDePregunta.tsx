@@ -2,14 +2,16 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { FichaPregunta, type TipoDePregunta } from "../../../components/procesamiento/FichaPregunta";
 import { sinEnfasis } from "../../../lib/enfasisTexto";
 import { TextoConEnfasis } from "../../../lib/TextoConEnfasis";
-import { ChevronLeft, ChevronRight } from "../../../vendor/lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "../../../vendor/lucide-react";
+import { ROTULO_DE_TIPO, type TipoResultante } from "./tipoResultante";
 
 export type CabeceraDePreguntaProps = {
-  /** Nombre de la variable en el formulario. */
+  /** La columna que se codifica: el texto de un "Otro" o la pregunta abierta. */
   codigo: string;
-  tipo: TipoDePregunta;
-  /** Cómo se codifica: "Texto abierto", "Opción única, texto aparte". */
-  rotuloDeTipo: string;
+  /** El tipo de esa columna en el formulario. */
+  tipoOrigen: TipoDePregunta;
+  /** El tipo de la columna que sale de codificarla y de dónde sale. */
+  resultante: TipoResultante;
   /** La pregunta, con el énfasis del formulario. */
   etiqueta: string;
   /** Sección del formulario a la que pertenece. */
@@ -22,17 +24,30 @@ export type CabeceraDePreguntaProps = {
 };
 
 /**
- * La identidad de la pregunta en una línea: su variable con el color de su tipo, cómo se codifica, la
- * pregunta y, al final, el paso a la anterior y a la siguiente. La pregunta completa va en el `title`.
+ * La pregunta que se codifica (`pp-preg-cab` del prototipo): su columna, la pregunta y, debajo, el tipo de
+ * la columna, la flecha y el tipo que sale con su razón ("Igual que su pregunta D1"). Al final, el paso a
+ * la anterior y a la siguiente.
  */
-export function CabeceraDePregunta({ codigo, tipo, rotuloDeTipo, etiqueta, seccion, anterior, siguiente, onAnterior, onSiguiente }: CabeceraDePreguntaProps) {
+export function CabeceraDePregunta({ codigo, tipoOrigen, resultante, etiqueta, seccion, anterior, siguiente, onAnterior, onSiguiente }: CabeceraDePreguntaProps) {
   const plano = sinEnfasis(etiqueta);
   return (
     <header className="pulso-cc-pregunta">
-      <FichaPregunta tipo={tipo} codigo={codigo} etiqueta={rotuloDeTipo} className="pulso-cc-pregunta-ficha" />
-      <h2 className="pulso-cc-pregunta-titulo" title={seccion ? `${plano} (${seccion})` : plano}>
-        <TextoConEnfasis texto={etiqueta} />
-      </h2>
+      <code className="pulso-cc-pregunta-codigo">{codigo}</code>
+      <div className="pulso-cc-pregunta-texto">
+        <h2 className="pulso-cc-pregunta-titulo" title={seccion ? `${plano} (${seccion})` : plano}>
+          <TextoConEnfasis texto={etiqueta} />
+        </h2>
+        <span className="pulso-cc-pregunta-tipo">
+          <FichaPregunta tipo={tipoOrigen} etiqueta={ROTULO_DE_TIPO[tipoOrigen]} />
+          <ArrowRight size={12} aria-label="sale como" />
+          {resultante.tipo ? (
+            <FichaPregunta tipo={resultante.tipo} etiqueta={resultante.rotulo} />
+          ) : (
+            <span className="pulso-cc-por-definir">{resultante.rotulo}</span>
+          )}
+          <span className="pulso-cc-pregunta-leyenda">{resultante.leyenda}</span>
+        </span>
+      </div>
       <span className="pulso-cc-pregunta-paso">
         <PulsoButton
           variant="icon"

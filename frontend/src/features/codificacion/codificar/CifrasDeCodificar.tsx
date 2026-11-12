@@ -1,32 +1,18 @@
-import { BarraDeAvance } from "../../../components/BarraDeAvance";
 import { formatoConteo } from "../../../lib/formatoNumero";
-import type { AvanceRespuestas } from "../avanceRespuestas";
 import type { CifraDeCasos } from "./modeloDeCodificar";
 
 export type CifrasDeCodificarProps = {
-  /** Respuestas de la lista con código, sobre las de la lista (`avanceRespuestas.ts`). */
-  avance: AvanceRespuestas;
-  /** Solo en una pregunta múltiple con "Otros, especifique": las mismas cuentas en casos. */
+  /** Las cuentas en casos (personas): con código y con texto (`cifrasDeCasos`). */
   casos: readonly CifraDeCasos[];
 };
 
 /**
- * Las cifras de la pregunta en una línea, cada una una sola vez: el avance en respuestas distintas y, en
- * una múltiple con "Otros", los casos con código sobre los que marcaron la opción y los que escribieron.
- * Las pendientes van en el filtro "Por codificar" y la cantidad de códigos en la cabecera de su panel.
+ * Las cifras en casos de la pregunta, junto a la barra de avance: cuántas personas tienen código y cuántas
+ * escribieron algo. El avance en respuestas va en la cabecera de la pestaña; aquí no se repite.
  */
-export function CifrasDeCodificar({ avance, casos }: CifrasDeCodificarProps) {
+export function CifrasDeCodificar({ casos }: CifrasDeCodificarProps) {
   return (
     <div className="pulso-cc-cifras" data-qa-geometry-group="codificacion/cifras" data-qa-geometry-contract="intrinsic">
-      <span className="pulso-cc-cifra pulso-cc-cifra--avance" data-qa-geometry-member="">
-        <span>
-          <strong>
-            {formatoConteo(avance.codificadas)} de {formatoConteo(avance.total)}
-          </strong>{" "}
-          {avance.total === 1 ? "respuesta con código" : "respuestas con código"}
-        </span>
-        <BarraDeAvance valor={avance.codificadas} total={avance.total} etiqueta="Respuestas con código" />
-      </span>
       {casos.map((cifra) => {
         // Con base, el plural lo decide la base: "1 de 2 casos con código".
         const cuenta = cifra.de ?? cifra.valor;

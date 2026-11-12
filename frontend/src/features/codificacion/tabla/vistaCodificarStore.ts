@@ -12,13 +12,18 @@ export type VistaCodificar = "tarjetas" | "tabla";
 type EstadoVistaCodificar = {
   vista: VistaCodificar;
   orden: OrdenTabla;
+  /** "Agrupar parecidas" de la tabla (`agruparParecidas`). */
+  agrupar: boolean;
   elegirVista: (vista: VistaCodificar) => void;
   elegirOrden: (orden: OrdenTabla) => void;
+  alternarAgrupar: () => void;
 };
 
 export const useVistaCodificar = create<EstadoVistaCodificar>((set) => ({
   vista: "tarjetas",
   orden: "frecuencia",
+  agrupar: false,
   elegirVista: (vista) => set({ vista }),
   elegirOrden: (orden) => set({ orden }),
+  alternarAgrupar: () => set((s) => ({ agrupar: !s.agrupar })),
 }));

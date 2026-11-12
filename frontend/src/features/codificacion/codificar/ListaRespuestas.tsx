@@ -265,6 +265,9 @@ export function ListaRespuestas({
       >
         <ul
           className="pulso-cc-filas"
+          // C1: las filas de la lista, de alto propio (una respuesta larga parte en renglones).
+          data-qa-geometry-group="codificacion/respuestas-filas"
+          data-qa-geometry-contract="intrinsic"
           aria-label={`Respuestas de ${pregunta}`}
           aria-describedby={ayudaId}
           onKeyDown={alTeclear}

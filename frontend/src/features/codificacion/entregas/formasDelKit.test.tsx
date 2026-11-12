@@ -228,7 +228,9 @@ describe("bloque con job: Aplicar a la base", () => {
     const fallo = contenedor("bloque");
     expect(fallo?.dataset.entregableFase).toBe("fallo");
     expect(fallo?.textContent).toContain("No se pudo aplicar la codificación");
-    expect(fallo?.textContent).toContain("El worker se cerró.");
+    // El texto del motor no llega crudo: la causa va en castellano y dice que la base no cambió.
+    expect(fallo?.textContent).not.toContain("El worker se cerró.");
+    expect(fallo?.textContent).toContain("La base no cambió.");
     expect(host.querySelectorAll("[role='alert']")).toHaveLength(1);
   });
 });

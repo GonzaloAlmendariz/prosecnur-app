@@ -123,7 +123,7 @@ export const RESPUESTAS_A_LA_VISTA = 3;
 // ---------- Cifras de la cabecera ----------
 
 export type CifraDeCasos = {
-  id: "con-codigo" | "con-texto";
+  id: string;
   valor: number;
   /** La base de la cifra cuando se conoce: cuántas personas marcaron "Otros". */
   de?: number;

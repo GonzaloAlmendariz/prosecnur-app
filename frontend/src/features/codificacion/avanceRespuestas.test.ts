@@ -42,10 +42,12 @@ describe("la pantalla de Codificar usa esa única cuenta", () => {
   const cifras = leer("./codificar/CifrasDeCodificar.tsx");
 
   test("el contador no vuelve a contar todas las claves asignadas contra la lista", () => {
-    expect(mesa).toMatch(/avanceDeRespuestas\(respuestas, grupos\)/);
+    expect(mesa).toMatch(/avanceDeCodificacion\(respuestas \?\? SIN_RESPUESTAS, grupos\)/);
     expect(mesa).not.toMatch(/asignaciones\.size/);
-    expect(cifras).toMatch(/\{formatoConteo\(avance\.codificadas\)\} de \{formatoConteo\(avance\.total\)\}/);
-    expect(cifras).toMatch(/"respuestas con código"/);
+    // La cifra va en la cabecera de la pestaña, en respuestas (casos): número y base de la misma cuenta.
+    expect(mesa).toMatch(/valor: formatoConteo\(avanceCod\.casosConCodigo\),\s*base: formatoConteo\(avanceCod\.casos\),\s*rotulo: "respuestas con código"/);
+    // Junto a la barra solo van los casos: la cifra en respuestas no se repite.
+    expect(cifras).not.toMatch(/respuestas con código/);
   });
 
   test("en una múltiple la cifra en casos dice que cuenta casos, no respuestas", () => {

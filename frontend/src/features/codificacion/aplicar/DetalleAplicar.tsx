@@ -1,4 +1,4 @@
-// El detalle de la pregunta elegida: su ficha, el campo que se crea y la tabla de
+// El detalle de la pregunta elegida: su ficha, la columna de hoy y lo que se agrega, y la tabla de
 // sus códigos (código, categoría, origen y respuestas). Es el desglose por código:
 // los totales de la pregunta están en su fila de la lista y aquí no se repiten.
 //
@@ -11,37 +11,85 @@
 // tabla es la dueña del scroll de este panel y su cabecera queda fija; como no
 // tiene controles dentro, recibe el foco para desplazarla con el teclado.
 
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+// El relleno de las barras usa la secuencia de datos (--pulso-data-seq-*), que vive en tokens-datos.css y no
+// es global: sin este import las barras quedan transparentes.
+import "../../../app/tokens-datos.css";
+import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
+import { RespuestasDeAplicar } from "./RespuestasDeAplicar";
 
 import type { PlanPregunta } from "../../../api/dashboard";
 import { EstadoVacio } from "../../../components/EstadoVacio";
-import { Tags } from "../../../vendor/lucide-react";
+import { ArrowRight, Tags } from "../../../vendor/lucide-react";
 import { FichaDePlan } from "./FichaDePlan";
-import { codigosDeDetalle, etiquetaDePregunta, ROTULO_DE_ORIGEN, tipoDeFicha } from "./modeloAplicar";
+import { cambioDeLaBase, codigosDeDetalle, etiquetaDePregunta, ROTULO_DE_ORIGEN, tipoDeFicha } from "./modeloAplicar";
 import { PanelAplicar } from "./PanelAplicar";
 import { NombreDeCampo } from "./NombreDeCampo";
 
-export function DetalleAplicar({ id, pregunta }: { id: string; pregunta: PlanPregunta }) {
+const VISTAS_DEL_DETALLE = [
+  { id: "codigos", rotulo: "Códigos" },
+  { id: "respuestas", rotulo: "Respuestas" },
+] as const;
+
+export function DetalleAplicar({ id, pregunta, vistaPedida }: {
+  id: string;
+  pregunta: PlanPregunta;
+  /** "Ver qué cambia" de la franja pide la vista de Respuestas; cada pedido es un número nuevo. */
+  vistaPedida?: number;
+}) {
   const codigos = codigosDeDetalle(pregunta);
-  const campo = (pregunta.nueva_variable ?? "").trim();
+  const cambio = cambioDeLaBase(pregunta);
+  // Códigos o Respuestas (prototipo). Una agrupación de categorías no tiene textos que mostrar.
+  const [vista, setVista] = useState<"codigos" | "respuestas">("codigos");
+  useEffect(() => {
+    if (vistaPedida) setVista("respuestas");
+  }, [vistaPedida]);
+  const conRespuestas = pregunta.tipo !== "agrupacion";
+  const enRespuestas = conRespuestas && vista === "respuestas";
   return (
     <PanelAplicar
       id={id}
       variante="detalle"
-      titulo="Códigos de la pregunta"
+      titulo={etiquetaDePregunta(pregunta)}
       icono={<Tags size={16} />}
       aria-label={`Códigos de ${pregunta.parent}`}
+      acciones={conRespuestas ? (
+        <GlidingRadioGroup
+          value={vista}
+          options={VISTAS_DEL_DETALLE}
+          getOptionValue={(o) => o.id}
+          onValueChange={setVista}
+          className="pulso-ct-vista"
+          aria-label="Qué se ve de la pregunta"
+        >
+          {(o) => <span>{o.rotulo}</span>}
+        </GlidingRadioGroup>
+      ) : undefined}
     >
       <div className="pulso-aplicar-detalle-cab">
         <FichaDePlan tipo={tipoDeFicha(pregunta.tipo)} codigo={pregunta.parent} etiqueta={etiquetaDePregunta(pregunta)} />
-        {campo ? (
-          <p className="pulso-aplicar-detalle-campo">
-            <span className="pulso-aplicar-rotulo">{pregunta.tipo === "select_multiple" ? "Campos nuevos" : "Campo nuevo"}</span>
-            <NombreDeCampo className="pulso-aplicar-campo" nombre={campo} />
-          </p>
+        {cambio ? (
+          // Antes y después (`pp-cambio` del prototipo): la columna que la base trae hoy y lo que se agrega.
+          // C1: los dos lados son pares (antes y después) y comparten el alto.
+          <div className="pulso-aplicar-cambio" role="group" aria-label="Qué cambia en la base" data-qa-geometry-group="codificacion/aplicar-cambio" data-qa-geometry-contract="equal">
+            <div className="pulso-aplicar-cambio-lado" data-qa-geometry-member="">
+              <small>Hoy en la base</small>
+              <code title={cambio.hoy}>{cambio.hoy}</code>
+              <span>{cambio.hoyTipo}</span>
+            </div>
+            <ArrowRight size={18} aria-hidden="true" className="pulso-aplicar-cambio-flecha" />
+            <div className="pulso-aplicar-cambio-lado" data-agrega="" data-qa-geometry-member="">
+              <small>Se agrega</small>
+              <NombreDeCampo className="pulso-aplicar-campo" nombre={cambio.agrega} titulo={cambio.agregaTitulo} />
+              {/* Cuántos códigos lleva ya lo dicen su fila y la tabla de abajo: aquí no se repite. */}
+              <span>{cambio.agregaTipo}</span>
+            </div>
+          </div>
         ) : null}
       </div>
-      {codigos.length > 0 ? (
+      {enRespuestas ? (
+        <RespuestasDeAplicar parent={pregunta.parent} />
+      ) : codigos.length > 0 ? (
         <div
           className="pulso-aplicar-codigos"
           role="table"
