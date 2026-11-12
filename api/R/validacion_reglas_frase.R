@@ -526,7 +526,9 @@
   grupo_sin_registros = "El grupo repetido no tiene registros",
   tabla_ausente = "Falta la tabla del grupo repetido",
   error_al_evaluar = "La regla falló al evaluarse",
-  regla_no_traducible = "La regla propia no se puede evaluar"
+  regla_no_traducible = "La regla propia no se puede evaluar",
+  sin_auditar = "Creada después de la última auditoría",
+  editada_tras_auditoria = "Cambió después de la última auditoría"
 )
 
 .vrf_causa <- function(codigo) {

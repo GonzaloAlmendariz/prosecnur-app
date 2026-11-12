@@ -757,3 +757,31 @@ test_that("la caché ve un cambio de datos después de la fila 50 en la misma ba
   validacion_scope_set(sid, "Personas", "evaluacion", ev)
   expect_identical(.m3_regla(validacion_reglas_catalogo(sid, "Personas"), "salto", "debe")$ultima_auditoria$n_base, 13L)
 })
+
+test_that("una regla creada o cambiada después de la auditoría sale sin evaluar, con su causa", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  rango <- function(max) .m1_regla("RC_001", "rango_num", list("edad"), list(min = 18, max = max))
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(rango(65)))
+  .m2_auditar(sid, "Personas")
+  auditada <- validacion_reglas_catalogo(sid, "Personas")
+  expect_identical(auditada$n_sin_evaluar, sum(vapply(auditada$reglas, function(f) !is.na(f$causa_codigo), logical(1))))
+  propia <- function(cat, id) Filter(function(f) identical(f$id_motor, id), cat$reglas)[[1]]
+  expect_identical(propia(auditada, "RC_001")$estado_evaluacion, "evaluada")
+
+  nueva <- .m1_regla("RC_002", "rango_num", list("edad"), list(min = 0, max = 120))
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(rango(65), nueva))
+  con_nueva <- validacion_reglas_catalogo(sid, "Personas")
+  expect_identical(propia(con_nueva, "RC_002")$estado_evaluacion, "sin_evaluar")
+  expect_identical(propia(con_nueva, "RC_002")$causa_codigo, "sin_auditar")
+  expect_identical(propia(con_nueva, "RC_002")$causa, "Creada después de la última auditoría")
+  expect_identical(propia(con_nueva, "RC_001")$estado_evaluacion, "evaluada")
+  expect_identical(con_nueva$n_sin_evaluar, auditada$n_sin_evaluar + 1L)
+
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(rango(70)))
+  editada <- validacion_reglas_catalogo(sid, "Personas")
+  expect_identical(propia(editada, "RC_001")$estado_evaluacion, "sin_evaluar")
+  expect_identical(propia(editada, "RC_001")$causa_codigo, "editada_tras_auditoria")
+  expect_identical(propia(editada, "RC_001")$causa, "Cambió después de la última auditoría")
+})

@@ -441,10 +441,27 @@
                       exclusiones = .validacion_mb_collection_exclusions_for_base(sid, base_eff),
                       compat = validation_profile_for_base(base_eff), sid = sid, base = base_eff)
   sin_base <- character(0); indeterminadas <- character(0)
+  # Reglas agregadas o cambiadas desde la auditoría: su resultado no existe o
+  # es el de otra regla. Sin esto contaban como evaluadas y la cabecera decía
+  # "0 sin evaluar" con reglas que nunca se corrieron.
+  cambios <- tryCatch(validacion_auditoria_estado(sid, base_eff)$cambios, error = function(e) list())
+  agregadas <- .validacion_chr_vec(cambios$agregadas)
+  modificadas <- .validacion_chr_vec(cambios$modificadas)
   for (i in seq_along(filas)) {
     f <- filas[[i]]
     id <- f$id_motor
-    if (is.na(id) || !(id %in% ids_res)) next
+    causa_cambio <- if (is.na(id)) NA_character_ else if (id %in% modificadas) {
+      "editada_tras_auditoria"
+    } else if (id %in% agregadas || !(id %in% ids_res)) "sin_auditar" else NA_character_
+    if (!is.na(causa_cambio)) {
+      if (identical(f$estado_evaluacion, "evaluada") && isTRUE(f$activa)) {
+        filas[[i]]$estado_evaluacion <- "sin_evaluar"
+        filas[[i]]$causa_codigo <- causa_cambio
+        filas[[i]]$causa <- .vrf_causa(causa_cambio)
+      }
+      next
+    }
+    if (is.na(id)) next
     if (id %in% repetidos) {
       avisos[[length(avisos) + 1L]] <- list(codigo = "auditoria_id_repetido",
         texto = sprintf("La regla %s aparece dos veces en la última auditoría: su resultado no se puede leer.", f$nombre),
