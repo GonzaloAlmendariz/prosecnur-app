@@ -209,12 +209,17 @@ describe("Ajuste de Resultados en Acreditación", () => {
     expect(html).not.toContain("Cobertura 50.0%");
   });
 
-  it("fichas por actor con nombre completo accesible; en Actores no se pintan", () => {
+  it("la cabecera es la de Procesamiento: un solo marco con estado y cifras, sin tarjetas ni fichas por actor (2026-11-12)", () => {
     const largo = calculado("adm", "Personal administrativo y de servicios", 120);
     const resultados = acreditacion("resultados", [largo]);
-    expect(resultados).toMatch(/class="cmg-banda-actor-enlace" aria-label="Personal administrativo y de servicios: Calculado, n 234 de 600/);
-    expect(resultados).toContain('title="Personal administrativo y de servicios"');
-    expect(acreditacion("actores", [largo])).not.toContain("cmg-banda-actores");
+    expect(resultados).toContain("pulso-cabecera-pestana");
+    expect(resultados).toMatch(/<h2[^>]*>Resultados<\/h2>/);
+    expect(resultados).toContain("población");
+    expect(resultados).toContain("encuestas");
+    // La banda "Diseño vigente" (tarjetas y fichas con franja) repetía las tablas de abajo con otra geometría.
+    expect(resultados).not.toContain("cmg-banda-actores");
+    expect(resultados).not.toContain("Diseño vigente");
+    expect(acreditacion("actores", [largo])).not.toContain("cmg-banda");
   });
 
   it("ninguna sección se estira al alto disponible", () => {

@@ -2,10 +2,9 @@ import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calc
 import { safeNumber, type ComponentePatch } from "../sharedCore";
 import { AccionCalcular } from "./AccionCalcular";
 import { ActoresAcreditacion } from "./ActoresAcreditacion";
-import { BandaDisenoAcreditacion } from "./BandaDisenoAcreditacion";
 import { estadoMesaAcreditacion } from "./bandaDisenoModelo";
 import { ContextoReporte } from "./ContextoReporte";
-import { EncabezadoSeccion } from "./EncabezadoSeccion";
+import { CabeceraAcreditacion } from "./CabeceraAcreditacion";
 import { FichaEstudio } from "./FichaEstudio";
 import { pestanaPorDefectoActor } from "./modeloPestanas";
 import { PropuestaEscenarios } from "./PropuestaEscenarios";
@@ -69,13 +68,14 @@ export function MesaAcreditacion({
   return (
     <div className="cmv2-desk cmg-mesa" data-seccion={selectedSection}>
       <div className="cmg-cabecera" data-qa-geometry-group="calc-muestra/acreditacion-cabecera" data-qa-geometry-contract="intrinsic">
-        <EncabezadoSeccion
-          modo="acreditacion"
+        <CabeceraAcreditacion
           seccion={selectedSection}
           pestana={pestana || null}
           estado={estado}
+          componentes={estudio.componentes}
+          corridas={corridas}
+          marcos={marcos}
         />
-        <BandaDisenoAcreditacion componentes={estudio.componentes} corridas={corridas} marcos={marcos} seccion={selectedSection} />
       </div>
       <div className="cmv2-university-workbench" data-active-section={selectedSection}>
         {selectedSection === "actores" && (
