@@ -1,6 +1,6 @@
 # Rutas del marco de un público en un estudio por correo o teléfono (barrido,
 # ADR 0143). Router delgado: lee el archivo subido y llama al engine
-# (calc_muestra_marco_publico.R). Sin estado: guardar la receta del marco en el
+# (calc_muestra_marco_publico.R y calc_muestra_segmentos.R). Sin estado: guardar la receta del marco en el
 # estudio entra con el recorrido del marco en Actores.
 
 # Ruta del archivo subido, con los errores de lectura como 400 accionables.
@@ -33,6 +33,48 @@
     if (inherits(e, "api_error")) stop(e)
     stop_api(400, "E_CALC_MUESTRA_EXPLORAR_ARCHIVO", conditionMessage(e))
   })
+}
+
+# Marco de los invitados: aplica las reglas del body si las trae.
+.cm_mp_invitados_df <- function(sid, body) {
+  df <- .cm_mp_leer(.cm_mp_archivo(sid, calc_str(body$file_id, "")), calc_str(body$hoja, ""))
+  reglas <- body$reglas %||% list()
+  if (!length(reglas)) return(df)
+  otros <- .cm_mp_otros(sid, body$otros %||% list())
+  inv <- calc_muestra_marco_invitados(df, calc_str(body$columna_correo, ""), reglas, otros)
+  df[inv$incluidos, , drop = FALSE]
+}
+
+.cm_mp_otros <- function(sid, otros) {
+  lapply(otros, function(o) {
+    otro <- .cm_mp_leer(.cm_mp_archivo(sid, calc_str(o$file_id, "")), calc_str(o$hoja, ""))
+    col <- calc_str(o$columna_correo, "")
+    if (!col %in% names(otro)) {
+      stop_api(400, "E_BAD_REQUEST", sprintf("La columna de correo \"%s\" no está en la base de %s.", col, calc_str(o$publico, "otro público")))
+    }
+    list(publico = calc_str(o$publico, "Otro público"), correos = otro[[col]])
+  })
+}
+
+# Segmentos y cuotas sobre un cruce: grupos y cuotas son opcionales. Con
+# grupos, la cuota se reparte por grupo; sin ellos, por celda del cruce.
+.cm_mp_segmentos <- function(cruce, body) {
+  out <- list(cruce = calc_muestra_cruce_json(cruce))
+  base <- cruce
+  if (length(body$grupos)) {
+    ag <- calc_muestra_segmento_agrupar(cruce, body$grupos)
+    out$agrupado <- ag
+    base <- .cm_seg_cruce(cruce$fila_variable, "", vapply(ag$grupos, `[[`, "", "nombre"), "Total",
+                          vapply(ag$grupos, function(g) as.numeric(g$N), numeric(1)))
+  }
+  if (!is.null(body$cuotas)) {
+    q <- body$cuotas
+    cu <- calc_muestra_cuotas_cruce(base, q$meta, calc_str(q$modo, "celda"), q$minimo %||% 10L)
+    cu$cuotas <- .cm_seg_matriz_json(cu$cuotas, base$filas)
+    cu$esperadas <- .cm_seg_matriz_json(cu$esperadas, base$filas)
+    out$cuotas <- cu
+  }
+  out
 }
 
 mount_calc_muestra_marco_publico <- function(pr) {
@@ -68,16 +110,40 @@ mount_calc_muestra_marco_publico <- function(pr) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
       df <- .cm_mp_leer(.cm_mp_archivo(sid, calc_str(body$file_id, "")), calc_str(body$hoja, ""))
-      otros <- lapply(body$otros %||% list(), function(o) {
-        otro <- .cm_mp_leer(.cm_mp_archivo(sid, calc_str(o$file_id, "")), calc_str(o$hoja, ""))
-        col <- calc_str(o$columna_correo, "")
-        if (!col %in% names(otro)) {
-          stop_api(400, "E_BAD_REQUEST", sprintf("La columna de correo \"%s\" no está en la base de %s.", col, calc_str(o$publico, "otro público")))
-        }
-        list(publico = calc_str(o$publico, "Otro público"), correos = otro[[col]])
-      })
+      otros <- .cm_mp_otros(sid, body$otros %||% list())
       out <- calc_muestra_marco_invitados(df, calc_str(body$columna_correo, ""), body$reglas %||% list(), otros)
       out$incluidos <- NULL
       c(list(ok = TRUE), out)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/cruce
+    # Body: { file_id, hoja?, fila, columna?, reglas?, columna_correo?, otros?,
+    #         grupos?: [{nombre, celdas: [{fila, columna}]}],
+    #         cuotas?: {meta, modo: celda|control|minimo, minimo?} }
+    # Cruce de quienes se invitan por una o dos columnas, con grupos y cuotas.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/cruce",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      df <- .cm_mp_invitados_df(sid, body)
+      cruce <- calc_muestra_segmento_cruce(df, calc_str(body$fila, ""), calc_str(body$columna, ""))
+      c(list(ok = TRUE, invitados = nrow(df)), .cm_mp_segmentos(cruce, body))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/conteos
+    # Body: { file_id, hoja?, columna_variable?, grupos?, cuotas? }
+    # Tabla de conteos del cliente leída como cruce, con grupos y cuotas.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/conteos",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      df <- .cm_mp_leer(.cm_mp_archivo(sid, calc_str(body$file_id, "")), calc_str(body$hoja, ""))
+      lec <- calc_muestra_conteos_leer(df, calc_str(body$columna_variable, ""))
+      c(list(ok = TRUE, categoria = lec$categoria, conteo_columnas = lec$conteo_columnas,
+             calculadas = lec$calculadas, avisos = lec$avisos), .cm_mp_segmentos(lec$cruce, body))
     }))
 }

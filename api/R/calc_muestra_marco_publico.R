@@ -309,7 +309,9 @@ calc_muestra_marco_invitados <- function(df, columna_correo = "", reglas = list(
         stop_api(400, "E_BAD_REQUEST", sprintf("La columna \"%s\" no está en la base.", columna))
       }
       valores <- trimws(as.character(unlist(r$valores %||% list())))
-      fuera <- trimws(as.character(df[[columna]])) %in% valores
+      # Una celda vacía en Excel llega como NA: vale lo mismo que "".
+      x <- trimws(as.character(df[[columna]])); x[is.na(x)] <- ""
+      fuera <- x %in% valores
       dentro <<- dentro & !fuera
       etiqueta <- sprintf("Fuera por regla: %s", paste(valores, collapse = ", "))
     } else if (identical(tipo, "excluir_sin_correo")) {
