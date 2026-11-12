@@ -1,25 +1,32 @@
 {
   "explorar_dos-bases": {
-    "marcado": "e927cc73d901c604fe517bb3ada595cd3e7baee43f6653b4dc38998a7c038668",
-    "pedidos": "439be9e7085b233d1d4908d44d9069e75b43a04fce4866c9731afef949ad683a",
+    "marcado": "951870b545a130602f6505191059a39c130677a73d6f6d3e882e58807c042616",
+    "pedidos": "6a5c037b2bb91ad3dd007cf33e13cc218c1bfd818a12fc3d6f3e53e41224664e",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=estudiantes]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
+  "explorar_nueva-regla-sobre-pregunta": {
+    "marcado": "56f4e13a71790aa93a0e5b3006477055ec7ab3e1c0784fd85889ddc56bbf07d5",
+    "pedidos": "de15d31433b0de8d3d5e502cb8cebbac49388e6fa010a881c22fc662f4a309fb",
+    "guardado": [
+      "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
+    ]
+  },
   "explorar_sin-datos": {
-    "marcado": "10495cdad828b7e91013fa23eadefed68f306a009640837700ef1e2cd98c93e0",
-    "pedidos": "0ee91429b204d8e996f9372d136944f47772661882d0a28212d708f2b78a3a47"
+    "marcado": "cc6b5540ed13a108b85cb1d1ba2bfdb5d31cec9ce8c88aa0c763466a4055b4f4",
+    "pedidos": "d589fb469ac61991eddeae1b5bbc77fb4901f091062477cb625e9133dcde9866"
   },
   "explorar_sin-pestana": {
-    "marcado": "79c5be1b0f1bc3771f04073d222b74d96bb36d74cac24644d0f87c4424bee3ba",
-    "pedidos": "cdd3656c98799f0abe8a318e56d07fe23f8ff86ec2a1911603a31c87a6c806a5",
+    "marcado": "ef1f39d69556d895103e44ffc0683fc181404419b91f3a49494a2cae65b5f3d7",
+    "pedidos": "5202516820cde8f95b3b313248b452f009c5a4bead7b3b8c2543b33c51461b9e",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
   "explorar_una-base": {
-    "marcado": "e927cc73d901c604fe517bb3ada595cd3e7baee43f6653b4dc38998a7c038668",
-    "pedidos": "cdd3656c98799f0abe8a318e56d07fe23f8ff86ec2a1911603a31c87a6c806a5",
+    "marcado": "951870b545a130602f6505191059a39c130677a73d6f6d3e882e58807c042616",
+    "pedidos": "5202516820cde8f95b3b313248b452f009c5a4bead7b3b8c2543b33c51461b9e",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]

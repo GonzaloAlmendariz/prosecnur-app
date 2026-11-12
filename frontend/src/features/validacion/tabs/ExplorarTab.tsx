@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { codigoDeError, esEstadoInicial, vacioSinDatos } from "../estadoEsperado";
 import { AlertTriangle, Compass } from "../../../vendor/lucide-react";
 import {
@@ -30,6 +30,12 @@ import FiltroCascada from "../components/FiltroCascada";
 import CrossBar from "../components/CrossBar";
 import RepeatDimensionBar from "../components/RepeatDimensionBar";
 import BarraLectura from "./explorar/BarraLectura";
+import ConmutadoresDeLectura from "./explorar/ConmutadoresDeLectura";
+import ReglasDeLaPregunta from "./explorar/ReglasDeLaPregunta";
+import { useCatalogoDeExplorar } from "./explorar/useCatalogoDeExplorar";
+import { LECTURA_INICIAL, conmutadoresAplican, type LecturaDeDistribucion } from "./explorar/lecturaDeDistribucion";
+import CabeceraDeTransicion from "../pestanas/CabeceraDeTransicion";
+import { cabeceraDeExplorar } from "../pestanas/cabeceraDeValidacion";
 import CabeceraVariable from "./explorar/CabeceraVariable";
 import Cruce from "./explorar/Cruce";
 import Distribucion from "./explorar/Distribucion";
@@ -53,13 +59,17 @@ import { VacioListo } from "../components/VacioListo";
 // =============================================================================
 // ExplorarTab — Sprint 3
 // =============================================================================
-// Revamp 2026-11-02 (docs/qa/checklist-explorador-variables-2026-11-02.md):
+// Revamp 2026-11-02 (docs/qa/checklist-explorador-variables-2026-11-02.md) y
+// rebanada V5 del plan de fidelidad (cabecera y retoques del prototipo):
+//   - Cabecera de la pestaña: preguntas, casos, cruce y filtros, y la versión
+//     de la base (Cargada / Limpia) como acción (D-F9).
 //   - Izquierda: la lista de variables (E1); al cruzar se pliega en un riel (E12).
-//   - Centro: cabecera (E2), barra de lectura Momento | Filtro | Cruzar por
-//     (E3), la base en una frase (E4), la tira de cifras (E5) y el gráfico por
-//     tipo (E6) o el cruce por par de tipos (E8/E9).
-//   - Derecha: «En el formulario» y «Lo que se ve en los datos» (E10/E11) o,
-//     con una tabla cruzada, «Lo que se aparta del total».
+//   - Centro: cabecera (E2), barra de lectura Cruzar por | Filtros con los
+//     conmutadores Porcentaje / Casos y Gráfico / Tabla (E3), la base en una
+//     frase (E4), la tira de cifras (E5) y el gráfico por tipo (E6) o el cruce
+//     por par de tipos (E8/E9).
+//   - Derecha: "En el formulario", "En los datos" (E10/E11) y "Reglas sobre
+//     esta pregunta" o, con una tabla cruzada, "Lo que se aparta del total".
 // Si el motor aún no manda `dist`, `cruce` o la ficha, cada pieza cae a lo
 // anterior (Plotly, las tarjetas KPI) o no se muestra.
 //
@@ -75,6 +85,8 @@ export default function ExplorarTab({
   const version = useValidacionStore((s) => s.version);
   const prefill = useValidacionStore((s) => s.prefill.explorar);
   const clearPrefill = useValidacionStore((s) => s.clearPrefill);
+  // Una base de grupo repetido no tiene plan propio: sus reglas están en el catálogo de la madre.
+  const catalogo = useCatalogoDeExplorar(repeat?.parentBase ?? baseNombre, version);
 
   const [inv, setInv] = useState<ExploradorVariablesList | null>(null);
   const [selected, setSelected] = useState<ExploradorVariable | null>(null);
@@ -92,8 +104,7 @@ export default function ExplorarTab({
   // Fuente de los datos que se exploran: "raw" = data cargada original;
   // "final" = data ya procesada por Limpieza (decisiones aplicadas).
   const [fuente, setFuente] = useState<ExplorarFuente>("raw");
-  // Si la base tiene Limpieza cerrada, habilitamos el modo "final".
-  const [hasFinalizedBase, setHasFinalizedBase] = useState<boolean>(false);
+  // Cuándo se cerró la base; sin cierre, "Limpia" queda deshabilitada.
   const [finalizedAt, setFinalizedAt] = useState<string | null>(null);
   // Ficha de la pregunta, con la variable y la fuente para las que se pidió:
   // así la readiness sabe si la que está en pantalla es la de la selección.
@@ -102,6 +113,8 @@ export default function ExplorarTab({
   const [lecturaElegida, setLecturaElegida] = useState<{ par: string; lectura: LecturaCalor } | null>(null);
   // Con cruce la lista va plegada; «lista» o «buscar» la despliegan a pedido.
   const [listaAbierta, setListaAbierta] = useState<null | "lista" | "buscar">(null);
+  // Porcentaje / Casos y Gráfico / Tabla de una pregunta de opciones.
+  const [lecturaDist, setLecturaDist] = useState<LecturaDeDistribucion>(LECTURA_INICIAL);
 
   const repeatContext = inv?.repeat_context ?? null;
   const selectedRepeatOption = repeatCode
@@ -166,16 +179,10 @@ export default function ExplorarTab({
     let cancel = false;
     apiV2Limpieza(baseNombre)
       .then((l) => {
-        if (cancel) return;
-        const at = l.artifacts?.finalized_at ?? null;
-        setFinalizedAt(at);
-        setHasFinalizedBase(!!at);
+        if (!cancel) setFinalizedAt(l.artifacts?.finalized_at ?? null);
       })
       .catch(() => {
-        if (!cancel) {
-          setHasFinalizedBase(false);
-          setFinalizedAt(null);
-        }
+        if (!cancel) setFinalizedAt(null);
       });
     return () => { cancel = true; };
   }, [baseNombre, version]);
@@ -411,7 +418,31 @@ export default function ExplorarTab({
       })
     : null;
 
-  if (loading) return <ExplorarLoadingPanel />;
+  const cabecera = (
+    <CabeceraDeTransicion
+      pestana="explorar"
+      {...cabeceraDeExplorar(
+        inv
+          ? {
+              preguntas: scopedInv?.n_variables ?? inv.n_variables,
+              casos: uniVigente?.n_total ?? null,
+              casosTrasFiltro: uniVigente?.n_tras_filtro ?? null,
+              filtros: uniVigente?.filtros_aplicados ?? 0,
+              cruce: !!cruzar,
+            }
+          : null,
+      )}
+      acciones={<FuenteToggle fuente={fuente} onChange={setFuente} finalizedAt={finalizedAt} />}
+    />
+  );
+  const conCabecera = (cuerpo: ReactNode) => (
+    <>
+      {cabecera}
+      {cuerpo}
+    </>
+  );
+
+  if (loading) return conCabecera(<ExplorarLoadingPanel />);
   // **«Todavia no hay data» no es «no se pudo cargar».**
   //
   // El backend responde 409 `E_NO_DATA_INST` cuando el proyecto aun no tiene
@@ -424,10 +455,10 @@ export default function ExplorarTab({
   // codigo tecnico, y ninguno dice donde se resuelve. Un vacio esperado que
   // parece una averia hace que la gente busque el problema donde no esta.
   if (esEstadoInicial(errorCode) && !inv) {
-    return <VacioListo marca="validacion-explorar"><EmptyState icon={<Compass size={20} />} {...vacioSinDatos("que explorar")} /></VacioListo>;
+    return conCabecera(<VacioListo marca="validacion-explorar"><EmptyState icon={<Compass size={20} />} {...vacioSinDatos("que explorar")} /></VacioListo>);
   }
   if (error && !inv) {
-    return (
+    return conCabecera(
       <VacioListo marca="validacion-explorar">
       <EmptyState
         icon={<AlertTriangle size={20} />}
@@ -438,7 +469,7 @@ export default function ExplorarTab({
     );
   }
   if (!inv) {
-    return (
+    return conCabecera(
       <VacioListo marca="validacion-explorar">
       <EmptyState
         icon={<Compass size={20} />}
@@ -449,7 +480,7 @@ export default function ExplorarTab({
     );
   }
   if (inv.n_variables === 0) {
-    return (
+    return conCabecera(
       <div data-audit-ready="validacion-explorar" style={{ display: "contents" }}>
         <EmptyState
           icon={<Compass size={20} />}
@@ -473,21 +504,24 @@ export default function ExplorarTab({
       <aside className="vx-lateral" aria-label="Lectura del cruce" data-qa-geometry-group="validacion/explorar-lectura-cruce" data-qa-geometry-contract="intrinsic">
         <PanelApartaTotal modelo={modelo} />
       </aside>
-    ) : !crossVar && uniVigente && (ficha || !fichaVigente) ? (
+    ) : !crossVar && uniVigente && selected ? (
       // La columna se reserva mientras llega la ficha: el gráfico no ocupa el
       // ancho entero para encogerse un instante después (C2). Si la ficha
-      // falló, no hay columna.
-      <aside className="vx-lateral" aria-label="Ficha de la pregunta" aria-busy={!ficha}>
-        <div className="vx-tarjeta vx-ficha" data-qa-geometry-group="validacion/explorar-ficha" data-qa-geometry-contract="intrinsic">
-          {ficha ? (
-            <>
-              <PanelFormulario ficha={ficha} />
-              <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
-            </>
-          ) : (
-            <LoadingBlock variant="inline" minHeight={40} label="Leyendo el formulario…" />
-          )}
-        </div>
+      // falló, queda solo el panel de reglas.
+      <aside className="vx-lateral" aria-label="Ficha de la pregunta" aria-busy={!fichaVigente}>
+        {(ficha || !fichaVigente) && (
+          <div className="vx-tarjeta vx-ficha" data-qa-geometry-group="validacion/explorar-ficha" data-qa-geometry-contract="intrinsic">
+            {ficha ? (
+              <>
+                <PanelFormulario ficha={ficha} />
+                <PanelDatos ficha={ficha} filtrado={uniVigente.filtros_aplicados > 0} />
+              </>
+            ) : (
+              <LoadingBlock variant="inline" minHeight={40} label="Leyendo el formulario" />
+            )}
+          </div>
+        )}
+        <ReglasDeLaPregunta variable={selected.name} lectura={catalogo} />
       </aside>
     ) : null;
 
@@ -507,7 +541,13 @@ export default function ExplorarTab({
       </GraficoTarjeta>
     )
   ) : crossVar ? null : dist ? (
-    <Distribucion dist={dist} titulo={selected.label || selected.name} sinRespuesta={base?.sinRespuesta ?? null} declarados={declarados} />
+    <Distribucion
+      dist={dist}
+      titulo={selected.label || selected.name}
+      sinRespuesta={base?.sinRespuesta ?? null}
+      declarados={declarados}
+      lectura={lecturaDist}
+    />
   ) : (
     <GraficoTarjeta titulo={`Distribución${sufijoRepeat}`} tipo={uniVigente.tipo}>
       {uniVigente.chart.kind === "table" && uniVigente.chart.text_rows ? (
@@ -586,8 +626,10 @@ export default function ExplorarTab({
             )}
 
             <BarraLectura
-              momento={
-                <FuenteToggle fuente={fuente} onChange={setFuente} hasFinal={hasFinalizedBase} finalizedAt={finalizedAt} />
+              conmutadores={
+                conmutadoresAplican(dist, !!crossVar) ? (
+                  <ConmutadoresDeLectura lectura={lecturaDist} onCambio={setLecturaDist} />
+                ) : null
               }
               filtro={
                 <FiltroCascada
@@ -657,10 +699,10 @@ export default function ExplorarTab({
 
   const layoutClass = `pulso-validacion-explorar-layout${plegada ? " vx-con-riel" : ""}`;
   if (busy || error || primaryResultPending) {
-    return <div className={layoutClass}>{panelContent}</div>;
+    return conCabecera(<div className={layoutClass}>{panelContent}</div>);
   }
 
-  return (
+  return conCabecera(
     <div
       className={layoutClass}
       data-audit-ready="validacion-explorar"

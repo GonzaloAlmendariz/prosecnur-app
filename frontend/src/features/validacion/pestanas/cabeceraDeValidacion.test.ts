@@ -135,6 +135,29 @@ describe("Explorar y Reglas en V0", () => {
   });
 });
 
+describe("Explorar (V5)", () => {
+  const DATOS = { preguntas: 63, casos: 178, casosTrasFiltro: 178, filtros: 0, cruce: false };
+  const leer = (c: ReturnType<typeof cabeceraDeExplorar>) => c.cifras.map((x) => `${x.valor}${x.base ? `/${x.base}` : ""} ${x.rotulo}`);
+
+  it("sin filtro ni cruce: preguntas y casos", () => {
+    const c = cabeceraDeExplorar(DATOS);
+    expect(leer(c)).toEqual(["63 preguntas", "178 casos"]);
+    expect(c.estado).toBeNull();
+  });
+
+  it("con filtro y cruce: casos tras el filtro sobre el total, cruce y filtros activos", () => {
+    expect(leer(cabeceraDeExplorar({ ...DATOS, casosTrasFiltro: 142, filtros: 1, cruce: true }))).toEqual([
+      "63 preguntas", "142/178 casos tras el filtro", "1 cruce activo", "1 filtro activo",
+    ]);
+    expect(leer(cabeceraDeExplorar({ ...DATOS, casosTrasFiltro: 90, filtros: 2 }))).toContain("2 filtros activos");
+  });
+
+  it("sin la primera pregunta leída no cuenta casos (no los da por 0)", () => {
+    expect(leer(cabeceraDeExplorar({ ...DATOS, casos: null, casosTrasFiltro: null }))).toEqual(["63 preguntas"]);
+    expect(leer(cabeceraDeExplorar({ ...DATOS, preguntas: 1, casos: 1 }))).toEqual(["1 pregunta", "1 caso"]);
+  });
+});
+
 describe("fecha corta", () => {
   it("día y mes abreviado, en castellano", () => {
     expect(fechaCorta("2026-09-03T12:00:00")).toBe("3 set");

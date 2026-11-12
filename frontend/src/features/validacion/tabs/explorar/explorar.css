@@ -93,6 +93,7 @@
   min-width: 0;
 }
 .vx-centro {
+  container: vx-centro / inline-size;
   flex: 999 1 520px;
   min-width: 0;
   display: flex;
@@ -396,37 +397,44 @@
 }
 
 /* ── E3 · Barra de lectura ─────────────────────────────────────────────── */
+/* Como el prototipo: cada grupo con su rótulo encima y, en la línea de abajo,
+ * los conmutadores de la distribución. */
 .vx-barra {
   container: vx-barra / inline-size;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-  padding: 10px var(--pulso-space-3);
+  align-items: flex-end;
+  gap: var(--pulso-space-3) var(--pulso-space-5);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
 }
 .vx-barra-grupo {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pulso-space-2);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   min-width: 0;
 }
 .vx-barra-grupo.is-filtro {
   flex: 1 1 260px;
 }
-.vx-barra-sep {
-  width: 1px;
-  height: 26px;
-  background: var(--pulso-border);
+.vx-barra-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+.vx-barra-conmutadores {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-3);
 }
 .vx-barra-nota {
   color: var(--pulso-text-faint);
   font-size: var(--pulso-type-caption-size);
-}
-@container vx-barra (max-width: 720px) {
-  .vx-barra-sep {
-    display: none;
-  }
 }
 
 /* Segmentado del explorador: indicador blanco y texto en el acento (selector
@@ -485,22 +493,25 @@
 }
 
 /* ── E5 · Tira de cifras ───────────────────────────────────────────────── */
+/* Tantas columnas como cifras (3 en una de opciones, 6 en una numérica). */
 .vx-tira {
-  container: vx-tira / inline-size;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--vx-cifras, 4), minmax(0, 1fr));
   overflow: hidden;
 }
 .vx-cifra {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   padding: var(--pulso-space-4) var(--pulso-space-5);
   border-left: 1px solid var(--pulso-border);
 }
 .vx-cifra:first-child {
   border-left: 0;
+}
+.vx-cifra > small.is-nota {
+  color: var(--pulso-text-faint);
 }
 .vx-cifra > strong {
   color: var(--pulso-text);
@@ -515,16 +526,29 @@
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
-@container vx-tira (max-width: 560px) {
-  .vx-tira {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* Seis cifras pasan a dos filas de tres; cuatro, a dos de dos. La consulta
+ * mira el centro: un contenedor no puede consultarse a sí mismo. */
+@container vx-centro (max-width: 760px) {
+  .vx-tira[data-cifras="6"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .vx-cifra:nth-child(3) {
+  .vx-tira[data-cifras="6"] .vx-cifra:nth-child(4) {
     border-left: 0;
   }
-  .vx-cifra:nth-child(n + 3) {
+  .vx-tira[data-cifras="6"] .vx-cifra:nth-child(n + 4) {
+    border-top: 1px solid var(--pulso-border);
+  }
+}
+@container vx-centro (max-width: 560px) {
+  .vx-tira[data-cifras="4"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .vx-tira[data-cifras="4"] .vx-cifra:nth-child(3) {
+    border-left: 0;
+  }
+  .vx-tira[data-cifras="4"] .vx-cifra:nth-child(n + 3) {
     border-top: 1px solid var(--pulso-border);
   }
 }
@@ -1448,21 +1472,88 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-.vx-reglas {
+/* "Reglas sobre esta pregunta": ocupa el resto de la columna y deja su vacío
+ * dentro (C3); la acción va al pie, a todo el ancho, en un tono más bajo. */
+.vx-reglas-pregunta {
+  flex: 1 1 auto;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  overflow: hidden;
+}
+.vx-reglas-pregunta-cab {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4) 18px var(--pulso-space-2);
+}
+.vx-reglas-pregunta-cab h4 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+}
+.vx-reglas-pregunta-cuerpo {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: 0 18px var(--pulso-space-3);
+}
+.vx-reglas-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vx-reglas-lista > li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
   gap: 10px;
-  padding: 10px var(--pulso-space-3);
-  border: 1px dashed var(--pulso-border-strong);
-  border-radius: 10px;
+  padding: var(--pulso-space-3) 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 75%, transparent);
+}
+.vx-reglas-lista > li:first-child {
+  border-top: 0;
+}
+.vx-reglas-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--pulso-text-faint);
+}
+.vx-reglas-lista > li[data-tono="listo"] .vx-reglas-punto {
+  background: var(--pulso-success-fg);
+}
+.vx-reglas-lista > li[data-tono="aviso"] .vx-reglas-punto {
+  background: var(--pulso-warn-accent);
+}
+.vx-reglas-lista > li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.vx-reglas-lista > li > div > b {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.vx-reglas-lista > li > div > span {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
-  line-height: 1.45;
+  line-height: 1.4;
 }
-.vx-reglas > svg {
-  flex: none;
-  margin-top: 1px;
-  color: var(--pulso-text-faint);
+.vx-reglas-pregunta-pie {
+  display: flex;
+  padding: var(--pulso-space-3) 18px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+.vx-reglas-pregunta-pie > .pulso-button {
+  flex: 1 1 auto;
+  justify-content: center;
 }
 .vx-lectura {
   display: flex;

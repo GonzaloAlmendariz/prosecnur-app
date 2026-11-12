@@ -1,11 +1,10 @@
-import { ClipboardCheck } from "../../../../vendor/lucide-react";
 import type { ExploradorFicha } from "../../../../api/validacionExplorar";
 import { fmtN, fmtPct } from "./explorarModelo";
 
 /**
- * E11 — «Lo que se ve en los datos». Sólo cifras que la ficha trae; las reglas
- * de validación aún no se aplican por pregunta, así que se dice eso y no se
- * pinta ningún semáforo.
+ * E11: "En los datos". Sólo cifras que la ficha trae. Las reglas que leen la
+ * pregunta tienen su propio panel, "Reglas sobre esta pregunta"
+ * (`ReglasDeLaPregunta`).
  */
 export default function PanelDatos({ ficha, filtrado }: { ficha: ExploradorFicha; filtrado: boolean }) {
   const d = ficha.datos;
@@ -35,10 +34,6 @@ export default function PanelDatos({ ficha, filtrado }: { ficha: ExploradorFicha
           </>
         )}
       </dl>
-      <div className="vx-reglas">
-        <ClipboardCheck size={16} aria-hidden />
-        <span>Reglas de validación: aún no hay ninguna aplicada a esta pregunta.</span>
-      </div>
     </section>
   );
 }

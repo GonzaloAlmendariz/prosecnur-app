@@ -4,15 +4,21 @@
  * respuestas"). Ver arnes.tsx.
  *
  * La rebanada V1 no parte Explorar; estas huellas fijan su estado de entrada
- * para que la partición de las otras pestañas no la toque por accidente.
+ * para que la partición de las otras pestañas no la toque por accidente. La
+ * V5 le pone la cabecera del prototipo y el panel "Reglas sobre esta
+ * pregunta", que lee el catálogo de reglas (un pedido más por base).
  */
-import { describe } from "vitest";
-import { Fallo, escenario, fijar, montar, prepararGrupo } from "./arnes";
-import { DOS_BASES, RUTAS_EXPLORAR, UNA_BASE, limpieza, rutasLimpieza } from "./escenarios";
+import { describe, expect } from "vitest";
+import { Fallo, direccionActual, escenario, fijar, montar, prepararGrupo, pulsar } from "./arnes";
+import { DOS_BASES, RUTAS_EXPLORAR, UNA_BASE, catalogoDeReglas, limpieza, rutaCatalogo, rutasLimpieza } from "./escenarios";
 
 prepararGrupo("explorar");
 
-const RUTAS = [...RUTAS_EXPLORAR, ...rutasLimpieza(limpieza({ auditoria: false }))];
+const RUTAS = [
+  ...RUTAS_EXPLORAR,
+  ...rutasLimpieza(limpieza({ auditoria: false })),
+  rutaCatalogo(catalogoDeReglas({ plan: true, auditoria: true })),
+];
 
 describe("Validación, Explorar respuestas", () => {
   escenario("explorar_una-base", "una base: inventario y la primera pregunta", async () => {
@@ -40,5 +46,16 @@ describe("Validación, Explorar respuestas", () => {
       ],
     });
     fijar("explorar_sin-datos");
+  });
+
+  escenario("explorar_nueva-regla-sobre-pregunta", "las reglas de la pregunta abren su ficha en Reglas o una regla nueva sobre ella", async () => {
+    await montar({ ...UNA_BASE, pestana: "explorar", rutas: RUTAS });
+    // La regla con casos por decidir va primero y lleva a su ficha, en su familia.
+    await pulsar(".vx-reglas-lista button", "Abrir");
+    expect(direccionActual()).toBe("/validacion?pestana=reglas&foco=R_REQ_EDAD&familia=obligatoria");
+    await montar({ ...UNA_BASE, pestana: "explorar", rutas: RUTAS });
+    await pulsar(".vx-reglas-pregunta-pie button", "Nueva regla sobre esta pregunta");
+    expect(direccionActual()).toBe("/validacion?pestana=reglas&panel=regla&foco=nueva&pregunta=edad");
+    fijar("explorar_nueva-regla-sobre-pregunta");
   });
 });

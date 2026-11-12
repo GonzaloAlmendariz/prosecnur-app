@@ -195,15 +195,29 @@ export function divergente(filas: readonly ExploradorDistFila[]): Divergente | n
 
 // --- Tira de cifras (E5) -------------------------------------------------------
 
-export type Cifra = { rotulo: string; valor: string; nota: string };
+/**
+ * Una cifra de la tira, como en el prototipo: el número y, debajo, lo que
+ * cuenta ("142" y "responden, de 178"). `nota` es una segunda línea opcional
+ * para lo que la cifra mezcla o deja fuera.
+ */
+export type Cifra = { valor: string; rotulo: string; nota?: string };
 
 function porcentaje(parte: number, total: number): number {
   return total > 0 ? (100 * parte) / total : 0;
 }
 
+function plural(n: number, uno: string, varios: string): string {
+  return n === 1 ? uno : varios;
+}
+
 /**
- * Cuatro cifras clave. Con `dist` se arman por tipo; sin ella se toman las
- * tarjetas KPI que ya mandaba el motor (las cuatro primeras), tal cual.
+ * Las cifras de la pregunta. Con `dist` se arman por tipo; sin ella se toman
+ * las tarjetas KPI que ya mandaba el motor (las cuatro primeras), tal cual.
+ *
+ * "No les correspondía" (el prototipo la separa de "sin respuesta") no está:
+ * la ficha no distingue el vacío por salto del vacío sin respuesta (pedido
+ * M6, `n_no_corresponde` en `/explorar/ficha`). Mientras tanto "sin
+ * respuesta" lleva la nota que dice que los junta.
  */
 export function cifrasClave(
   uni: Pick<ExplorarUnivariadoResult, "kpis" | "tipo">,
@@ -213,81 +227,74 @@ export function cifrasClave(
 ): Cifra[] {
   if (!dist || base.responden === null) {
     return uni.kpis.slice(0, 4).map((k) => ({
-      rotulo: k.title,
       valor: k.meta?.value === undefined || k.meta.value === null ? "—" : String(k.meta.value),
+      rotulo: k.title,
       nota: k.subtitle ?? "",
     }));
   }
   const responden = base.responden;
   const sin = base.sinRespuesta ?? 0;
-  const cifras: Cifra[] = [
-    { rotulo: "Responden", valor: fmtN(responden), nota: `${fmtPct(porcentaje(responden, base.nCasos))} de la base` },
-    { rotulo: "Sin respuesta", valor: fmtN(sin), nota: `${fmtPct(porcentaje(sin, base.nCasos))}, por salto o vacío` },
-  ];
+  const respondenDe: Cifra = { valor: fmtN(responden), rotulo: `responden, de ${fmtN(base.nCasos)}` };
+  const sinRespuesta: Cifra = { valor: fmtN(sin), rotulo: "sin respuesta", nota: "por salto o vacío" };
 
   if ((dist.tipo === "so" || dist.tipo === "sm") && dist.filas) {
     const declarados = ficha?.opciones.length ? new Set(ficha.opciones.map((o) => o.codigo)) : null;
     const fuera = esFueraDeLista(dist.filas, declarados);
     const enLista = dist.filas.filter((f) => !fuera(f));
-    const top = ordenarFilas(enLista, false).find((f) => !esResidual(f.etiqueta)) ?? ordenarFilas(enLista, false)[0];
-    cifras.push(
-      top && top.n > 0
-        ? { rotulo: "Más frecuente", valor: fmtPct(top.pct), nota: top.etiqueta }
-        : { rotulo: "Más frecuente", valor: "—", nota: "ninguna opción con casos" },
-    );
     const usadas = enLista.filter((f) => f.n > 0).length;
     const declaradas = ficha?.opciones.length || enLista.length;
     // Casos con un código fuera de la lista, con los filtros activos (dist).
     const casosFuera = dist.filas.filter(fuera).reduce((t, f) => t + f.n, 0);
-    cifras.push({
-      rotulo: "Opciones usadas",
-      valor: `${fmtN(usadas)} de ${fmtN(declaradas)}`,
-      nota:
-        casosFuera === 0
-          ? "ningún caso fuera de lista"
-          : `${fmtN(casosFuera)} ${casosFuera === 1 ? "caso" : "casos"} fuera de lista`,
-    });
-  } else if (dist.tipo === "num" && dist.num) {
+    return [
+      respondenDe,
+      sinRespuesta,
+      {
+        valor: `${fmtN(usadas)} de ${fmtN(declaradas)}`,
+        rotulo: "opciones usadas",
+        nota: casosFuera === 0 ? "" : `${fmtN(casosFuera)} ${plural(casosFuera, "caso", "casos")} fuera de lista`,
+      },
+    ];
+  }
+  if (dist.tipo === "num" && dist.num) {
     const num = dist.num;
-    cifras.push({
-      rotulo: "Mediana",
-      valor: fmtValor(num.mediana),
-      nota: `p25–p75: ${fmtValor(num.p25)}–${fmtValor(num.p75)}`,
-    });
-    cifras.push({
-      rotulo: "Atípicos",
-      valor: fmtN(num.n_atipicos),
-      nota: `rango ${fmtValor(num.min)} a ${fmtValor(num.max)}`,
-    });
-  } else if (dist.tipo === "fecha" && dist.fecha) {
+    // El prototipo pone "desviación" entre la mediana y el mínimo: el motor no
+    // la publica (pedido M6, `desviacion` en `dist.num`). Los atípicos, que la
+    // pantalla ya contaba, siguen al final.
+    return [
+      respondenDe,
+      { valor: fmtValor(num.media), rotulo: "media" },
+      { valor: fmtValor(num.mediana), rotulo: "mediana" },
+      { valor: fmtValor(num.min), rotulo: "mínimo" },
+      { valor: fmtValor(num.max), rotulo: "máximo" },
+      { valor: fmtN(num.n_atipicos), rotulo: plural(num.n_atipicos, "atípico", "atípicos") },
+    ];
+  }
+  if (dist.tipo === "fecha" && dist.fecha) {
     const dias = dist.fecha.dias;
     const pico = dias.reduce<{ fecha: string; n: number } | null>((m, d) => (!m || d.n > m.n ? d : m), null);
-    cifras.push({
-      rotulo: "Día con más casos",
-      valor: pico ? fmtN(pico.n) : "—",
-      nota: pico ? fechaCorta(pico.fecha) : "sin fechas",
-    });
     const conCasos = dias.filter((d) => d.n > 0);
-    cifras.push({
-      rotulo: "Días con casos",
-      valor: fmtN(conCasos.length),
-      nota: conCasos.length ? `del ${fechaCorta(conCasos[0].fecha)} al ${fechaCorta(conCasos[conCasos.length - 1].fecha)}` : "sin fechas",
-    });
-  } else if (dist.tipo === "texto" && dist.texto) {
+    return [
+      respondenDe,
+      sinRespuesta,
+      ...(pico ? [{ valor: fechaCorta(pico.fecha), rotulo: `día con más casos (${fmtN(pico.n)})` }] : []),
+      {
+        valor: fmtN(conCasos.length),
+        rotulo: plural(conCasos.length, "día con casos", "días con casos"),
+        nota: conCasos.length ? `del ${fechaCorta(conCasos[0].fecha)} al ${fechaCorta(conCasos[conCasos.length - 1].fecha)}` : "",
+      },
+    ];
+  }
+  if (dist.tipo === "texto" && dist.texto) {
     const grupos = dist.texto.grupos;
     const top = grupos.reduce<{ texto: string; n: number } | null>((m, g) => (!m || g.n > m.n ? g : m), null);
-    cifras.push({
-      rotulo: "Más repetida",
-      valor: top ? `× ${fmtN(top.n)}` : "—",
-      nota: top ? top.texto : "sin respuestas",
-    });
-    cifras.push({
-      rotulo: "Respuestas distintas",
-      valor: fmtN(grupos.length),
-      nota: "agrupadas sin mayúsculas ni tildes",
-    });
+    return [
+      respondenDe,
+      sinRespuesta,
+      { valor: fmtN(grupos.length), rotulo: "respuestas distintas", nota: "agrupadas sin mayúsculas ni tildes" },
+      ...(top ? [{ valor: fmtN(top.n), rotulo: "veces la más repetida", nota: top.texto }] : []),
+    ];
   }
-  return cifras;
+  return [respondenDe, sinRespuesta];
 }
 
 // --- Tabla de calor (E9) -------------------------------------------------------

@@ -119,7 +119,7 @@ describe("orden de barras (E6)", () => {
   it("opciones usadas cuenta sólo las de la lista y nombra los casos fuera", () => {
     const d: ExploradorDist = { ...DIST, filas: [...DIST.filas!, { codigo: "77", etiqueta: "77", n: 4, pct: 0.6 }] };
     const base = resolverBase({ ...UNI, filtros_aplicados: 0 }, d, null);
-    expect(cifrasClave(UNI, d, null, base)[3]).toEqual({ rotulo: "Opciones usadas", valor: "4 de 5", nota: "4 casos fuera de lista" });
+    expect(cifrasClave(UNI, d, null, base)[2]).toEqual({ valor: "4 de 5", rotulo: "opciones usadas", nota: "4 casos fuera de lista" });
   });
 
   it("reconoce residuales sin tildes ni mayúsculas", () => {
@@ -151,12 +151,27 @@ describe("escala divergente", () => {
 });
 
 describe("tira de cifras (E5)", () => {
-  it("con dist: responden, sin respuesta, más frecuente y opciones usadas", () => {
+  it("una de opciones, como el prototipo: responden de N, sin respuesta y opciones usadas", () => {
     const base = resolverBase({ ...UNI, filtros_aplicados: 0 }, DIST, FICHA);
     const cifras = cifrasClave(UNI, DIST, FICHA, base);
-    expect(cifras.map((c) => c.rotulo)).toEqual(["Responden", "Sin respuesta", "Más frecuente", "Opciones usadas"]);
-    expect(cifras[2]).toEqual({ rotulo: "Más frecuente", valor: "31.3%", nota: "Dependiente" });
-    expect(cifras[3]).toEqual({ rotulo: "Opciones usadas", valor: "4 de 6", nota: "ningún caso fuera de lista" });
+    expect(cifras.map((c) => c.rotulo)).toEqual([`responden, de ${fmtN(base.nCasos)}`, "sin respuesta", "opciones usadas"]);
+    expect(cifras[0].valor).toBe(fmtN(base.responden ?? -1));
+    // "No les correspondía" no existe todavía (pedido M6): la nota dice que "sin respuesta" junta los dos vacíos.
+    expect(cifras[1].nota).toBe("por salto o vacío");
+    expect(cifras[2]).toEqual({ valor: "4 de 6", rotulo: "opciones usadas", nota: "" });
+  });
+
+  it("una numérica: responden de N, media, mediana, mínimo, máximo y atípicos", () => {
+    const num: ExploradorDist = {
+      tipo: "num",
+      ordinal: false,
+      base_n: 126,
+      num: { bins: [{ desde: 0, hasta: 10, n: 126 }], min: 900, p25: 2000, mediana: 3100, p75: 4000, max: 32000, media: 3450.5, n_atipicos: 1 },
+    };
+    const base = resolverBase({ ...UNI, filtros_aplicados: 0 }, num, null);
+    const cifras = cifrasClave(UNI, num, null, base);
+    expect(cifras.map((c) => c.rotulo)).toEqual([`responden, de ${fmtN(base.nCasos)}`, "media", "mediana", "mínimo", "máximo", "atípico"]);
+    expect(cifras.map((c) => c.valor)).toEqual(["126", "3,450.5", "3,100", "900", "32,000", "1"]);
   });
 
   it("sin dist cae a las tarjetas del motor anterior", () => {

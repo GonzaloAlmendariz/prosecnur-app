@@ -22,7 +22,7 @@ export type CabeceraDeDatos = {
   pendientes: string;
 };
 
-export const PENDIENTES_EXPLORAR = "preguntas, casos y versión de la base: rebanada V5 (Explorar)";
+export const PENDIENTES_EXPLORAR = "preguntas y casos: se leen al cargar la lista de preguntas y la primera pregunta";
 export const PENDIENTES_REGLAS = "reglas activas, sin evaluar y última auditoría: se leen del catálogo de reglas (M3) y llegan con la mesa (rebanada V1)";
 export const PENDIENTES_HALLAZGOS = "hallazgos por decidir: decisión D-F1; reglas listas y casos por auditar: pedido M3; acción Volver a auditar: V3";
 export const PENDIENTES_CIERRE = "hallazgos decididos: decisión D-F1; valores cambiados: pedido M5; última auditoría: rebanada V4; acción Reabrir la base: V4 y D-F8";
@@ -37,8 +37,45 @@ export function fechaCorta(valor: string | null | undefined): string | null {
   return `${fecha.getDate()} ${MESES[fecha.getMonth()]}`;
 }
 
-export function cabeceraDeExplorar(): CabeceraDeDatos {
-  return { estado: null, cifras: [], pendientes: PENDIENTES_EXPLORAR };
+/** Lo que Explorar ya leyó y la cabecera cuenta (rebanada V5). */
+export type DatosDeCabeceraExplorar = {
+  /** Preguntas de la lista (la del servicio elegido en una base de grupo repetido). */
+  preguntas: number | null;
+  /** Casos de la base explorada (`n_total` del univariado). */
+  casos: number | null;
+  /** Casos que quedan con los filtros (`n_tras_filtro`). */
+  casosTrasFiltro: number | null;
+  /** Filtros que el motor aplicó (`filtros_aplicados`). */
+  filtros: number;
+  /** Hay una pregunta de cruce elegida. */
+  cruce: boolean;
+};
+
+/**
+ * Explorar, como el prototipo: "63 preguntas", "178 casos" (o "142/178 casos
+ * tras el filtro"), "1 cruce activo" y "1 filtro activo". Mientras no hay
+ * lectura no afirma nada. La versión de la base (Cargada / Limpia) es la
+ * acción de la cabecera, no una cifra.
+ */
+export function cabeceraDeExplorar(datos: DatosDeCabeceraExplorar | null = null): CabeceraDeDatos {
+  if (!datos) return { estado: null, cifras: [], pendientes: PENDIENTES_EXPLORAR };
+  const cifras: CifraDePestana[] = [];
+  if (datos.preguntas !== null) {
+    cifras.push({ clave: "preguntas", valor: formatoConteo(datos.preguntas), rotulo: datos.preguntas === 1 ? "pregunta" : "preguntas", rango: 1 });
+  }
+  if (datos.casos !== null) {
+    const filtrado = datos.filtros > 0 && datos.casosTrasFiltro !== null;
+    cifras.push(
+      filtrado
+        ? { clave: "casos", valor: formatoConteo(datos.casosTrasFiltro), base: formatoConteo(datos.casos), rotulo: "casos tras el filtro", rango: 1 }
+        : { clave: "casos", valor: formatoConteo(datos.casos), rotulo: datos.casos === 1 ? "caso" : "casos", rango: 1 },
+    );
+  }
+  if (datos.cruce) cifras.push({ clave: "cruce", valor: "1", rotulo: "cruce activo", rango: 3 });
+  if (datos.filtros > 0) {
+    cifras.push({ clave: "filtros", valor: formatoConteo(datos.filtros), rotulo: datos.filtros === 1 ? "filtro activo" : "filtros activos", rango: 3 });
+  }
+  return { estado: null, cifras, pendientes: "" };
 }
 
 export function cabeceraDeReglas(): CabeceraDeDatos {

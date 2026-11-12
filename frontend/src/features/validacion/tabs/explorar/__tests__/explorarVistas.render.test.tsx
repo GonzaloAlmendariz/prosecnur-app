@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // Render de las piezas nuevas del explorador: el selector de cruce lista todas
 // las variables con el gráfico del par (E7), la tabla de calor marca ▲▼ (E9) y
-// el panel de datos no inventa reglas (E11).
+// el panel de datos solo trae cifras de la ficha (E11).
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -102,13 +102,13 @@ test("la tabla de calor marca las celdas a 5 puntos del total y deja el Total ap
   expect(host.textContent).toContain("▲");
 });
 
-test("el panel de datos dice que no hay reglas aplicadas y no pinta semáforos", () => {
+test("el panel de datos solo trae cifras de la ficha: las reglas van en su propio panel", () => {
   const ficha = normalizeExploradorFicha({
     var: "p14", tipo: "so", label: "Situación",
     datos: { n_total: 100, n_responden: 90, n_sin_respuesta: 10, n_fuera_de_lista: 2, n_otro_textos: null },
   })!;
   act(() => root.render(<PanelDatos ficha={ficha} filtrado={false} />));
-  expect(host.textContent).toContain("Reglas de validación: aún no hay ninguna aplicada a esta pregunta.");
+  expect(host.textContent).not.toContain("Reglas de validación");
   expect(host.textContent).toContain("10 (10.0%)");
   expect(host.textContent).not.toContain('Textos en "Otro"');
 });
