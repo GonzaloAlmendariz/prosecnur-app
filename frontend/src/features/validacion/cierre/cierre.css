@@ -215,7 +215,7 @@ button.pulso-ci-nombre:focus-visible {
   inline-size: 6px;
   block-size: 6px;
   border-radius: 50%;
-  background: var(--pulso-danger-solid);
+  background: var(--pulso-danger-fg);
 }
 
 .pulso-ci-etiqueta[data-clase="revisar"]::before {

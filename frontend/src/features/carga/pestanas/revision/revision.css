@@ -88,7 +88,7 @@
 }
 
 .pulso-revision-item[data-tono="error"] .pulso-revision-item-punto::after {
-  background: var(--pulso-danger-solid);
+  background: var(--pulso-danger-fg);
 }
 
 .pulso-revision-item[data-tono="neutro"] .pulso-revision-item-punto::after {
@@ -143,7 +143,7 @@
 }
 
 .pulso-revision-item[data-tono="error"] .pulso-revision-item-pendientes::before {
-  background: var(--pulso-danger-solid);
+  background: var(--pulso-danger-fg);
 }
 
 /* ---------- Detalle ---------- */

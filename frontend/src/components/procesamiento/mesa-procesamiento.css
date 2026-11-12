@@ -119,7 +119,7 @@
 }
 
 .pulso-cabecera-pestana-estado[data-tono="bloqueado"]::before {
-  background: var(--pulso-danger-solid);
+  background: var(--pulso-danger-fg);
 }
 
 .pulso-cabecera-pestana-estado[data-tono="neutro"]::before {

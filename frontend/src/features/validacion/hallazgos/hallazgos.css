@@ -148,7 +148,7 @@
   inline-size: 6px;
   block-size: 6px;
   border-radius: 50%;
-  background: var(--pulso-danger-solid);
+  background: var(--pulso-danger-fg);
 }
 
 .pulso-hz-clase-filtro[data-clase="revisar"]::before {
@@ -264,7 +264,7 @@
   inline-size: 6px;
   block-size: 6px;
   border-radius: 50%;
-  background: var(--pulso-danger-solid);
+  background: var(--pulso-danger-fg);
 }
 
 .pulso-hz-etiqueta[data-clase="revisar"]::before {
@@ -627,7 +627,7 @@ button.pulso-hz-sentido:hover {
 }
 
 .pulso-hz-tramo[data-fuera="inconsistencia"] {
-  --pulso-hz-tono: var(--pulso-danger-solid);
+  --pulso-hz-tono: var(--pulso-danger-fg);
 }
 
 .pulso-hz-tramo[data-fuera="revisar"] {
