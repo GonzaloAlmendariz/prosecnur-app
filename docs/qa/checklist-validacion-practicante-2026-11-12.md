@@ -1,9 +1,41 @@
 # Validación usada por un practicante: lo que falta (2026-11-12)
 
+> **Para quien retome esto (otra sesión, otra cuenta):** empieza aquí. Este documento es la lista viva; marca el
+> estado de cada ítem al cerrarlo, con el commit y cómo se comprobó. Gonzalo es quien da un ítem por terminado.
+
 Prueba: un agente hizo de practicante con la base digitada de un estudio real (1000 encuestas, sin XLSForm ni
 `.pulso`), usando solo la interfaz de Procesamiento para cargar, escribir reglas, auditar y decidir. Referencia:
-552 observaciones encontradas a mano. Resultado: la app encontró 245 (44 %), 180 sin trucos. El detalle y las
-capturas están fuera del repo (datos de cliente).
+552 observaciones encontradas a mano. Resultado: la app encontró 245 (44 %), 180 sin trucos.
+
+## Dónde está la evidencia
+
+En este mismo checkout, carpeta **`tmp/validacion-practicante/`** (no versionada: tiene datos de cliente; no se
+commitea ni se sube a ningún servicio):
+
+- `QA_PRACTICANTE_VALIDACION.md`: el recorrido paso a paso, la tabla chequeo por chequeo (si se pudo expresar,
+  con qué tipo de regla, casos de la app frente a la referencia y la causa) y los defectos con su archivo.
+- `INVENTARIO_CHEQUEOS.md`: los chequeos hechos a mano, con su regla exacta y su conteo.
+- `cap/`: capturas 01 a 40 del recorrido.
+- `datos/`: la base digitada (con y sin etiquetas), el Excel de 552 observaciones de referencia, el Word de
+  reglas del practicante, y el XLSForm armado a mano para poder cargarla (`ser_adolescente_xlsform.xlsx`, con
+  `mapa_columnas.csv`) más las respuestas con encabezados renombrados.
+- `scripts/`: lo usado para crear reglas por la API y comparar contra la referencia.
+
+## Cómo repetir la prueba
+
+1. Levanta una pila propia (nunca el puerto 8787, que es de Gonzalo): backend con `load_all` del árbol y Vite,
+   como en el skill `/ver-ui`. Una sola corrida pesada a la vez.
+2. Crea un proyecto y carga `datos/ser_adolescente_xlsform.xlsx` y `datos/ser_adolescente_respuestas.xlsx`
+   (sin ese XLSForm armado a mano la app no deja entrar: ítem 4).
+3. En Validación escribe las reglas del inventario, audita y recorre Hallazgos y Cierre, abriendo cada
+   desplegable, panel y diálogo a 1366x768 y 1024x600.
+4. Compara lo que marca la app contra `datos/observaciones.xlsx`. La meta es cubrir las 552, o decir con causa
+   por qué alguna no se puede.
+
+Truco que hoy usa el practicante y la interfaz no enseña: la regla "Dos respuestas que deben cuadrar" también
+marca las respuestas vacías; con ella salen exactos los supervisores vacíos (411) y la regla 1.3 del Word (313).
+
+Orden sugerido: primero los arreglos acotados (1, 2, 5, 6, 7, 8, 10, 17), después el motor nuevo (4, 11, 12).
 
 Pedido de Gonzalo: "que la persona pueda entrar, establecer las reglas, correr el plan de reglas, que le salga y se
 pueda entender de forma didáctica y visual qué inconsistencias se encuentran, qué hacer con cada una de ellas, cómo
