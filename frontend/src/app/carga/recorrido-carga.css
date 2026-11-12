@@ -174,7 +174,16 @@
   height: 100%;
   background: var(--t);
   transform-origin: 0 50%;
-  transition: transform 1s linear;
+}
+
+/* La pista del módulo actual se llena en un tramo exacto (--rc-tramo = TRAMO_MS), en el compositor. */
+.rc-segmentos .is-actual .rc-pista i {
+  animation: rc-pista-llena var(--rc-tramo, 3760ms) linear both;
+}
+
+@keyframes rc-pista-llena {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 .rc-segmentos svg {
@@ -364,6 +373,7 @@
 @media (prefers-reduced-motion: reduce) {
   .rc-lienzo,
   .rc-identidad,
+  .rc-segmentos .is-actual .rc-pista i,
   .escena-carga .a,
   .escena-carga svg { animation: none !important; transition: none !important; }
 

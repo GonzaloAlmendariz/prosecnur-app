@@ -7,7 +7,7 @@ import { PantallaDeCarga } from "../PantallaDeCarga";
 import { SIN_ESTIMACION } from "../warmupTiempo";
 import { ESCENAS_CARGA, type ClaveEscenas } from "./escenasCarga";
 import { CICLO_MS, PAUSA_MS, TRAMO_MS } from "./escenasMotor";
-import { SegmentosRecorrido, tramoRecorrido } from "./RecorridoCarga";
+import { escenaDelTurno, reiniciarBolsasEscenas, SegmentosRecorrido, siguienteEscena, tramoRecorrido } from "./RecorridoCarga";
 
 const CLAVES: ClaveEscenas[] = ["calc", "form", "rutas", "material", "monitoreo", "proc", "dash"];
 
@@ -66,6 +66,26 @@ describe("tramos del recorrido", () => {
     const html = renderToStaticMarkup(<SegmentosRecorrido transcurridoMs={TRAMO_MS * 2 + 100} />);
     expect(html.match(/class="is-visto"/g)).toHaveLength(2);
     expect(html.match(/class="is-actual"/g)).toHaveLength(1);
+  });
+});
+
+describe("elección de escenas", () => {
+  // 12 nov 2026: con «al azar sin repetir la última» dos escenas de Hojas de ruta podían alternarse sin fin.
+  it("las cinco escenas de un módulo salen antes de repetir alguna, también entre bolsas", () => {
+    reiniciarBolsasEscenas();
+    const vistas: number[] = [];
+    for (let i = 0; i < 25; i++) vistas.push(siguienteEscena("rutas", 5));
+    for (let b = 0; b < 5; b++) expect(new Set(vistas.slice(b * 5, b * 5 + 5)).size).toBe(5);
+    for (let i = 1; i < vistas.length; i++) expect(vistas[i]).not.toBe(vistas[i - 1]);
+  });
+
+  it("un mismo turno devuelve la misma escena (StrictMode renderiza dos veces)", () => {
+    reiniciarBolsasEscenas();
+    const a = escenaDelTurno("rutas", 5, 2);
+    expect(escenaDelTurno("rutas", 5, 2)).toBe(a);
+    const vistas = new Set([a]);
+    for (let turno = 9; turno < 37; turno += 7) vistas.add(escenaDelTurno("rutas", 5, turno));
+    expect(vistas.size).toBe(5);
   });
 });
 
