@@ -194,7 +194,7 @@ export function ActualizarFuenteContenido({ fila, modo, ocupado, onCambio }: {
   } else {
     cuerpo = (
       <Alert kind="info">
-        {estado.archivo ? `${fila.etiqueta} volvió a "${estado.archivo}". La codificación aplicada no vuelve: hay que aplicarla otra vez.` : `${fila.etiqueta} volvió a la versión anterior.`}
+        {estado.archivo ? `${fila.etiqueta} volvió a "${estado.archivo}". Si la base tenía la codificación aplicada, hay que aplicarla otra vez.` : `${fila.etiqueta} volvió a la versión anterior.`}
       </Alert>
     );
     hint = "La copia se usó y ya no está.";
