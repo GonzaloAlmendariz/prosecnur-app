@@ -45,14 +45,16 @@
   if (!length(filas)) return(list())
   # Una batería tiene enunciado aunque no tenga tipo de anomalía.
   bateria <- (regla %||% list())$bateria
-  if ((is.null(bateria) && (is.na(anomalia) || !nzchar(anomalia))) || !is.data.frame(df)) {
+  fechas <- (regla %||% list())$fechas
+  if ((is.null(bateria) && is.null(fechas) && (is.na(anomalia) || !nzchar(anomalia))) || !is.data.frame(df)) {
     return(rep(list(NA), length(filas)))
   }
   roles <- roles %||% list()
   vars <- unique(c(as.character(unlist(roles$target %||% character(0))),
                    as.character(unlist(roles$drivers %||% character(0))),
                    if (is_ast(regla$condicion)) ast_variables(regla$condicion) else character(0),
-                   as.character(bateria$vars %||% character(0))))
+                   as.character(bateria$vars %||% character(0)),
+                   as.character(unlist(fechas$regla$variables %||% list(), use.names = FALSE))))
   vars <- vars[!is.na(vars) & nzchar(vars) & vars %in% names(df)]
   lapply(seq_along(filas), function(k) {
     i <- filas[k]

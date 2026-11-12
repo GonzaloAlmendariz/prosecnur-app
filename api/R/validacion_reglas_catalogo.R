@@ -290,7 +290,8 @@
   direccion <- if (identical(as.character(rule$tipo_regla), "skip") && sub %in% c("debe", "nodebe")) sub else NA_character_
   cuerpo <- .vrc_cuerpo(rule, familia)
   cond_salto <- if (identical(familia, "salto") && !is.na(direccion)) .vrb_condicion_salto(rule$predicate, target, direccion) else NULL
-  limites <- .vrc_limites(cuerpo, familia, ctx)
+  limites <- if (identical(origen, "propia") && identical(familia, "rango_fecha")) .regla_fechas_limites(propia)
+             else .vrc_limites(cuerpo, familia, ctx)
   info <- list(origen = origen, familia = familia, direccion = direccion, target = target,
                tabla = .normalize_rule_table(rule$tabla), condicion = cond_salto, cuerpo = cuerpo,
                filtro = rule$gate %||% .vrc_condicion_calculo(rule, familia, target, ctx),

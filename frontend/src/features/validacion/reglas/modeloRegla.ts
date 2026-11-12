@@ -15,6 +15,7 @@ import type {
   ReglaTreatmentScope,
 } from "../types";
 import type { TipoMeta } from "./tiposDeRegla";
+import { paramsDeComparar } from "./modeloFechas";
 import {
   esOperadorDeComparacion,
   type CondicionCombinada,
@@ -161,6 +162,7 @@ export function normalizeParamsForSubmit(
     return { ...rest, op: String(params.op ?? "contains_any"), codes: paramList(params.codes) };
   }
   if (tipo === "bateria") return paramsDeBateria(params);
+  if (tipo === "comparar_fechas") return paramsDeComparar(params);
   return params;
 }
 

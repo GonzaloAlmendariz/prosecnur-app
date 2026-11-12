@@ -6,7 +6,9 @@
  * evalúa y que cumplen el "Solo revisar cuando"; por eso, con filtro, la base
  * lo dice. Los ejemplos (hasta 20) muestran las preguntas de la regla con el
  * valor que falla resaltado. Cada estado sin conteo tiene su vacío con la
- * causa (estados no dibujados: contrato M1, sección 1).
+ * causa (estados no dibujados: contrato M1, sección 1). En una regla de
+ * fechas, bajo la cifra va cómo se leyó cada fecha u hora (formato, vacías,
+ * ilegibles) y la tabla lleva lo leído en cada caso.
  */
 import { rotuloDeCaso } from "../../rotuloDeCaso";
 import { CifraHallazgo } from "../../../../components/procesamiento/CifraHallazgo";
@@ -18,7 +20,9 @@ import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { ErrorBlock } from "../../../../components/States";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import { AlertTriangle, Compass, Inbox } from "../../../../vendor/lucide-react";
-import type { EjemploDePrueba, EstadoDePrueba, PruebaDeRegla, ResumenDeBateria } from "../../../../api/validacionAuditoria";
+import type { EjemploDePrueba, EstadoDePrueba, LecturaDeFechas, PruebaDeRegla, ResumenDeBateria } from "../../../../api/validacionAuditoria";
+import { textoDeFechas, textoDeLectura } from "../modeloFechas";
+import "./camposDeFechas.css";
 import type { ExploradorVariable } from "../../types";
 import { etiquetaDeOpcion, useOpcionesDeVariables } from "../campos/opcionesDeVariable";
 import { tieneOpciones } from "../campos/tipoDeFicha";
@@ -92,7 +96,9 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
   const porNombre = new Map(variables.map((v) => [v.name, v]));
   // Una batería no cabe en columnas por pregunta: va su resumen por caso.
   const bateria = prueba.ejemplos.some((ej) => ej.bateria);
-  const columnas = bateria ? [] : columnasDeEjemplos(prueba.ejemplos);
+  // En fechas, lo leído en el caso reemplaza a las columnas por pregunta (el original va dentro).
+  const fechas = prueba.ejemplos.some((ej) => ej.fechas);
+  const columnas = bateria || fechas ? [] : columnasDeEjemplos(prueba.ejemplos);
   const primeraDeLaBateria = bateria ? prueba.ejemplos.find((ej) => ej.bateria)?.valores[0]?.variable ?? null : null;
   const opcionesDeLaBateria = useOpcionesDeVariables(
     primeraDeLaBateria && tieneOpciones(porNombre.get(primeraDeLaBateria)?.tipo) ? [primeraDeLaBateria] : [],
@@ -152,6 +158,16 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       valor: (ej: EjemploDePrueba) => (ej.bateria ? textoDeBateria(ej.bateria, leerValor) : "Sin dato"),
     });
   }
+  if (fechas) {
+    definicion.push({
+      id: "fechas",
+      encabezado: "Leído",
+      ancho: ANCHO_TABLA - ANCHO_CASO,
+      tipo: "texto" as const,
+      celda: (ej: EjemploDePrueba) => (ej.fechas ? <b className="pulso-regla-falla">{textoDeFechas(ej.fechas)}</b> : "Sin dato"),
+      valor: (ej: EjemploDePrueba) => (ej.fechas ? textoDeFechas(ej.fechas) : "Sin dato"),
+    });
+  }
   return (
     <PulsoTable
       columnas={definicion}
@@ -161,6 +177,22 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       densidad="comoda"
       altoMaximo={MAX_FILAS_DE_EJEMPLO * 60 + 64}
     />
+  );
+}
+
+const ROTULO_DE_MOMENTO: Record<LecturaDeFechas["momento"], string> = { fecha: "Fecha", inicio: "Inicio", fin: "Fin" };
+
+/** Cómo se leyó cada fecha u hora, sobre las filas que evalúa la auditoría (`n_filas`). */
+function LecturaDeLaRegla({ lectura }: { lectura: readonly LecturaDeFechas[] }) {
+  if (!lectura.length) return null;
+  return (
+    <ul className="pulso-regla-nota pulso-regla-lectura" aria-label="Cómo se leyeron las respuestas">
+      {lectura.map((l) => (
+        <li key={l.momento}>
+          <b>{ROTULO_DE_MOMENTO[l.momento]}</b>: {textoDeLectura(l)}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -236,6 +268,7 @@ export function CasosQueMarca({
           detalle={prueba.proporcion === null ? "" : undefined}
           tono={inconsistencia ? "inconsistencia" : "aviso"}
         />
+        <LecturaDeLaRegla lectura={prueba.lectura ?? []} />
         {nCasos > 0 && prueba.ejemplos.length > 0 ? (
           <TablaDeEjemplos prueba={prueba} variables={variables} />
         ) : (

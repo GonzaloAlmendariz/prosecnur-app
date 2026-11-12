@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Asterisk,
   Calendar,
+  CalendarClock,
   CheckCircle2,
   Copy,
   GitCompare,
@@ -47,6 +48,7 @@ export function textoDeLaCasa(texto: string): string {
 export const ICONO_DE_TIPO: Readonly<Record<TipoReglaPropia, LucideIcon>> = {
   rango_num: Hash,
   rango_fecha: Calendar,
+  comparar_fechas: CalendarClock,
   no_nulo: Asterisk,
   outliers_iqr: Activity,
   outliers_z: Sigma,

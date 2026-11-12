@@ -25,6 +25,16 @@ import {
   patronDeBateria,
 } from "./reglas/modeloRegla";
 import { leerOperador, leerOperadorNegado } from "./reglas/operadores";
+import {
+  fechaMostrada,
+  momentoDe,
+  momentoDeRango,
+  patronDeFechas,
+  unidadDeDuracion,
+  unidadDeFechas,
+  type Momento,
+  type UnidadDeFechas,
+} from "./reglas/modeloFechas";
 import type { CondicionCombinada, ReglaPropia, TipoReglaPropia } from "./reglas/tiposDelMotor";
 
 // Mapea el `tipo` de la regla custom al `tipo_regla` que reconoce el
@@ -44,6 +54,7 @@ const CUSTOM_TIPO_TO_AST: Record<TipoReglaPropia, string> = {
   select_multiple_selection: "select_multiple_cardinality",
   condiciones: "coherence",
   bateria: "pattern",
+  comparar_fechas: "coherence",
 };
 
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
@@ -63,6 +74,7 @@ export const CUSTOM_TIPO_LABEL: Record<TipoReglaPropia, string> = {
   select_multiple_selection: "Opciones esperadas o prohibidas",
   condiciones: "Condiciones combinadas",
   bateria: "Patrón en una batería",
+  comparar_fechas: "Dos fechas u horas que deben cuadrar",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
@@ -85,16 +97,15 @@ export function describeCustomParams(
       if (mn) return `Debe ser ≥ ${mn}.`;
       if (mx) return `Debe ser ≤ ${mx}.`;
       return "Define el rango esperado para una duración, conteo o métrica operativa.";
-    case "rango_fecha":
-      {
-        const timezone = typeof params.timezone === "string" && params.timezone.trim()
-          ? ` (${params.timezone.trim()})`
-          : " (America/Lima)";
-        if (mn && mx) return `Debe estar entre ${mn} y ${mx}${timezone}; los vacíos se revisan por separado.`;
-        if (mn) return `Debe ser desde ${mn}${timezone}; los vacíos se revisan por separado.`;
-        if (mx) return `Debe ser hasta ${mx}${timezone}; los vacíos se revisan por separado.`;
-      }
-      return "Define el periodo del operativo para esta fecha.";
+    case "rango_fecha": {
+      if (!mn && !mx) return "Define el periodo del operativo para esta fecha.";
+      const piezas = fraseDeReglaPropia({ tipo, variables, params });
+      return piezas ? fraseEnTexto(piezas) : "Define el periodo del operativo para esta fecha.";
+    }
+    case "comparar_fechas": {
+      const piezas = fraseDeReglaPropia({ tipo, variables, params });
+      return piezas ? fraseEnTexto(piezas) : "Se marca cuando la segunda fecha u hora es anterior a la primera, o cuando la duración entre ambas queda fuera del rango.";
+    }
     case "outliers_iqr":
       return `Se marcan valores fuera del intervalo [Q1 − ${k ?? 1.5} × IQR, Q3 + ${k ?? 1.5} × IQR].`;
     case "outliers_z":
@@ -419,15 +430,9 @@ export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leer
       f.texto(".");
       break;
     }
-    case "rango_fecha": {
-      const min = textoDeParam(p.min);
-      const max = textoDeParam(p.max);
-      if (!v1 || (!min && !max)) return null;
-      f.pregunta(v1).texto(" ");
-      if (min) f.texto("es anterior al ").valor(min);
-      if (min && max) f.texto(" ").conector("o").texto(" ");
-      if (max) f.texto("es posterior al ").valor(max);
-      f.texto(".");
+    case "rango_fecha":
+    case "comparar_fechas": {
+      if (!fraseDeFechas(f, regla)) return null;
       break;
     }
     case "duplicados": {
@@ -556,6 +561,79 @@ function fraseDeBateria(f: Frase, regla: ReglaParaFrase, leer: LeerValor): boole
   f.texto(m === k ? `Se marca cuando las ${k} preguntas de la batería, ` : `Se marca cuando al menos ${m} de las ${k} preguntas de la batería, `);
   tramo();
   f.texto(", están vacías.");
+  return true;
+}
+
+/** El momento en la frase: la pregunta, o "la fecha armada con D, M y A" (`.vrf_fechas_momento()`). */
+function momentoEnFrase(f: Frase, m: Momento, unidad: UnidadDeFechas) {
+  if (m.partes === "una") {
+    f.pregunta(m.variables[0]);
+    return;
+  }
+  f.texto(unidad === "hora" ? "la hora armada con " : "la fecha armada con ");
+  m.variables.forEach((v, i) => {
+    if (i > 0) f.texto(i === m.variables.length - 1 ? " y " : ", ");
+    f.pregunta(v);
+  });
+}
+
+/**
+ * "Fecha fuera del operativo" y "Dos fechas u horas que deben cuadrar": las
+ * mismas palabras que la frase del catálogo (`.vrf_frase_fechas()` en el
+ * motor). Falso si la regla no está completa.
+ */
+function fraseDeFechas(f: Frase, regla: ReglaParaFrase): boolean {
+  const p = regla.params;
+  const ilegibles = p.marcar_ilegibles !== false;
+  let momentos: Momento[];
+  let unidad: UnidadDeFechas = "fecha";
+  if (regla.tipo === "rango_fecha") {
+    const m = momentoDeRango(p, regla.variables);
+    const min = textoDeParam(p.min);
+    const max = textoDeParam(p.max);
+    if (m.variables.some((v) => !v) || (!min && !max)) return false;
+    const inclusivo = p.inclusive !== false;
+    momentoEnFrase(f, m, "fecha");
+    f.texto(" ");
+    if (min) f.texto(inclusivo ? "es anterior al " : "es igual o anterior al ").valor(fechaMostrada(min));
+    if (min && max) f.texto(" o ");
+    if (max) f.texto(inclusivo ? "es posterior al " : "es igual o posterior al ").valor(fechaMostrada(max));
+    f.texto(".");
+    momentos = [m];
+  } else {
+    unidad = unidadDeFechas(p.unidad);
+    const ini = momentoDe(p.inicio, unidad);
+    const fin = momentoDe(p.fin, unidad);
+    if ([...ini.variables, ...fin.variables].some((v) => !v)) return false;
+    if (patronDeFechas(p.patron) === "orden") {
+      momentoEnFrase(f, fin, unidad);
+      f.texto(" es anterior a ");
+      momentoEnFrase(f, ini, unidad);
+      f.texto(".");
+    } else {
+      const minimo = textoDeParam(p.minimo);
+      const maximo = textoDeParam(p.maximo);
+      if (!minimo && !maximo) return false;
+      f.texto("entre ");
+      momentoEnFrase(f, ini, unidad);
+      f.texto(" y ");
+      momentoEnFrase(f, fin, unidad);
+      f.texto(" pasan ");
+      if (minimo) f.texto("menos de ").valor(minimo);
+      if (minimo && maximo) f.texto(" o ");
+      if (maximo) f.texto("más de ").valor(maximo);
+      f.texto(` ${unidadDeDuracion(unidad, Number(maximo || minimo))}.`);
+    }
+    momentos = [ini, fin];
+  }
+  for (const m of momentos) {
+    if (m.partes === "una" && m.formato !== "auto") f.texto(" ").pregunta(m.variables[0]).texto(" se lee como ").valor(m.formato).texto(".");
+  }
+  if (ilegibles) {
+    const que = unidad === "hora" ? "una hora" : "una fecha";
+    const armada = momentos.some((m) => m.partes !== "una");
+    f.texto(` También se marca ${que} ${armada ? "incompleta o que no se puede leer" : "que no se puede leer"}.`);
+  }
   return true;
 }
 

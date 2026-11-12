@@ -29,6 +29,9 @@
 #   - cruce_identidad      — llave compartida + solape temporal en el mismo caso.
 #   - bateria              — patrón en un conjunto de preguntas (misma respuesta,
 #                            un código repetido, vacías); validacion_regla_bateria.R.
+#   - comparar_fechas      — orden o duración entre dos fechas u horas, con su
+#                            formato o repartidas en varias preguntas;
+#                            validacion_regla_fechas.R (también lee rango_fecha).
 
 .regla_tipos_soportados <- c(
   "no_nulo", "rango_num", "rango_fecha",
@@ -37,7 +40,7 @@
   "select_multiple_hierarchy", "select_multiple_exclusive",
   "select_multiple_cardinality", "select_multiple_selection",
   "continuidad_secuencia", "cruce_identidad",
-  "condiciones", "bateria"
+  "condiciones", "bateria", "comparar_fechas"
 )
 
 # Comparar con otra pregunta solo admite operadores de comparación: "está
@@ -81,6 +84,7 @@
   }
   params <- r$params %||% list()
   if (identical(tipo, "bateria")) .regla_bateria_validar(r)
+  if (identical(tipo, "comparar_fechas")) .regla_fechas_validar(r)
 
   # Helper para coaccionar params opcionales a NA cuando vengan NULL o
   # de largo 0 — sin esto, `is.na(NULL)` devuelve logical(0) y el `&&`
@@ -123,6 +127,7 @@
       stop_api(400, "E_REGLA_TIMEZONE_INVALIDO",
                "'rango_fecha' requiere una zona horaria valida.")
     }
+    .regla_fechas_validar(r)
   } else if (tipo %in% c("outliers_iqr", "outliers_z")) {
     k <- .as_num(params$k)
     if (is.na(k) || k <= 0) {

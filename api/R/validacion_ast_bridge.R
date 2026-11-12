@@ -26,7 +26,7 @@
 #' Mapeo de `tipo` al constructor correspondiente:
 #'   no_nulo        → rule_required
 #'   rango_num      → rule_range(type="numeric")
-#'   rango_fecha    → rule_range(type="date")
+#'   rango_fecha    → .regla_fechas_rule (validacion_regla_fechas.R)
 #'   outliers_iqr   → rule_outlier(method="iqr")
 #'   outliers_z     → rule_outlier(method="zscore")
 #'   duplicados     → rule_duplicate
@@ -77,19 +77,9 @@ bridge_regla_custom <- function(r) {
       nombre = nombre,
       objetivo = objetivo
     ),
-    "rango_fecha" = rule_range(
-      var = vars[1],
-      min = params$min,
-      max = params$max,
-      inclusive = isTRUE(params$inclusive %||% TRUE),
-      type = "date",
-      timezone = params$timezone %||% "America/Lima",
-      gate = gate_ast,
-      fuente = "custom",
-      severidad = sev,
-      nombre = nombre,
-      objetivo = objetivo
-    ),
+    # Fechas con formato, repartidas o ilegibles (validacion_regla_fechas.R).
+    "rango_fecha" = .regla_fechas_rule(r, gate = gate_ast, nombre = nombre,
+                                       objetivo = objetivo, severidad = sev),
     "outliers_iqr" = rule_outlier(
       var = vars[1],
       method = "iqr",
@@ -235,6 +225,8 @@ bridge_regla_custom <- function(r) {
       vars = vars, params = params, gate = gate_ast,
       nombre = nombre, objetivo = objetivo, severidad = sev
     ),
+    "comparar_fechas" = .regla_fechas_rule(r, gate = gate_ast, nombre = nombre,
+                                           objetivo = objetivo, severidad = sev),
     stop(sprintf("bridge_regla_custom(): tipo '%s' no soportado.", tipo))
   )
 

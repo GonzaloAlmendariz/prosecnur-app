@@ -39,6 +39,7 @@ import {
   type TipoDeVariable,
 } from "./modeloRegla";
 import { metaDeTipo, rangoDePreguntas } from "./tiposDeRegla";
+import { validarFechas, variablesDeComparar } from "./modeloFechas";
 import { esOperadorDeComparacion, type ReglaPropia, type ReglaPropiaAGuardar, type TipoReglaPropia } from "./tiposDelMotor";
 
 export type Borrador = {
@@ -73,6 +74,14 @@ function paramsDeArranque(tipo: TipoReglaPropia | null, primera: string): Record
   if (tipo === "condiciones") return { modo: "todas", condiciones: [{ variable: primera, op: "", valor: "" }] };
   if (tipo === "select_multiple_selection") return { op: "contains_any" };
   if (tipo === "bateria") return { patron: "iguales" };
+  if (tipo === "comparar_fechas") {
+    return {
+      unidad: "fecha",
+      patron: "orden",
+      inicio: { variables: [primera], partes: "una", formato: "auto" },
+      fin: { variables: [""], partes: "una", formato: "auto" },
+    };
+  }
   return {};
 }
 
@@ -99,7 +108,7 @@ export function borradorInicial({ inicial, tipo = null, pregunta = null, semilla
     variables: origen?.variables ?? (pregunta ? [pregunta] : []),
     nombre: origen?.nombre ?? "",
     mensaje,
-    params: origen?.params ?? paramsDeArranque(tipoInicial, tipoInicial === "condiciones" ? pregunta ?? "" : ""),
+    params: origen?.params ?? paramsDeArranque(tipoInicial, tipoInicial === "condiciones" || tipoInicial === "comparar_fechas" ? pregunta ?? "" : ""),
     hallazgoKind: origen?.hallazgo_kind ?? "caso_validar",
     claseCambiada: false,
     gateConditions: origen?.gate_conditions ?? [],
@@ -140,7 +149,7 @@ export function reducirBorrador(b: Borrador, accion: AccionDeBorrador): Borrador
       const meta = metaDeTipo(nuevo);
       const [, max] = meta ? rangoDePreguntas(meta) : [1, 1];
       const variables = nuevo === "condiciones" ? [] : b.variables.slice(0, Math.min(1, max));
-      const params = paramsDeArranque(nuevo, nuevo === "condiciones" ? b.variables[0] ?? "" : "");
+      const params = paramsDeArranque(nuevo, nuevo === "condiciones" || nuevo === "comparar_fechas" ? b.variables[0] ?? "" : "");
       return { ...base, tipo: nuevo, variables, params };
     }
     case "variables":
@@ -176,6 +185,8 @@ export function accionEfectiva(b: Borrador): ReglaTreatmentActionType {
 /** Las preguntas de la regla: las de sus condiciones en "Condiciones combinadas". */
 export function variablesEfectivas(b: Borrador): string[] {
   if (b.tipo === "condiciones") return variablesDeCondiciones(condicionesDeParams(b.params));
+  // Inicio y fin: sus preguntas, en ese orden (validacion_regla_fechas.R).
+  if (b.tipo === "comparar_fechas") return variablesDeComparar(b.params).filter(Boolean);
   // Una fila de pregunta vacía no es una pregunta de la regla.
   return b.variables.every(Boolean) ? b.variables : b.variables.filter(Boolean);
 }
@@ -201,6 +212,16 @@ export function nombreDelBorrador(b: Borrador, variables: readonly ExploradorVar
   const base = meta?.rotulo ?? "Regla";
   // Una batería se nombra por su primera y su última pregunta, no por todas.
   if (b.tipo === "bateria" && nombres.length > 2) return `${base}: ${nombres[0]} a ${nombres[nombres.length - 1]}`;
+  // Dos fechas u horas: la primera pregunta del inicio y la primera del fin.
+  if (b.tipo === "comparar_fechas") {
+    const [ini, fin] = [b.params.inicio, b.params.fin].map((m) => {
+      const v = (m as { variables?: unknown[] } | undefined)?.variables?.[0];
+      const nombre = typeof v === "string" ? v : "";
+      const etiqueta = (porNombre.get(nombre) ?? "").trim();
+      return etiqueta && etiqueta !== nombre ? `"${etiqueta}"` : nombre;
+    });
+    if (ini && fin) return `${base}: ${ini} y ${fin}`;
+  }
   return nombres.length ? `${base}: ${nombres.join(" y ")}` : base;
 }
 
@@ -216,6 +237,9 @@ export function validarBorrador(b: Borrador): string {
   if (!meta) return "Tipo no definido.";
   if (tipo === "condiciones") {
     const error = validarCondiciones(condicionesDeParams(params));
+    if (error) return error;
+  } else if (tipo === "comparar_fechas") {
+    const error = validarFechas(tipo, params, []);
     if (error) return error;
   } else {
     const [needed] = rangoDePreguntas(meta);
@@ -233,6 +257,8 @@ export function validarBorrador(b: Borrador): string {
     if (mn && mx && mn > mx) return "El inicio del operativo no puede ser posterior al cierre.";
     const timezone = String(params.timezone ?? "America/Lima").trim();
     if (!isValidTimeZone(timezone)) return "La zona horaria no es válida. Usa un identificador como America/Lima.";
+    const error = validarFechas(tipo, params, b.variables);
+    if (error) return error;
   }
   if (tipo === "outliers_iqr" || tipo === "outliers_z") {
     const k = Number(params.k);

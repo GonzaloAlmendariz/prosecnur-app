@@ -34,13 +34,14 @@ test_that("rango_fecha compila con solo max y detecta la fecha posterior", {
   f <- prosecnurapp:::.regla_expr_rango_fecha
   solo_max <- f("date_reva_sit", list(max = "2026-08-05"))
   expect_type(solo_max, "character")
-  expect_false(grepl("NA", solo_max, fixed = TRUE))
+  # El límite ausente no se escribe como fecha "NA" (as.Date('NA') abortaba).
+  expect_false(grepl("'NA'", solo_max, fixed = TRUE))
 
   date_reva_sit <- c("2026-03-02", "2026-08-17", NA)
   expect_equal(eval(parse(text = solo_max)), c(FALSE, TRUE, FALSE))
 
   solo_min <- f("fecha", list(min = "2026-01-01"))
-  expect_false(grepl("NA", solo_min, fixed = TRUE))
+  expect_false(grepl("'NA'", solo_min, fixed = TRUE))
 })
 
 test_that("una regla con un solo límite llega hasta el plan compilado", {

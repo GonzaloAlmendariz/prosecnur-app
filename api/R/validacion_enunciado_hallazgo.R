@@ -25,6 +25,9 @@
 #   periodo, version, continuidad  procedencia del caso.
 #   bateria       patrón en una batería: qué respondió en cuántas preguntas
 #                 (validacion_regla_bateria.R). No depende del tipo de anomalía.
+#   fechas        fecha u hora ilegible, fuera del operativo, en desorden o con
+#                 una duración fuera de rango, con lo leído
+#                 (validacion_regla_fechas.R). No depende del tipo de anomalía.
 #   contradiccion, valor_invalido, procedencia  sin más datos de la regla.
 # Sin tipo de anomalía no hay enunciado (null): no se inventa.
 
@@ -142,6 +145,7 @@
   # Una batería se redacta por su patrón aunque no tenga tipo de anomalía: el
   # enunciado dice lo que se midió en el caso, no lo clasifica.
   if (!is.null(regla$bateria)) return("bateria")
+  if (!is.null(regla$fechas)) return("fechas")
   a <- as.character(anomalia %||% NA_character_)[1]
   if (is.na(a) || !nzchar(a)) return(NA_character_)
   tipo <- as.character(regla$tipo_regla %||% "")[1]
@@ -290,6 +294,11 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
       hecho <- b$hecho
       b$choque
     },
+    fechas = {
+      f <- .regla_fechas_enunciado(regla$fechas, valores, regla)
+      hecho <- f$hecho
+      f$choque
+    },
     ""
   )
   if (!nzchar(target) && !(sub %in% c("procedencia"))) hecho <- ""
@@ -332,11 +341,13 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
     return(list(tipo_regla = as.character(propia$tipo %||% NA_character_), familia = as.character(propia$tipo %||% ""),
                 origen_semilla = (propia$semilla %||% list())$origen %||% NA_character_,
                 especiales = especiales, etiquetas = etiquetas,
-                bateria = .regla_bateria_contexto(propia)))
+                bateria = .regla_bateria_contexto(propia),
+                fechas = .regla_fechas_contexto(propia)))
   }
   origen <- .vrc_origen(rule, ids_propias)
   familia <- .vrc_familia(rule, origen, propia = propia)
-  limites <- tryCatch(.vrc_limites(.vrc_cuerpo(rule, familia), familia, ctx), error = function(e) NA)
+  limites <- if (identical(origen, "propia") && identical(familia, "rango_fecha")) .regla_fechas_limites(propia)
+             else tryCatch(.vrc_limites(.vrc_cuerpo(rule, familia), familia, ctx), error = function(e) NA)
   semilla <- (propia$semilla %||% list())
   direccion <- as.character((rule$presentation %||% list())$subtipo_semantico %||% NA_character_)
   target <- as.character((rule$variable_roles %||% list())$target %||% rule$primary_var %||% "")[1]
@@ -355,6 +366,7 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
     faltantes = semilla$faltantes %||% list(),
     especiales = especiales,
     etiquetas = etiquetas,
-    bateria = .regla_bateria_contexto(propia)
+    bateria = .regla_bateria_contexto(propia),
+    fechas = .regla_fechas_contexto(propia)
   )
 }

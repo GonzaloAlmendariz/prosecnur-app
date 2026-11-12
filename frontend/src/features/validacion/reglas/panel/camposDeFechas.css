@@ -1,0 +1,26 @@
+/* Reglas de fechas y horas: duración con su unidad (CamposDeFechas.tsx) y la lectura en "Casos que marca hoy". */
+
+.pulso-regla-fechas-duracion {
+  display: grid;
+  grid-template-columns: minmax(64px, 96px) minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: center;
+  min-width: 0;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-regla-lectura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-regla-lectura b {
+  color: var(--pulso-text);
+  font-weight: 600;
+}

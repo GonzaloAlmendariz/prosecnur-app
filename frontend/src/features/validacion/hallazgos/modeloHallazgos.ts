@@ -541,6 +541,8 @@ export type FilaDeCaso = {
 
 /** La columna de lo medido en una batería; no es una pregunta de la base. */
 const CLAVE_PATRON_DE_BATERIA = "bateria:patron";
+/** La columna de lo leído en una regla de fechas (el enunciado del motor). */
+const CLAVE_LECTURA_DE_FECHAS = "fechas:lectura";
 
 export type ColumnaDeCaso = { clave: string; rotulo: string; tipo: "contexto" | "pregunta" | "falla"; numerica: boolean };
 
@@ -565,6 +567,9 @@ export function valorEscrito(crudo: unknown, etiquetas: Record<string, string | 
  * En una batería ("Patrón en una batería") van todas sus preguntas, en el
  * orden de la regla, y al final lo que el motor midió en el caso (su
  * enunciado, "respondió "Mucho" (4) en las 14 preguntas de la batería").
+ * En una regla de fechas van sus preguntas con el texto original y al final
+ * lo leído por el motor ("registró "15.10.28" (15/10/2028) en Fecha,
+ * posterior al cierre del operativo (31/10/2026)").
  * Las filas se cruzan con los ids por posición dentro de la misma respuesta
  * del motor (`casos`, `case_ids`, `esperado` y `contexto_por_caso` son
  * paralelos por contrato).
@@ -604,6 +609,10 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
     const items = [...new Set([objetivo ?? "", ...listaDeRol(roles?.compare)])].filter((v) => v && enLaFila(v));
     for (const v of items) columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
     columnas.push({ clave: CLAVE_PATRON_DE_BATERIA, rotulo: "En la batería", tipo: "falla", numerica: false });
+  } else if (familia === "rango_fecha" || familia === "comparar_fechas") {
+    const items = [...new Set([objetivo ?? "", ...listaDeRol(roles?.compare)])].filter((v) => v && enLaFila(v));
+    for (const v of items) columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
+    columnas.push({ clave: CLAVE_LECTURA_DE_FECHAS, rotulo: "Leído", tipo: "falla", numerica: false });
   } else {
     for (const v of otras.filter(enLaFila)) {
       columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
@@ -622,6 +631,7 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       else if (c.clave === "ctx:digitador") valores[c.clave] = ctx?.digitador ?? "Sin dato";
       else if (c.clave === "ctx:fecha_respuesta") valores[c.clave] = fechaCorta(ctx?.fecha_respuesta, true) ?? ctx?.fecha_respuesta ?? "Sin dato";
       else if (c.clave === CLAVE_PATRON_DE_BATERIA) valores[c.clave] = esperado[i]?.hecho ?? "Sin dato";
+      else if (c.clave === CLAVE_LECTURA_DE_FECHAS) valores[c.clave] = [esperado[i]?.hecho, esperado[i]?.choque].filter(Boolean).join(", ") || "Sin dato";
       else valores[c.clave] = valorEscrito(fila[c.clave], valueLabels?.[c.clave] ?? null);
     }
     const id = ids[i] ?? null;

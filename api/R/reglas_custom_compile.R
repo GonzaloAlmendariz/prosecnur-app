@@ -99,15 +99,10 @@
   sprintf("(!is.na(%s) & (%s))", xnum, cond)
 }
 
+# "Fecha fuera del operativo" lee la fecha con su formato (dd.mm.aaaa,
+# dd/mm/aa, aaaa-mm-dd...) y marca la ilegible: validacion_regla_fechas.R.
 .regla_expr_rango_fecha <- function(var, params) {
-  mn <- .regla_lim_escalar(params$min, as.Date)
-  mx <- .regla_lim_escalar(params$max, as.Date)
-  xd <- sprintf("suppressWarnings(as.Date(%s))", var)
-  parts <- c()
-  if (!is.na(mn)) parts <- c(parts, sprintf("%s < as.Date('%s')", xd, mn))
-  if (!is.na(mx)) parts <- c(parts, sprintf("%s > as.Date('%s')", xd, mx))
-  cond <- paste(parts, collapse = " | ")
-  sprintf("(!is.na(%s) & (%s))", xd, cond)
+  .regla_expr_fechas(list(tipo = "rango_fecha", variables = list(var), params = params %||% list()))
 }
 
 .regla_expr_outliers_iqr <- function(var, params) {
@@ -381,7 +376,7 @@
   expr <- switch(r$tipo,
     "no_nulo"        = .regla_expr_no_nulo(vars[1]),
     "rango_num"      = .regla_expr_rango_num(vars[1], r$params),
-    "rango_fecha"    = .regla_expr_rango_fecha(vars[1], r$params),
+    "rango_fecha"    = .regla_expr_fechas(r),
     "outliers_iqr"   = .regla_expr_outliers_iqr(vars[1], r$params),
     "outliers_z"     = .regla_expr_outliers_z(vars[1], r$params),
     "duplicados"     = .regla_expr_duplicados(vars),
@@ -395,6 +390,7 @@
     "cruce_identidad" = .regla_expr_cruce_identidad(vars),
     "condiciones"    = .regla_expr_condiciones(r$params),
     "bateria"        = .regla_expr_bateria(vars, r$params),
+    "comparar_fechas" = .regla_expr_fechas(r),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )
   expr <- .regla_apply_gate(expr, r)

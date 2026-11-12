@@ -758,7 +758,112 @@ export type EjemploDePrueba = {
   valores: ValorDeEjemplo[];
   /** Solo en una regla de batería. */
   bateria?: ResumenDeBateria;
+  /** Solo en una regla de fechas u horas. */
+  fechas?: ResumenDeFechas;
 };
+
+/** Estado de lectura de una fecha u hora en un caso. */
+export type EstadoDeLectura = "leida" | "vacia" | "incompleta" | "ilegible";
+
+/** Por qué marca una regla de fechas en un caso. */
+export type MotivoDeFechas = "ilegible" | "antes" | "despues" | "orden" | "corta" | "larga";
+
+export type LadoDeFechas = {
+  /** Lo leído: "2026-10-08" o "13:45"; `null` si no se leyó. */
+  texto: string | null;
+  estado: EstadoDeLectura;
+  /** El formato con que se leyó ("dd.mm.aaaa", "hora_minutos_ampm"); `null` si no se leyó. */
+  formato: string | null;
+  /** El texto de la base, tal cual; en una fecha u hora repartida, sus partes separadas por coma. */
+  original: string | null;
+};
+
+/**
+ * Lo que mide el motor en un caso de una regla de fechas (una fila): lo leído
+ * en el inicio (o la única fecha) y en el fin, la diferencia (fin menos
+ * inicio, en minutos u días) y el motivo de la marca.
+ */
+export type ResumenDeFechas = {
+  unidad: "fecha" | "hora";
+  patron: "rango" | "orden" | "duracion";
+  motivo: MotivoDeFechas | null;
+  inicio: LadoDeFechas;
+  fin: LadoDeFechas | null;
+  diferencia: number | null;
+};
+
+/**
+ * Cómo se leyeron las respuestas de un momento, sobre las filas que evalúa la
+ * auditoría (`n_filas`, sin el filtro): cuántas con cada formato y cuántas
+ * vacías, incompletas o ilegibles. Las cuatro cifras suman `n_filas`.
+ */
+export type LecturaDeFechas = {
+  momento: "fecha" | "inicio" | "fin";
+  variables: string[];
+  partes: string;
+  /** El formato declarado, o "auto". */
+  formato: string;
+  formatos: { formato: string; n: number }[];
+  n_leidas: number;
+  n_vacias: number;
+  n_incompletas: number;
+  n_ilegibles: number;
+  n_filas: number;
+};
+
+const ESTADOS_DE_LECTURA: readonly EstadoDeLectura[] = ["leida", "vacia", "incompleta", "ilegible"];
+const MOTIVOS_DE_FECHAS: readonly MotivoDeFechas[] = ["ilegible", "antes", "despues", "orden", "corta", "larga"];
+
+function ladoDeFechas(value: unknown): LadoDeFechas | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const r = registro(value);
+  const estado = texto(r.estado);
+  if (!(ESTADOS_DE_LECTURA as readonly string[]).includes(estado)) return null;
+  return { texto: textoONulo(r.texto), estado: estado as EstadoDeLectura, formato: textoONulo(r.formato), original: textoONulo(r.original) };
+}
+
+/** Lo medido en un caso de fechas, o `undefined` si no llega o llega incompleto. */
+export function normalizarResumenDeFechas(value: unknown): ResumenDeFechas | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const r = registro(value);
+  const unidad = texto(r.unidad);
+  const patron = texto(r.patron);
+  const inicio = ladoDeFechas(r.inicio);
+  if ((unidad !== "fecha" && unidad !== "hora") || !["rango", "orden", "duracion"].includes(patron) || !inicio) return undefined;
+  const motivo = texto(r.motivo);
+  return {
+    unidad,
+    patron: patron as ResumenDeFechas["patron"],
+    motivo: (MOTIVOS_DE_FECHAS as readonly string[]).includes(motivo) ? (motivo as MotivoDeFechas) : null,
+    inicio,
+    fin: ladoDeFechas(r.fin),
+    diferencia: numeroONulo(r.diferencia),
+  };
+}
+
+/** La lectura de una regla de fechas; vacía si no llega. */
+export function normalizarLecturaDeFechas(value: unknown): LecturaDeFechas[] {
+  return lista(value)
+    .map((l): LecturaDeFechas | null => {
+      const momento = texto(l.momento);
+      if (momento !== "fecha" && momento !== "inicio" && momento !== "fin") return null;
+      return {
+        momento,
+        variables: textos(l.variables),
+        partes: texto(l.partes) || "una",
+        formato: texto(l.formato) || "auto",
+        formatos: lista(l.formatos)
+          .map((f) => ({ formato: texto(f.formato), n: enteroONulo(f.n) ?? 0 }))
+          .filter((f) => f.formato !== ""),
+        n_leidas: enteroONulo(l.n_leidas) ?? 0,
+        n_vacias: enteroONulo(l.n_vacias) ?? 0,
+        n_incompletas: enteroONulo(l.n_incompletas) ?? 0,
+        n_ilegibles: enteroONulo(l.n_ilegibles) ?? 0,
+        n_filas: enteroONulo(l.n_filas) ?? 0,
+      };
+    })
+    .filter((l): l is LecturaDeFechas => l !== null);
+}
 
 const PATRONES_DE_BATERIA: readonly PatronDeBateria[] = ["iguales", "codigo", "vacias"];
 
@@ -800,6 +905,8 @@ export type PruebaDeRegla = {
   /** `n_casos / n_base`, de 0 a 1; `null` si `n_base` es 0. */
   proporcion: number | null;
   ejemplos: EjemploDePrueba[];
+  /** Solo en una regla de fechas: cómo se leyó cada fecha u hora (vacía en los demás tipos). */
+  lectura?: LecturaDeFechas[];
 };
 
 const PAPELES: readonly PapelEnLaPrueba[] = ["revisada", "comparada", "condicion", "filtro"];
@@ -820,8 +927,13 @@ export function normalizarPruebaDeRegla(value: unknown): PruebaDeRegla {
     n_base: enteroONulo(r.n_base),
     n_casos: enteroONulo(r.n_casos),
     proporcion: numeroONulo(r.proporcion),
+    lectura: normalizarLecturaDeFechas(r.lectura),
     ejemplos: lista(r.ejemplos).map((ej) => ({
       ...conResumenDeBateria(ej.bateria),
+      ...(() => {
+        const fechas = normalizarResumenDeFechas(ej.fechas);
+        return fechas ? { fechas } : {};
+      })(),
       id_caso: textoONulo(ej.id_caso),
       valores: lista(ej.valores)
         .map((val): ValorDeEjemplo | null => {

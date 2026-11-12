@@ -42,7 +42,7 @@
     ]
   },
   "regla_rango-fecha": {
-    "marcado": "22e6e6ebf7e677841947e8f8283912fbb599e17bfe8c6554f0217d0bfbc06b3c",
+    "marcado": "76a299200ccfdf6902b80a38996c8c571e8c2307597f8322e40557df9f301985",
     "guardado": [
       "{\n  \"id\": \"RC_103\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"rango_fecha\",\n  \"variables\": [\n    \"fecha\"\n  ],\n  \"params\": {\n    \"min\": \"2026-01-05\",\n    \"max\": \"2026-03-31\",\n    \"timezone\": \"America/Lima\"\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]

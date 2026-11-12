@@ -35,6 +35,7 @@ import { opcionesDeOperador, type FormaDelOperador } from "../operadores";
 import { metaDeTipo, rangoDePreguntas } from "../tiposDeRegla";
 import { esOperadorDeComparacion, type CondicionCombinada, type ModoCondiciones, type OperadorDeCondicion } from "../tiposDelMotor";
 import { CamposDeBateria } from "./CamposDeBateria";
+import { CamposDeFechas } from "./CamposDeFechas";
 import { Fila } from "./FilaDeRegla";
 import { Segmentado } from "./Segmentado";
 
@@ -92,7 +93,10 @@ export function preguntasDelTipo(tipo: Borrador["tipo"], variables: readonly Exp
     case "outliers_z":
       return variables.filter((v) => v.tipo === "num" || v.tipo === "mixto");
     case "rango_fecha":
-      return variables.filter((v) => v.tipo === "fecha" || v.tipo === "texto" || v.tipo === "mixto");
+    case "comparar_fechas":
+      // Una fecha u hora llega como fecha, texto ("08.10.2026", "13.45") o
+      // número (sus partes: día, hora, minutos). La opción múltiple no la trae.
+      return variables.filter((v) => v.tipo !== "sm");
     case "select_multiple_hierarchy":
     case "select_multiple_exclusive":
     case "select_multiple_cardinality":
@@ -350,6 +354,11 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
       filas = <CamposDeBateria borrador={b} despachar={despachar} variables={preguntasDelTipo("bateria", variables)} />;
       break;
     }
+    case "rango_fecha":
+    case "comparar_fechas": {
+      filas = <CamposDeFechas borrador={b} despachar={despachar} variables={preguntasDelTipo(b.tipo, variables)} />;
+      break;
+    }
     case "duplicados": {
       const [, max] = meta ? rangoDePreguntas(meta) : [1, 5];
       const llaves = b.variables.length ? b.variables : [""];
@@ -399,18 +408,6 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
               checked={(b.params.inclusive as boolean | undefined) ?? true}
               onCheckedChange={(inclusive) => setParam("inclusive", inclusive)}
               label="El mínimo y el máximo están permitidos"
-            />
-          </Fila>,
-        );
-      } else if (b.tipo === "rango_fecha") {
-        filasDelTipo.push(numero("min", "Inicio del operativo", "date"), numero("max", "Cierre del operativo", "date"));
-        filasDelTipo.push(
-          <Fila key="timezone" variante="campo" rotulo="Zona horaria">
-            <PulsoInput
-              value={(b.params.timezone as string | undefined) ?? "America/Lima"}
-              onChange={(e) => setParam("timezone", e.target.value)}
-              placeholder="America/Lima"
-              aria-label="Zona horaria"
             />
           </Fila>,
         );

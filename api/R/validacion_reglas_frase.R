@@ -505,7 +505,8 @@
              select_multiple_selection = "Opciones esperadas o prohibidas",
              continuidad_secuencia = "Huecos en la numeración",
              cruce_identidad = "Mismo caso en encuestas superpuestas",
-             bateria = "Patrón en una batería")
+             bateria = "Patrón en una batería",
+             comparar_fechas = "Dos fechas u horas que deben cuadrar")
 )
 
 .vrf_nombre_familia <- function(origen, familia) {
@@ -631,6 +632,7 @@
     "calculo" = c(.vrf_t("El valor calculado de "), q, .vrf_t(" debe coincidir con su fórmula del formulario."),
                   filtro),
     "bateria" = c(.vrf_frase_bateria(info, ctx), filtro),
+    "rango_fecha" = , "comparar_fechas" = c(.vrf_frase_fechas(info, ctx), filtro),
     c(.vrf_t("Se marca cuando "), .vrf_cond(info$cuerpo, ctx), punto, filtro)
   )
   .vrf_compactar(out)

@@ -55,8 +55,19 @@ export const TIPOS: TipoMeta[] = [
     label: "Fecha fuera del operativo",
     rotulo: "Fecha fuera del operativo",
     ejemploCorto: "Encuestas con fecha anterior al inicio del campo",
-    descripcion: "Se marca cuando una fecha cae antes del inicio o después del cierre del operativo.",
-    nVars: 1,
+    descripcion: "Se marca cuando una fecha cae antes del inicio o después del cierre del operativo, o no se puede leer.",
+    // Una pregunta con la fecha entera, o tres (día, mes y año).
+    nVars: [1, 3],
+    grupo: "respuesta",
+  },
+  {
+    key: "comparar_fechas",
+    label: "Dos fechas u horas que deben cuadrar",
+    rotulo: "Dos fechas u horas que deben cuadrar",
+    ejemploCorto: "La hora de fin es anterior a la de inicio",
+    descripcion: "Se marca cuando la segunda fecha u hora es anterior a la primera, o cuando la duración entre ambas queda fuera del rango.",
+    // Inicio y fin, cada uno de una a tres preguntas.
+    nVars: [2, 6],
     grupo: "respuesta",
   },
   {

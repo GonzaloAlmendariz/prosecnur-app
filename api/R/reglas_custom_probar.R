@@ -21,6 +21,9 @@
 #              perfil de recolección de su variable revisada.
 #   n_casos    de n_base, las que la regla marca. Siempre n_casos <= n_base.
 #   proporcion n_casos / n_base, de 0 a 1 sin redondear; NULL si n_base = 0.
+#   lectura    (solo reglas de fechas) cómo se leyó cada fecha u hora sobre las
+#              n_filas: cuántas con cada formato, vacías, incompletas e
+#              ilegibles (`.regla_fechas_lectura()`).
 
 .probar_id <- "RC_PRUEBA"
 .probar_limite_ejemplos <- 20L
@@ -52,6 +55,7 @@
     },
     duplicados = stats::setNames(rep("revisada", length(vars)), vars),
     bateria = stats::setNames(rep("revisada", length(vars)), vars),
+    rango_fecha = , comparar_fechas = stats::setNames(rep("revisada", length(vars)), vars),
     cruce_identidad = stats::setNames(rep("revisada", length(vars)), vars),
     stats::setNames("revisada", vars[1])
   )
@@ -88,9 +92,10 @@
 # (un NULL saldría como objeto vacío).
 .probar_respuesta <- function(base_nombre, regla, n_filas = 0L, n_base = 0L, n_casos = 0L,
                               evaluada = FALSE, estado = "sin_datos", motivo = NULL,
-                              base_vacia = FALSE, ejemplos = list(), tiene_filtro = FALSE) {
+                              base_vacia = FALSE, ejemplos = list(), tiene_filtro = FALSE,
+                              lectura = NULL) {
   entero <- function(x) if (is.null(x)) NA_integer_ else as.integer(x)
-  list(
+  out <- list(
     ok = TRUE,
     base_nombre = base_nombre %||% NA_character_,
     tabla = "principal",
@@ -107,6 +112,8 @@
     ejemplos = ejemplos,
     n_ejemplos = length(ejemplos)
   )
+  if (!is.null(lectura)) out$lectura <- lectura
+  out
 }
 
 # Los datos de la base, o NULL si la base todavía no tiene respuestas cargadas.
@@ -224,11 +231,12 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   n_base <- as.integer(base_fila$n_inconsistencias[1] %||% NA_integer_)
   if (is.na(n_base)) n_base <- n_filas
   ejemplos <- .probar_ejemplos(ev, mapa, regla, gate_ast, res, ids_cond)
+  lectura <- if (.regla_fechas_es(regla)) .regla_fechas_lectura(ev$datos %||% principal, regla) else NULL
 
   .probar_respuesta(
     base_eff, regla, evaluada = TRUE, estado = "evaluada",
     n_filas = n_filas, n_base = n_base, n_casos = length(mapa$row_idx),
-    ejemplos = ejemplos, tiene_filtro = tiene_filtro
+    ejemplos = ejemplos, tiene_filtro = tiene_filtro, lectura = lectura
   )
 }
 
@@ -248,6 +256,7 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   ids <- mapa$case_ids
 
   es_bateria <- identical(as.character(regla$tipo), "bateria")
+  es_fechas <- .regla_fechas_es(regla)
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
     valores <- lapply(names(papeles), function(v) {
@@ -268,6 +277,8 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
     # En una batería resalta la pregunta que hace el patrón y el ejemplo lleva
     # su resumen (validacion_regla_bateria.R).
     if (es_bateria) ejemplo <- .regla_bateria_ejemplo(ejemplo, df, i, regla)
+    # En fechas, lo leído, el formato y el motivo (validacion_regla_fechas.R).
+    if (es_fechas) ejemplo <- .regla_fechas_ejemplo(ejemplo, df, i, regla)
     ejemplo
   })
 }
