@@ -52,7 +52,15 @@ handle_api_error <- function(req, res, err) {
 }
 
 wrap_endpoint <- function(fn) {
+  # Plumber pasa cada parámetro de consulta y cada campo del cuerpo JSON como argumento con
+  # nombre. Un handler escrito `function(req, res)` (sin `...`) reventaba con "unused argument"
+  # en cuanto llegaban (500 en /instrumento/estado?base_nombre= y en las rutas de actualizar una
+  # fuente, 2026-11-12). Si el handler no declara `...`, los extras no se le pasan: los lee de req.
+  acepta_extras <- "..." %in% names(formals(fn))
   function(req, res, ...) {
-    tryCatch(fn(req, res, ...), error = function(e) handle_api_error(req, res, e))
+    tryCatch(
+      if (acepta_extras) fn(req, res, ...) else fn(req, res),
+      error = function(e) handle_api_error(req, res, e)
+    )
   }
 }
