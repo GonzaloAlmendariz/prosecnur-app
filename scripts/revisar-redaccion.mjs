@@ -29,6 +29,11 @@ export const REGLAS = [
   { id: 'puntos-suspensivos-en-rotulo', patron: /(?:label|title|titulo|rotulo|placeholder)\s*[=:]\s*["'`][^"'`]*…/iu, mensaje: 'Puntos suspensivos en un rótulo.' },
   { id: 'cliche', patron: /\blo que (?:se hace|se muestra|se dice|hiciste bien|importa|necesitas saber)\b/iu, mensaje: 'Fórmula cliché: nombrar el objeto con un sustantivo.' },
   { id: 'cliche', patron: /\bde lo crudo a\b|\bsale list[ao]s? para\b|\ba un clic\b|\bsin fricci[oó]n\b/iu, mensaje: 'Giro publicitario.' },
+  // Gonzalo, 2026-11-12: "esas expresiones de qué algo son parte del AI slop que ya hemos corregido una multitud
+  // de veces". Un título o rótulo que empieza con "Qué …" ("Qué quieres revisar", "Qué hacer", "Qué pasó") es la
+  // paráfrasis de lo que hace la superficie: se nombra el objeto con un sustantivo ("Reglas por revisar",
+  // "Decisión", "Cambios"). Las preguntas reales al usuario ("¿Qué base quieres usar?") llevan signo de apertura.
+  { id: 'rotulo-que', patron: /["'`>]\s*Qu[eé] [a-záéíóúñ]+(?: [a-záéíóúñ]+){0,6}\s*["'`<]/u, soloCadenas: true, mensaje: 'Rótulo que empieza con "Qué …": nombrar el objeto con un sustantivo.' },
   { id: 'cliche', patron: /\bno es (?:solo |sólo )?(?:un|una|el|la) [^.,;]{3,40}[,;:] (?:es|sino)\b/iu, mensaje: 'Fórmula "no es X, es Y".' },
   { id: 'plataforma-supuesta', patron: /\b(?:reportad[oa]s?|registrad[oa]s?) en Kobo\b/iu, soloCadenas: true, mensaje: 'No suponer la plataforma: "plataforma" o "reportado en campo".' },
   { id: 'concordancia', patron: /["'`>]\s*1 (?:aulas|encuestas|respuestas|casos|filas|bases|preguntas|secciones|unidades)\b/iu, mensaje: 'Concordancia de número con 1.' },

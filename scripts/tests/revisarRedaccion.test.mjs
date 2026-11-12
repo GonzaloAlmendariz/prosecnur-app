@@ -61,3 +61,12 @@ test('lineasAnadidas conserva el número de línea del archivo nuevo y descarta 
     { numero: 11, texto: 'nueva' },
   ])
 })
+
+test('un rótulo que empieza con "Qué …" es paráfrasis; una pregunta con signo de apertura, no', () => {
+  const marcar = (t) => revisarTexto('Panel.tsx', t).filter((h) => h.regla === 'rotulo-que').length
+  assert.equal(marcar('        etiqueta="Qué patrón se busca en la batería"'), 1)
+  assert.equal(marcar('      <h3>Qué quieres revisar</h3>'), 1)
+  assert.equal(marcar('      <h3>Reglas por revisar</h3>'), 0)
+  assert.equal(marcar('      titulo="¿Qué base quieres usar?"'), 0)
+  assert.equal(marcar('  // "Qué quieres revisar" del prototipo'), 0)
+})
