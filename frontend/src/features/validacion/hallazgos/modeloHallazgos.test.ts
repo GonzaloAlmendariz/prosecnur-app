@@ -135,7 +135,7 @@ describe("la cola", () => {
   });
 
   it("el origen de una regla del operativo o sin familia", () => {
-    const n = { nombre: null, frase: [], frase_completa: true, clase: null, familia: null, familia_nombre: null, origen_regla: null, severidad: null, en_catalogo: null, id_catalogo: null };
+    const n = { nombre: null, frase: [], frase_completa: true, clase: null, familia: null, familia_nombre: null, origen_regla: null, severidad: null, en_catalogo: null, id_catalogo: null, detalle: null };
     expect(rotuloDeOrigen({ ...n, origen_regla: "operativo" }, itemCola("x"))).toBe("Del operativo");
     expect(rotuloDeOrigen(n, itemCola("x", { tipo_regla: "skip" }))).toBe("Salto del formulario");
   });
@@ -205,7 +205,7 @@ describe("el hallazgo abierto", () => {
   });
 
   it("la vista según la regla: rango con límites, salto por familia, casi iguales por sus parejas", () => {
-    const narrativa = { nombre: null, frase: [], frase_completa: true, clase: null, familia: null, familia_nombre: null, origen_regla: null, severidad: null, en_catalogo: null, id_catalogo: null };
+    const narrativa = { nombre: null, frase: [], frase_completa: true, clase: null, familia: null, familia_nombre: null, origen_regla: null, severidad: null, en_catalogo: null, id_catalogo: null, detalle: null };
     const limites = { tipo: "numero", min: "18", max: "80", inclusive_min: true, inclusive_max: true, restriccion: null };
     expect(vistaDelHallazgo({ narrativa, item: null, regla: null, limites, drill: DETALLE_REAL })).toBe("rango");
     expect(vistaDelHallazgo({ narrativa, item: null, regla: null, limites: null, drill: DETALLE_REAL })).toBe("general");

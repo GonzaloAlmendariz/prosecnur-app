@@ -4,6 +4,7 @@
  * la cifra con su base y su proporción.
  *
  * La frase es la única narrativa de la regla (catálogo M3, la misma de Reglas).
+ * Debajo va el "Detalle" que el equipo escribió en la regla, si lo escribió.
  * La base es la de la última auditoría de la regla ("de 72 que respondieron la
  * pregunta"); si el motor no la publica, la cifra va sola, sin proporción.
  */
@@ -37,19 +38,26 @@ export function CabeceraDelHallazgo({
   const plural = unidad === "respuestas" ? "respuestas marcadas" : "casos marcados";
   return (
     <div className="pulso-hz-cabecera" data-qa-geometry-group="validacion/hallazgos-cabecera" data-qa-geometry-contract="intrinsic">
-      <FraseRegla
-        tamano="compacto"
-        className="pulso-hz-frase"
-        tipo={(
-          <>
-            <span className="pulso-rl-clase" data-clase={clase}>{rotuloDeClase(narrativa.clase)}</span>
-            <span className="pulso-hz-origen">{origen}</span>
-          </>
-        )}
-        accion={<PulsoButton variant="link" size="sm" onClick={onVerRegla}>Ver la regla</PulsoButton>}
-      >
-        {narrativa.frase.length ? <FraseDelHallazgo piezas={narrativa.frase} /> : nombre}
-      </FraseRegla>
+      <div className="pulso-hz-cabecera-texto">
+        <FraseRegla
+          tamano="compacto"
+          className="pulso-hz-frase"
+          tipo={(
+            <>
+              <span className="pulso-rl-clase" data-clase={clase}>{rotuloDeClase(narrativa.clase)}</span>
+              <span className="pulso-hz-origen">{origen}</span>
+            </>
+          )}
+          accion={<PulsoButton variant="link" size="sm" onClick={onVerRegla}>Ver la regla</PulsoButton>}
+        >
+          {narrativa.frase.length ? <FraseDelHallazgo piezas={narrativa.frase} /> : nombre}
+        </FraseRegla>
+        {narrativa.detalle ? (
+          <p className="pulso-hz-detalle">
+            <span className="pulso-hz-detalle-rotulo">Detalle de la regla:</span> {narrativa.detalle}
+          </p>
+        ) : null}
+      </div>
       {cifra ? (
         <CifraHallazgo
           className="pulso-hz-cifra"

@@ -312,6 +312,12 @@ describe("M4: narrativa, seguimiento, efecto, contexto y límites", () => {
     expect(normalizarNarrativa({}).clase).toBeNull();
   });
 
+  it("la narrativa trae el detalle que el equipo escribió en la regla, o null", () => {
+    expect(normalizarNarrativa({ detalle: "Revisar con la ficha física" }).detalle).toBe("Revisar con la ficha física");
+    expect(normalizarNarrativa({ detalle: null }).detalle).toBeNull();
+    expect(normalizarNarrativa({}).detalle).toBeNull();
+  });
+
   it("seguimiento: casos_nuevos null fuera de las congeladas y [] en una congelada sin nuevos", () => {
     const real = normalizarSeguimiento({
       seguimiento: "congelada", n_casos_al_decidir: 1, casos_nuevos: ["AUD-041"], casos_que_ya_no_marca: [], n_casos_aplicados: 1, alcance: "caso",

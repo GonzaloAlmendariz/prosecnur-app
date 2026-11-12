@@ -785,3 +785,25 @@ test_that("una regla creada o cambiada después de la auditoría sale sin evalua
   expect_identical(propia(editada, "RC_001")$causa_codigo, "editada_tras_auditoria")
   expect_identical(propia(editada, "RC_001")$causa, "Cambió después de la última auditoría")
 })
+
+test_that("el detalle que el equipo escribió en la regla llega al catálogo y a la cola de hallazgos", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  .m3_plan(sid, "Personas")
+  con_detalle <- .m1_regla("RC_001", "rango_num", list("edad"), list(min = 18, max = 65),
+                           mensaje = "Revisar con la ficha física")
+  sin_detalle <- .m1_regla("RC_002", "rango_num", list("edad"), list(min = 0, max = 120), mensaje = "RC_002")
+  validacion_scope_set(sid, "Personas", "reglas_custom", list(con_detalle, sin_detalle))
+  cat <- validacion_reglas_catalogo(sid, "Personas")
+  fila <- function(id) Filter(function(f) identical(f$id_motor, id), cat$reglas)[[1]]
+  expect_identical(fila("RC_001")$detalle, "Revisar con la ficha física")
+  # Un mensaje igual al nombre lo copió el asistente, no lo escribió nadie.
+  expect_true(is.na(fila("RC_002")$detalle))
+
+  .m2_auditar(sid, "Personas")
+  cola <- validacion_cola_con_narrativa(list(list(source_id = "RC_001")), validacion_narrativa_reglas(sid, "Personas"),
+                                        validacion_scope_get(sid, "Personas"))
+  expect_identical(cola[[1]]$detalle, "Revisar con la ficha física")
+  vacia <- validacion_cola_con_narrativa(list(list(source_id = "NO_EXISTE")), NULL, validacion_scope_get(sid, "Personas"))
+  expect_true(is.na(vacia[[1]]$detalle))
+})

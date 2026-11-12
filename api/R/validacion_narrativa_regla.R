@@ -58,7 +58,7 @@ validacion_severidad_regla <- function(rule = NULL, propia = NULL) {
 
 .VNR_CAMPOS <- c("nombre", "frase", "frase_completa", "familia", "familia_nombre",
                  "origen", "clase", "hallazgo_kind", "severidad", "direccion", "pareja",
-                 "limites", "tabla")
+                 "limites", "tabla", "detalle")
 
 .vnr_firma <- function(sid, base_eff, scope) {
   tryCatch({
@@ -122,11 +122,12 @@ validacion_narrativa_reglas <- function(sid, base = NULL) {
   if (is.null(e)) {
     return(list(en_catalogo = FALSE, id_catalogo = NA_character_, frase = NA,
                 frase_completa = NA, familia = NA_character_, familia_nombre = NA_character_,
-                origen_regla = NA_character_, clase = NA_character_))
+                origen_regla = NA_character_, clase = NA_character_, detalle = NA_character_))
   }
   list(en_catalogo = TRUE, id_catalogo = e$id_catalogo, frase = e$frase,
        frase_completa = isTRUE(e$frase_completa), familia = e$familia,
-       familia_nombre = e$familia_nombre, origen_regla = e$origen, clase = e$clase)
+       familia_nombre = e$familia_nombre, origen_regla = e$origen, clase = e$clase,
+       detalle = e$detalle %||% NA_character_)
 }
 
 #' La cola con la narrativa y la severidad del catálogo

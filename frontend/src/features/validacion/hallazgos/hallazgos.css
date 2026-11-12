@@ -319,6 +319,25 @@
   font-weight: var(--pulso-weight-regular);
 }
 
+.pulso-hz-cabecera-texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-hz-detalle {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}
+
+.pulso-hz-detalle-rotulo {
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium);
+}
+
 .pulso-hz-frase .pulso-frase-regla-nombre {
   display: inline-flex;
   flex-wrap: wrap;

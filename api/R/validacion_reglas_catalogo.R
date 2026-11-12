@@ -324,6 +324,9 @@
     expresion_formulario = .vrc_expresion(rule, familia, target, contexto$survey),
     direccion = direccion,
     pareja = NA_character_,
+    # El "Detalle" que el equipo escribió en la regla propia, para leerlo con
+    # los casos marcados. Un mensaje igual al nombre lo copió el asistente.
+    detalle = .vrc_detalle(propia),
     estado_evaluacion = "evaluada",
     causa_codigo = NA_character_,
     causa = NA_character_,
@@ -390,6 +393,13 @@
     }
   }
   filas
+}
+
+.vrc_detalle <- function(propia) {
+  if (is.null(propia)) return(NA_character_)
+  m <- trimws(as.character(propia$mensaje %||% "")[1])
+  nm <- trimws(as.character(propia$nombre %||% "")[1])
+  if (is.na(m) || !nzchar(m) || identical(m, nm)) NA_character_ else m
 }
 
 # Un id por fila. Si el motor repite uno, la fila suma su tabla y, si aún se

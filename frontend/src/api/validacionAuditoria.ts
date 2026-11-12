@@ -539,6 +539,8 @@ export type NarrativaDeRegla = {
   /** `false` si la regla de la auditoría ya no está en el plan o el catálogo no se leyó. */
   en_catalogo: boolean | null;
   id_catalogo: string | null;
+  /** El "Detalle" que el equipo escribió en la regla propia; `null` si no escribió ninguno. */
+  detalle: string | null;
 };
 
 export function normalizarNarrativa(value: unknown, campoNombre: "nombre" | "nombre_regla" = "nombre"): NarrativaDeRegla {
@@ -555,6 +557,7 @@ export function normalizarNarrativa(value: unknown, campoNombre: "nombre" | "nom
     severidad: textoONulo(r.severidad),
     en_catalogo: aplicableONulo(r.en_catalogo),
     id_catalogo: textoONulo(r.id_catalogo),
+    detalle: textoONulo(r.detalle),
   };
 }
 
