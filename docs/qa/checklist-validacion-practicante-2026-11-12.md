@@ -40,6 +40,10 @@ cómo se arma desde la hoja "Codigo" de la base (emparejar las listas por orden,
 Truco que hoy usa el practicante y la interfaz no enseña: la regla "Dos respuestas que deben cuadrar" también
 marca las respuestas vacías; con ella salen exactos los supervisores vacíos (411) y la regla 1.3 del Word (313).
 
+Avance 2026-11-12 (tanda corta, cortada al llegar al 99 % del consumo semanal): no se repitió la prueba con el
+XLSForm y el proyecto del practicante ni se volvió a medir la cobertura frente a las 552. Aparte, `tsc` falla en
+`procesamiento/sinMotor/SinMotor.test.tsx:65` (commit 7f2be8581, ajeno a esta lista).
+
 Orden sugerido: primero los arreglos acotados (1, 2, 5, 6, 7, 8, 10, 17), después el motor nuevo (4, 11, 12).
 
 Pedido de Gonzalo: "que la persona pueda entrar, establecer las reglas, correr el plan de reglas, que le salga y se
@@ -49,21 +53,21 @@ analizarlas".
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
 | 1 | El error de carga se dibuja detrás del velo del diálogo: el usuario no ve nada | `frontend/src/features/carga/pestanas/AvisosDeCarga.tsx` | Pendiente |
-| 2 | Subir un archivo sin hoja `survey` como formulario responde 500 `E_INTERNAL` en lugar de un 400 con causa | `api/R/codificacion_flujo_hibrido.R` (`leer_instrumento_xlsform`) | Pendiente |
+| 2 | Subir un archivo sin hoja `survey` como formulario responde 500 `E_INTERNAL` en lugar de un 400 con causa | `api/R/codificacion_flujo_hibrido.R` (`leer_instrumento_xlsform`) | Hecho, por confirmar (c2a224007): responde 400 `E_XLSFORM_SURVEY_INVALIDO` con las hojas que trae el archivo. Comprobado con `test-carga-instrumento-sin-survey.R`, visto en rojo ("Sheet 'survey' not found") antes del arreglo. Falta verlo en la UI, que depende del ítem 1 |
 | 3 | Un intento de carga fallido deja registrada como datos la hoja equivocada | Carga (motor) | Pendiente |
 | 4 | Emparejar las columnas de la base por `label` además de por `name` (los encabezados de la base digitada son el texto de la pregunta). Cargar sin XLSForm baja de prioridad: el practicante ya armó el formulario con el editor de la plataforma; falta probar la carga con ese formulario | Carga (motor + UI) | Pendiente; primero repetir la carga con el XLSForm del practicante |
 | 5 | Cada caso se identifica como `principal::idx::N`: falta el número de encuesta y columnas de control (entrevistador, digitador) en la tabla de casos | `api/R/limpieza_decision_engine.R` (~449) + Hallazgos | Pendiente |
-| 6 | La cabecera dice "sin evaluar 0" con reglas nuevas nunca auditadas | `frontend/src/features/validacion/pestanas/cabeceraDeValidacion.ts` | Pendiente |
-| 7 | El "Detalle" escrito en la regla no aparece en Hallazgos | `frontend/src/features/validacion/hallazgos/PestanaHallazgosMesa.tsx` | Pendiente |
+| 6 | La cabecera dice "sin evaluar 0" con reglas nuevas nunca auditadas | `api/R/validacion_reglas_catalogo.R` (`.vrc_auditoria`), no en la cabecera: el catálogo daba por evaluada toda regla ausente de la auditoría | Hecho, por confirmar (19944cd94): una regla creada o cambiada después de la auditoría sale "sin evaluar" con su causa ("Creada después de la última auditoría" o "Cambió después de la última auditoría"). Comprobado con un test nuevo en `test-validacion-reglas-catalogo.R`, visto en rojo (7 expectativas) antes del arreglo. Sin QA en la app |
+| 7 | El "Detalle" escrito en la regla no aparece en Hallazgos | Catálogo (`.vrc_fila`) + narrativa (`validacion_narrativa_regla.R`) + `hallazgos/CabeceraDelHallazgo.tsx` | Hecho, por confirmar (7e0adae35): la cabecera del hallazgo dibuja "Detalle de la regla: ..." bajo la frase. Comprobado con tests en R y un render test, vistos en rojo antes. Sin captura en la app todavía (se cortó por el tope de consumo) |
 | 8 | Operador "está vacía" en Condiciones (hoy solo se logra con un truco de "Dos respuestas que deben cuadrar") | Reglas (panel + motor) | Pendiente |
 | 9 | Selector de pregunta con búsqueda (228 preguntas) y texto del ítem visible en baterías | `features/validacion/reglas/campos/CampoPregunta.tsx` | Pendiente |
-| 10 | Mostrar los tipos "Respuesta obligatoria" y "Respuesta fuera de lista", que el motor ya tiene | Reglas (catálogo) | Pendiente |
+| 10 | Mostrar los tipos "Respuesta obligatoria" y "Respuesta fuera de lista", que el motor ya tiene | Reglas (catálogo), `reglas/tiposDeRegla.ts` (`legacyHidden`) | Bloqueado: esos tipos se ocultaron a propósito en el revamp (decisión D-F11, citada en `QueRevisar.tsx`). Mostrarlos revierte esa decisión; espera la respuesta de Gonzalo |
 | 11 | Tipo de regla "patrón en una batería" (misma respuesta en todos los ítems, conteo de un código, todas vacías): 156 casos | Motor de reglas + panel | Pendiente |
 | 12 | Formato de fechas y horas declarable (dd.mm.aaaa), comparar fechas y medir duración; "Fecha fuera del operativo" debe decir por qué falla: 138 casos | Motor de reglas | Pendiente |
 | 13 | Patrón o cantidad de dígitos (teléfono, texto en campo numérico): 12 casos | Motor de reglas | Pendiente |
 | 14 | Códigos con cero inicial leídos como número ("080105" → 80105): 98 falsos positivos | Carga (tipos) | Pendiente |
 | 15 | Hallazgos abre en Distribución; el prototipo abre en Casos, con id legible y contexto | Hallazgos | Pendiente |
 | 16 | A 1024x600 la Decisión queda bajo la cola con scroll anidado | `hallazgos.css` | Pendiente |
-| 17 | La banda dice "base limpia" con la base sin cerrar | `features/procesamiento/banda/casosQueCuentanModel.ts` | Pendiente |
+| 17 | La banda dice "base limpia" con la base sin cerrar | `features/procesamiento/banda/casosQueCuentanModel.ts` | Hecho en parte, por confirmar (682351db6): con la base sin cerrar dice "de N casos quedarían en la base limpia". Comprobado con un test visto en rojo antes. Falta la otra mitad: a 1024 queda solo la cifra sin rótulo (CSS de la banda) |
 | 18 | Tratamiento "revisar con la ficha física" y lista exportable de casos para digitación | Hallazgos + Cierre | Pendiente |
 | 19 | Reglas "valor distinto de la moda dentro de un grupo" y catálogo de ubigeos | Motor de reglas | Pendiente |
