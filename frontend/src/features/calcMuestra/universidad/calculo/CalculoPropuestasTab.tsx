@@ -409,7 +409,7 @@ export function CalculoPropuestasTab({
       </Panel>
 
       {cuotasRows.length > 0 && (
-        <Panel className="cmv2-calc-cuotas-panel" title="Cuotas por facultad, P2" hint="Propuesta 2, {fmtInt(totalCuotas)} entrevistas asignadas">
+        <Panel className="cmv2-calc-cuotas-panel" title="Cuotas por facultad, P2" hint={`Propuesta 2, ${fmtInt(totalCuotas)} entrevistas asignadas`}>
           {cuotasComp && <CadenaAfijacion comp={cuotasComp} rows={cuotasRows} />}
           <FormulaLatex
             expression={String.raw`n_h = n \cdot \tfrac{N_h}{N}`}
