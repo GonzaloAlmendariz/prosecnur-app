@@ -183,5 +183,13 @@
 .cmmp-rotulos li > i { display: block; height: 8px; border-radius: 3px; background: var(--pulso-surface-3); overflow: hidden; }
 .cmmp-rotulos li > i > b { display: block; height: 100%; border-radius: 3px; background: var(--module-accent); }
 .cmmp-rotulos li > em { font-style: normal; font-weight: var(--pulso-weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
-.cmmp-rotulos-conteos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); border-top: 1px solid var(--pulso-border); }
+/* Filas más anchas que columnas: el nombre de una unidad académica entra entero en su campo. */
+.cmmp-rotulos-conteos { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--pulso-border); }
+.cmmp-rotulos-conteos[data-ejes="2"] { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.cmmp-rotulos-conteos > .cmmp-sec { align-content: start; }
 .cmmp-rotulos-conteos > .cmmp-sec + .cmmp-sec { border-top: 0; border-left: 1px solid var(--pulso-border); }
+.cmmp-rotulos[data-barra="no"] li { grid-template-columns: minmax(0, 1fr) 56px; }
+@media (max-width: 1100px) {
+  .cmmp-rotulos-conteos[data-ejes="2"] { grid-template-columns: minmax(0, 1fr); }
+  .cmmp-rotulos-conteos > .cmmp-sec + .cmmp-sec { border-left: 0; border-top: 1px solid var(--pulso-border); }
+}

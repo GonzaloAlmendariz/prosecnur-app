@@ -146,12 +146,13 @@ export function FuenteConteos({ componenteId, actor, fileId, nombreArchivo, hoja
           ) : null}
           {actual.avisos.map((a) => <div key={a} className="cmmp-pad"><Alert kind="warn">{a}</Alert></div>)}
           {/* Los rótulos se corrigen sobre los valores del archivo; dos filas con el mismo rótulo se suman. */}
-          <div className="cmmp-rotulos-conteos" data-qa-geometry-group="calc-muestra/conteos-rotulos" data-qa-geometry-contract="intrinsic">
+          <div className="cmmp-rotulos-conteos" data-ejes={actual.cruceOriginal.columnas.length > 1 ? "2" : "1"} data-qa-geometry-group="calc-muestra/conteos-rotulos" data-qa-geometry-contract="intrinsic">
             <section className="cmmp-sec" aria-label={`Rótulos de ${actual.categoria}`}>
               <h4>{actual.categoria}<span>{cifra(actual.cruceOriginal.filas.length)} valores</span></h4>
               <ValoresConRotulo
                 columna={actual.categoria}
                 valores={actual.cruceOriginal.filas.map((f, i) => ({ valor: f, n: actual.cruceOriginal.conteos[i]?.reduce((s, x) => s + x, 0) ?? 0 }))}
+                barra={false}
                 rotulos={rotulos.filas}
                 onRotulo={(valor, r) => setRotulos((x) => conRotuloConteo(x, "filas", valor, r))}
               />
@@ -162,6 +163,7 @@ export function FuenteConteos({ componenteId, actor, fileId, nombreArchivo, hoja
                 <ValoresConRotulo
                   columna={actual.cruceOriginal.columnaVariable || "Columnas"}
                   valores={actual.cruceOriginal.columnas.map((c, j) => ({ valor: c, n: actual.cruceOriginal.conteos.reduce((s, fila) => s + (fila[j] ?? 0), 0) }))}
+                  barra={false}
                   rotulos={rotulos.columnas}
                   onRotulo={(valor, r) => setRotulos((x) => conRotuloConteo(x, "columnas", valor, r))}
                 />

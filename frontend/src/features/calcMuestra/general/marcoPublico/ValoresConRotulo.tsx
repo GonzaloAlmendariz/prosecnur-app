@@ -7,16 +7,18 @@ import { cifra } from "./piezas";
  * "EDUCACION" a "Educación". El valor original queda debajo cuando se corrigió. Se confirma al salir del campo o con
  * Enter; vacío vuelve al valor original.
  */
-export function ValoresConRotulo({ columna, valores, rotulos, onRotulo, max = Number.POSITIVE_INFINITY }: {
+export function ValoresConRotulo({ columna, valores, rotulos, onRotulo, max = Number.POSITIVE_INFINITY, barra = true }: {
   columna: string;
   valores: readonly ValorDeColumna[];
   rotulos: Readonly<Record<string, string>>;
   onRotulo: (valor: string, rotulo: string) => void;
   max?: number;
+  /** Sin barra cuando la tabla de al lado ya muestra los conteos. */
+  barra?: boolean;
 }) {
   const tope = Math.max(1, ...valores.map((v) => v.n));
   return (
-    <ul className="cmmp-rotulos" aria-label={`Rótulos de ${columna}`}>
+    <ul className="cmmp-rotulos" data-barra={barra ? undefined : "no"} aria-label={`Rótulos de ${columna}`}>
       {valores.slice(0, max).map((v) => {
         const rotulo = rotulos[v.valor];
         return (
@@ -37,7 +39,7 @@ export function ValoresConRotulo({ columna, valores, rotulos, onRotulo, max = Nu
               />
               {rotulo ? <small>{v.valor}</small> : null}
             </span>
-            <i><b style={{ width: `${(v.n / tope) * 100}%` }} /></i>
+            {barra ? <i><b style={{ width: `${(v.n / tope) * 100}%` }} /></i> : null}
             <em>{cifra(v.n)}</em>
           </li>
         );
