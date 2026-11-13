@@ -1,0 +1,74 @@
+/* Emparejamiento de columnas por el texto de la pregunta (Carga, ítem 4). */
+.pulso-emparejamiento-oferta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-emparejamiento-oferta-nota {
+  margin: 0;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.pulso-emparejamiento-grupo {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-emparejamiento-titulo {
+  margin: 0;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.pulso-emparejamiento-estado {
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-emparejamiento-estado.is-conflicto {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-emparejamiento-estado.is-dudosa,
+.pulso-emparejamiento-estado.is-ambigua {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-emparejamiento-estado.is-sin_pareja {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento-nada {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-emparejamiento-sin-columna {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text);
+}
+
+.pulso-emparejamiento-conteo.is-conflicto,
+.pulso-emparejamiento-error {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-emparejamiento-error {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--pulso-type-caption-size);
+}

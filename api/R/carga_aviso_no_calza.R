@@ -24,23 +24,13 @@
   paste0(paste(citas[-length(citas)], collapse = ", "), " y ", citas[length(citas)])
 }
 
-# Textos de las preguntas del formulario (la primera columna label*), normalizados.
-.carga_no_calza_rotulos <- function(instrumento) {
-  survey <- instrumento$survey
-  if (!is.data.frame(survey)) return(character(0))
-  col <- grep("^label", names(survey), value = TRUE)[1]
-  if (is.na(col)) return(character(0))
-  r <- .dn_norm_text(survey[[col]])
-  unique(r[nchar(r) >= 6L])
-}
-
-# Cuántos encabezados de la base contienen el texto de una pregunta del
-# formulario: la señal de que la base trae los rótulos y no los nombres.
-.carga_no_calza_por_rotulo <- function(columnas, rotulos) {
-  if (!length(columnas) || !length(rotulos)) return(0L)
-  h <- .dn_norm_text(columnas)
-  as.integer(sum(vapply(h, function(x) nzchar(x) && any(vapply(rotulos, function(r) grepl(r, x, fixed = TRUE), logical(1))),
-                        logical(1))))
+# Cuántos encabezados de la base coinciden con el texto de una pregunta del
+# formulario: la señal de que la base trae los rótulos y no los nombres. La
+# cifra es la misma que propone el emparejamiento por texto
+# (carga_emparejar_por_texto.R), sobre los mismos encabezados.
+.carga_no_calza_por_texto <- function(columnas, instrumento) {
+  if (!length(columnas) || is.null(instrumento)) return(0L)
+  carga_emparejar_por_texto(columnas, instrumento)$resumen$n_propuestas
 }
 
 #' Aviso de una base que no calza con el formulario
@@ -86,12 +76,15 @@
                                      hojas[[1]], paste0("\"", hojas[-1], "\"", collapse = ", ")))
   }
 
-  n_por_rotulo <- .carga_no_calza_por_rotulo(extra, .carga_no_calza_rotulos(instrumento))
+  columnas_texto <- if (is.null(columnas_base)) extra else columnas_base
+  n_por_rotulo <- .carga_no_calza_por_texto(columnas_texto, instrumento)
   hacer <- if (n_por_rotulo > 0L && n_por_rotulo >= 0.5 * faltan) {
-    sprintf(paste(" %d %s de la base %s el texto de una pregunta del formulario: renombra los encabezados",
-                  "de la base con los nombres del formulario (columna name)."),
-            n_por_rotulo, if (n_por_rotulo == 1L) "encabezado" else "encabezados",
-            if (n_por_rotulo == 1L) "contiene" else "contienen")
+    sprintf(paste(" %d de %d %s de la base %s con el texto de una pregunta del formulario: empareja la base",
+                  "por el texto de las preguntas o renombra sus encabezados con los nombres del formulario",
+                  "(columna name)."),
+            n_por_rotulo, length(columnas_texto),
+            if (length(columnas_texto) == 1L) "encabezado" else "encabezados",
+            if (n_por_rotulo == 1L) "coincide" else "coinciden")
   } else if (length(hojas) > 1L) {
     paste(" Deja primero en el libro la hoja de las respuestas; si ya lo es, el formulario no es de esta base.")
   } else {

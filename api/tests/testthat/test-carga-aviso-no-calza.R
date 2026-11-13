@@ -24,8 +24,8 @@ test_that("una base con los textos de las preguntas como encabezado pide renombr
   expect_match(aviso$message, "\"nro\", \"distrito\", \"edad\" y \"trabaja\"", fixed = TRUE)
   expect_match(aviso$message, "La base trae 4 columnas, como \"P0 Número de encuesta\"", fixed = TRUE)
   # Qué hacer, con su causa.
-  expect_match(aviso$message, "4 encabezados de la base contienen el texto de una pregunta", fixed = TRUE)
-  expect_match(aviso$message, "renombra los encabezados de la base con los nombres del formulario", fixed = TRUE)
+  expect_match(aviso$message, "4 de 4 encabezados de la base coinciden con el texto de una pregunta", fixed = TRUE)
+  expect_match(aviso$message, "empareja la base por el texto de las preguntas o renombra sus encabezados", fixed = TRUE)
   expect_identical(aviso$details$n_por_rotulo, 4L)
 })
 

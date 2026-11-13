@@ -17,6 +17,7 @@ import { opcionesCanonicas } from "../../opcionesCanonicas";
 import { CargaManualBaseLanes } from "../../CargaManualBaseLanes";
 import { EntradasPrevistas } from "./EntradasPrevistas";
 import { ICONO_DE_ALTA } from "./OrigenesALaVista";
+import { OfertaEmparejamientoPorTexto } from "./OfertaEmparejamientoPorTexto";
 import { AvisoFormularioPublicado } from "../../fuentes/AvisoFormularioPublicado";
 import { NuevaBaseArchivos } from "../../fuentes/NuevaBaseArchivos";
 import { NuevaBaseFormularioPublicado } from "../../fuentes/NuevaBaseFormularioPublicado";
@@ -138,6 +139,7 @@ function Recorrido({
           onStageChange={(paso) => { if (paso === "origen") ir(null); }}
       />
       {errorDeCarga ? <ErrorBlock label="No se pudo completar la carga" detail={errorDeCarga} /> : null}
+      {errorDeCarga ? <OfertaEmparejamientoPorTexto /> : null}
       {cambiaFuente ? (
         <p className="pulso-bases-dato">Lo que traigas reemplaza el formulario o las respuestas que tiene la base.</p>
       ) : null}

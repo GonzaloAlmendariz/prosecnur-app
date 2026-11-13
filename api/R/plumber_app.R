@@ -103,6 +103,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_multi_integrated(pr)
     pr <- mount_estudio(pr)
     pr <- mount_carga_reemplazar_respuestas(pr)
+    pr <- mount_carga_emparejamiento(pr)   # ítem 4: emparejar columnas por el texto de la pregunta
     pr <- mount_carga_actualizar(pr)      # vista previa, actualizar con copia y volver atrás
     pr <- mount_carga_columnas_anexadas(pr)
     pr <- mount_validacion(pr)

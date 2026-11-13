@@ -83,6 +83,14 @@
   }
   # El aviso dice qué trae la base, qué espera el formulario y qué hacer
   # (carga_aviso_no_calza.R).
-  aviso <- .carga_aviso_no_calza(compat, instrumento, hojas = hojas)
+  # Los encabezados tal como vienen en el archivo, para contar los que coinciden
+  # con el texto de una pregunta (carga_emparejar_por_texto.R). Un .sav no se
+  # empareja por texto.
+  columnas <- if (ext %in% c("xlsx", "xls", "csv")) {
+    tryCatch(.cet_leer_encabezados(meta), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  aviso <- .carga_aviso_no_calza(compat, instrumento, columnas_base = columnas, hojas = hojas)
   stop_api(400, "E_DATA_XLSFORM_INCOMPATIBLE", aviso$message, details = aviso$details)
 }

@@ -11,6 +11,7 @@ import {
 } from "../../../api/client";
 import type { CambiosDeRespuestas } from "../../../api/estudio";
 import { apiCargaInstrumentoDelEditor } from "../../../api/xlsformEditor";
+import { useEmparejamientoTexto } from "./bases/useEmparejamientoTexto";
 import type { DataPreview } from "../RespuestasResumen";
 import { choiceMappingReviewFromPreview, type InstrumentoResumen } from "./cargaPaginaModelo";
 
@@ -73,41 +74,54 @@ export async function subirInsumo(
   file: File | undefined,
   efectos: EfectosDeInsumos & { tieneFormulario: boolean },
 ) {
-  const {
-    setError, setBusy, setInstrumento, setEstructura, setDataPreview, setCambiosRespuestas,
-    setChoiceMappingReview, refresh, leerRevision: loadReconciliacion, tieneFormulario,
-  } = efectos;
+  const { setError, setBusy, setInstrumento, setEstructura, refresh, tieneFormulario } = efectos;
   if (!file) return;
   if (kind === "data" && !tieneFormulario) {
     setError("Primero carga el formulario. Las respuestas se preparan y validan usando esa estructura.");
     return;
   }
   setError("");
+  useEmparejamientoTexto.getState().limpiar();
   setBusy(`Subiendo ${file.name}`);
+  const uploadKind = kind === "data" ? uploadKindForDataFile(file) : kind;
   try {
-    const uploadKind = kind === "data" ? uploadKindForDataFile(file) : kind;
     const up = await apiUpload(file, uploadKind);
     setBusy(`Procesando ${file.name}`);
     if (kind === "xlsform") {
       const r = await apiCargaInstrumento(up.file_id);
       setInstrumento(r.resumen);
       setEstructura(null);
+      await refresh();
     } else {
-      const r = await apiCargaData(up.file_id);
-      setDataPreview(r.preview);
-      setCambiosRespuestas(r.cambios);
-      const review = choiceMappingReviewFromPreview(r.preview);
-      setChoiceMappingReview(review?.requires_confirmation ? review : null);
+      await aplicarRespuestasCargadas(await apiCargaData(up.file_id), efectos);
     }
-    await refresh();
-    // Tras subir data manualmente, revisa si trae variables ajenas al
-    // formulario y abre la reconciliación si las hay.
-    if (kind === "data") await loadReconciliacion(true);
   } catch (e: unknown) {
     setError((e as Error).message);
+    // Una base de Excel o CSV que no calza puede traer el texto de las
+    // preguntas como encabezado: se ofrece emparejarla por ese texto.
+    if (kind === "data" && uploadKind === "data" && (e as { code?: string }).code === "E_DATA_XLSFORM_INCOMPATIBLE") {
+      void useEmparejamientoTexto.getState().ofrecer(file, async (r) => {
+        setError("");
+        await aplicarRespuestasCargadas(r, efectos);
+      });
+    }
   } finally {
     setBusy("");
   }
+}
+
+/** Lo que deja en la página una base de respuestas recién cargada. */
+async function aplicarRespuestasCargadas(
+  r: { preview: DataPreview; cambios: CambiosDeRespuestas | null },
+  efectos: EfectosDeInsumos,
+) {
+  efectos.setDataPreview(r.preview);
+  efectos.setCambiosRespuestas(r.cambios);
+  const review = choiceMappingReviewFromPreview(r.preview);
+  efectos.setChoiceMappingReview(review?.requires_confirmation ? review : null);
+  await efectos.refresh();
+  // Revisa si trae variables ajenas al formulario y abre la reconciliación si las hay.
+  await efectos.leerRevision(true);
 }
 
 /** El formulario hecho en el editor del proyecto pasa a ser el formulario de la base. */
