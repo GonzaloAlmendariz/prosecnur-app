@@ -1,14 +1,14 @@
 {
   "explorar_dos-bases": {
     "marcado": "24d598f97817273e261259c567b31ab37de90ea961fad0a9036cc6b56625f258",
-    "pedidos": "6a5c037b2bb91ad3dd007cf33e13cc218c1bfd818a12fc3d6f3e53e41224664e",
+    "pedidos": "0faa43e49b58532b1619e4a30494c2ead8ac0c36095159b575074254b26d37c0",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=estudiantes]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
   "explorar_enlace-por-el-store": {
     "marcado": "378db3241add879b125ec59b8019c61f4cc50ef648c247991b76139652dcb074",
-    "pedidos": "cd808a26b3ed62d03da743a39450298d8e8edc5fc0f7191889b1749648abeba3",
+    "pedidos": "2bcdbe4dffbfc7ea5d35135941e04a15b16f1f8b9f0fcf2459eb5743c5d93c75",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"q7\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
@@ -22,7 +22,7 @@
   },
   "explorar_pregunta-en-la-direccion": {
     "marcado": "e45ac09023aed8cc9a01c037bf3147b64a5912580b048f58de071ad8aa65d983",
-    "pedidos": "5e322323d65390d5823ccf879c95091bb9617c6cfc99ccb37051595945a1b0ed",
+    "pedidos": "60abd39cc9a8a890196e71135f67a6e8028c6cf5a3478aab4f8032b5d84ce3f4",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"sexo\",\"filtros\":{},\"fuente\":\"raw\"}",
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"q7\",\"filtros\":{},\"fuente\":\"raw\"}"
@@ -30,18 +30,18 @@
   },
   "explorar_sin-datos": {
     "marcado": "cc6b5540ed13a108b85cb1d1ba2bfdb5d31cec9ce8c88aa0c763466a4055b4f4",
-    "pedidos": "d589fb469ac61991eddeae1b5bbc77fb4901f091062477cb625e9133dcde9866"
+    "pedidos": "76b273e5f3dd15422e5e606e1d6eab0b863e496ae6aa40a25adea2736bdc0c3c"
   },
   "explorar_sin-pestana": {
     "marcado": "187a9b8e217d817b549b63a3eecca553f62435ec3400d847c9a2effe393b4cf0",
-    "pedidos": "5202516820cde8f95b3b313248b452f009c5a4bead7b3b8c2543b33c51461b9e",
+    "pedidos": "302b36d8d74b0ae1f7e9e00be3fbc99893677411744bbde632e8d09f8719a83a",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]
   },
   "explorar_una-base": {
     "marcado": "24d598f97817273e261259c567b31ab37de90ea961fad0a9036cc6b56625f258",
-    "pedidos": "5202516820cde8f95b3b313248b452f009c5a4bead7b3b8c2543b33c51461b9e",
+    "pedidos": "302b36d8d74b0ae1f7e9e00be3fbc99893677411744bbde632e8d09f8719a83a",
     "guardado": [
       "POST /api/validacion/v2/explorar/univariado [base=default]\n{\"var\":\"edad\",\"filtros\":{},\"fuente\":\"raw\"}"
     ]

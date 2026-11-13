@@ -9,7 +9,7 @@ import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { EmptyState, ErrorBlock } from "../../components/States";
+import { EmptyState, ErrorBlock, LoadingBlock } from "../../components/States";
 import { ContextTabRail } from "../../components/ContextTabRail";
 import { PROCESAMIENTO_PESTANAS } from "../../lib/navegacion/catalogos/procesamiento";
 import PestanaExplorar from "./pestanas/PestanaExplorar";
@@ -56,6 +56,11 @@ export default function ValidacionPage() {
 
   const [estudio, setEstudio] = useState<EstudioPayload | null>(null);
   const [loadError, setLoadError] = useState<string>("");
+  // Verdadero cuando el estudio ya respondió una vez en esta sesión. Hasta
+  // entonces la base activa no está resuelta y la pestaña no se monta: si se
+  // montara con base null, el paso a la primera base cambia su clave y la
+  // remonta, y quien ya escribía una regla pierde el borrador.
+  const [estudioResuelto, setEstudioResuelto] = useState(false);
   const lastSessionRef = useRef(sessionId);
   const basesSignature = useMemo(
     () => `${state?.session_id ?? sessionId}|${state?.n_bases ?? 0}|${state?.active_base ?? ""}|${(state?.bases_nombres ?? []).join("|")}`,
@@ -66,6 +71,7 @@ export default function ValidacionPage() {
     if (!sessionId || lastSessionRef.current === sessionId) return;
     lastSessionRef.current = sessionId;
     setEstudio(null);
+    setEstudioResuelto(false);
     setLoadError("");
     resetForSession();
   }, [sessionId, resetForSession]);
@@ -79,6 +85,7 @@ export default function ValidacionPage() {
       .then((p) => {
         if (cancel) return;
         setEstudio(p);
+        setEstudioResuelto(true);
         const activeFromBackend = p.active_base || state?.active_base || null;
         // Si todavía no hay base seleccionada y el estudio tiene bases,
         // preseleccionamos la activa del backend o la primera.
@@ -104,6 +111,7 @@ export default function ValidacionPage() {
   }, [baseNombre, setBaseNombre, basesSignature, state?.active_base]);
 
   const prereqsOk = !!state?.xlsform && !!state?.data;
+  const baseResuelta = baseNombre !== null || estudioResuelto || !!loadError;
   const independentSiblings = estudio?.processing_mode === "independent_siblings" || state?.estudio_processing_mode === "independent_siblings";
   const showBaseSelector = prereqsOk && !!estudio && estudio.n_bases > 1 && !independentSiblings;
   const selectedBase = baseNombre && estudio?.bases ? estudio.bases[baseNombre] : null;
@@ -194,6 +202,8 @@ export default function ValidacionPage() {
               hint="La validación se habilita cuando la sesión tiene un formulario y respuestas cargadas."
               cta={<Link className="pulso-empty-cta" to="/carga">Ir a Carga</Link>}
             />
+          ) : !baseResuelta ? (
+            <LoadingBlock label="Cargando el estudio" />
           ) : (
             // La cabecera la monta cada pestaña (rebanada V0 del plan de fidelidad).
             <div className="pulso-validacion-panel-body">

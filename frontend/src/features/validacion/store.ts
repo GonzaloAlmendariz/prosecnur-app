@@ -93,8 +93,10 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
       // Bump version para invalidar data cacheada en los tabs.
       version: s.version + 1,
       // Prefill se va con la base también — no tiene sentido preservar
-      // un drill de regla X si cambiaste de base.
-      prefill: {},
+      // un drill de regla X si cambiaste de base. Resolver la base por primera
+      // vez (o repetirla) no es un cambio: un enlace que dejó su prefill antes
+      // de abrir Validación lo conserva hasta que la pestaña lo consuma.
+      prefill: s.baseNombre === null || s.baseNombre === nombre ? s.prefill : {},
     })),
   setPrefill: (tab, payload) =>
     set((s) => ({
