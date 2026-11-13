@@ -26,7 +26,7 @@ import type { CifraDePestana } from "../../../components/procesamiento/CifrasDeP
 import type { EstadoDePestana } from "../../../components/procesamiento/CabeceraDePestana";
 import type { AvisoDeFranja, CifraDeFranja, GrupoDeFranja } from "../../../components/procesamiento/FranjaRecorrido";
 import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
-import type { LimpiezaArtifactsBundle, LimpiezaSummary } from "../types";
+import type { LimpiezaArtifactsBundle, LimpiezaDecision, LimpiezaSummary } from "../types";
 import { ROTULO_FICHA_FISICA, esFichaFisica } from "../hallazgos/fichaFisica";
 import { conteo, elementosDeCola, fechaCorta, type ElementoDeCola } from "../hallazgos/modeloHallazgos";
 
@@ -302,6 +302,8 @@ export type FilaDeDecision = {
   cifra: number | null;
   /** Una línea bajo el motivo: casos que ya excluyó otra decisión, o por qué no se aplicó. */
   nota: string | null;
+  /** Una línea bajo el motivo: a cuántos casos y columnas llega, y cuánto del hallazgo cubre. */
+  detalle: string | null;
 };
 
 export type GrupoDeDecisiones = {
@@ -345,6 +347,25 @@ function notaDeFila(d: DecisionAplicada, efecto: EfectoAplicado): string | null 
 }
 
 /**
+ * Una corrección guarda una decisión por columna: las que son del mismo caso,
+ * la misma regla, la misma acción y el mismo motivo son una sola fila, con la
+ * suma de sus cifras. Sin las decisiones guardadas (no se conocen sus casos)
+ * cada una es su fila.
+ */
+function clavesDeAgrupacion(d: DecisionAplicada, guardada: LimpiezaDecision | undefined): string {
+  const casos = guardada?.target_case_ids?.length ? [...guardada.target_case_ids].sort().join("|") : `solo:${d.decision_id}`;
+  return [d.source_id, d.action_type, d.efecto, d.rationale ?? "", casos].join("\u0001");
+}
+
+function detalleDeFila(opciones: { casos: readonly string[]; columnas: readonly string[]; enHallazgo: number | null }): string | null {
+  const { casos, columnas, enHallazgo } = opciones;
+  if (casos.length === 0) return null;
+  const union = columnas.length > 1 ? `${conteo(casos.length, "caso", "casos")} en ${conteo(columnas.length, "columna", "columnas")}.` : null;
+  const parcial = enHallazgo !== null && enHallazgo > casos.length ? `Cubre ${casos.length} de los ${enHallazgo} casos del hallazgo.` : null;
+  return [union, parcial].filter(Boolean).join(" ") || null;
+}
+
+/**
  * Los grupos de la tabla en el orden del motor (primero las exclusiones), solo
  * los que tienen decisiones. La cifra del grupo "Casos excluidos" es la de la
  * cadena cuando la hay: es la que cuenta casos distintos al cerrar.
@@ -353,19 +374,32 @@ export function gruposDeDecisiones(opciones: {
   aplicadas: DecisionesAplicadas;
   cadena: CadenaDeCasos | null;
   elementos: readonly ElementoDeCola[];
+  /** Las decisiones guardadas, para saber los casos de cada una y agrupar por caso y regla. */
+  decisiones?: readonly LimpiezaDecision[];
 }): GrupoDeDecisiones[] {
   const { aplicadas, cadena, elementos } = opciones;
   const porId = new Map(elementos.map((e) => [e.id, e]));
+  const guardadas = new Map((opciones.decisiones ?? []).map((d) => [d.id, d]));
   return aplicadas.grupos
     .map((g): GrupoDeDecisiones => {
       const decisiones = aplicadas.decisiones.filter((d) => d.efecto === g.efecto);
       const cifra = g.efecto === "excluye" && cadena?.excluidos_en_limpieza != null ? cadena.excluidos_en_limpieza : g.cifra;
+      const montones = new Map<string, DecisionAplicada[]>();
+      for (const d of decisiones) {
+        const clave = clavesDeAgrupacion(d, guardadas.get(d.decision_id));
+        montones.set(clave, [...(montones.get(clave) ?? []), d]);
+      }
       return {
         efecto: g.efecto,
         titulo: TITULO_DE_GRUPO[g.efecto],
         resumen: resumenDeGrupo(g.efecto, cifra),
-        filas: decisiones.map((d) => {
+        filas: [...montones.values()].map((junto) => {
+          const d = junto[0];
           const e = porId.get(d.source_id);
+          const casos = [...new Set(guardadas.get(d.decision_id)?.target_case_ids ?? [])];
+          const columnas = [...new Set(junto.map((x) => x.target_variable).filter((v): v is string => !!v))];
+          const cifras = junto.map((x) => cifraDeFila(x, g.efecto));
+          const notas = junto.map((x) => notaDeFila(x, g.efecto)).filter((n): n is string => !!n);
           return {
             id: d.decision_id,
             sourceId: d.source_id,
@@ -374,13 +408,19 @@ export function gruposDeDecisiones(opciones: {
             motivo: d.rationale,
             clase: e?.clase ?? null,
             tratamiento: tratamientoDe(d.action_type),
-            cifra: cifraDeFila(d, g.efecto),
-            nota: notaDeFila(d, g.efecto),
+            cifra: cifras.every((c) => c === null) ? null : cifras.reduce<number>((t, c) => t + (c ?? 0), 0),
+            nota: notas[0] ?? null,
+            detalle: detalleDeFila({ casos, columnas, enHallazgo: e && e.n > 0 ? e.n : null }),
           };
         }),
       };
     })
     .filter((g) => g.filas.length > 0);
+}
+
+/** Cuántos hallazgos tienen decisión en la tabla: la unidad del conteo del panel. */
+export function hallazgosConDecision(grupos: readonly GrupoDeDecisiones[]): number {
+  return new Set(grupos.flatMap((g) => g.filas.map((f) => f.sourceId))).size;
 }
 
 // ---------------------------------------------------------------------------

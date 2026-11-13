@@ -1,5 +1,5 @@
 /**
- * "Decisiones aplicadas" de Cierre (prototipo `validacion-cierre`, `pp-dec`):
+ * "Hallazgos con decisión" de Cierre (prototipo `validacion-cierre`, `pp-dec`):
  * una tabla con filas de grupo, primero los casos excluidos, después los
  * valores cambiados, las que no cambiaron nada y las que no se aplicaron. Cada
  * fila es el hallazgo con su motivo, su clase, el tratamiento y su cifra; el
@@ -88,6 +88,7 @@ export function DecisionesAplicadas({
                         <b className="pulso-ci-nombre">{f.hallazgo}</b>
                       )}
                       {f.motivo ? <small>{f.motivo}</small> : null}
+                      {f.detalle ? <small>{f.detalle}</small> : null}
                       {f.nota ? <small data-tono="aviso">{f.nota}</small> : null}
                     </span>
                     <span role="cell">

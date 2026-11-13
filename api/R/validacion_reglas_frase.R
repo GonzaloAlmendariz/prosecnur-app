@@ -385,8 +385,15 @@
         .vrf_lista_valores(x$values, x$var, ctx, conector = if (negar) " o " else " y ")),
     "range_numeric" = .vrf_rango(x, ctx, negar, fecha = FALSE),
     "range_date" = .vrf_rango(x, ctx, negar, fecha = TRUE),
-    "matches_regex" =
-      c(q(x$var), .vrf_t(if (negar) " no sigue el patrón " else " sigue el patrón "), .vrf_v(x$pattern)),
+    "matches_regex" = {
+      # Un patrón de fecha se dice como formato ("dd.mm.2026"); otro, tal cual.
+      legible <- .vrf_patron_legible(x$pattern)
+      if (!is.null(legible)) {
+        c(q(x$var), .vrf_t(if (negar) " no tiene el formato " else " tiene el formato "), .vrf_v(legible))
+      } else {
+        c(q(x$var), .vrf_t(if (negar) " no sigue el patrón " else " sigue el patrón "), .vrf_v(x$pattern))
+      }
+    },
     "text_length_cmp" =
       c(.vrf_t("el largo de "), q(x$var), .vrf_t(paste0(" ", .vrf_op(x$op, negar), " ")), .vrf_v(x$n), .vrf_t(" caracteres")),
     "count_selected_cmp" =

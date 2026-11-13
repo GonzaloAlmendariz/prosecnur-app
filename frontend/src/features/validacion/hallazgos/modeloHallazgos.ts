@@ -48,9 +48,11 @@ import { conNivel } from "../../../lib/navegacion/direccion";
 import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
 import type { LimpiezaDecision, LimpiezaDecisionActionType, LimpiezaQueueItem, LimpiezaSummary } from "../types";
 import { PANEL_CASO_VALIDACION } from "../panelesValidacion";
+import { rotuloDeCaso } from "../rotuloDeCaso";
 import { esFichaFisica, nCasosEnFicha } from "./fichaFisica";
 import { filtroFueraDeLista, traeValorFueraDeLista } from "./filtroFueraDeLista";
 import { CLAVE_RESPONDIDAS_DE_SECCION, esReglaDeSeccion } from "./seccionDelSalto";
+import { CLAVE_VALOR_MAS_COMUN, SUBTIPO_MODA, rotuloDeValorMasComun, valorMasComun, type ValorMasComun } from "./valorMasComun";
 
 // ---------------------------------------------------------------------------
 // Palabras
@@ -656,6 +658,11 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       columnas.push({ clave: objetivo, rotulo: etiquetas[objetivo] || objetivo, tipo: "falla", numerica: enLaFila(objetivo) && numerica(objetivo), ...(sobra ? { neutra: true } : {}) });
     }
   }
+  // El valor contra el que se compara cada caso, si el motor lo dijo (ítem 49).
+  const modas = esperado.map((e) => (e?.subtipo === SUBTIPO_MODA ? valorMasComun(e.choque) : null));
+  if (modas.some((m) => m !== null)) {
+    columnas.push({ clave: CLAVE_VALOR_MAS_COMUN, rotulo: "Más común en el grupo", tipo: "pregunta", numerica: false });
+  }
   const fuera = filtroFueraDeLista(drill);
 
   const filas = casos.map((fila, i): FilaDeCaso => {
@@ -667,6 +674,7 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       else if (c.clave === "ctx:digitador") valores[c.clave] = ctx?.digitador ?? "Sin dato";
       else if (c.clave === "ctx:fecha_respuesta") valores[c.clave] = fechaCorta(ctx?.fecha_respuesta, true) ?? ctx?.fecha_respuesta ?? "Sin dato";
       else if (c.clave === CLAVE_PATRON_DE_BATERIA || c.clave === CLAVE_RESPONDIDAS_DE_SECCION) valores[c.clave] = esperado[i]?.hecho ?? "Sin dato";
+      else if (c.clave === CLAVE_VALOR_MAS_COMUN) valores[c.clave] = modas[i] ? rotuloDeValorMasComun(modas[i] as ValorMasComun) : "Sin dato";
       else if (c.clave === CLAVE_LECTURA_DE_FECHAS) valores[c.clave] = [esperado[i]?.hecho, esperado[i]?.choque].filter(Boolean).join(", ") || "Sin dato";
       else if (c.clave === CLAVE_MOTIVO_DE_FORMATO) valores[c.clave] = [esperado[i]?.hecho, esperado[i]?.choque].filter(Boolean).join(", ") || "Sin dato";
       else if (c.clave.startsWith("formato:")) {
@@ -826,6 +834,8 @@ export function opcionesDeTratamiento(opciones: {
    * la limpieza.
    */
   seccion?: boolean;
+  /** La regla es una batería de N preguntas: la acción sobre una respuesta pide elegir cuál, no nombra una sola. */
+  preguntasDeLaBateria?: number;
 }): OpcionDeTratamiento[] {
   const { vista, etiquetaPregunta, prevista, seleccionMultiple, fueraDeLista, especial } = opciones;
   const vacia = vista === "salto" || !!opciones.respuestaVacia;
@@ -862,7 +872,10 @@ export function opcionesDeTratamiento(opciones: {
     ];
   }
   const dejar = op("dejar", "ignore_rule", "Dejar como está", vacia ? "Queda vacía y se registra que se revisó." : "Se registra que se revisó.");
-  const vaciar = op("vaciar", "nullify_fields", "Vaciar la respuesta", `${pregunta} queda sin dato.`);
+  const bateria = (opciones.preguntasDeLaBateria ?? 0) > 1;
+  const vaciar = bateria
+    ? op("vaciar", "nullify_fields", "Vaciar la respuesta", `Eliges cuál de las ${opciones.preguntasDeLaBateria} preguntas de la batería queda sin dato.`)
+    : op("vaciar", "nullify_fields", "Vaciar la respuesta", `${pregunta} queda sin dato.`);
   const corregir = op("corregir", "replace_value", "Corregir el valor", "Escribes el valor que corresponde.");
   const excluir = op("excluir", "exclude_cases", "Excluir los casos", "Dejan de contar en la base.");
   const asignar = op(
@@ -1034,11 +1047,16 @@ export function lineaDeEfecto(efecto: EfectoDeDecision, opciones: { etiquetaPreg
 // El caso completo
 // ---------------------------------------------------------------------------
 
-/** "Correo, 1.ª invitación. Respondió el 3 nov 2026 en 14 minutos": solo lo que el motor publicó. */
+/** El título del caso: "Encuesta 412" si el estudio declaró el N.º de encuesta (como lo nombra la tabla), si no "Caso Fila 208". */
+export function tituloDelCaso(idCaso: string | null, metadatos: ContextoDeCaso | null): string {
+  if (!idCaso) return "Caso";
+  return metadatos?.numero_encuesta ? `Encuesta ${metadatos.numero_encuesta}` : `Caso ${rotuloDeCaso(idCaso).texto}`;
+}
+
+/** "Correo, 1.ª invitación. Respondió el 3 nov 2026 en 14 minutos": solo lo que el motor publicó (el N.º de encuesta va en el título). */
 export function antetituloDelCaso(metadatos: ContextoDeCaso | null): string | null {
   if (!metadatos) return null;
   const partes: string[] = [];
-  if (metadatos.numero_encuesta) partes.push(`Encuesta ${metadatos.numero_encuesta}.`);
   if (metadatos.recopilador) partes.push(`${metadatos.recopilador}.`);
   if (metadatos.digitador) partes.push(`Digitó ${metadatos.digitador}.`);
   const fecha = fechaCorta(metadatos.fecha_respuesta ?? metadatos.fecha_envio, true);

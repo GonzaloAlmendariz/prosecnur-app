@@ -462,3 +462,13 @@ button.pulso-ci-nombre:focus-visible {
     overflow: visible;
   }
 }
+
+/* Ítem 49 (QA30b): a 1024 la mesa pasa a una columna y "Lista para análisis"
+   (qué impide cerrar, los casos de la ficha física) quedaba a dos pantallas bajo
+   la tabla de decisiones. Con una sola columna va primero: es lo que decide si
+   la base se puede cerrar; las decisiones siguen debajo, completas. */
+@container mesa-pestana (max-width: 979px) {
+  .pulso-validacion-pestana-cierre .pulso-mesa-pestana-pila {
+    order: -1;
+  }
+}

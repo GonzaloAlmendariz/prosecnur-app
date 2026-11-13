@@ -19,6 +19,8 @@ import {
   lugarDeCandidato,
   lugarDelSelector,
   propuestaEnPalabras,
+  rotuloDeColumna,
+  type CorreccionGuardada,
 } from "./correccionDelCaso";
 
 type Pendiente = { lugar: LugarACorregir; origen: "candidato" | "selector" };
@@ -30,12 +32,18 @@ export function CorreccionDeCatalogo({
   onGuardada,
   guardarDecision = apiV2LimpiezaDecisionSave,
   apiSelector,
+  guardadas = [],
+  valorActual,
 }: {
   hallazgo: HallazgoDelCaso;
   idCaso: string;
   baseNombre: string | null;
   /** Después de guardar: quien monta vuelve a leer la cola. */
   onGuardada?: () => void;
+  /** Lo que el caso ya tiene corregido para esta regla (decisiones listas): se dice en lugar de proponer de nuevo. */
+  guardadas?: readonly CorreccionGuardada[];
+  /** El valor que la base trae hoy en una columna del caso, para decir "de RINAC a Rimac"; `null` si no se conoce. */
+  valorActual?: (columna: string) => string | null;
   /** Para pruebas. */
   guardarDecision?: typeof apiV2LimpiezaDecisionSave;
   apiSelector?: ApiDelSelector;
@@ -43,7 +51,7 @@ export function CorreccionDeCatalogo({
   const [pendiente, setPendiente] = useState<Pendiente | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
-  const [guardadas, setGuardadas] = useState<number | null>(null);
+  const [guardadasAhora, setGuardadas] = useState<number | null>(null);
 
   const candidatos = hallazgo.esperado?.candidatos ?? [];
   const formas = pendiente
@@ -82,7 +90,17 @@ export function CorreccionDeCatalogo({
   return (
     <Panel noPadding className="pulso-hz-caso-caja" title="Corrección del lugar">
       <div className="pulso-hz-correccion">
-        {candidatos.length ? (
+        {guardadas.length ? (
+          <div className="pulso-hz-correccion-guardada" role="group" aria-label="Corrección guardada">
+            <span className="pulso-hz-correccion-rotulo">Corregido en esta encuesta</span>
+            <ul>
+              {guardadas.map((g) => (
+                <li key={g.columna} title={g.columna}><span className="pulso-hz-correccion-papel">{rotuloDeColumna(g.columna, hallazgo.roles)}</span><b>{g.valor}</b></li>
+              ))}
+            </ul>
+            <p>Se aplica al cerrar la base.</p>
+          </div>
+        ) : candidatos.length ? (
           <ul className="pulso-hz-correccion-propuestas" aria-label="Propuestas del catálogo">
             {candidatos.map((c, k) => (
               <li key={`${c.rol}-${c.valor}-${k}`}>
@@ -102,9 +120,15 @@ export function CorreccionDeCatalogo({
               <>
                 <span className="pulso-hz-correccion-rotulo">Se reemplaza en esta encuesta</span>
                 <ul>
-                  {formas.map((f) => (
-                    <li key={f.target_variable}><code>{f.target_variable}</code> <b>{f.set_value}</b></li>
-                  ))}
+                  {formas.map((f) => {
+                    const antes = valorActual?.(f.target_variable) ?? null;
+                    return (
+                      <li key={f.target_variable} title={f.target_variable}>
+                        <span className="pulso-hz-correccion-papel">{rotuloDeColumna(f.target_variable, hallazgo.roles)}</span>
+                        <span>{antes && antes !== f.set_value ? `de ${antes} a ` : null}<b>{f.set_value}</b></span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </>
             ) : (
@@ -126,9 +150,9 @@ export function CorreccionDeCatalogo({
             api={apiSelector}
           />
         </div>
-        {guardadas !== null ? (
+        {guardadasAhora !== null && !guardadas.length ? (
           <p className="pulso-hz-correccion-ok" role="status">
-            {guardadas === 1 ? "Corrección guardada en 1 columna." : `Corrección guardada en ${guardadas} columnas.`}
+            {guardadasAhora === 1 ? "Corrección guardada en 1 columna." : `Corrección guardada en ${guardadasAhora} columnas.`}
           </p>
         ) : null}
         {error ? <p className="pulso-hz-aviso" data-tono="aviso" role="alert">{error}</p> : null}

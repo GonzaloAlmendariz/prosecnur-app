@@ -13,6 +13,7 @@
 import type { EnunciadoEsperado } from "../../../../api/validacionAuditoria";
 import type { ColumnaDeCaso, FilaDeCaso } from "../modeloHallazgos";
 import { CLAVE_RESPONDIDAS_DE_SECCION, lecturaDeSeccion, rotuloDeRespondidas } from "../seccionDelSalto";
+import { CLAVE_VALOR_MAS_COMUN, partesDeValorMasComun } from "../valorMasComun";
 
 /** Hasta cuántas preguntas van como columnas; con más, van en una fila dentro del caso. */
 export const MAXIMO_DE_PREGUNTAS_EN_COLUMNAS = 4;
@@ -126,6 +127,17 @@ const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice
 const mismaCelda = (a: CeldaDeCaso, b: CeldaDeCaso) =>
   a.valor === b.valor && a.original === b.original && a.nota === b.nota && !!a.fueraDeLista === !!b.fueraDeLista;
 
+/**
+ * Las fechas de un enunciado del motor como dd.mm.aaaa, que es como las escribe
+ * el formulario: "2026-08-12" y "31/10/2026" pasan a "12.08.2026" y "31.10.2026".
+ * Una hora o cualquier otro texto queda igual.
+ */
+export function fechasConPuntos(texto: string): string {
+  return texto
+    .replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, "$3.$2.$1")
+    .replace(/\b(\d{2})\/(\d{2})\/(\d{4})\b/g, "$1.$2.$3");
+}
+
 /** El motivo de un caso de fechas: lo que va en el encabezado si es común y lo que va en la fila si no. */
 export type MotivoDeFecha = { encabezado: string; corto: string };
 
@@ -135,9 +147,11 @@ export type MotivoDeFecha = { encabezado: string; corto: string };
  * al encabezado como "Cierre del operativo: 31/10/2026".
  */
 export function motivoDeFecha(choque: string | null | undefined): MotivoDeFecha | null {
-  const c = choque?.trim();
+  const c = choque?.trim() ? fechasConPuntos(choque.trim()) : "";
   if (!c) return null;
-  let m = /^posterior al cierre del operativo \(([^)]+)\)$/.exec(c);
+  let m = /^fuera del periodo (de campo|permitido) (\(.+\))$/.exec(c);
+  if (m) return { encabezado: `Periodo ${m[1]}: ${m[2].slice(1, -1)}`, corto: "fuera del periodo" };
+  m = /^posterior al cierre del operativo \(([^)]+)\)$/.exec(c);
   if (m) return { encabezado: `Cierre del operativo: ${m[1]}`, corto: "después del cierre" };
   m = /^anterior al inicio del operativo \(([^)]+)\)$/.exec(c);
   if (m) return { encabezado: `Inicio del operativo: ${m[1]}`, corto: "antes del inicio" };
@@ -166,11 +180,19 @@ export function lecturaDeFecha(hecho: string | null | undefined): LecturaDeFecha
   const h = hecho?.trim();
   if (!h) return null;
   let m = /^registró "([^"]*)" \(([^)]*)\)(?: en (.+))?$/.exec(h);
-  if (m) return { valor: m[2], original: m[1] === m[2] ? null : m[1], rotulo: m[3] ?? null, diferencia: false };
+  if (m) {
+    const valor = fechasConPuntos(m[2]);
+    return { valor, original: m[1] === valor ? null : m[1], rotulo: m[3] ?? null, diferencia: false };
+  }
+  // El periodo de campo: "se registró el 08.11.2026" o "no tiene fecha en Fecha de la entrevista".
+  m = /^se registró el (.+)$/.exec(h);
+  if (m) return { valor: fechasConPuntos(m[1]), original: null, rotulo: null, diferencia: false };
+  m = /^no tiene fecha en (.+)$/.exec(h);
+  if (m) return { valor: "Sin fecha", original: null, rotulo: m[1], diferencia: false };
   m = /^registró "([^"]*)"(?: en (.+))?$/.exec(h);
   if (m) return { valor: m[1], original: null, rotulo: m[2] ?? null, diferencia: false };
   m = /^registró (\S+)(?: en (.+))?$/.exec(h);
-  if (m) return { valor: m[1], original: null, rotulo: m[2] ?? null, diferencia: false };
+  if (m) return { valor: fechasConPuntos(m[1]), original: null, rotulo: m[2] ?? null, diferencia: false };
   m = /^dejó incompleta (.+)$/.exec(h);
   if (m) return { valor: "Incompleta", original: null, rotulo: m[1], diferencia: false };
   m = /^pasaron (.+?) entre .+$/.exec(h);
@@ -216,7 +238,10 @@ export function formatoEsperado(choque: string | null | undefined): string | nul
   return m ? `Formato esperado: ${m[1]}` : null;
 }
 
-const enunciadoEntero = (e: EnunciadoEsperado | null) => [e?.hecho, e?.choque].filter(Boolean).join(", ") || null;
+const enunciadoEntero = (e: EnunciadoEsperado | null) => {
+  const texto = [e?.hecho, e?.choque].filter(Boolean).join(", ");
+  return texto ? fechasConPuntos(texto) : null;
+};
 
 /** El único valor de una lista si todos son iguales; `null` si difieren o la lista está vacía. */
 function unico<T>(valores: readonly T[]): T | null {
@@ -347,6 +372,15 @@ export function compactarTabla(columnasDeCaso: readonly ColumnaDeCaso[], filas: 
       cambiar(CLAVE_RESPONDIDAS_DE_SECCION, {
         detalle: seccion && k !== null ? `De ${k} en "${seccion}"` : null,
       });
+    }
+  }
+
+  // Valor más común del grupo: el valor y, en gris, cuántos casos del grupo lo traen (ítem 49).
+  if (columnas.some((c) => c.clave === CLAVE_VALOR_MAS_COMUN)) {
+    for (const f of filas) {
+      const fila = celdas.get(f.clave) as Record<string, CeldaDeCaso>;
+      const { valor, peso } = partesDeValorMasComun(f.valores[CLAVE_VALOR_MAS_COMUN]);
+      fila[CLAVE_VALOR_MAS_COMUN] = { valor, original: null, nota: peso, titulo: enunciadoEntero(f.esperado) };
     }
   }
 

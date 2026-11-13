@@ -10,7 +10,6 @@
  * no lleva acciones propias. Por defecto enseña las secciones con preguntas de
  * sus hallazgos; "Ver todas las secciones" enseña las demás.
  */
-import { rotuloDeCaso } from "../rotuloDeCaso";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Table2 } from "../../../vendor/lucide-react";
 import { Sideover } from "../../../components/Sideover";
@@ -21,9 +20,11 @@ import { causaDelError, identificadorDelError } from "../../../components/errorP
 import { CargaDeBloque } from "../../../components/CargaDeBloque";
 import { formatoConteo } from "../../../lib/formatoNumero";
 import type { VariableDelCaso } from "../../../api/validacionAuditoria";
-import { antetituloDelCaso, respondidasDeSeccion, rotuloDeClase, seccionesDelHallazgo, valorDeRespuesta } from "./modeloHallazgos";
+import type { LimpiezaDecision } from "../types";
+import { antetituloDelCaso, respondidasDeSeccion, rotuloDeClase, seccionesDelHallazgo, tituloDelCaso, valorDeRespuesta } from "./modeloHallazgos";
 import { useCaso } from "./useCaso";
 import { CorreccionDeCatalogo } from "./CorreccionDeCatalogo";
+import { correccionesGuardadas } from "./correccionDelCaso";
 
 function etiquetaDeOrigen(v: VariableDelCaso): string | null {
   if (v.origen === "calculada") return "Calculada";
@@ -36,6 +37,7 @@ export function PanelCaso({
   idCaso,
   casos,
   pendientes,
+  decisiones,
   baseNombre,
   onIr,
   onCerrar,
@@ -48,6 +50,8 @@ export function PanelCaso({
   casos: readonly string[];
   /** Si cada regla de la cola está por decidir, por su id. */
   pendientes: ReadonlyMap<string, boolean>;
+  /** Las decisiones guardadas: la ficha dice lo que el caso ya tiene corregido. */
+  decisiones: readonly LimpiezaDecision[];
   baseNombre: string | null;
   onIr: (id: string) => void;
   onCerrar: () => void;
@@ -75,13 +79,21 @@ export function PanelCaso({
   const delHallazgo = useMemo(() => new Set(tonoDe.keys()), [tonoDe]);
   const secciones = caso ? (todas ? caso.secciones : seccionesDelHallazgo(caso.secciones, delHallazgo)) : [];
   const muestraTodas = !caso || secciones.length === caso.secciones.length;
+  // Lo que la base trae hoy en cada columna del caso, para decir "de RINAC a Rimac".
+  const valorActual = (columna: string): string | null => {
+    for (const s of caso?.secciones ?? []) {
+      const v = s.variables.find((x) => x.variable === columna);
+      if (v) return valorDeRespuesta(v);
+    }
+    return null;
+  };
 
   return (
     <Sideover
       open={abierto}
       onOpenChange={(a) => { if (!a) onCerrar(); }}
       className="pulso-hz-caso"
-      title={idCaso ? `Caso ${rotuloDeCaso(idCaso).texto}` : "Caso"}
+      title={tituloDelCaso(idCaso, caso?.metadatos ?? null)}
       subtitle={caso ? antetituloDelCaso(caso.metadatos) ?? undefined : undefined}
       closeLabel="Cerrar el caso"
       stepper={casos.length > 1 && i >= 0 ? (
@@ -134,11 +146,12 @@ export function PanelCaso({
                 <ul className="pulso-hz-en-hallazgos">
                   {caso.hallazgos.map((h) => {
                     const pendiente = pendientes.get(h.id_regla);
+                    const corregido = !!idCaso && correccionesGuardadas(decisiones, h.id_regla, idCaso).length > 0;
                     return (
                       <li key={h.id_regla}>
                         <span className="pulso-rl-clase" data-clase={h.clase === "caso_a_revisar" ? "revisar" : "inconsistencia"}>{rotuloDeClase(h.clase)}</span>
                         <b>{h.nombre ?? h.id_regla}</b>
-                        <em>{pendiente === undefined ? "Fuera de la cola" : pendiente ? "Por decidir" : "Decidido"}</em>
+                        <em>{corregido ? "Corregido en este caso" : pendiente === undefined ? "Fuera de la cola" : pendiente ? "Por decidir" : "Decidido"}</em>
                       </li>
                     );
                   })}
@@ -151,7 +164,12 @@ export function PanelCaso({
                 hallazgo={h}
                 idCaso={idCaso}
                 baseNombre={baseNombre}
-                onGuardada={onCorregida}
+                guardadas={correccionesGuardadas(decisiones, h.id_regla, idCaso)}
+                valorActual={valorActual}
+                onGuardada={() => {
+                  lectura.releer();
+                  onCorregida?.();
+                }}
               />
             )) : null}
             {!caso.instrumento_leido ? (

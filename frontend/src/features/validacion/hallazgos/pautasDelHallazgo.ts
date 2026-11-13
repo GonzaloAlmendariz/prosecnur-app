@@ -167,7 +167,6 @@ const PAUTAS: Record<TipoDePauta, Pauta> = {
   fechas: {
     revisar: [
       "Compara lo leído con el texto original: un día y un mes invertidos (08.11 por 11.08) explican muchos casos.",
-      "Una hora de fin anterior a la de inicio suele ser una confusión entre mañana y tarde.",
       "Si la fecha no se pudo leer y la encuesta fue en papel, revisa la ficha física.",
     ],
     situaciones: {
@@ -223,6 +222,17 @@ const PAUTAS: Record<TipoDePauta, Pauta> = {
     },
   },
 };
+
+/** Solo si los casos comparan horas: una hora de fin anterior a la de inicio suele ser una confusión entre mañana y tarde. */
+const PAUTA_DE_HORAS = "Una hora de fin anterior a la de inicio suele ser una confusión entre mañana y tarde.";
+
+/**
+ * Si lo que el motor dice de los casos habla de horas (una hora suelta, "pasaron
+ * 3 horas", minutos). Una fecha fuera del periodo no recibe la pauta de horas.
+ */
+export function conHorasEnLosCasos(esperados: ReadonlyArray<{ hecho?: string | null; choque?: string | null } | null | undefined>): boolean {
+  return esperados.some((e) => /\b\d{1,2}:\d{2}\b|\bhoras?\b|\bminutos?\b/.test(`${e?.hecho ?? ""} ${e?.choque ?? ""}`));
+}
 
 /** Lo que cambia cuando la regla la propuso el detector a partir de la base. */
 const DETECTOR: Pauta = {
@@ -286,12 +296,19 @@ const POR_TIPO_DE_REGLA: Record<string, TipoDePauta> = {
   calculate_check: "calculo",
 };
 
+/** La restricción del formulario es un patrón de texto (`regex(., '...')`), no un rango: sus casos se revisan como formato. */
+export function esRestriccionDeFormato(expresion: string | null | undefined): boolean {
+  return /\bregex\s*\(/i.test(expresion ?? "");
+}
+
 export function tipoDePauta(o: {
   vista: VistaDelHallazgo;
   familia: string | null;
   direccion: "debe" | "nodebe" | null;
   subtipo: string | null;
   tipoRegla: string | null;
+  /** La restricción del formulario es un patrón de texto (`esRestriccionDeFormato`). */
+  restriccionDeFormato?: boolean;
 }): TipoDePauta | null {
   if (o.vista === "casi-iguales") return "casi_iguales";
   if (o.familia === "salto" || o.vista === "salto" || o.tipoRegla === "skip") {
@@ -300,6 +317,7 @@ export function tipoDePauta(o: {
     if (o.direccion === "nodebe" || o.subtipo === "salto_nodebe") return "salto_sobra";
     return null;
   }
+  if (o.familia === "restriccion" && o.restriccionDeFormato) return "formato";
   return (o.familia && POR_FAMILIA[o.familia])
     || (o.subtipo && POR_SUBTIPO[o.subtipo])
     || (o.tipoRegla && POR_TIPO_DE_REGLA[o.tipoRegla])
@@ -330,15 +348,19 @@ export function pautasDelHallazgo(o: {
   semillaOrigen: string | null;
   /** Preguntas de la condición con un código fuera de su lista en los casos marcados (ítem 41). */
   filtroFueraDeLista?: readonly FiltroFueraDeLista[];
+  /** Los casos comparan horas (`conHorasEnLosCasos`): una regla de fechas suma entonces su pauta de horas. */
+  conHoras?: boolean;
+  restriccionDeFormato?: boolean;
 }): PautasDelHallazgo | null {
   const tipo = tipoDePauta(o);
   const detector = o.semillaOrigen === "detector_consistencia";
   const base = tipo ? PAUTAS[tipo] : null;
   const filtro = tipo === "salto_vacia" || tipo === "salto_sobra" || tipo === "seccion_sobra" ? o.filtroFueraDeLista ?? [] : [];
   if (!base && !detector) return null;
-  const propias = detector
-    ? [...DETECTOR.revisar, ...(base?.revisar ?? [])].slice(0, 3)
+  const delTipo = tipo === "fechas" && o.conHoras
+    ? [...(base?.revisar.slice(0, 1) ?? []), PAUTA_DE_HORAS, ...(base?.revisar.slice(1) ?? [])]
     : [...(base?.revisar ?? [])];
+  const propias = detector ? [...DETECTOR.revisar, ...delTipo].slice(0, 3) : delTipo;
   const revisar = filtro.length ? [...filtro.map(pautaDelFiltro), ...propias].slice(0, Math.max(3, filtro.length + 1)) : propias;
   const situaciones = {
     ...(base?.situaciones ?? {}),

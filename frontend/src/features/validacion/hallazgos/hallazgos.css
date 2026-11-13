@@ -463,6 +463,13 @@
   flex: 1 1 auto;
 }
 
+/* Por qué las marcas están deshabilitadas con "Dejar como está". */
+.pulso-hz-seleccion-causa {
+  flex: 1 1 240px;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+}
+
 .pulso-hz-busca {
   position: relative;
   display: inline-flex;
@@ -1670,6 +1677,22 @@ button.pulso-hz-sentido:hover {
     padding-block: 6px;
   }
 
+  /* Ítem 49: a esta altura la Decisión mostraba una sola opción. Solo la elegida
+     lleva su descripción y su situación; las demás quedan con el título, de modo
+     que el tratamiento, el motivo y el pie caben sin otro scroll. */
+  .pulso-hz-opcion:not(.is-on) .pulso-hz-opcion-texto small {
+    display: none;
+  }
+
+  .pulso-hz-cabecera {
+    gap: var(--pulso-space-2);
+    padding-block: var(--pulso-space-3);
+  }
+
+  .pulso-hz-pautas {
+    padding-block: var(--pulso-space-2);
+  }
+
   .pulso-hz-pie.pulso-pie-efecto {
     gap: var(--pulso-space-2);
     padding: var(--pulso-space-2) var(--pulso-space-4);
@@ -1779,20 +1802,23 @@ button.pulso-hz-sentido:hover {
 }
 
 .pulso-hz-correccion-buscar,
-.pulso-hz-correccion-confirmar {
+.pulso-hz-correccion-confirmar,
+.pulso-hz-correccion-guardada {
   display: flex;
   flex-direction: column;
   gap: var(--pulso-space-2);
   min-width: 0;
 }
 
-.pulso-hz-correccion-confirmar {
+.pulso-hz-correccion-confirmar,
+.pulso-hz-correccion-guardada {
   padding: var(--pulso-space-3) var(--pulso-space-4);
   background: var(--pulso-surface-raised);
   box-shadow: inset 0 0 0 1px var(--pulso-border);
 }
 
-.pulso-hz-correccion-confirmar ul {
+.pulso-hz-correccion-confirmar ul,
+.pulso-hz-correccion-guardada ul {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1802,11 +1828,23 @@ button.pulso-hz-sentido:hover {
   font-size: var(--pulso-type-body-size);
 }
 
-.pulso-hz-correccion-confirmar li {
+.pulso-hz-correccion-confirmar li,
+.pulso-hz-correccion-guardada li {
   display: flex;
   flex-wrap: wrap;
   gap: var(--pulso-space-2);
   overflow-wrap: anywhere;
+}
+
+.pulso-hz-correccion-papel {
+  min-width: 84px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-hz-correccion-guardada p {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
 }
 
 .pulso-hz-correccion-rotulo {

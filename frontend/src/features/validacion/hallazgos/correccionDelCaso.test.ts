@@ -3,6 +3,7 @@ import { buildDecisionPayload } from "../limpieza/modeloLimpieza";
 import type { CandidatoDeCatalogo } from "../../../api/validacionAuditoria";
 import {
   columnasDeRoles,
+  correccionesGuardadas,
   decisionesDeCorreccion,
   lugarDeCandidato,
   lugarDelSelector,
@@ -54,3 +55,34 @@ describe("corrección de un caso de catálogo", () => {
     expect(formas.map((f) => f.target_variable)).toEqual(["P2_dep", "P2_prov"]);
   });
 });
+
+// Ítem 49 (QA30b): tras confirmar, la ficha seguía con "RINAC" y la propuesta. La base no cambia hasta
+// cerrar, así que la ficha dice lo corregido a partir de las decisiones guardadas del caso.
+describe("correcciones ya guardadas de un caso", () => {
+  const decision = (extra: Record<string, unknown>) => ({
+    id: "d1", source_type: "custom_rule", source_id: "RC_007", scope: "cell_subset", target_case_ids: ["E-17"], target_variable: "P2_dist",
+    action_type: "set_value", action_params: { value: "Rimac" }, rationale: "", status: "ready", created_at: "", updated_at: "", ...extra,
+  }) as never;
+
+  it("lista la columna y el valor de cada corrección lista del caso y de la regla", () => {
+    const d = [
+      decision({ id: "a", target_variable: "P2_dist", action_params: { value: "Rimac" } }),
+      decision({ id: "b", target_variable: "P2_ubigeo", action_params: { value: "150132" } }),
+    ];
+    expect(correccionesGuardadas(d, "RC_007", "E-17")).toEqual([
+      { columna: "P2_dist", valor: "Rimac" },
+      { columna: "P2_ubigeo", valor: "150132" },
+    ]);
+  });
+
+  it("no cuenta otro caso, otra regla, un borrador ni otra acción", () => {
+    const d = [
+      decision({ target_case_ids: ["E-18"] }),
+      decision({ source_id: "RC_008" }),
+      decision({ status: "draft" }),
+      decision({ action_type: "ignore_rule" }),
+    ];
+    expect(correccionesGuardadas(d, "RC_007", "E-17")).toEqual([]);
+  });
+});
+

@@ -22,7 +22,7 @@ test_that("cada subtipo dice lo que la regla declara, sin comillas angulares ni 
   fecha <- list(tipo_regla = "range", familia = "rango_fecha",
                 limites = list(tipo = "fecha", min = "2026-05-01", max = "2026-06-30"))
   expect_identical(.en("valor_invalido", fecha, list(fecha = "2026-01-01"), target = "fecha", labels = list(fecha = "Fecha")),
-                   "AUD-009: registró \"2026-01-01\" en Fecha, fuera del periodo permitido (del 2026-05-01 al 2026-06-30). Revisar y corregir en Limpieza.")
+                   "AUD-009: registró \"2026-01-01\" en Fecha, fuera del periodo permitido (del 01.05.2026 al 30.06.2026). Revisar y corregir en Limpieza.")
   esp <- c(rango, list(especiales = c(`99` = "No responde")))
   expect_identical(.en("valor_invalido", esp, list(edad = "99")),
                    "AUD-009: respondió \"No responde\" (99) en Edad, un código especial que la regla de rango no admite. Revisar y corregir en Limpieza.")
@@ -59,7 +59,7 @@ test_that("la procedencia dice qué se declaró y se confirma con campo", {
   periodo <- list(tipo_regla = "range", familia = "rango_fecha", origen_semilla = "periodo",
                   limites = list(tipo = "fecha", min = "2026-05-01", max = "2026-06-30"))
   expect_identical(.en("procedencia", periodo, list(fecha = "2026-01-01"), target = "fecha", labels = list(fecha = "Fecha")),
-                   "AUD-009: se registró el 2026-01-01, fuera del periodo de campo (del 2026-05-01 al 2026-06-30). Confirmar con campo antes de decidir si el caso entra.")
+                   "AUD-009: se registró el 01.01.2026, fuera del periodo de campo (del 01.05.2026 al 30.06.2026). Confirmar con campo antes de decidir si el caso entra.")
   version <- list(tipo_regla = "catalog", familia = "fuera_catalogo", origen_semilla = "procedencia", version_vigente = "v4")
   expect_match(.en("procedencia", version, list(v = "v3"), target = "v"),
                "se recolectó con la versión \"v3\" del formulario; el estudio declara \"v4\"", fixed = TRUE)
@@ -160,4 +160,49 @@ test_that("O5: la frase de dos respuestas que deben cuadrar dice lo que marca", 
   expect_false(grepl("cuando si", f, fixed = TRUE))
   expect_false(grepl("no está entre", f, fixed = TRUE))
   expect_match(f, "Sí y ", fixed = TRUE)
+})
+
+# Ítem 49 (QA30b): una restricción de fecha del formulario mostraba su expresión regular cruda.
+test_that("un patrón de fecha del formulario se dice como formato, no como expresión regular", {
+  expect_identical(.vrf_patron_legible("^[0-3][0-9]\\.[01][0-9]\\.2026$"), "dd.mm.2026")
+  expect_identical(.vrf_patron_legible("^[0-3][0-9]/[01][0-9]/(19|20)[0-9]{2}$"), "dd/mm/aaaa")
+  expect_identical(.vrf_patron_legible("^\\d{2}-\\d{2}-\\d{4}$"), "dd-mm-aaaa")
+  # Lo que no se reconoce queda como está: no se inventa una lectura.
+  expect_null(.vrf_patron_legible("^[A-Z]{3}[0-9]+$"))
+  expect_null(.vrf_patron_legible(NA_character_))
+  ctx <- .vrf_contexto(NULL)
+  x <- ast_matches_regex("fecha_entrevista", "^[0-3][0-9]\\.[01][0-9]\\.2026$")
+  txt <- function(fr) paste(vapply(fr, function(f) if (!is.null(f$texto)) f$texto else if (!is.null(f$pregunta)) f$etiqueta else as.character(f$valor), ""), collapse = "")
+  expect_match(txt(.vrf_cond(x, ctx, negar = TRUE)), "no tiene el formato dd.mm.2026$")
+  expect_match(txt(.vrf_cond(x, ctx)), "tiene el formato dd.mm.2026$")
+  crudo <- ast_matches_regex("codigo", "^[A-Z]{3}[0-9]+$")
+  expect_match(txt(.vrf_cond(crudo, ctx, negar = TRUE)), "no sigue el patrón ^[A-Z]{3}[0-9]+$", fixed = TRUE)
+})
+
+test_that("las fechas de un límite van como dd.mm.aaaa", {
+  expect_identical(.enun_limites_fecha(list(min = "2026-08-12", max = "2026-11-04")), "(del 12.08.2026 al 04.11.2026)")
+  expect_identical(.enun_limites_fecha(list(min = "2026-08-12", max = NA)), "(desde el 12.08.2026)")
+  expect_identical(.enun_limites_fecha(list(min = NA, max = "2026-11-04")), "(hasta el 04.11.2026)")
+  expect_identical(.enun_limites_fecha(list(min = "ayer", max = NA)), "(desde el ayer)")
+})
+
+# Ítem 49 (QA30b): una regla propia sin rótulos en sus roles dejaba las columnas del detalle (y la lista
+# para la ficha física) con el nombre de la columna: "ubigeo" en lugar de "Ubigeo del distrito".
+test_that("el detalle completa los rótulos de los roles con los de la frase de la regla", {
+  frase <- list(list(texto = "Se marca el caso cuyo "), list(pregunta = "cod_x", etiqueta = "Ubigeo del distrito"),
+                list(texto = " no coincide con el más común entre los casos con el mismo "),
+                list(pregunta = "zz_dist", etiqueta = "Distrito"), list(texto = "."))
+  resp <- list(regla = list(variable_roles = list(target = "cod_x", compare = list("zz_dist"), labels = list(zz_dist = "Distrito de residencia"))))
+  detalle <- list(narrativa = list(nombre = "Ubigeo del distrito", frase = frase, frase_completa = TRUE), severidad = "advertencia")
+  out <- validacion_detalle_regla_publico(resp, detalle)
+  # Completa lo que falta y no pisa un rótulo que el detalle ya traía.
+  expect_identical(out$regla$variable_roles$labels$cod_x, "Ubigeo del distrito")
+  expect_identical(out$regla$variable_roles$labels$zz_dist, "Distrito de residencia")
+  # Sin rótulos en los roles, también.
+  sin <- validacion_detalle_regla_publico(list(regla = list(variable_roles = list(target = "cod_x"))), detalle)
+  expect_identical(sin$regla$variable_roles$labels$cod_x, "Ubigeo del distrito")
+  # Sin frase no hay nada que completar y la forma no cambia.
+  nada <- validacion_detalle_regla_publico(list(regla = list(variable_roles = list(target = "cod_x"))),
+                                           list(narrativa = list(nombre = "x", frase = NA), severidad = "error"))
+  expect_null(nada$regla$variable_roles$labels)
 })

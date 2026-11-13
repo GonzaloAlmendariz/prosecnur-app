@@ -46,6 +46,7 @@ import {
   filasDeRegistro,
   franjaDeCasos,
   gruposDeDecisiones,
+  hallazgosConDecision,
   puntosDeLista,
   type ResumenDeFicha,
   sePuedeReabrir,
@@ -171,8 +172,9 @@ export function PestanaCierreMesa() {
   // --- Decisiones ---------------------------------------------------------------
   const elementos = elementosDeCola(data);
   const aplicadas = cierre?.decisiones_aplicadas ?? null;
-  const grupos = aplicadas ? gruposDeDecisiones({ aplicadas, cadena: cierre?.cadena_casos ?? null, elementos }) : [];
-  const tituloDecisiones = situacion.tipo === "cerrada" ? "Decisiones aplicadas" : "Decisiones listas";
+  const grupos = aplicadas ? gruposDeDecisiones({ aplicadas, cadena: cierre?.cadena_casos ?? null, elementos, decisiones: data.decision_draft }) : [];
+  // Una sola unidad en el panel y en la cabecera: hallazgos, no las decisiones que cada corrección guarda por columna.
+  const tituloDecisiones = situacion.tipo === "cerrada" ? "Hallazgos con decisión aplicada" : "Hallazgos con decisión lista";
   let vacio;
   if (situacion.tipo === "sin-auditar") {
     vacio = (
@@ -227,7 +229,7 @@ export function PestanaCierreMesa() {
         <DecisionesAplicadas
           titulo={tituloDecisiones}
           grupos={grupos}
-          conteo={aplicadas && situacion.tipo !== "sin-auditar" ? aplicadas.decisiones.length : undefined}
+          conteo={aplicadas && situacion.tipo !== "sin-auditar" ? hallazgosConDecision(grupos) : undefined}
           aviso={avisoDeCifrasPorDecision(cierre)}
           vacio={<div className="pulso-ci-vacio">{vacio}</div>}
           ocupado={ocupado}

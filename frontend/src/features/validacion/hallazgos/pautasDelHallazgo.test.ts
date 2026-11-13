@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pautasDelHallazgo, situacionDeOpcion, subtipoDeLosCasos, tipoDePauta, todasLasPautas } from "./pautasDelHallazgo";
+import { conHorasEnLosCasos, esRestriccionDeFormato, pautasDelHallazgo, situacionDeOpcion, subtipoDeLosCasos, tipoDePauta, todasLasPautas } from "./pautasDelHallazgo";
 import { opcionesDeTratamiento } from "./modeloHallazgos";
 
 const sinNada = { vista: "general" as const, familia: null, direccion: null, subtipo: null, tipoRegla: null };
@@ -13,6 +13,18 @@ describe("tipo de pauta", () => {
     expect(tipoDePauta({ ...sinNada, familia: "fuera_catalogo" })).toBe("fuera_de_lista");
     expect(tipoDePauta({ ...sinNada, familia: "coherencia_2v" })).toBe("coherencia");
     expect(tipoDePauta({ ...sinNada, familia: "no_nulo" })).toBe("obligatoria");
+  });
+
+  // Ítem 49 (QA30b): la restricción de fecha del formulario (un regex) recibía las pautas de un rango numérico.
+  it("una restricción del formulario que es un patrón de texto recibe las pautas de formato", () => {
+    expect(esRestriccionDeFormato("regex(., '^[0-3][0-9]\\.[01][0-9]\\.2026$')")).toBe(true);
+    expect(esRestriccionDeFormato(". >= 18 and . <= 80")).toBe(false);
+    expect(esRestriccionDeFormato(null)).toBe(false);
+    expect(tipoDePauta({ ...sinNada, familia: "restriccion", restriccionDeFormato: true })).toBe("formato");
+    expect(tipoDePauta({ ...sinNada, familia: "restriccion" })).toBe("rango");
+    const p = pautasDelHallazgo({ ...sinNada, familia: "restriccion", restriccionDeFormato: true, semillaOrigen: null });
+    expect(p?.tipo).toBe("formato");
+    expect(p?.revisar.join(" ")).not.toMatch(/edad|ingreso|999/);
   });
 
   it("un salto se separa por dirección: vacía donde correspondía o respondida donde no", () => {
@@ -49,6 +61,24 @@ describe("pautas del hallazgo", () => {
   it("la fecha ilegible manda a la ficha física", () => {
     const p = pautasDelHallazgo({ ...sinNada, familia: "rango_fecha", semillaOrigen: null });
     expect(p?.revisar.some((r) => /ficha física/.test(r))).toBe(true);
+  });
+
+  // Ítem 49 (QA30b): la pauta de una fecha fuera del periodo de campo hablaba de una hora de fin.
+  it("las pautas de una fecha hablan de horas solo si los casos traen horas", () => {
+    const fecha = pautasDelHallazgo({ ...sinNada, familia: "rango_fecha", subtipo: "periodo", semillaOrigen: null, conHoras: false });
+    expect(fecha?.revisar.join(" ")).not.toMatch(/hora/i);
+    const horas = pautasDelHallazgo({ ...sinNada, familia: "comparar_fechas", subtipo: "fechas", semillaOrigen: null, conHoras: true });
+    expect(horas?.revisar.join(" ")).toMatch(/hora de fin/);
+    expect(horas?.revisar.length).toBe((fecha?.revisar.length ?? 0) + 1);
+  });
+
+  it("las horas se reconocen en lo que el motor dice de cada caso", () => {
+    const e = (hecho: string, choque: string | null = null) => ({ hecho, choque });
+    expect(conHorasEnLosCasos([e("se registró el 08.11.2026", "fuera del periodo de campo (del 12.08.2026 al 04.11.2026)")])).toBe(false);
+    expect(conHorasEnLosCasos([e("registró \"08.11.2026\" (08.11.2026) en Fecha", "posterior al cierre del operativo (31.10.2026)")])).toBe(false);
+    expect(conHorasEnLosCasos([e("pasaron 3 horas entre Inicio (10:00) y Fin (13:00)", "más que el máximo de 90 minutos")])).toBe(true);
+    expect(conHorasEnLosCasos([e("registró 10:15 en Hora de inicio", "anterior a \"10.3\" (10:30) en Hora de inicio")])).toBe(true);
+    expect(conHorasEnLosCasos([null, undefined])).toBe(false);
   });
 
   it("una regla del detector antepone su pauta y conserva la del tipo", () => {

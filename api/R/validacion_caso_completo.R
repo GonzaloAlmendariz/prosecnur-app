@@ -434,6 +434,30 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
   rep(NA_integer_, n)
 }
 
+# Los rótulos de las preguntas de una regla que sus roles no traen (una regla
+# propia no los declara): salen de su frase, que ya los resolvió con el
+# formulario. Un rótulo que el detalle ya traía no se pisa.
+.vcc_roles_con_rotulos <- function(roles, frase) {
+  if (!is.list(roles) || !is.list(frase)) return(roles)
+  rotulos <- list()
+  for (p in frase) {
+    if (!is.list(p) || is.null(p$pregunta) || is.null(p$etiqueta)) next
+    cod <- as.character(p$pregunta)[1]; et <- trimws(as.character(p$etiqueta)[1])
+    if (!is.na(cod) && nzchar(cod) && !is.na(et) && nzchar(et) && !identical(et, cod)) rotulos[[cod]] <- et
+  }
+  if (!length(rotulos)) return(roles)
+  propios <- roles$labels
+  if (!is.list(propios)) propios <- list()
+  for (cod in names(rotulos)) {
+    actual <- propios[[cod]]
+    if (is.null(actual) || is.na(actual[1]) || !nzchar(trimws(as.character(actual[1]))) || identical(as.character(actual[1]), cod)) {
+      propios[[cod]] <- rotulos[[cod]]
+    }
+  }
+  roles$labels <- propios
+  roles
+}
+
 #' Respuesta pública del detalle de una regla (POST /instrumento/regla)
 #'
 #' Suma a la respuesta que arma el router lo que M4 pide del motor: el nombre
@@ -449,6 +473,7 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
 validacion_detalle_regla_publico <- function(resp, detalle) {
   e <- detalle$narrativa
   if (!is.null(e$nombre) && !is.na(e$nombre)) resp$regla$nombre <- as.character(e$nombre)
+  resp$regla$variable_roles <- .vcc_roles_con_rotulos(resp$regla$variable_roles, e$frase)
   resp$regla <- c(resp$regla, .vnr_campos_publicos(e), list(severidad = detalle$severidad))
   resp$catalogo_leido <- isTRUE(detalle$catalogo_leido)
   resp$contexto <- detalle$contexto

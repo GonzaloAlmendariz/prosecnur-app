@@ -39,7 +39,7 @@ describe("corrección de un caso de catálogo en la ficha", () => {
     act(() => root.render(<CorreccionDeCatalogo hallazgo={hallazgo([comas])} idCaso="E-17" baseNombre="base" guardarDecision={guardar} />));
     expect(host.textContent).toContain("Propuesta: Distrito Comas (por el ubigeo 150110)");
     act(() => boton("Usar propuesta")?.click());
-    expect(host.querySelector("[aria-label='Confirmar la corrección']")?.textContent).toContain("P2_dist");
+    expect(host.querySelector("[aria-label='Confirmar la corrección']")?.textContent).toContain("Distrito");
     expect(guardar).not.toHaveBeenCalled();
     await act(async () => { boton("Confirmar corrección")?.click(); });
     expect(guardar).toHaveBeenCalledTimes(4);
@@ -62,6 +62,29 @@ describe("corrección de un caso de catálogo en la ficha", () => {
   test("sin candidato dice A investigar y deja el selector", () => {
     act(() => root.render(<CorreccionDeCatalogo hallazgo={hallazgo([])} idCaso="E-17" baseNombre="base" />));
     expect(host.textContent).toContain("A investigar");
+    expect(host.querySelector("input")).not.toBeNull();
+  });
+
+  // Ítem 49 (QA30b): la confirmación mostraba solo valores nuevos con códigos de columna y, ya guardada,
+  // la ficha seguía con la propuesta.
+  test("la confirmación dice el lugar de cada valor y el que tenía antes", () => {
+    act(() => root.render(<CorreccionDeCatalogo hallazgo={hallazgo([comas])} idCaso="E-17" baseNombre="base" valorActual={(c) => (c === "P2_dist" ? "RINAC" : null)} />));
+    act(() => boton("Usar propuesta")?.click());
+    const texto = host.querySelector("[aria-label='Confirmar la corrección']")?.textContent ?? "";
+    expect(texto).toContain("Distrito");
+    expect(texto).toContain("de RINAC a Comas");
+    expect(texto).not.toContain("P2_dist");
+  });
+
+  test("con la corrección ya guardada la ficha la dice y no vuelve a proponer", () => {
+    const guardadas = [{ columna: "P2_dist", valor: "Comas" }, { columna: "P2_ubigeo", valor: "150110" }];
+    act(() => root.render(<CorreccionDeCatalogo hallazgo={hallazgo([comas])} idCaso="E-17" baseNombre="base" guardadas={guardadas} />));
+    const bloque = host.querySelector("[aria-label='Corrección guardada']");
+    expect(bloque?.textContent).toContain("Distrito");
+    expect(bloque?.textContent).toContain("Comas");
+    expect(bloque?.textContent).toContain("Ubigeo");
+    expect(bloque?.textContent).toContain("Se aplica al cerrar la base.");
+    expect(host.textContent).not.toContain("Propuesta:");
     expect(host.querySelector("input")).not.toBeNull();
   });
 });

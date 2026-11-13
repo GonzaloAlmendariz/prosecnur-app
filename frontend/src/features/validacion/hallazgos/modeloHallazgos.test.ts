@@ -5,6 +5,7 @@ import type { InstrumentoDrillResult } from "../../../api/validacion";
 import { decision, itemCola, limpieza } from "../caracterizacion/escenarios";
 import {
   antetituloDelCaso,
+  tituloDelCaso,
   casosDelElegido,
   partesFuera,
   avisoDeCasosNuevos,
@@ -211,6 +212,35 @@ describe("el hallazgo abierto", () => {
     expect(t.filas[0].esperado?.subtipo).toBe("restriccion");
   });
 
+  // Ítem 49 (QA30b): la tabla de "Valor distinto del más frecuente" no mostraba el valor contra el que se compara.
+  it("la regla del valor más frecuente por grupo suma el valor más común del grupo, con su peso", () => {
+    const causa = (valor: string, moda: string, n: number, k: number) => `Ubigeo ${valor} en Comas; en ese grupo el valor más común es ${moda} (${n} de ${k} casos).`;
+    const drill = {
+      regla: { variable_roles: { target: "cod_x", compare: ["zz_dist"], labels: { cod_x: "Ubigeo", zz_dist: "Distrito" } }, value_labels: {} },
+      casos: [{ cod_x: "150133", zz_dist: "Comas" }, { cod_x: "150128", zz_dist: "Comas" }],
+      case_ids: ["c1", "c2"],
+      esperado: [
+        { subtipo: "moda_en_grupo", hecho: "", choque: causa("150133", "150110", 9, 10) },
+        { subtipo: "moda_en_grupo", hecho: "", choque: causa("150128", "150110", 9, 10) },
+      ],
+    } as unknown as InstrumentoDrillResult;
+    const t = tablaDeCasos(drill, null);
+    const comun = t.columnas.find((c) => c.clave === "moda:comun");
+    expect(comun?.rotulo).toBe("Más común en el grupo");
+    expect(comun?.tipo).toBe("pregunta");
+    expect(t.filas.map((f) => f.valores["moda:comun"])).toEqual(["150110 (9 de 10 casos)", "150110 (9 de 10 casos)"]);
+  });
+
+  it("sin la causa del motor, la columna del valor más común no se inventa", () => {
+    const drill = {
+      regla: { variable_roles: { target: "cod_x", labels: {} }, value_labels: {} },
+      casos: [{ cod_x: "1" }],
+      case_ids: ["c1"],
+      esperado: [{ subtipo: "moda_en_grupo", hecho: "", choque: "" }],
+    } as unknown as InstrumentoDrillResult;
+    expect(tablaDeCasos(drill, null).columnas.map((c) => c.clave)).not.toContain("moda:comun");
+  });
+
   it("las columnas de contexto solo si el estudio las declaró", () => {
     const conRoles = { ...DETALLE_REAL, contexto: { recopilador: { variable: "enc", etiqueta: "Encuestador", fuente: "agente_declarado" } } } as unknown as InstrumentoDrillResult;
     expect(tablaDeCasos(conRoles, null).columnas.map((c) => c.rotulo)).toEqual(["Recopilador", "Edad"]);
@@ -309,6 +339,15 @@ describe("respuestas casi iguales", () => {
 });
 
 describe("la decisión", () => {
+  // Ítem 49 (QA30b): la Decisión de una batería nombraba solo la primera de sus 10 preguntas.
+  it("en una batería, vaciar dice que se elige entre sus preguntas y no nombra una sola", () => {
+    const ops = opcionesDeTratamiento({ vista: "general", etiquetaPregunta: "Marca SI estás de acuerdo", prevista: null, seleccionMultiple: false, fueraDeLista: false, especial: null, preguntasDeLaBateria: 10 });
+    const vaciar = ops.find((o) => o.clave === "vaciar");
+    expect(vaciar?.titulo).toBe("Vaciar la respuesta");
+    expect(vaciar?.detalle).toBe("Eliges cuál de las 10 preguntas de la batería queda sin dato.");
+    expect(vaciar?.detalle).not.toContain("Marca SI");
+  });
+
   it("qué hacer, con el texto del prototipo y la prevista marcada", () => {
     const ops = opcionesDeTratamiento({ vista: "general", etiquetaPregunta: "Año de egreso", prevista: "nullify_fields", seleccionMultiple: false, fueraDeLista: false, especial: null });
     expect(ops.map((o) => [o.titulo, o.detalle, o.prevista])).toEqual([
@@ -371,7 +410,17 @@ describe("el caso completo y su dirección", () => {
     expect(antetituloDelCaso({ fecha_respuesta: "2026-11-03T15:00:00", recopilador: "Correo, 1.ª invitación", numero_encuesta: null, digitador: null, fecha_envio: null, duracion_min: 14, n_respondidas: 6, n_preguntas: 6 }))
       .toBe("Correo, 1.ª invitación. Respondió el 3 nov 2026 en 14 minutos");
     expect(antetituloDelCaso({ fecha_respuesta: null, recopilador: "Ana", numero_encuesta: "412", digitador: "Luis", fecha_envio: null, duracion_min: null, n_respondidas: null, n_preguntas: null }))
-      .toBe("Encuesta 412. Ana. Digitó Luis");
+      .toBe("Ana. Digitó Luis");
+  });
+
+  // Ítem 49 (QA30b): el título decía "Caso Fila 208" y la línea de abajo "Encuesta 208".
+  it("el título nombra el caso una sola vez: el N.º de encuesta si el estudio lo declaró, si no el caso por su fila", () => {
+    const meta = (numero: string | null) => ({ fecha_respuesta: null, recopilador: null, numero_encuesta: numero, digitador: null, fecha_envio: null, duracion_min: null, n_respondidas: null, n_preguntas: null });
+    expect(tituloDelCaso("principal::idx::208", meta("208"))).toBe("Encuesta 208");
+    expect(tituloDelCaso("principal::idx::208", meta(null))).toBe("Caso Fila 208");
+    expect(tituloDelCaso("principal::idx::208", null)).toBe("Caso Fila 208");
+    expect(tituloDelCaso("hijos::idx::3", null)).toBe("Caso Fila 3 de hijos");
+    expect(tituloDelCaso(null, null)).toBe("Caso");
   });
 
   it("respondidas por sección y el estado de una vacía", () => {

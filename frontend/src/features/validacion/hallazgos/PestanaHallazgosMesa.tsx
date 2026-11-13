@@ -31,7 +31,7 @@ import { CabeceraDelHallazgo } from "./CabeceraDelHallazgo";
 import { CentroDelHallazgo, type ModoDelCentro } from "./CentroDelHallazgo";
 import { Cola } from "./Cola";
 import { Decision, type AlcanceDeDecision, type AvisosDeDecision } from "./Decision";
-import { DecisionVacia, EsqueletoDeHallazgos, RevisionPorFamilia } from "./EstadosDeHallazgos";
+import { DecisionEnCarga, DecisionVacia, EsqueletoDeHallazgos, RevisionPorFamilia } from "./EstadosDeHallazgos";
 import { totalDeCasos } from "./detalleCompleto";
 import { PanelCaso } from "./PanelCaso";
 import { notaDelResultadoAnterior } from "./modeloFranjaDeAuditoria";
@@ -39,7 +39,7 @@ import { PautasDeRevision } from "./PautasDeRevision";
 import { AvisoFiltroFueraDeLista } from "./AvisoFiltroFueraDeLista";
 import { filtroFueraDeLista } from "./filtroFueraDeLista";
 import { esReglaDeSeccion } from "./seccionDelSalto";
-import { pautasDelHallazgo, situacionDeOpcion, subtipoDeLosCasos } from "./pautasDelHallazgo";
+import { conHorasEnLosCasos, esRestriccionDeFormato, pautasDelHallazgo, situacionDeOpcion, subtipoDeLosCasos } from "./pautasDelHallazgo";
 import { useFranjaDeAuditoria } from "./useFranjaDeAuditoria";
 import { DistribucionDelHallazgo } from "./vistas/DistribucionDelHallazgo";
 import { HallazgoCasiIguales } from "./vistas/HallazgoCasiIguales";
@@ -211,6 +211,8 @@ export function PestanaHallazgosMesa() {
     tipoRegla: h.item?.tipo_regla ?? null,
     semillaOrigen: h.reglaDelCatalogo?.semilla_origen ?? null,
     filtroFueraDeLista: filtroFuera,
+    conHoras: conHorasEnLosCasos(tabla.filas.map((f) => f.esperado)),
+    restriccionDeFormato: esRestriccionDeFormato(h.reglaDelCatalogo?.expresion_formulario),
   }) : null), [filtroFuera, h.elegido, h.item?.tipo_regla, h.reglaDelCatalogo, tabla.filas, vista]);
 
   // --- La decisión -------------------------------------------------------------
@@ -226,6 +228,7 @@ export function PestanaHallazgosMesa() {
       especial: null,
       pares,
       seccion: deSeccion,
+      preguntasDeLaBateria: tabla.columnas.some((c) => c.clave === "bateria:patron") ? tabla.columnas.filter((c) => c.tipo === "pregunta").length : undefined,
     });
     // Una decisión guardada con una acción que la vista no ofrece se ve igual, con su nombre.
     const accion = h.form.action_type;
@@ -239,7 +242,7 @@ export function PestanaHallazgosMesa() {
     // "Revisar con la ficha física" va tras "Dejar como está": cualquier hallazgo de casos puede volver al papel.
     if (vista !== "casi-iguales") conSituacion.splice(1, 0, OPCION_FICHA_FISICA);
     return conSituacion;
-  }, [deSeccion, h.elegido, h.form.action_type, h.item, h.prevista, h.reglaDelCatalogo?.familia, pares, pautas, pregunta?.etiqueta, vista]);
+  }, [deSeccion, h.elegido, h.form.action_type, h.item, h.prevista, h.reglaDelCatalogo?.familia, pares, pautas, pregunta?.etiqueta, tabla.columnas, vista]);
   const opcionElegida = vista === "casi-iguales"
     ? (criterio === "todas" ? "todas" : criterio)
     : h.enFicha
@@ -585,7 +588,7 @@ export function PestanaHallazgosMesa() {
                 onVerRegla={verRegla}
               />
             )}
-            pautas={filtroFuera.length || pautas ? (
+            pautas={estadoCentro === "lista" && (filtroFuera.length || pautas) ? (
               <>
                 <AvisoFiltroFueraDeLista filtros={filtroFuera} />
                 {pautas ? <PautasDeRevision pautas={pautas.revisar} /> : null}
@@ -614,12 +617,15 @@ export function PestanaHallazgosMesa() {
                 onAbrirCaso={(id) => abrirCaso(id)}
                 tono={tono}
                 marcable={h.form.action_type !== "ignore_rule" || h.enFicha}
+                causaNoMarcable={'"Dejar como está" cubre todos los casos. Elige otro tratamiento para marcar algunos.'}
               />
             )}
           </CentroDelHallazgo>
         ) : null}
         {elegido && h.casos.fase === "error" ? (
           <DecisionVacia titulo="Sin casos a la vista" descripcion="Se habilita cuando carguen los casos del hallazgo." />
+        ) : elegido && estadoCentro === "cargando" ? (
+          <DecisionEnCarga />
         ) : elegido ? (
           <Decision
             opciones={opciones}
@@ -658,6 +664,7 @@ export function PestanaHallazgosMesa() {
         idCaso={casoAbierto}
         casos={casosDelPanel ?? casosDelHallazgo}
         pendientes={pendientes}
+        decisiones={data?.decision_draft ?? []}
         baseNombre={h.baseNombre}
         onIr={irACaso}
         onCerrar={cerrarCaso}

@@ -19,7 +19,7 @@
  * del kit). Una fila sin identificador en la auditoría no se puede marcar ni
  * abrir.
  */
-import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Search } from "../../../../vendor/lucide-react";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
@@ -47,6 +47,7 @@ export function TablaDeCasos({
   onAbrirCaso,
   tono,
   marcable,
+  causaNoMarcable,
 }: {
   columnas: readonly ColumnaDeCaso[];
   filas: readonly FilaDeCaso[];
@@ -59,7 +60,10 @@ export function TablaDeCasos({
   tono: "inconsistencia" | "revisar";
   /** Con "Dejar como está" la decisión cubre la regla entera: no se marcan casos. */
   marcable: boolean;
+  /** Por qué no se pueden marcar casos (con `marcable` en falso): va en una línea y en cada marca. */
+  causaNoMarcable?: string;
 }) {
+  const idCausa = useId();
   const [busqueda, setBusqueda] = useState("");
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -97,6 +101,7 @@ export function TablaDeCasos({
             {todos ? (marcablesN === 1 ? "Quitar la marca" : "Quitar las marcas") : marcablesN === 1 ? "Marcar el caso" : `Marcar los ${formatoConteo(marcablesN)}`}
           </PulsoButton>
         ) : null}
+        {!marcable && causaNoMarcable ? <span id={idCausa} className="pulso-hz-seleccion-causa">{causaNoMarcable}</span> : null}
         <span className="pulso-hz-seleccion-hueco" />
         <label className="pulso-hz-busca">
           <Search size={14} aria-hidden="true" />
@@ -164,6 +169,8 @@ export function TablaDeCasos({
                   aria-pressed={marcado}
                   aria-label={nombre ? `Marcar el caso ${nombre}` : "Caso sin identificador"}
                   disabled={!marcable || f.id === null}
+                  title={!marcable && causaNoMarcable ? causaNoMarcable : undefined}
+                  aria-describedby={!marcable && causaNoMarcable ? idCausa : undefined}
                   onClick={() => f.id && onMarcar(f.id)}
                 />
               </span>

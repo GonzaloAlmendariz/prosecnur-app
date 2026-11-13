@@ -76,7 +76,7 @@
     "pedidos": "63dbe095d5c0a35b1a02399a4e5d78eb5b2b9cdc14542e9257ad585027e0936f"
   },
   "instrumento_panel-por-clic": {
-    "marcado": "b3c6e3ed390bc2463492fa32685f257be66f28e06dbf9a0bfbf47915793ff46d",
+    "marcado": "1db72eed211c26a006e49993e92565fbe44c8345434d390a8e71f136ae4ec724",
     "pedidos": "6a674e74f51c81b5b3d8eb45a25e1c529aa630a081a5867072d44d708f5f3d8d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -85,7 +85,7 @@
     ]
   },
   "instrumento_panel-por-direccion_con-casos": {
-    "marcado": "7a4a117096d6288f4e6c0899dd889c70657e5ab165c57c3ca0afa12408ddc625",
+    "marcado": "1db72eed211c26a006e49993e92565fbe44c8345434d390a8e71f136ae4ec724",
     "pedidos": "83865b9f2fb5aa1104e0aed43d8d67c253f6a22fb55ac1a459dbd7ab4b8e9b4e",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"R_REQ_EDAD\"}",

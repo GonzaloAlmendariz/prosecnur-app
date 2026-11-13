@@ -155,3 +155,22 @@ export function DecisionVacia({ titulo, descripcion, accion }: { titulo: string;
     </PanelDeMesa>
   );
 }
+
+/**
+ * La Decisión mientras llegan los casos del hallazgo: sus opciones dependen de
+ * ellos (el salto de una sección ofrece otras que el salto de una pregunta), así
+ * que no se muestran las de un hallazgo genérico antes de tenerlos.
+ */
+export function DecisionEnCarga() {
+  return (
+    <PanelDeMesa zona="decision" titulo="Decisión" ocupado>
+      <CargaDeBloque label="Leyendo los casos del hallazgo" />
+      <div className="pulso-hz-esqueleto">
+        <Skeleton forma="texto" ancho="40%" />
+        <Skeleton forma="fila" alto={36} />
+        <Skeleton forma="texto" ancho="34%" />
+        {Array.from({ length: 3 }, (_, i) => <Skeleton key={i} forma="card" alto={54} />)}
+      </div>
+    </PanelDeMesa>
+  );
+}

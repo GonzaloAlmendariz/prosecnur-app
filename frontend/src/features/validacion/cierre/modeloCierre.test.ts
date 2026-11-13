@@ -3,6 +3,7 @@ import { normalizarCierre, type CierreDeLimpieza } from "../../../api/validacion
 import type { AuditoriaEstado } from "../../../api/validacionAuditoria";
 import type { LimpiezaQueueItem, LimpiezaSummary } from "../types";
 import { decision } from "../caracterizacion/escenarios";
+import { elementosDeCola } from "../hallazgos/modeloHallazgos";
 import {
   avisoDeCifrasPorDecision,
   cabeceraDeCierre,
@@ -10,6 +11,7 @@ import {
   filasDeRegistro,
   franjaDeCasos,
   gruposDeDecisiones,
+  hallazgosConDecision,
   lineaDeArchivo,
   puntosDeLista,
   sePuedeReabrir,
@@ -185,6 +187,51 @@ describe("cifras", () => {
     const grupos = gruposDeDecisiones({ aplicadas: c.decisiones_aplicadas!, cadena: c.cadena_casos, elementos: [] });
     expect(grupos.map((g) => [g.titulo, g.resumen, g.filas.length])).toEqual([["Casos excluidos", "2 casos", 1], ["Valores cambiados", "1 valor", 1]]);
     expect(grupos[0].filas[0]).toMatchObject({ hallazgo: "VR_constraint_cbe6c3cc", enCola: false, tratamiento: "Excluir los casos", cifra: 2 });
+  });
+
+  // Ítem 49 (QA30b): una corrección de lugar guarda una decisión por columna y Cierre la mostraba
+  // como 3 filas idénticas, sin decir qué caso ni qué columnas.
+  describe("una corrección por caso y regla", () => {
+    const porColumna = (id: string, columna: string) => ({
+      ...DECISIONES[1], decision_id: id, source_id: "RC_007", action_type: "set_value", target_variable: columna,
+      rationale: "Corregido con la propuesta del catálogo de ubigeos.", n_celdas_cambiadas: 1,
+    });
+    const guardada = (id: string, columna: string, casos: string[]) => ({
+      id, source_type: "custom_rule", source_id: "RC_007", scope: "cell_subset", target_case_ids: casos, target_variable: columna,
+      action_type: "set_value", action_params: { value: "x" }, rationale: "", status: "ready", created_at: "", updated_at: "",
+    }) as never;
+    const cola = [{ source_id: "RC_007", nombre_regla: "Combinación fuera de catálogo", hallazgo_kind: "caso_validar", pending: true, n_casos: 5, variables: [], tipo_regla: "catalog" }] as unknown as LimpiezaQueueItem[];
+    const tres = [porColumna("D1", "p1_1"), porColumna("D2", "p1_2"), porColumna("D3", "p1_3")];
+    const c = () => cierre({
+      decisiones: tres,
+      grupos: [{ efecto: "cambia_valores", n_decisiones: 3, cifra: 3, unidad: "valores cambiados" }],
+      totales: { n_casos_excluidos: 0, n_celdas_cambiadas: 3 },
+    });
+    const decisiones = [guardada("D1", "p1_1", ["principal::idx::208"]), guardada("D2", "p1_2", ["principal::idx::208"]), guardada("D3", "p1_3", ["principal::idx::208"])];
+
+    it("las decisiones de un mismo caso y regla son una fila con la suma de sus valores", () => {
+      const g = gruposDeDecisiones({ aplicadas: c().decisiones_aplicadas!, cadena: c().cadena_casos, elementos: elementosDeCola(resumen({ decision_queue: cola })), decisiones });
+      expect(g).toHaveLength(1);
+      expect(g[0].filas).toHaveLength(1);
+      expect(g[0].filas[0]).toMatchObject({ hallazgo: "Combinación fuera de catálogo", tratamiento: "Asignar un valor", cifra: 3 });
+      expect(g[0].filas[0].detalle).toBe("1 caso en 3 columnas. Cubre 1 de los 5 casos del hallazgo.");
+    });
+
+    it("dos casos distintos con la misma regla son dos filas", () => {
+      const otras = [guardada("D1", "p1_1", ["principal::idx::208"]), guardada("D2", "p1_2", ["principal::idx::300"]), guardada("D3", "p1_3", ["principal::idx::300"])];
+      const g = gruposDeDecisiones({ aplicadas: c().decisiones_aplicadas!, cadena: c().cadena_casos, elementos: [], decisiones: otras });
+      expect(g[0].filas.map((f) => f.cifra)).toEqual([1, 2]);
+    });
+
+    it("sin las decisiones guardadas no se agrupa por caso: cada decisión sigue siendo una fila", () => {
+      const g = gruposDeDecisiones({ aplicadas: c().decisiones_aplicadas!, cadena: c().cadena_casos, elementos: [] });
+      expect(g[0].filas).toHaveLength(3);
+    });
+
+    it("el conteo del panel son los hallazgos con decisión, no las decisiones", () => {
+      const g = gruposDeDecisiones({ aplicadas: c().decisiones_aplicadas!, cadena: c().cadena_casos, elementos: [], decisiones });
+      expect(hallazgosConDecision(g)).toBe(1);
+    });
   });
 
   it("una decisión que excluye casos ya excluidos lo dice en su fila", () => {

@@ -648,6 +648,24 @@ validacion_reglas_catalogo <- function(sid, base = NULL, variable = NULL) {
   error = function(e) NULL)
 }
 
+# Dos secciones del formulario pueden tener el mismo rótulo ("Datos
+# sociodemográficos" al inicio y al final): sus reglas salían con el mismo
+# nombre en la cola y en la ficha del caso. Las que se repiten suman, entre
+# paréntesis, de qué pregunta a cuál van; las demás no cambian.
+.vrc_nombres_distintos <- function(filas, reglas) {
+  es_seccion <- vapply(reglas, function(r) isTRUE(!is.null(r$rule) && .vss_es_seccion(r$rule)), logical(1))
+  if (!any(es_seccion)) return(filas)
+  nombres <- vapply(filas, function(f) as.character(f$nombre %||% "")[1], character(1))
+  repetidos <- es_seccion & nombres %in% nombres[es_seccion][duplicated(nombres[es_seccion])]
+  for (i in which(repetidos)) {
+    v <- .vss_variables(reglas[[i]]$rule)
+    rango <- if (length(v) == 1L) v else sprintf("%s a %s", v[1], v[length(v)])
+    filas[[i]]$nombre <- sub(": respondida cuando no le correspondía$",
+                             sprintf(" (%s): respondida cuando no le correspondía", rango), nombres[i])
+  }
+  filas
+}
+
 # El catálogo entero de una base, sin filtrar.
 # `con_auditoria = FALSE` arma solo nombre, frase y clasificación (sin bases ni
 # avisos de la auditoría): es lo que pide la narrativa de la cola y del caso.
@@ -727,6 +745,7 @@ validacion_reglas_catalogo <- function(sid, base = NULL, variable = NULL) {
   for (u in bundle$unsupported %||% list()) agregar(.vrc_fila_sin_regla(u, "expresion_no_traducida", ctx))
 
   filas <- .vrc_ids_unicos(filas, lapply(reglas, `[[`, "rule"))
+  filas <- .vrc_nombres_distintos(filas, reglas)
   filas <- .vrc_parejas(filas)
   if (isTRUE(con_auditoria)) {
     aud <- .vrc_auditoria(filas, reglas, scope, sid, base_eff, ctx)

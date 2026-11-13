@@ -320,3 +320,25 @@ test_that("el detalle de un salto dice, sobre todos sus casos y en la base pedid
                   c("respondió 2 de las 3 preguntas de la sección \"Datos del hogar\"",
                     "respondió 1 de las 3 preguntas de la sección \"Datos del hogar\""))
 })
+
+# Ítem 49 (QA30b): dos secciones del formulario con el mismo rótulo salían como
+# dos hallazgos idénticos en la cola y en la ficha del caso.
+test_that("dos secciones con el mismo rótulo se distinguen por sus preguntas", {
+  inst <- .ss_inst()
+  inst$survey$label[inst$survey$name == "sec_b"] <- "Datos del hogar"
+  ctx <- .vrf_contexto(inst)
+  rules <- Filter(.vss_es_seccion, infer_rules_from_xlsform(inst, include = c("required", "skip"))$rules)
+  filas <- lapply(rules, function(r) list(nombre = .vrf_nombre(
+    list(origen = "formulario", familia = "salto", direccion = "nodebe", target = .vss_grupo(r),
+         seccion = list(grupo = .vss_grupo(r), variables = .vss_variables(r))), ctx)))
+  grupos <- vapply(rules, .vss_grupo, "")
+  expect_identical(sum(vapply(filas, function(f) identical(f$nombre, "Sección \"Datos del hogar\": respondida cuando no le correspondía"), logical(1))), 2L)
+
+  out <- .vrc_nombres_distintos(filas, lapply(rules, function(r) list(rule = r, propia = NULL)))
+  nombres <- stats::setNames(vapply(out, `[[`, "", "nombre"), grupos)
+  expect_identical(nombres[["sec_a"]], "Sección \"Datos del hogar\" (p1 a p2_1): respondida cuando no le correspondía")
+  expect_match(nombres[["sec_b"]], "^Sección \"Datos del hogar\" \\(p3 a p5\\): respondida")
+  # Una sección con rótulo propio no cambia.
+  expect_identical(nombres[["sub_b"]], "Sección \"Detalle de opiniones\": respondida cuando no le correspondía")
+  expect_identical(length(unique(nombres)), 3L)
+})

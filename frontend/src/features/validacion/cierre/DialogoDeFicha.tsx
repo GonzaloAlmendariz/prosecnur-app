@@ -21,12 +21,14 @@ export function DialogoDeFicha({ filas, descarga, onDescargar }: {
   onDescargar: () => void;
 }) {
   const conNota = filas.some((f) => f.nota !== "");
+  // Los anchos suman menos que el cuerpo del diálogo (940): la tabla no se desplaza en horizontal y Motivo y Nota
+  // se leen casi enteros; el texto completo de cada celda va en su título.
   const columnas = useMemo<PulsoTableColumna<FilaDeFicha>[]>(() => [
-    { id: "encuesta", encabezado: "N.º de encuesta", ancho: 120, celda: (f) => f.encuesta, valor: (f) => f.encuesta },
-    { id: "pregunta", encabezado: "Pregunta", ancho: 170, celda: (f) => f.pregunta, valor: (f) => f.pregunta },
-    { id: "valor", encabezado: "Valor en la base", ancho: 150, celda: (f) => f.valor, valor: (f) => f.valor },
-    { id: "motivo", encabezado: "Motivo", ancho: 340, celda: (f) => f.motivo, valor: (f) => f.motivo },
-    ...(conNota ? [{ id: "nota", encabezado: "Nota", ancho: 200, celda: (f: FilaDeFicha) => f.nota, valor: (f: FilaDeFicha) => f.nota }] : []),
+    { id: "encuesta", encabezado: "N.º de encuesta", ancho: conNota ? 112 : 120, celda: (f) => f.encuesta, valor: (f) => f.encuesta },
+    { id: "pregunta", encabezado: "Pregunta", ancho: conNota ? 150 : 190, celda: (f) => f.pregunta, valor: (f) => f.pregunta },
+    { id: "valor", encabezado: "Valor en la base", ancho: conNota ? 130 : 160, celda: (f) => f.valor, valor: (f) => f.valor },
+    { id: "motivo", encabezado: "Motivo", ancho: conNota ? 258 : 440, celda: (f) => f.motivo, valor: (f) => f.motivo },
+    ...(conNota ? [{ id: "nota", encabezado: "Nota", ancho: 250, celda: (f: FilaDeFicha) => f.nota, valor: (f: FilaDeFicha) => f.nota }] : []),
   ], [conNota]);
   const enCurso = descarga.estado.fase === "en_curso";
   return (

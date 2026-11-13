@@ -89,7 +89,7 @@ describe("TablaDeCasos", () => {
     expect(respuestas[0].getAttribute("title")).toBe("p29_1 Ítem 1: Fuertemente en desacuerdo (1)");
   });
 
-  test("fechas: el motivo una vez en el encabezado, la fecha leída con el original en gris y el N.º de encuesta como caso", () => {
+  test("fechas: el motivo una vez en el encabezado, la fecha leída (el original solo si difiere) y el N.º de encuesta como caso", () => {
     // Ítem 37 (Gonzalo, 2026-11-12): la columna "Leído" repetía el motivo en las 37 filas y "Fila 40" duplicaba el N.º.
     const fila = (d: string, n: string): FilaDeCaso => ({
       id: `principal::idx::${n}`,
@@ -117,11 +117,12 @@ describe("TablaDeCasos", () => {
       );
     });
     const cabeceras = [...host.querySelectorAll('[role="columnheader"]')].map((c) => c.textContent);
-    expect(cabeceras).toEqual(["Marca", "N.º de encuesta", "Fecha de la entrevistaCierre del operativo: 31/10/2026"]);
+    expect(cabeceras).toEqual(["Marca", "N.º de encuesta", "Fecha de la entrevistaCierre del operativo: 31.10.2026"]);
     expect([...host.querySelectorAll(".pulso-hz-casoid")].map((b) => b.textContent)).toEqual(["40", "47"]);
     const celda = host.querySelectorAll('[role="row"]')[1].querySelectorAll('[role="cell"]')[2];
-    expect(celda.textContent).toBe("01/11/202601.11.2026");
-    expect(celda.querySelector(".pulso-hz-celda-gris")?.textContent).toBe("01.11.2026");
+    // Fecha leída y texto original coinciden (dd.mm.aaaa): se dice una vez.
+    expect(celda.textContent).toBe("01.11.2026");
+    expect(celda.querySelector(".pulso-hz-celda-gris")).toBeNull();
     expect(host.textContent).not.toContain("posterior al cierre");
     expect(host.textContent).not.toContain("Fila 40");
   });
@@ -150,4 +151,52 @@ describe("TablaDeCasos", () => {
     expect([...host.querySelectorAll(".pulso-hz-comunes dt")].map((d) => d.textContent)).toEqual(["¿Trabaja actualmente?", "Sector"]);
     expect([...host.querySelectorAll('[role="columnheader"]')].map((c) => c.textContent)).toEqual(["Marca", "Caso", "Recopilador"]);
   });
+
+  // Ítem 49 (QA30b): las casillas quedaban deshabilitadas con "Dejar como está" sin decir por qué.
+  test("sin casos marcables, la tabla dice la causa en una línea y en cada marca", () => {
+    const fila = (n: string): FilaDeCaso => ({ id: n, clave: n, valores: { p8: "Sí" }, contexto: null, esperado: null });
+    const causa = "\"Dejar como está\" cubre todos los casos. Elige otro tratamiento para marcar algunos.";
+    act(() => {
+      root.render(
+        <TablaDeCasos
+          columnas={[{ clave: "p8", rotulo: "Pregunta", tipo: "falla", numerica: false }]}
+          filas={[fila("a"), fila("b")]}
+          marcados={new Set()}
+          onMarcar={() => undefined}
+          onMarcarTodos={() => undefined}
+          onAbrirCaso={() => undefined}
+          tono="inconsistencia"
+          marcable={false}
+          causaNoMarcable={causa}
+        />,
+      );
+    });
+    const linea = host.querySelector(".pulso-hz-seleccion-causa");
+    expect(linea?.textContent).toBe(causa);
+    const marca = host.querySelector<HTMLButtonElement>(".pulso-hz-marca");
+    expect(marca?.disabled).toBe(true);
+    expect(marca?.getAttribute("aria-describedby")).toBe(linea?.id);
+    expect(marca?.title).toBe(causa);
+  });
+
+  test("con casos marcables no hay línea de causa", () => {
+    const fila = (n: string): FilaDeCaso => ({ id: n, clave: n, valores: { p8: "Sí" }, contexto: null, esperado: null });
+    act(() => {
+      root.render(
+        <TablaDeCasos
+          columnas={[{ clave: "p8", rotulo: "Pregunta", tipo: "falla", numerica: false }]}
+          filas={[fila("a")]}
+          marcados={new Set()}
+          onMarcar={() => undefined}
+          onMarcarTodos={() => undefined}
+          onAbrirCaso={() => undefined}
+          tono="inconsistencia"
+          marcable
+          causaNoMarcable="No debe verse."
+        />,
+      );
+    });
+    expect(host.querySelector(".pulso-hz-seleccion-causa")).toBeNull();
+  });
 });
+

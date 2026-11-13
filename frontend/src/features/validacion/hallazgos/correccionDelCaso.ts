@@ -7,6 +7,7 @@ import type { CandidatoDeCatalogo } from "../../../api/validacionAuditoria";
 import type { LugarDelCatalogo, PapelDeCatalogo } from "../../../api/catalogoUbigeo";
 import { correccionDeLugar, type ColumnasPorPapel, type LugarACorregir } from "../catalogo/correccionDeCatalogo";
 import { emptyEditorForm, type EditorForm } from "../limpieza/modeloLimpieza";
+import type { LimpiezaDecision } from "../types";
 
 const ROTULO_DEL_PAPEL: Readonly<Record<string, string>> = {
   departamento: "Departamento",
@@ -62,4 +63,23 @@ export function decisionesDeCorreccion({
     target_case_ids: [idCaso],
     rationale,
   }));
+}
+
+export type CorreccionGuardada = { columna: string; valor: string };
+
+/**
+ * Lo que el caso ya tiene corregido para esta regla: una decisión lista
+ * `set_value` por columna. La base no cambia hasta cerrar, así que la ficha lo
+ * dice desde las decisiones y no desde el valor de la base.
+ */
+export function correccionesGuardadas(decisiones: readonly LimpiezaDecision[], idRegla: string, idCaso: string): CorreccionGuardada[] {
+  return decisiones
+    .filter((d) => d.status === "ready" && d.action_type === "set_value" && d.source_id === idRegla && d.target_case_ids.includes(idCaso) && !!d.target_variable)
+    .map((d) => ({ columna: d.target_variable as string, valor: String(d.action_params?.value ?? "") }));
+}
+
+/** "Distrito" de la columna que ocupa ese papel en la regla; la columna misma si no es de ninguno. */
+export function rotuloDeColumna(columna: string, roles: Partial<Record<PapelDeCatalogo, string>> | undefined): string {
+  const papel = (Object.keys(ROTULO_DEL_PAPEL) as PapelDeCatalogo[]).find((p) => roles?.[p] === columna);
+  return papel ? ROTULO_DEL_PAPEL[papel] : columna;
 }

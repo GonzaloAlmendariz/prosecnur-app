@@ -77,13 +77,56 @@
   NULL
 }
 
+# "2026-08-12" como "12.08.2026", que es como las escribe el formulario; otro
+# texto queda igual.
+.enun_fecha_punteada <- function(x) sub("^(\\d{4})-(\\d{2})-(\\d{2})$", "\\3.\\2.\\1", x)
+
 .enun_limites_fecha <- function(lim) {
   if (!is.list(lim)) return(NULL)
-  mn <- as.character(lim$min %||% NA)[1]; mx <- as.character(lim$max %||% NA)[1]
+  mn <- .enun_fecha_punteada(as.character(lim$min %||% NA)[1]); mx <- .enun_fecha_punteada(as.character(lim$max %||% NA)[1])
   if (!is.na(mn) && !is.na(mx)) return(sprintf("(del %s al %s)", mn, mx))
   if (!is.na(mn)) return(sprintf("(desde el %s)", mn))
   if (!is.na(mx)) return(sprintf("(hasta el %s)", mx))
   NULL
+}
+
+# Las piezas de un patrón de fecha escrito como expresión regular en el
+# formulario, para decirlo como formato: "^[0-3][0-9]\\.[01][0-9]\\.2026$" es
+# "dd.mm.2026". Un año escrito (2026) se dice tal cual: la restricción solo
+# acepta ese año. Lo que no se reconoce no se traduce.
+.VRF_CAMPOS_DE_FECHA <- list(
+  list(r"(^\[0-3\]\[0-9\])", "dd"), list(r"(^\[0-3\]\\d)", "dd"), list(r"(^\(0\[1-9\]\|\[12\]\[0-9\]\|3\[01\]\))", "dd"),
+  list(r"(^\[01\]\[0-9\])", "mm"), list(r"(^\[01\]\\d)", "mm"), list(r"(^\(0\[1-9\]\|1\[0-2\]\))", "mm"),
+  list(r"(^\(19\|20\)(\[0-9\]|\\d)\{2\})", "aaaa"), list(r"(^(\[0-9\]|\\d)\{4\})", "aaaa"), list(r"(^20(\[0-9\]|\\d)\{2\})", "aaaa"),
+  list(r"(^(\[0-9\]|\\d)\{2\})", "par"),
+  list(r"(^(19|20)[0-9]{2})", "literal")
+)
+
+.vrf_patron_legible <- function(pattern) {
+  p <- as.character(pattern %||% NA_character_)[1]
+  if (is.na(p) || !grepl("^\\^.+\\$$", p)) return(NULL)
+  resto <- substr(p, 2L, nchar(p) - 1L)
+  campos <- character(0); seps <- character(0)
+  repeat {
+    hallado <- NULL
+    for (c in .VRF_CAMPOS_DE_FECHA) {
+      m <- regmatches(resto, regexpr(c[[1]], resto, perl = TRUE))
+      if (length(m) == 1L) { hallado <- list(texto = m, tipo = c[[2]]); break }
+    }
+    if (is.null(hallado)) return(NULL)
+    campos <- c(campos, if (identical(hallado$tipo, "literal")) hallado$texto else hallado$tipo)
+    resto <- substring(resto, nchar(hallado$texto) + 1L)
+    if (!nzchar(resto)) break
+    m <- regmatches(resto, regexpr(r"(^(\\[./-]|[/-]))", resto, perl = TRUE))
+    if (length(m) != 1L) return(NULL)
+    seps <- c(seps, substring(m, nchar(m)))
+    resto <- substring(resto, nchar(m) + 1L)
+  }
+  if (length(campos) != 3L || length(unique(seps)) != 1L) return(NULL)
+  if (identical(campos[1], "par")) campos[1] <- "dd"
+  if (identical(campos[2], "par")) campos[2] <- "mm"
+  if (!identical(campos[1], "dd") || !identical(campos[2], "mm") || identical(campos[3], "par") || identical(campos[3], "dd") || identical(campos[3], "mm")) return(NULL)
+  paste(campos, collapse = seps[1])
 }
 
 # Evalúa la condición de un salto con los valores del caso y devuelve la
@@ -283,7 +326,7 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
     valor_invalido = "un valor que la pregunta no admite",
     periodo = {
       hecho <- if (is.null(val)) sprintf("no tiene fecha en %s", rot) else
-        sprintf("se registró el %s", trimws(as.character(v_target)))
+        sprintf("se registró el %s", .enun_fecha_punteada(trimws(as.character(v_target))))
       paste("fuera del periodo de campo", .enun_limites_fecha(regla$limites) %||% "") |> trimws()
     },
     version = {
