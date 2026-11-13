@@ -49,7 +49,7 @@ export function EmparejamientoPorTextoDialog({
       celda: (c) => {
         if (c.estado === "nombre") return <code>{c.name}</code>;
         const opciones = opcionesDeColumna(c);
-        if (!opciones.length) return <span className="pulso-emparejamiento-nada">Sin pregunta parecida</span>;
+        if (!opciones.length) return <span className="pulso-emparejar-texto-nada">Sin pregunta parecida</span>;
         return (
           <PulsoSelect
             size="sm"
@@ -70,8 +70,8 @@ export function EmparejamientoPorTextoDialog({
       encabezado: "Coincidencia",
       ancho: 120,
       celda: (c) => conflictos.has(c.columna)
-        ? <span className="pulso-emparejamiento-estado is-conflicto">Pregunta repetida</span>
-        : <span className={`pulso-emparejamiento-estado is-${c.estado}`}>{ROTULO_ESTADO[c.estado]}</span>,
+        ? <span className="pulso-emparejar-texto-estado is-conflicto">Pregunta repetida</span>
+        : <span className={`pulso-emparejar-texto-estado is-${c.estado}`}>{ROTULO_ESTADO[c.estado]}</span>,
       valor: (c) => ROTULO_ESTADO[c.estado],
     },
     { id: "causa", encabezado: "Causa", ancho: 200, celda: (c) => c.causa, valor: (c) => c.causa },
@@ -103,7 +103,7 @@ export function EmparejamientoPorTextoDialog({
       dismissible={!cargando}
       closeOnOutside={false}
       footerStatus={
-        <span className={`pulso-emparejamiento-conteo${conflictos.size ? " is-conflicto" : ""}`}>
+        <span className={`pulso-emparejar-texto-conteo${conflictos.size ? " is-conflicto" : ""}`}>
           {conteoEleccion(parejas, conflictos)}
         </span>
       }
@@ -123,10 +123,10 @@ export function EmparejamientoPorTextoDialog({
         </>
       }
     >
-      <div className="pulso-emparejamiento" data-audit-ready="carga-emparejamiento-texto">
+      <div className="pulso-emparejar-texto" data-audit-ready="carga-emparejamiento-texto">
         {grupos.map((g) => (
-          <section key={g.clave} className="pulso-emparejamiento-grupo" aria-label={g.titulo}>
-            <h3 className="pulso-emparejamiento-titulo">{g.titulo}</h3>
+          <section key={g.clave} className="pulso-emparejar-texto-grupo" aria-label={g.titulo}>
+            <h3 className="pulso-emparejar-texto-titulo">{g.titulo}</h3>
             <PulsoTable
               ariaLabel={g.titulo}
               densidad="compacta"
@@ -139,9 +139,9 @@ export function EmparejamientoPorTextoDialog({
         ))}
 
         {propuesta.sin_columna.length ? (
-          <section className="pulso-emparejamiento-grupo" aria-label="Preguntas sin columna">
-            <h3 className="pulso-emparejamiento-titulo">Preguntas sin columna ({propuesta.sin_columna.length})</h3>
-            <ul className="pulso-emparejamiento-sin-columna">
+          <section className="pulso-emparejar-texto-grupo" aria-label="Preguntas sin columna">
+            <h3 className="pulso-emparejar-texto-titulo">Preguntas sin columna ({propuesta.sin_columna.length})</h3>
+            <ul className="pulso-emparejar-texto-sin-columna">
               {propuesta.sin_columna.map((p) => (
                 <li key={p.name}>
                   <code>{p.name}</code> {p.pregunta}
@@ -152,7 +152,7 @@ export function EmparejamientoPorTextoDialog({
         ) : null}
 
         {error ? (
-          <div className="pulso-emparejamiento-error" role="alert">
+          <div className="pulso-emparejar-texto-error" role="alert">
             <AlertTriangle size={14} aria-hidden="true" />
             <span>{error}</span>
           </div>

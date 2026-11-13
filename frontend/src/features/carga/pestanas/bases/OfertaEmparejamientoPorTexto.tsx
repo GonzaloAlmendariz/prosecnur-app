@@ -12,19 +12,19 @@ export function OfertaEmparejamientoPorTexto() {
   if (fase === "inactivo") return null;
   if (fase === "leyendo") return <LoadingBlock variant="inline" label="Comparando los encabezados con el texto de las preguntas" />;
   if (fase === "error") {
-    return <p className="pulso-emparejamiento-oferta-nota">No se pudo comparar con el texto de las preguntas: {error}</p>;
+    return <p className="pulso-emparejar-texto-oferta-nota">No se pudo comparar con el texto de las preguntas: {error}</p>;
   }
   if (!propuesta) return null;
   const r = propuesta.resumen;
   if (r.n_propuestas + r.n_dudosas + r.n_ambiguas === 0) {
     return (
-      <p className="pulso-emparejamiento-oferta-nota">
+      <p className="pulso-emparejar-texto-oferta-nota">
         Ningún encabezado de la base coincide con el texto de una pregunta del formulario.
       </p>
     );
   }
   return (
-    <div className="pulso-emparejamiento-oferta">
+    <div className="pulso-emparejar-texto-oferta">
       <PulsoButton variant="secondary" onClick={abrir}>
         <Link2 size={15} aria-hidden="true" />
         {rotuloOfertaEmparejamiento(r)}
