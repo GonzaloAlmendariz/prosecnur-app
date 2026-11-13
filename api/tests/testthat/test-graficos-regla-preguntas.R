@@ -353,7 +353,7 @@ test_that("en la ruta real el render aplica la regla y la espec lleva el texto d
   expect_null(esp[[4]]$texto_regla)
 })
 
-test_that("la lámina nativa escribe la regla en la nota, junto a la base", {
+test_that("la lámina nativa lleva la base al pie y la regla va como aviso al analista", {
   skip_if_not_installed("officer")
   src <- .rp_fuentes()
   .heq_local_render(.heq_matriz_por_nombre(src))
@@ -365,17 +365,20 @@ test_that("la lámina nativa escribe la regla en la nota, junto a la base", {
     p_slide_1_grafico(p_barras_divergentes(vars = "docentes$*", regla = list(tipo = "mayor_sin_info", n = 2)), titulo = "Escala")
   ))
   out <- tempfile(fileext = ".pptx"); on.exit(unlink(out), add = TRUE)
-  suppressMessages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources, plan = plan,
-                                                     path_ppt = out, mensajes_progreso = FALSE)))
+  avisos <- paste(testthat::capture_messages(suppressWarnings(reporte_ppt_plan(data = src$data_sources, instrumento = src$inst_sources,
+                                                                                plan = plan, path_ppt = out, mensajes_progreso = FALSE))),
+                  collapse = "\n")
   texto <- function(k) paste(xml2::xml_text(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))), "//a:t")), collapse = " ")
   grupos <- function(k) xml2::xml_attr(xml2::xml_find_all(xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", k))), "//p:grpSp/p:nvGrpSpPr/p:cNvPr"), "name")
   expect_true("prosecnur:grafico:contraste" %in% grupos(1))
   expect_match(texto(1), "Base: 40 docentes y 40 estudiantes", fixed = TRUE)
-  expect_match(texto(1), "Se muestran las 2 de mayor diferencia, de 5 preguntas comunes", fixed = TRUE)
+  # Desde 8c9b5ffca (pedido de Gonzalo: notas de base simples) al pie va sólo la base; la frase de la regla va como aviso.
   expect_true("prosecnur:grafico:panorama" %in% grupos(2))
-  expect_match(texto(2), "Se muestran las 4 bajo 50%, de 10 preguntas de escala", fixed = TRUE)
   expect_true("prosecnur:grafico:divergentes" %in% grupos(3))
-  expect_match(texto(3), "Se muestran las 2 con más Sin información, de 5 preguntas de escala", fixed = TRUE)
+  for (k in 1:3) expect_false(grepl("Se muestran", texto(k), fixed = TRUE))
+  expect_match(avisos, "Se muestran las 2 de mayor diferencia, de 5 preguntas comunes", fixed = TRUE)
+  expect_match(avisos, "Se muestran las 4 bajo 50%, de 10 preguntas de escala", fixed = TRUE)
+  expect_match(avisos, "Se muestran las 2 con más Sin información, de 5 preguntas de escala", fixed = TRUE)
 })
 
 # ---- Endpoint de conteo --------------------------------------------------------

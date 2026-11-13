@@ -1170,13 +1170,20 @@ test_that("canvas_w_etiquetas desplaza visualmente el inicio de barras", {
   f_small <- tempfile(fileext = ".png")
   f_large <- tempfile(fileext = ".png")
 
-  .render_apiladas_args_ui(df, f_small, canvas_w_etiquetas = 0.12, ancho_max_eje_y = 20)
-  .render_apiladas_args_ui(df, f_large, canvas_w_etiquetas = 0.35, ancho_max_eje_y = 20)
+  # Desde G-c (ola 3, b446480e0) lo declarado es el tope del canal y el canal mide su rótulo más largo
+  # (graficador_barras_apiladas_canal.R). Con líneas de 60 caracteres el rótulo pide más que los dos topes: manda lo declarado.
+  .render_apiladas_args_ui(df, f_small, canvas_w_etiquetas = 0.12, ancho_max_eje_y = 60)
+  .render_apiladas_args_ui(df, f_large, canvas_w_etiquetas = 0.35, ancho_max_eje_y = 60)
 
   x_small <- .first_blue_bar_x(png::readPNG(f_small))
   x_large <- .first_blue_bar_x(png::readPNG(f_large))
 
   expect_gt(x_large - x_small, 150)
+
+  # Con líneas de 20 caracteres el rótulo cabe en menos que el tope de 0.35: lo que sobra va a las barras.
+  .render_apiladas_args_ui(df, f_small, canvas_w_etiquetas = 0.12, ancho_max_eje_y = 20)
+  .render_apiladas_args_ui(df, f_large, canvas_w_etiquetas = 0.35, ancho_max_eje_y = 20)
+  expect_lt(.first_blue_bar_x(png::readPNG(f_large)) - .first_blue_bar_x(png::readPNG(f_small)), 150)
 })
 
 test_that("ancho_max_eje_y recompone visualmente etiquetas largas", {

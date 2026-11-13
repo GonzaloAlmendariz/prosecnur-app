@@ -22,7 +22,7 @@ source("setup-load-all.R")
 # Tinta de una cifra de fuera alineada a la derecha (caja con 0.1 in de margen): [der - tinta, der].
 .ci_tinta_izq <- function(fila) { der <- fila$x + fila$w - 0.1; c(der - .lam_ancho_tinta(fila$txt, 11, TRUE), der) }
 
-test_that("S3: el 10% interior va dentro de su segmento con letra chica y el 3% del extremo, fuera y pegado a la barra", {
+test_that("S3: el 10% interior va dentro de su segmento y el 3% del extremo, fuera y pegado a la barra", {
   # Como en el resumen original de Arte (láminas 4 y 5): «En desacuerdo» se escribe dentro, más chico, y sólo el extremo
   # sale de la barra. Sacar las dos dejaba «10% 3%», que se leía como si el extremo fuera la cifra mayor.
   d <- data.frame(it = c("Los reglamentos de la Unidad se aplican correctamente en todas sus instancias (Doc.)",
@@ -40,7 +40,9 @@ test_that("S3: el 10% interior va dentro de su segmento con letra chica y el 3% 
     sp <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='divergentes:cifra']]")
     as.numeric(xml2::xml_attr(xml2::xml_find_first(sp[xml2::xml_text(sp) == txt][1], ".//a:rPr"), "sz")) / 100
   }
-  expect_lt(sz("10%"), sz("43%"))                              # la chica, más chica que la de la escala
+  # Desde O2 (3bc660083) la columna de rótulos tiene tope de 3.5 in y el área de barras es más ancha: el 10% cabe dentro
+  # con la letra de la escala. Nunca más grande que ella; la letra chica la prueba el test unitario de abajo.
+  expect_lte(sz("10%"), sz("43%"))
   tres <- fuera[fuera$txt == "3%", ]
   expect_gte(nrow(tres), 1L)
   # El 3% queda junto a su barra: entre el fin de su tinta y el inicio del segmento del extremo no cabe otra cifra.

@@ -84,7 +84,7 @@ test_that("C3: la cobertura dice qué base no cabe, sin prometer otra lámina", 
 
 test_that("C4: el contraste en una ranura no admite `continuar_desde` y lo dice", {
   el <- list(.element_type = "dumbbell", overrides = list(ancho = 6, estilo = "resumen"), continuar_desde = 5L)
-  expect_message(r <- .contraste_desde_en_ranura(el), "no admite `continuar_desde` \\(5\\)")
+  expect_message(r <- .contraste_desde_en_ranura(el), "no admite continuar desde una posición \\(5\\)")
   expect_null(r$continuar_desde)
   pagina <- list(.element_type = "dumbbell", overrides = list(ancho = 12.3, estilo = "resumen"), continuar_desde = 5L)
   expect_silent(r2 <- .contraste_desde_en_ranura(pagina))

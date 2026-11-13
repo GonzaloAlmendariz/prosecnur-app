@@ -387,8 +387,9 @@
   # E3, P7. En la escala del resumen el consejo de desde dónde seguir lo da su lámina, que sabe cuántas filas dibuja al
   # final (P11); aquí va sólo el hecho.
   if (!is.null(r$recorte) && is.null(el$hasta)) {   # con `hasta` el recorte lo declaró el analista: no se avisa (S6)
+    con_consejo <- !identical(el$.element_type, "barras_divergentes")
     .pulso_aviso(.aviso_en_lamina(.tope_espacio_aviso(r$recorte[["k"]], r$recorte[["n"]], r$recorte[["desde"]],
-                                                      consejo = !identical(el$.element_type, "barras_divergentes"))))
+                                                      consejo = con_consejo)))
   }
   el$.vars_declaradas <- el$.vars_declaradas %||% el$vars   # O4: la serie se reconoce por lo declarado (graficos_serie_plan.R)
   el$vars <- r$vars

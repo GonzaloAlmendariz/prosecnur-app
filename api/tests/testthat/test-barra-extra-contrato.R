@@ -242,17 +242,18 @@ test_that("el motor lee la barra extra: top2box, conteos y apagado cambian lo qu
     res <- reporte_ppt_plan(data = data, instrumento = list(docentes = inst), plan = plan,
                             presets = do.call(p_presets, .PRESETS_DEFAULT_PULSO), solo_lista = TRUE, mensajes_progreso = FALSE)
     plots <- Filter(function(p) inherits(p, "ggplot"), res$rendered)
-    unlist(lapply(plots, function(p) {
+    # La cabecera se escribe "TOP TWO BOX", como la lámina nativa (G5 ola 2, bf37dfcd9): se compara sin mayúsculas.
+    toupper(unlist(lapply(plots, function(p) {
       b <- suppressWarnings(ggplot2::ggplot_build(p))
       unlist(lapply(b$data, function(l) if ("label" %in% names(l)) as.character(l$label)))
-    }))
+    })))
   }
   t2b <- c("De acuerdo", "Totalmente de acuerdo")
-  expect_true("Top Two Box" %in% textos(list(barra_extra = list("top2box"), top2box_labels = t2b)))
-  expect_false("Top Two Box" %in% textos(list(barra_extra = FALSE, top2box_labels = t2b)))
+  expect_true("TOP TWO BOX" %in% textos(list(barra_extra = list("top2box"), top2box_labels = t2b)))
+  expect_false("TOP TWO BOX" %in% textos(list(barra_extra = FALSE, top2box_labels = t2b)))
   # La barra extra de la lámina manda sobre las claves viejas sueltas del mismo nivel.
-  expect_false("Top Two Box" %in% textos(list(barra_extra = FALSE, mostrar_barra_extra = TRUE, barra_extra_preset = "top2box", top2box_labels = t2b)))
-  expect_false("Top Two Box" %in% textos(list(barra_extra = list("conteos"), top2box_labels = t2b)))
+  expect_false("TOP TWO BOX" %in% textos(list(barra_extra = FALSE, mostrar_barra_extra = TRUE, barra_extra_preset = "top2box", top2box_labels = t2b)))
+  expect_false("TOP TWO BOX" %in% textos(list(barra_extra = list("conteos"), top2box_labels = t2b)))
 })
 
 test_that("la multiapilada recibe la barra extra como formal y deriva su bandera top2box", {

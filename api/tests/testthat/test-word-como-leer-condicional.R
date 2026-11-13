@@ -6,7 +6,8 @@ source("setup-load-all.R")
 
 .cc_cab <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo", "Sin información")
 .cc_espec <- function(top2 = TRUE, bottom = FALSE, chicas = FALSE) {
-  p <- if (chicas) c(2, 1, 93, 3, 1) else c(10, 20, 40, 25, 5)
+  # Sin cifras chicas: con la tinta real (3279a5fb4) un 5 % ya no cabe en 0.35 in de barra; el menor es 8 %.
+  p <- if (chicas) c(2, 1, 93, 3, 1) else c(10, 20, 37, 25, 8)
   ej <- data.frame(actor = "Todos", N = 120, p1 = p[1], p2 = p[2], p3 = p[3], p4 = p[4], p5 = p[5])
   ej[paste0("p", 1:5)] <- ej[paste0("p", 1:5)] / 100
   preparar_escala(ej, "actor", "N", paste0("p", 1:5), stats::setNames(.cc_cab, paste0("p", 1:5)),

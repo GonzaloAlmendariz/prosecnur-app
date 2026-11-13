@@ -186,7 +186,8 @@ test_that("una fila Total con diez grupos y Bottom Two Box se parte, repite la T
                        colores_grupos = as.list(setNames(.std_paleta("likert"), .niv_esc)), barra_extra_preset = "top2box",
                        top2box_labels = .niv_esc[3:4], columna_bottom2box = TRUE, bottom2box_labels = .niv_esc[1:2], fila_total = TRUE)
   # K12b: la partición se avisa (lamina_avisos_lineas.R); se espera aquí para que no escape a la salida del test.
-  expect_message(o <- .lam_laminas_escala(.doc_vacio(), e, "Grupos", base = "Base", folio = 1), "salió en 3 partes", fixed = TRUE)
+  # Con el medidor de tinta real (3279a5fb4) sale en 4 partes (Total más 3, 3, 2 y 2 grupos); con la cuenta por caracteres, 3.
+  expect_message(o <- .lam_laminas_escala(.doc_vacio(), e, "Grupos", base = "Base", folio = 1), "salió en 4 partes", fixed = TRUE)
   expect_gt(o$partes, 1L)
   n0 <- length(o$doc) - o$partes
   vistos <- character(0)

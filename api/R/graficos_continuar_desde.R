@@ -31,7 +31,7 @@
 .contraste_desde_en_ranura <- function(el) {
   if (.tope_espacio_desde(el$continuar_desde) <= 1L || !.tope_espacio_en_ranura(el)) return(el)
   .pulso_aviso(.aviso_en_lamina(sprintf(paste0(
-    "En una lámina de dos o cuatro gráficos el contraste no admite `continuar_desde` (%d) y muestra las preguntas de mayor ",
+    "En una lámina de dos o cuatro gráficos el contraste no admite continuar desde una posición (%d) y muestra las preguntas de mayor ",
     "diferencia que caben; para continuar desde una posición, ponlo en una lámina de un gráfico."), .tope_espacio_desde(el$continuar_desde))))
   el$continuar_desde <- NULL
   el

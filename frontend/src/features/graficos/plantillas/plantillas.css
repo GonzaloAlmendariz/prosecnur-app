@@ -258,7 +258,7 @@
   padding: 10% 9%;
   overflow: hidden;
   background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
+  /* Sin borde propio: es el dibujo de una lámina, no un bloque con marco (P2, cajasPropias). La sombra la separa del panel. */
   border-radius: var(--pulso-radius);
   box-shadow: var(--pulso-shadow-low);
 }

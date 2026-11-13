@@ -150,7 +150,7 @@ test_that("ronda 2, ítem 1: en el render, dos fortalezas de públicos distintos
   xml <- .rr_render(list(id = "s2", tipo = "p_slide_2_graficos", payload = list(titulo = "Dos públicos", izquierda = g("docentes", 2), derecha = g("estudiantes", 1))))
   t <- paste(gsub("</?a:t>", "", regmatches(xml, gregexpr("<a:t>[^<]*</a:t>", xml))[[1]]), collapse = " ")
   # Al pie, la base de la lámina (la unión de las de cada público); la regla de cada una va al analista con su etiqueta.
-  expect_match(t, "Base: Docentes 40 y Estudiantes 40", fixed = TRUE)
+  expect_match(t, "Base: 40 docentes y 40 estudiantes", fixed = TRUE)   # forma de .base_frase() (44a8df2fb, enmienda al ADR 0134)
   expect_false(grepl("se muestran", t, ignore.case = TRUE))
   av <- paste(attr(xml, "avisos"), collapse = "\n")
   expect_match(av, "Docentes: Se muestran las 2 más altas", fixed = TRUE)

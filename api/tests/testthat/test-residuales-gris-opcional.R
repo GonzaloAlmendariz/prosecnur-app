@@ -3,9 +3,12 @@ source("setup-load-all.R")
 # Gonzalo (2026-10-23): «Prefiero no responder» en gris es adicional, sólo si el analista lo desea; por defecto no.
 # Las residuales siguen al FINAL en cualquier caso: el opcional es el color, no el lugar.
 
+# Sin la pista gris hasta el 100 %, que va en toda barra de una serie desde v7.23, ítem 8 (e87525f08, lamina_barras_pista.R):
+# la pista no es el color de ninguna opción.
 .rg_fills <- function(g) {
   b <- suppressWarnings(ggplot2::ggplot_build(g))
-  unlist(lapply(b$data, function(l) if ("fill" %in% names(l)) as.character(l$fill)))
+  f <- unlist(lapply(b$data, function(l) if ("fill" %in% names(l)) as.character(l$fill)))
+  f[toupper(f) != toupper(.lam_barras_pista_color())]
 }
 .rg_cols <- function(g) {
   b <- suppressWarnings(ggplot2::ggplot_build(g))

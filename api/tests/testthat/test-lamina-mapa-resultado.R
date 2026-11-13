@@ -157,10 +157,13 @@ test_that("catálogo, ronda 4: si cabe se mide con el alto que deja el título d
   e <- .espec_mapa_resultado(f)
   largo <- paste("Lima concentra la mayor satisfacción de los egresados y Santiago de Surco la menor, con diferencias que se mantienen",
                  "entre todos los grupos del estudio y en todas las preguntas")
+  # Con la tinta real (3279a5fb4) los 50 distritos caben en cuatro columnas bajo ese título; el que no deja sitio es uno
+  # del doble de largo (el fondo del bloque del título baja de 2.4 a 3.6 in).
+  largo <- paste(largo, largo)
   sub <- "En general, ¿qué tan satisfecho está con la atención en la Unidad y con los servicios que recibe?"
   expect_true(.lam_mapa_resultado_cabe(e))
   expect_gt(.lam_mapa_res_tarjeta_geo(e, sub, largo)$fr$y0, .lam_mapa_res_tarjeta_geo(e, sub)$fr$y0)
-  # Los 50 distritos no caben bajo un título de tres líneas con subtítulo de dos: la lámina no lo da por bueno.
+  # Los 50 distritos no caben bajo ese título con subtítulo de dos líneas: la lámina no lo da por bueno.
   expect_false(.lam_mapa_resultado_cabe(e, largo, sub))
   # El compositor pasa el título y el subtítulo de la lámina.
   sl <- p_slide_1_grafico(p_mapa_resultado_distrital("x$a", cruces = "x$d", corte = "1"), titulo = largo, subtitulo = sub)
@@ -188,6 +191,9 @@ test_that("catálogo, ronda 5: el n va en su columna, con calle, y el aviso dice
   e <- .espec_mapa_resultado(f)
   largo <- paste("Lima concentra la mayor satisfacción de los egresados y Santiago de Surco la menor, con diferencias que se mantienen",
                  "entre todos los grupos del estudio y en todas las preguntas")
+  # Con la tinta real (3279a5fb4) los 50 distritos caben en cuatro columnas bajo ese título; el que no deja sitio es uno
+  # del doble de largo (el fondo del bloque del título baja de 2.4 a 3.6 in).
+  largo <- paste(largo, largo)
   sl <- p_slide_1_grafico(p_mapa_resultado_distrital("x$a", cruces = "x$d", corte = "1"), titulo = largo,
                           subtitulo = "En general, ¿qué tan satisfecho está con la atención en la Unidad y con los servicios que recibe?")
   p <- ggplot2::ggplot(); attr(p, "pulso_espec") <- e

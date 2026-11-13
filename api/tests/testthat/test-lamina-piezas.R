@@ -42,6 +42,8 @@ test_that("los ids de las formas del grupo no chocan con los de la lámina", {
 test_that("la medición de tinta usa systemfonts, no el estimado por caracteres (decisión 9)", {
   w <- .lam_ancho_tinta("Totalmente de acuerdo", 12)
   expect_true(is.finite(w) && w > 0)
-  # Arial a 12 pt: la estimación por caracteres sobrestima; la medida real es menor.
-  expect_lt(w, .lam_ancho_txt("Totalmente de acuerdo", 12))
+  # Arial a 12 pt: la estimación por caracteres (0.52 em) sobrestima; la medida real es menor. Desde 3279a5fb4
+  # `.lam_ancho_txt` es este mismo medidor, así que se compara contra la cuenta por caracteres escrita aquí.
+  expect_lt(w, nchar("Totalmente de acuerdo") * 12 * 0.52 / 72)
+  expect_identical(.lam_ancho_txt("Totalmente de acuerdo", 12), w)
 })

@@ -29,7 +29,14 @@ test_that("la torta nativa dibuja un sector por porción, la cifra dentro o fuer
   # Frente C (CCSS Perfil 2026): el umbral ya no es «menos de 12 %» sino el de las barras apiladas (la cifra no cabe en el
   # arco de su porción con 0.12 in de aire, lamina_circular_guia.R). En un disco de 3.5 in el «7%» cabe y va dentro; las
   # porciones chicas y su línea guía se prueban en test-lamina-dona-linea-guia.R.
-  expect_identical(sz[3], as.character(.std_pt("cifra") * 100))
+  # Con la tinta real (3279a5fb4) el "7%" en negrita mide 0.28 in: con 0.12 in de aire pide 0.40 in y su arco a media
+  # altura del disco mide 0.38 in, así que sale fuera con su guía, con la letra de la cifra de fuera. 60% y 33% siguen dentro.
+  expect_length(sz, 2L)
+  expect_identical(unique(sz), as.character(.std_pt("cifra") * 100))
+  expect_true(.lam_circular_cifra_chica("7%", 2 * pi * (4.4 / 2 * 0.795) * 0.5 * 0.07))   # r_cifra = r / 2 (lamina_circulares.R)
+  fuera <- xml2::xml_find_all(xml, "//p:sp[p:nvSpPr/p:cNvPr[@name='torta:cifra_fuera']]")
+  expect_identical(xml2::xml_text(fuera), "7%")
+  expect_identical(xml2::xml_attr(xml2::xml_find_first(fuera, ".//a:rPr"), "sz"), as.character(.std_pt("cifra_fuera") * 100))
 })
 
 test_that("la dona nativa usa arcos, la cifra clave al centro y la lectura con las cifras en negrita", {

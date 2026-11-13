@@ -53,5 +53,8 @@ test_that("el alto de la premisa sale de la tinta: no cuenta más líneas que la
   skip_if_not_installed("systemfonts")
   txt <- sprintf(.TXT_EJ, 1L); w <- 3.3; s <- .std_pt("pregunta")
   expect_identical(.lam_alto_premisa_txt(txt, w), unname(.lam_alto_tinta(txt, w, s, TRUE)[[1]]))
-  expect_lte(.lam_alto_premisa_txt(txt, w), .lam_alto_txt(txt, w, s, TRUE))
+  # Contra la cuenta por caracteres (0.56 em en negrita), que sobraba: la tinta no cuenta más líneas. `.lam_alto_txt` ya
+  # mide con la tinta sin corte por palabras (3279a5fb4) y no sirve de cota.
+  lineas_car <- max(1, ceiling(nchar(txt) * s * 0.56 / 72 / (w - 0.2)))
+  expect_lte(.lam_alto_premisa_txt(txt, w), lineas_car * s * 1.2 / 72 + 0.1)
 })

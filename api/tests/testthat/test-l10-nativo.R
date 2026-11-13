@@ -7,8 +7,9 @@ source("setup-load-all.R")
 .l10n_xml <- function(doc) { out <- tempfile(fileext = ".pptx"); print(doc, target = out); xml2::read_xml(unz(out, sprintf("ppt/slides/slide%d.xml", length(doc)))) }
 
 .l10n_pesas <- function() {
-  d <- data.frame(eje = rep(c("Evito preguntar porque siento que «ya debería saber eso»",
-                              "Evito preguntar por inseguridad frente al resto de la clase"), each = 2),
+  # Con la tinta real (3279a5fb4) los rótulos de la bandeja ya caben en 2.8 in; estos, más largos, siguen sin caber.
+  d <- data.frame(eje = rep(c("Evito preguntar porque siento que \"ya debería saber eso\" a estas alturas del curso",
+                              "Evito preguntar por inseguridad frente al resto de la clase y del docente"), each = 2),
                   grupo = factor(rep(c("Mujer", "Hombre"), 2), levels = c("Mujer", "Hombre")),
                   valor = c(54.9, 43.3, 51.7, 40.5), n = rep(c(216.88, 183.12), 2), n_casos = rep(c(215, 182), 2))
   attr(graficar_dumbbell(d), "pulso_espec")
@@ -35,7 +36,8 @@ test_that("L10-1: en la ruta de respaldo el dumbbell y el lollipop no llevan caj
   }
 })
 
-.l10n_b3 <- c("Voluntariado", "Académica (grupos de lectura, seminarios temáticos, grupos de estudio, entre otros)", "Ninguna",
+# Con la tinta real (3279a5fb4) el rótulo de la bandeja cabe en una línea a 11 pt; con "círculos de investigación" ocupa dos.
+.l10n_b3 <- c("Voluntariado", "Académica (grupos de lectura, seminarios temáticos, grupos de estudio, círculos de investigación, entre otros)", "Ninguna",
               "Deportiva", "Política universitaria", "Artística (música, teatro, artes plásticas y/o danza)", "Profesional",
               "Religiosa", "Política nacional", "Entretenimiento (videojuegos, juegos de mesa, entre otros)", "Otros")
 
