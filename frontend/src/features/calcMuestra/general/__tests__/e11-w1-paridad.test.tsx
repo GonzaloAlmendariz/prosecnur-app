@@ -318,3 +318,14 @@ describe("V14/V17 · CSS de la mesa", () => {
     expect(css).toContain("color-mix(in srgb, var(--pulso-text-soft) 78%, var(--pulso-text))");
   });
 });
+
+describe("Contexto › requisitos del reporte enlazan a donde se completan", () => {
+  it("el marco lleva a Marco y la meta calculada a Meta, cada una con su rótulo", async () => {
+    const { rotuloIrA } = await import("../bandaDisenoModelo");
+    const req = requisitosReporteAcreditacion({ titulo: "", institucion: "", fuente: "", alcance: "", componentes: [comp()] });
+    const destinos = Object.fromEntries(req.filter((r) => r.seccion).map((r) => [r.clave, r.seccion]));
+    expect(destinos).toEqual({ marcos: "marco", calculo: "meta" });
+    expect(rotuloIrA("marco")).toBe("Ir a Marco");
+    expect(rotuloIrA("meta")).toBe("Ir a Meta");
+  });
+});

@@ -767,6 +767,14 @@ export function ajusteDeResultado(
 // Acreditación › Contexto: qué le falta al reporte
 // ---------------------------------------------------------------------------
 
+/** El rótulo del enlace a la sección donde se completa un requisito. */
+export function rotuloIrA(seccion: string): string {
+  const nombres: Record<string, string> = {
+    actores: "Actores", marco: "Marco", meta: "Meta", contexto: "Contexto", seleccion: "Selección", resultados: "Resultados",
+  };
+  return `Ir a ${nombres[seccion] ?? seccion}`;
+}
+
 export type RequisitoReporte = {
   clave: string;
   etiqueta: string;
@@ -808,10 +816,11 @@ export function requisitosReporteAcreditacion(args: {
     },
     {
       clave: "calculo",
-      etiqueta: "n calculado",
+      etiqueta: "Meta calculada por actor",
       listo: total > 0 && calculados === total,
       estado: total > 0 ? `${fmtInt(calculados)} de ${fmtInt(total)}` : "Sin actores",
-      seccion: "resultados",
+      // Se calcula donde se fija la meta.
+      seccion: "meta",
     },
   ];
 }

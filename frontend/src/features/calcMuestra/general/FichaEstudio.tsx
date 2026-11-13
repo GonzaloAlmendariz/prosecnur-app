@@ -59,7 +59,7 @@ export function FichaEstudio({
           <span>{acreditacion ? "Fuente de los marcos" : "Fuente del marco"}</span>
           <input
             value={workspace.fuente_marco}
-            placeholder={acreditacion ? "Dirección académica, registro de egresados…" : "Censo, padrón, listado externo..."}
+            placeholder={acreditacion ? "Dirección académica, registro de egresados" : "Censo, padrón, listado externo"}
             onChange={(e) => onWorkspace({ ...workspace, fuente_marco: e.currentTarget.value })}
           />
         </label>
@@ -69,7 +69,7 @@ export function FichaEstudio({
             <textarea
               rows={3}
               value={estudio.contexto.descripcion_libre ?? ""}
-              placeholder="Programas evaluados, modelo de acreditación, periodo"
+              placeholder="Programas evaluados, modelo de acreditación y periodo"
               onChange={(e) => onContexto("descripcion_libre", e.currentTarget.value)}
             />
           </label>
@@ -102,7 +102,6 @@ export function FichaEstudio({
           </>
         )}
       </div>
-      {acreditacion && <p className="cmg-nota">El marco y la unidad de cada actor se declaran en Actores y Selección.</p>}
     </Panel>
   );
 }

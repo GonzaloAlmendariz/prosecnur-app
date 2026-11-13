@@ -5,7 +5,7 @@ import type { CalcMuestraComponente, CalcMuestraEstudio, CalcMuestraWorkspace } 
 import { Panel } from "../../../components/Panel";
 import { useSeccion } from "../../../lib/navegacion/useDireccion";
 import { BarraTasa } from "../universidad/shared/graficos/PrimitivasGrafico";
-import { requisitosReporteAcreditacion } from "./bandaDisenoModelo";
+import { requisitosReporteAcreditacion, rotuloIrA } from "./bandaDisenoModelo";
 import "./mesa.css";
 import { fmtInt } from "../sharedCore";
 
@@ -61,7 +61,7 @@ export function ContextoReporte({
               <span className="cmg-requisito-estado">{r.estado}</span>
               {!r.listo && r.seccion ? (
                 <Link className="cmg-requisito-ir" to={nav.hrefDe("seccion", r.seccion)}>
-                  {r.seccion === "actores" ? "Ir a Actores" : "Ir a Resultados"}
+                  {rotuloIrA(r.seccion)}
                 </Link>
               ) : <span aria-hidden="true" />}
             </li>
