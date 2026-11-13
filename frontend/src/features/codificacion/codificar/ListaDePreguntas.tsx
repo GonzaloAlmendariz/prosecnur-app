@@ -81,7 +81,7 @@ export function ListaDePreguntas({ preguntas, activa, etiquetaDe, onElegir, avan
               <span className="pulso-cc-preguntas-etiqueta">
                 <TextoConEnfasis texto={etiqueta} />
               </span>
-              <span className="pulso-cc-preguntas-pct" data-completa={avance?.porcentaje === 100 ? "" : undefined}>
+              <span className="pulso-cc-preguntas-pct" data-completa={avance?.porcentaje === 100 ? "" : undefined} aria-label={avance ? `${avance.porcentaje} % de las respuestas con código` : undefined}>
                 {avance ? `${avance.porcentaje} %` : null}
               </span>
               <span className="pulso-cc-preguntas-tipo">

@@ -24,6 +24,7 @@ import { PanelDelLibro, type FormatoDelLibro } from "../libro/PanelDelLibro";
 import { SeConstruyeCon } from "../libro/SeConstruyeCon";
 import { opcionesCodigosEspeciales } from "../panes/codigosEspecialesModel";
 import { UniversoAnalisis } from "../UniversoAnalisis";
+import { estadoDeEntregable } from "./modeloDeEntrega";
 import { XlsformFinal } from "./XlsformFinal";
 import { ArchivosDeEntrega } from "./ArchivosDeEntrega";
 
@@ -36,6 +37,7 @@ export function EntregaDelLibro({ fuente }: { fuente: ReactNode }) {
   const runPdf = useReporteRun("Libro de códigos en PDF", { articulo: "el", formato: "pdf" });
   const [formato, setFormato] = useState<FormatoDelLibro>("xlsx");
   const { state } = useSession();
+  const estadoLibro = estadoDeEntregable("libro", state);
 
   // Sugerencias del estudio, no una lista fija: los códigos especiales que traen
   // los instrumentos, con su etiqueta, más los ya marcados.
@@ -129,9 +131,10 @@ export function EntregaDelLibro({ fuente }: { fuente: ReactNode }) {
               formato: "xlsx",
               nombre: "Libro de códigos en Excel",
               run: runExcel,
+              estado: estadoLibro,
               pie: <XlsformFinal result={runExcel.lastResult?.xlsform} />,
             },
-            { clave: "pdf", formato: "pdf", nombre: "Libro de códigos en PDF", run: runPdf },
+            { clave: "pdf", formato: "pdf", nombre: "Libro de códigos en PDF", run: runPdf, estado: estadoLibro },
           ]}
         />
         <CodigosEspeciales opciones={codigos} leyendo={sugeridos === null} onAlternar={alternarCodigo} />

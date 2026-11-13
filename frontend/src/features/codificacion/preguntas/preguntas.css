@@ -215,8 +215,9 @@
   outline-offset: var(--pulso-space-1);
 }
 
-/* Los lados de la unidad. El alto mínimo es el de un bloque con la pregunta en una línea (60 px, 76 la
-   unidad); una pregunta de dos líneas lo supera, por eso la lista se declara `intrinsic`. */
+/* Los lados de la unidad. El alto mínimo es el de un bloque con la pregunta en una línea (55 px, 71 la
+   unidad), sin holgura que quede como interior sin usar; una pregunta de dos líneas lo supera, por eso la
+   lista se declara `intrinsic`. */
 .pulso-preg-lados {
   display: grid;
   grid-column: 1 / 4;
@@ -224,7 +225,7 @@
   column-gap: var(--pulso-space-3);
   align-items: stretch;
   min-width: 0;
-  min-block-size: calc(var(--pulso-space-9) + var(--pulso-space-3));
+  min-block-size: calc(var(--pulso-space-9) + var(--pulso-space-2) - 1px);
 }
 
 /* Una abierta sin pareja ocupa los dos lados; al final le deja sitio al nodo punteado. */

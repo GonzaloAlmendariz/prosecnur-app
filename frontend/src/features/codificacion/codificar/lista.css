@@ -131,10 +131,16 @@
   outline-offset: var(--pulso-space-1);
 }
 
+/* Con un solo renglón la casilla ocupa solo el primero: abarcar un segundo que no existe abre una fila vacía
+   y su separación queda como interior sin usar bajo cada fila (`capacity-drift`, 5 px). */
 .pulso-cc-fila-asa {
   grid-column: 1;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   align-self: center;
+}
+
+.pulso-cc-fila.pulso-cv2-resp-row:has(> .pulso-cc-fila-sugerencia, > .pulso-cc-fila-variantes) > .pulso-cc-fila-asa {
+  grid-row: 1 / span 2;
 }
 
 /* El primer renglón mide lo mismo con o sin código (C3, `capacity-drift` en codificacion/respuestas): el

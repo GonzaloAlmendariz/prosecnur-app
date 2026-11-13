@@ -77,10 +77,20 @@ export function estadoDeEntregable(id: EntregableId, state: SessionState | null)
   return state[indicador] === true ? "generado" : "por-generar";
 }
 
+/** El rótulo de un estado; la lista y los archivos lo piden aquí para no decir cosas distintas. */
+export function rotuloDeEstado(estado: EstadoDeEntregable): string | null {
+  if (estado === "generado") return "Generado";
+  if (estado === "por-generar") return "Por generar";
+  return null;
+}
+
+/** Las cifras de la cabecera, sobre la lista visible: los tres conteos suman `total`. */
 export type CifrasDeEntrega = {
-  conEstado: number;
+  total: number;
   generados: number;
   porGenerar: number;
+  /** Entregables cuyo estado el motor no publica (base final, script, formulario, comparativo). */
+  sinEstado: number;
 };
 
 export function cifrasDeEntrega(entregables: readonly Entregable[], state: SessionState | null): CifrasDeEntrega {
@@ -91,7 +101,7 @@ export function cifrasDeEntrega(entregables: readonly Entregable[], state: Sessi
     if (estado === "generado") generados += 1;
     if (estado === "por-generar") porGenerar += 1;
   }
-  return { conEstado: generados + porGenerar, generados, porGenerar };
+  return { total: entregables.length, generados, porGenerar, sinEstado: entregables.length - generados - porGenerar };
 }
 
 /** Los entregables agrupados en el orden del prototipo, sin grupos vacíos. */

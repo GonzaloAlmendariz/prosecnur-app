@@ -146,7 +146,7 @@ describe("AdaptarPane: sin nada que aplicar", () => {
     expect(host.querySelector("[data-audit-ready]")?.getAttribute("data-audit-ready")).toBe("codificacion-adaptar");
     const vacio = host.querySelector(".pulso-estado-vacio");
     expect(vacio?.textContent).toContain("Ninguna pregunta tiene códigos por aplicar");
-    expect(vacio?.textContent).toContain("Los códigos se asignan en Codificar o se importan en Matrices.");
+    expect(vacio?.textContent).toContain("Los códigos se asignan en Codificar.");
     expect(host.querySelector(".pulso-franja-recorrido")).toBeNull();
     expect(lista()).toBeNull();
     // Sin preguntas no hay detalle, y la mesa no reserva su columna.

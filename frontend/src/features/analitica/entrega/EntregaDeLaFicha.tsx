@@ -19,11 +19,13 @@ import { PilaDeMesa } from "../../../components/procesamiento/MesaDePestana";
 import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { FileText, Play, RefreshCw, Wand2 } from "../../../vendor/lucide-react";
+import { useSession } from "../../../lib/SessionContext";
 import { type FichaTecnicaConfig, useAnaliticaStore } from "../store";
 import { SeccionDeAjustes } from "../tablas/SeccionDeAjustes";
 import { useReporteRun } from "../useReporteRun";
 import { SeConstruyeCon } from "../libro/SeConstruyeCon";
 import { ArchivosDeEntrega } from "./ArchivosDeEntrega";
+import { estadoDeEntregable } from "./modeloDeEntrega";
 import { valorDelCampo, type FichaLayout, type FichaTecnica } from "./useFichaTecnica";
 
 const FORMATOS: readonly { valor: FichaLayout; rotulo: string }[] = [
@@ -37,6 +39,7 @@ export function EntregaDeLaFicha({ lectura }: { lectura: FichaTecnica }) {
   const ficha = useAnaliticaStore((s) => s.config.ficha_tecnica);
   const setFichaTecnica = useAnaliticaStore((s) => s.setFichaTecnica);
   const run = useReporteRun("Ficha técnica", { articulo: "la", formato: "docx" });
+  const { state } = useSession();
   const { info, leyendo, error, campos, sugerenciasPendientes, releer } = lectura;
 
   const porGrupo = useMemo(() => {
@@ -158,6 +161,7 @@ export function EntregaDeLaFicha({ lectura }: { lectura: FichaTecnica }) {
             formato: "docx",
             nombre: "Ficha técnica en Word",
             run,
+            estado: estadoDeEntregable("ficha", state),
             pie: (
               <PulsoButton variant="ghost" size="sm" onClick={() => void releer()}>
                 <RefreshCw size={12} aria-hidden="true" /> Volver a leer la evidencia

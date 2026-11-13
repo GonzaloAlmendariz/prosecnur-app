@@ -231,7 +231,7 @@ export function AdaptarPane({ base, onBackToCodificar, baseActual }: Props) {
                 tamano="normal"
                 icono={<Tags size={18} />}
                 titulo="Ninguna pregunta tiene códigos por aplicar"
-                descripcion="Los códigos se asignan en Codificar o se importan en Matrices."
+                descripcion="Los códigos se asignan en Codificar."
               />
             ) : null}
 

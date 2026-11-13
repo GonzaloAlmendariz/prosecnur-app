@@ -232,11 +232,11 @@ describe("Codificar en tarjetas: teclado y deshacer", () => {
 
   test("con la opción Otros, el contador de casos va sobre los que la marcaron", async () => {
     await montar("select_multiple", SM_CON_OTROS, [{ id: "ex_1", codigo: "1", etiqueta: "Trato", respuestas: ["menos colas"], origen: "existente" }]);
-    // El avance en respuestas va en la cabecera de la pestaña; los casos, junto a la barra.
+    // La barra dibuja las respuestas con código: su cifra va debajo, con su base, junto a la de textos distintos.
     // Una definición en toda la sección: "respuestas" son casos (4 de 10) y "textos distintos" las únicas.
     expect(host.querySelector(".prueba-cifras")?.textContent).toContain("4 de 10 respuestas con código");
     const cifras = host.querySelector(".pulso-cc-cifras")?.textContent ?? "";
-    expect(cifras).not.toContain("respuestas con código");
+    expect(cifras).toContain("4 de 10 respuestas con código");
     expect(cifras).toContain("1 de 4 textos distintos con código");
     expect(cifras).toContain('12 marcaron "Otro"');
   });

@@ -159,6 +159,7 @@ export function CodificarWizard({ onBackToOrganizar, baseActual }: Props) {
     valor: formatoConteo(codificadas),
     base: formatoConteo(marcadas.length),
     rotulo: "preguntas codificadas",
+    titulo: "Preguntas marcadas para codificar con todas sus respuestas con código",
     rango: 1,
   };
 
@@ -178,7 +179,15 @@ export function CodificarWizard({ onBackToOrganizar, baseActual }: Props) {
       )}
     >
       <PanelDeMesa zona="preguntas" titulo="Preguntas" icono={<List size={15} />} conteo={marcadas.length} etiquetaCuerpo="Preguntas para codificar">
-        {data ? (
+        {data && marcadas.length === 0 ? (
+          <EstadoVacio
+            tamano="normal"
+            className="pulso-cc-vacio-lista"
+            icono={<List size={18} />}
+            titulo="Sin preguntas marcadas"
+            descripcion="Aquí aparecen las que marques en Preguntas."
+          />
+        ) : data ? (
           <ListaDePreguntas preguntas={marcadas} activa={activeParent} etiquetaDe={questionLabel} onElegir={setActiveParent} avanceDe={(q) => {
             const a = avances[q.parent]?.avance;
             return a && a.casos > 0 ? { porcentaje: porcentajeDeAvance(a), codificadas: a.casosConCodigo, total: a.casos } : null;

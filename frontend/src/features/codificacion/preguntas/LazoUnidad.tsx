@@ -24,7 +24,8 @@ export function LazoUnidad({ forma, reciente = false, onPulsar, rotulo }: LazoUn
     );
   }
   return (
-    <span className="pulso-preg-lazo" data-lazo={forma} data-reciente={reciente ? "" : undefined} aria-hidden="true">
+    // C3: el círculo es de tamaño fijo y su dibujo va centrado; el aire alrededor del ícono es suyo.
+    <span className="pulso-preg-lazo" data-lazo={forma} data-reciente={reciente ? "" : undefined} data-qa-geometry-capacity="owned" aria-hidden="true">
       <Link2 size={14} />
     </span>
   );

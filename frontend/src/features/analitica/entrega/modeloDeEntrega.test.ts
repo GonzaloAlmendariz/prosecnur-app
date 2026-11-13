@@ -7,6 +7,7 @@ import {
   entregablesDelEstudio,
   estadoDeEntregable,
   gruposDeEntrega,
+  rotuloDeEstado,
 } from "./modeloDeEntrega";
 
 const sesion = (marcas: Partial<SessionState>) => marcas as SessionState;
@@ -29,11 +30,21 @@ describe("entregables de Analítica › Entrega", () => {
     expect(estadoDeEntregable("libro", null)).toBeNull();
   });
 
-  it("cuentan generados y por generar sobre los que tienen estado", () => {
+  it("cuentan sobre la lista visible: generados, por generar y sin estado suman el total", () => {
     const todos = entregablesDelEstudio({ conComparativo: true });
     const s = sesion({ analitica_codebook_ok: true, analitica_cruces_ok: true, analitica_ficha_tecnica_ok: false, analitica_frecuencias_ok: false });
-    expect(cifrasDeEntrega(todos, s)).toEqual({ conEstado: 4, generados: 2, porGenerar: 2 });
-    expect(cifrasDeEntrega(todos, null)).toEqual({ conEstado: 0, generados: 0, porGenerar: 0 });
+    expect(cifrasDeEntrega(todos, s)).toEqual({ total: 8, generados: 2, porGenerar: 2, sinEstado: 4 });
+    expect(cifrasDeEntrega(todos, null)).toEqual({ total: 8, generados: 0, porGenerar: 0, sinEstado: 8 });
+    const sinSerie = entregablesDelEstudio({ conComparativo: false });
+    const c = cifrasDeEntrega(sinSerie, sesion({ analitica_codebook_ok: true, analitica_ficha_tecnica_ok: true, analitica_cruces_ok: true }));
+    expect(c).toEqual({ total: 7, generados: 3, porGenerar: 1, sinEstado: 3 });
+    expect(c.generados + c.porGenerar + c.sinEstado).toBe(sinSerie.length);
+  });
+
+  it("el rótulo del estado sale de una sola función, el mismo en la lista y en los archivos", () => {
+    expect(rotuloDeEstado("generado")).toBe("Generado");
+    expect(rotuloDeEstado("por-generar")).toBe("Por generar");
+    expect(rotuloDeEstado(null)).toBeNull();
   });
 
   it("la ficha dice cuántos campos faltan, con su número", () => {

@@ -1,5 +1,5 @@
 // "Archivos" de un entregable (prototipo, Analítica › Entrega): un renglón por
-// archivo. Antes de generar, su formato, su nombre y "Por generar"; al generar,
+// archivo. Antes de generar, su formato, su nombre y el estado que dice el motor, el mismo de la lista; al generar,
 // el contenedor de entregables del kit con el avance, el archivo listo y sus
 // acciones, o el fallo. La app no guarda cuándo se generó cada uno (pedido E1
 // del ADR 0144), así que no lo dice.
@@ -13,6 +13,7 @@ import { PulsoButton } from "../../../components/PulsoButton";
 import { FolderOpen } from "../../../vendor/lucide-react";
 import { ArchivosPorBase } from "../PaneKit";
 import type { ReporteRunState } from "../useReporteRun";
+import { rotuloDeEstado, type EstadoDeEntregable } from "./modeloDeEntrega";
 
 type Run = Pick<ReporteRunState, "generacion" | "perBase">;
 
@@ -21,13 +22,15 @@ export type ArchivoDeEntrega = {
   formato: string;
   nombre: string;
   run: Run;
+  /** El estado que publica el motor para este entregable; el mismo que dice la lista. */
+  estado?: EstadoDeEntregable;
   /** Lo que va bajo el archivo listo, además de los archivos por base. */
   pie?: ReactNode;
   /** El archivo se genera desde su renglón (no desde el panel del centro). */
   onGenerar?: () => void;
 };
 
-function Archivo({ formato, nombre, run, pie, onGenerar }: ArchivoDeEntrega) {
+function Archivo({ formato, nombre, run, pie, onGenerar, estado: estadoMotor = null }: ArchivoDeEntrega) {
   const { estado, cerrar } = run.generacion;
   if (estado.fase === "inactiva") {
     return (
@@ -35,7 +38,7 @@ function Archivo({ formato, nombre, run, pie, onGenerar }: ArchivoDeEntrega) {
         <TileFormato formato={formato} />
         <div>
           <b>{nombre}</b>
-          <span>Por generar</span>
+          <span>{rotuloDeEstado(estadoMotor) ?? "Por generar"}</span>
         </div>
         {onGenerar ? (
           <PulsoButton variant="secondary" size="sm" className="entrega-archivo-accion" onClick={onGenerar}>

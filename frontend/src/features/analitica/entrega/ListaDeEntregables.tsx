@@ -12,16 +12,16 @@ import { ArrowRight, Package } from "../../../vendor/lucide-react";
 import {
   NOMBRE_DEL_GRUPO,
   gruposDeEntrega,
+  rotuloDeEstado,
   type Entregable,
   type EntregableId,
   type EstadoDeEntregable,
 } from "./modeloDeEntrega";
 
 function Estado({ estado }: { estado: EstadoDeEntregable }) {
-  if (estado === null) return null;
-  return estado === "generado"
-    ? <EstadoChip label="Generado" tone="success" />
-    : <EstadoChip label="Por generar" tone="neutral" />;
+  const rotulo = rotuloDeEstado(estado);
+  if (rotulo === null) return null;
+  return <EstadoChip label={rotulo} tone={estado === "generado" ? "success" : "neutral"} />;
 }
 
 export function ListaDeEntregables({ entregables, elegido, estadoDe, causaDe, onElegir }: {

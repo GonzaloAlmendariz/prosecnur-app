@@ -40,6 +40,17 @@
   overflow: hidden;
 }
 
+/* C3: el vacío es del contenedor que lo aloja (la columna Preguntas o las dos de la derecha): ocupa todo su
+   cuerpo, centrado, sin una segunda caja con borde dentro de la del panel. */
+.pulso-codificacion-frame .pulso-cc-ancho > .pulso-estado-vacio,
+.pulso-cc-vacio-lista {
+  flex: 1 1 auto;
+  justify-content: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .pulso-cc-ancho > .pulso-cc-otra-mesa {
   flex: 1 1 auto;
   min-height: 0;
@@ -73,6 +84,11 @@
    guardado de la cabecera de Respuestas queda en su punto; las cifras y la vista quedan a la vista. */
 @container cabecera-pestana (max-width: 1099px) {
   .pulso-codificacion-cabecera .pulso-codificacion-base-actual {
+    display: none;
+  }
+
+  /* Si el nombre de la base era lo único del slot de acciones, el slot entero se recoge: sin él quedaba su divisor suelto. */
+  .pulso-codificacion-cabecera .pulso-cabecera-pestana-acciones:has(> .pulso-codificacion-base-actual:only-child) {
     display: none;
   }
 }
@@ -274,6 +290,11 @@
   font-size: var(--pulso-type-caption-size);
 }
 
+.pulso-cc-pieza {
+  display: inline-flex;
+  align-items: center;
+}
+
 .pulso-cc-pregunta-leyenda {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
@@ -291,23 +312,34 @@
 
 /* ---------- Avance y buscador ---------- */
 
+/* La barra dibuja las respuestas con código; debajo van sus dos cifras, cada una con su base. */
 .pulso-cc-avance {
   display: flex;
   flex: 0 0 auto;
-  align-items: center;
-  gap: var(--pulso-space-3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--pulso-space-2);
   padding: var(--pulso-space-3) var(--pulso-space-5);
   border-bottom: 1px solid var(--pulso-border);
 }
 
 .pulso-cc-avance > .pulso-barra-avance {
-  flex: 1 1 auto;
-  min-width: var(--pulso-space-9);
+  flex: 0 0 auto;
 }
 
 .pulso-cc-avance > .pulso-cc-cifras {
   flex: 0 1 auto;
-  justify-content: flex-end;
+  justify-content: flex-start;
+}
+
+/* Sin divisores: al no caber en un renglón la segunda cifra baja, y un divisor suelto al inicio sería ruido. */
+.pulso-cc-avance > .pulso-cc-cifras {
+  column-gap: var(--pulso-space-5);
+}
+
+.pulso-cc-avance .pulso-cc-cifra {
+  padding-inline: 0;
+  border-inline-start: 0;
 }
 
 .pulso-cc-busca {

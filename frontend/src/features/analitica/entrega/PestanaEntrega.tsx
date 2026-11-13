@@ -74,22 +74,29 @@ export function PestanaEntrega({ fuente }: { fuente: ReactNode }) {
             estado={cifras.porGenerar > 0 ? { tono: "parcial", texto: "Falta generar" } : null}
             ariaCifras="Cifras de la entrega"
             cifrasPendientes={PENDIENTE_DE_ENTREGA}
-            cifras={cifras.conEstado === 0 ? [] : [
+            cifras={[
               {
                 clave: "generados",
                 valor: formatoConteo(cifras.generados),
-                base: formatoConteo(cifras.conEstado),
-                rotulo: cifras.generados === 1 ? "archivo generado" : "archivos generados",
-                tono: cifras.generados === cifras.conEstado ? "ok" : undefined,
+                base: formatoConteo(cifras.total),
+                rotulo: cifras.generados === 1 ? "entregable generado" : "entregables generados",
+                tono: cifras.generados === cifras.total ? "ok" : undefined,
                 rango: 1,
-                titulo: "De los entregables cuyo estado publica el motor: libro de códigos, ficha técnica, frecuencias y cruces",
+                titulo: "Del total de entregables de la lista",
               },
               {
                 clave: "por-generar",
                 valor: formatoConteo(cifras.porGenerar),
-                base: formatoConteo(cifras.conEstado),
+                base: formatoConteo(cifras.total),
                 rotulo: "por generar",
                 tono: cifras.porGenerar > 0 ? "alerta" : undefined,
+              },
+              {
+                clave: "sin-estado",
+                valor: formatoConteo(cifras.sinEstado),
+                base: formatoConteo(cifras.total),
+                rotulo: "sin estado",
+                titulo: "Base final, script, formulario y comparativo: el motor no publica si están al día",
               },
             ]}
           />

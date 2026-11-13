@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { PulsoButton } from "../../../components/PulsoButton";
 import { FichaPregunta, type TipoDePregunta } from "../../../components/procesamiento/FichaPregunta";
 import { sinEnfasis } from "../../../lib/enfasisTexto";
@@ -23,6 +24,11 @@ export type CabeceraDePreguntaProps = {
   onSiguiente: () => void;
 };
 
+/** Una pieza de la frase del tipo: una ficha o la flecha. El aire alrededor de su dibujo es suyo (C3). */
+function Pieza({ children }: { children: ReactNode }) {
+  return <span className="pulso-cc-pieza" data-qa-geometry-member="" data-qa-geometry-capacity="owned">{children}</span>;
+}
+
 /**
  * La pregunta que se codifica (`pp-preg-cab` del prototipo): su columna, la pregunta y, debajo, el tipo de
  * la columna, la flecha y el tipo que sale con su razón ("Igual que su pregunta D1"). Al final, el paso a
@@ -37,15 +43,16 @@ export function CabeceraDePregunta({ codigo, tipoOrigen, resultante, etiqueta, s
         <h2 className="pulso-cc-pregunta-titulo" title={seccion ? `${plano} (${seccion})` : plano}>
           <TextoConEnfasis texto={etiqueta} />
         </h2>
-        <span className="pulso-cc-pregunta-tipo">
-          <FichaPregunta tipo={tipoOrigen} etiqueta={ROTULO_DE_TIPO[tipoOrigen]} />
-          <ArrowRight size={12} aria-label="sale como" />
+        {/* C1: las piezas de una frase (tipo de la columna, flecha, tipo resultante y su razón), no pares: cada una mide lo suyo. */}
+        <span className="pulso-cc-pregunta-tipo" data-qa-geometry-group="codificacion/pregunta-tipos" data-qa-geometry-contract="intrinsic">
+          <Pieza><FichaPregunta tipo={tipoOrigen} etiqueta={ROTULO_DE_TIPO[tipoOrigen]} /></Pieza>
+          <Pieza><ArrowRight size={12} aria-label="sale como" /></Pieza>
           {resultante.tipo ? (
-            <FichaPregunta tipo={resultante.tipo} etiqueta={resultante.rotulo} />
+            <Pieza><FichaPregunta tipo={resultante.tipo} etiqueta={resultante.rotulo} /></Pieza>
           ) : (
-            <span className="pulso-cc-por-definir">{resultante.rotulo}</span>
+            <span className="pulso-cc-por-definir" data-qa-geometry-member="">{resultante.rotulo}</span>
           )}
-          <span className="pulso-cc-pregunta-leyenda">{resultante.leyenda}</span>
+          <span className="pulso-cc-pregunta-leyenda" data-qa-geometry-member="">{resultante.leyenda}</span>
         </span>
       </div>
       <span className="pulso-cc-pregunta-paso">

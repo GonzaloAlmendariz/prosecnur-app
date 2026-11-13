@@ -23,7 +23,7 @@ import { MessageSquare, Undo2 } from "../../vendor/lucide-react";
 import { formatoConteo } from "../../lib/formatoNumero";
 import { conModificador, rotuloDeAtajo } from "../../lib/teclado";
 import { avanceDeRespuestas } from "./avanceRespuestas";
-import { avanceDeCodificacion } from "./avanceDeCodificacion";
+import { avanceDeCodificacion, cifrasDelAvance } from "./avanceDeCodificacion";
 import { useAvances } from "./avanceStore";
 import { ESTILO_DE_LA_CAPA_DEL_FANTASMA, anunciosDeRespuestas, fantasmaDentroDeLaVentana } from "./codificar/arrastreDeRespuestas";
 import { asignarVarias, crearCodigoCon, destinoDeSuelta, quitarUltimoCodigo, siguienteCodigo } from "./codificar/asignacionEnLote";
@@ -170,7 +170,7 @@ export function RespuestasCodificador({ parent, marco, cabeceraDePregunta }: Pro
   }, [parent, respuestas, avanceCod, grupos, ponerAvance]);
   const nOtros = esSM ? carga?.smOtros?.n_otros_marcados : null;
   const casos: CifraDeCasos[] = [
-    { id: "textos", valor: avanceCod.textosConCodigo, de: avanceCod.textos, singular: "texto distinto con código", plural: "textos distintos con código" },
+    ...cifrasDelAvance(avanceCod),
     ...(typeof nOtros === "number" ? [{ id: "otros", valor: nOtros, singular: 'marcó "Otro"', plural: 'marcaron "Otro"' }] : []),
   ];
   const codigos = useMemo(() => codigosDeTabla(grupos, respuestas ?? SIN_RESPUESTAS), [grupos, respuestas]);
