@@ -318,7 +318,7 @@
   background: var(--pulso-text-soft);
 }
 .cmg-insp-actores > li[data-excede="true"] .cmg-insp-barra-relleno {
-  background: var(--pulso-danger-solid);
+  background: var(--pulso-danger-fg);
 }
 .cmg-insp-actores > li[data-excede="true"] .cmg-insp-exige {
   color: var(--pulso-danger-fg);

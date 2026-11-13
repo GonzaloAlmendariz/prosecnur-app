@@ -49,7 +49,7 @@ describe("el riel de Procesamiento separa faltar de estar bloqueada", () => {
   });
 
   test("el motivo llega al title y al lector de pantalla", () => {
-    expect(layout).toMatch(/nota: it\.faltaReason \?\?/);
+    expect(layout).toMatch(/nota: it\.faltaReason\s*(?:\/\/[^\n]*\s*)*\?\?/);
     const pillbar = fs.readFileSync(path.join(aqui, "../components/SectionPillbar.tsx"), "utf8");
     expect(pillbar).toMatch(/title=\{item\.lockedReason \?\? item\.nota \?\? item\.label\}/);
     // Desde 706d0c130 el motivo entra al aria-label de la píldora junto con su marca
