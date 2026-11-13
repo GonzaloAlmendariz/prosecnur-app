@@ -630,6 +630,7 @@ export function PestanaHallazgosMesa() {
         onIr={irACaso}
         onCerrar={cerrarCaso}
         onVerEnRespuestas={() => navigate(RESPUESTAS)}
+        onCorregida={() => void h.recargar({ silenciosa: true })}
       />
     </>
   );

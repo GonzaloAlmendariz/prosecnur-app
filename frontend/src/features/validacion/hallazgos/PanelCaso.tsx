@@ -23,6 +23,7 @@ import { formatoConteo } from "../../../lib/formatoNumero";
 import type { VariableDelCaso } from "../../../api/validacionAuditoria";
 import { antetituloDelCaso, respondidasDeSeccion, rotuloDeClase, seccionesDelHallazgo, valorDeRespuesta } from "./modeloHallazgos";
 import { useCaso } from "./useCaso";
+import { CorreccionDeCatalogo } from "./CorreccionDeCatalogo";
 
 function etiquetaDeOrigen(v: VariableDelCaso): string | null {
   if (v.origen === "calculada") return "Calculada";
@@ -39,6 +40,7 @@ export function PanelCaso({
   onIr,
   onCerrar,
   onVerEnRespuestas,
+  onCorregida,
 }: {
   abierto: boolean;
   idCaso: string | null;
@@ -50,6 +52,8 @@ export function PanelCaso({
   onIr: (id: string) => void;
   onCerrar: () => void;
   onVerEnRespuestas: () => void;
+  /** Después de registrar una corrección de catálogo: vuelve a leer la cola. */
+  onCorregida?: () => void;
 }) {
   const lectura = useCaso(abierto ? idCaso : null, baseNombre);
   const [todas, setTodas] = useState(false);
@@ -141,6 +145,15 @@ export function PanelCaso({
                 </ul>
               </Panel>
             ) : null}
+            {idCaso ? caso.hallazgos.filter((h) => h.roles && Object.keys(h.roles).length > 0).map((h) => (
+              <CorreccionDeCatalogo
+                key={`correccion-${h.id_regla}-${idCaso}`}
+                hallazgo={h}
+                idCaso={idCaso}
+                baseNombre={baseNombre}
+                onGuardada={onCorregida}
+              />
+            )) : null}
             {!caso.instrumento_leido ? (
               <p className="pulso-hz-aviso" data-tono="aviso">El formulario no se pudo leer: el caso no se puede mostrar por secciones.</p>
             ) : null}
