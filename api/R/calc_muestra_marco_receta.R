@@ -20,6 +20,32 @@
 
 .CM_RECETA_REGLAS <- c("excluir_valores", "excluir_sin_correo")
 
+#' Rótulos corregidos por columna: list(<columna> = list(<valor> = <rótulo>)).
+#' Vacíos o iguales al valor no se guardan.
+.cm_receta_rotulos <- function(rotulos) {
+  if (!is.list(rotulos) || !length(rotulos) || is.null(names(rotulos))) return(list())
+  out <- lapply(rotulos, function(m) {
+    if (!is.list(m) || is.null(names(m))) return(list())
+    m <- lapply(m, function(x) trimws(calc_str(x, "")))
+    m[nzchar(unlist(m)) & names(m) != unlist(m)]
+  })
+  out[lengths(out) > 0]
+}
+
+#' Aplica los rótulos a la base: cada valor con rótulo se reemplaza por él. Va
+#' después de las reglas (que miran el valor original) y antes de armar
+#' segmentos y cruces, que salen así con el nombre corregido.
+.cm_receta_rotular <- function(df, rotulos) {
+  for (col in intersect(names(rotulos), names(df))) {
+    m <- unlist(rotulos[[col]])
+    v <- trimws(as.character(df[[col]]))
+    usa <- !is.na(v) & v %in% names(m)
+    v[usa] <- unname(m[v[usa]])
+    df[[col]] <- v
+  }
+  df
+}
+
 .cm_receta_normalizar <- function(receta) {
   r <- if (is.list(receta)) receta else list()
   cols <- if (is.list(r$columnas)) r$columnas else list()
@@ -34,6 +60,7 @@
     usos = usos,
     reglas = lapply(reglas, function(x) list(tipo = calc_str(x$tipo, ""), columna = calc_str(x$columna, ""),
                                              valores = as.list(as.character(unlist(x$valores %||% list()))))),
+    rotulos = .cm_receta_rotulos(r$rotulos),
     segmento = list(
       nombre = calc_str(seg$nombre, ""), fila = calc_str(seg$fila, ""), columna = calc_str(seg$columna, ""),
       grupos = seg$grupos %||% list()
@@ -55,7 +82,7 @@ calc_muestra_marco_aplicar_receta <- function(datos, receta) {
     stop_api(400, "E_BAD_REQUEST", sprintf("La columna \"%s\" no está en la base.", r$columnas$id))
   }
   inv <- calc_muestra_marco_invitados(datos, r$columnas$correo, r$reglas)
-  df <- datos[inv$incluidos, , drop = FALSE]
+  df <- .cm_receta_rotular(datos[inv$incluidos, , drop = FALSE], r$rotulos)
   seg <- r$segmento
   if (!nzchar(seg$fila)) return(list(datos = df, columna_segmento = "", invitados = inv, receta = r))
   if (!nrow(df)) stop_api(400, "E_BAD_REQUEST", "No queda nadie a quien invitar: las reglas dejaron la base vacía.")

@@ -20,14 +20,15 @@ Esta tanda deja el motor y sus rutas sin estado; guardar la receta del marco en 
 | 12 | Fase 6: grupos de celdas (D7): cada celda a un grupo, las que quedan sin grupo se publican, una celda en dos grupos es un error | `calc_muestra_segmento_agrupar` | Hecho |
 | 13 | Fase 6: cuotas (D8) por celda, con la segunda variable como control o con mínimo por celda sumado encima; celdas chicas y margen por fila | `calc_muestra_cuotas_cruce` | Hecho |
 | 14 | Fase 6: rutas `POST /api/calc-muestra/marco-publico/cruce` y `/conteos` | `router_calc_muestra_marco_publico.R` | Hecho |
-| 15 | Rótulos en minúscula con tilde y corregibles ("EDUCACION" a "Educación") | Pendiente de diseño: necesita las correcciones del usuario, no un diccionario fijo | Pendiente |
+| 15 | Rótulos en minúscula con tilde y corregibles ("EDUCACION" a "Educación") | Ítems 22 y 23 | En curso |
 | 16 | Secciones en el orden del trabajo: Actores, Marco, Meta, Contexto, Selección, Resultados (pedido del 2026-11-12) | `lib/modules.ts`, `general/railAcreditacion.ts`, `MesaAcreditacion.tsx` | Hecho |
 | 17 | Actores: nombre propio de cada público (antes el de la categoría: posgrado salía como "Estudiantes pregrado") y canal | `ActoresAcreditacion.tsx`, `catalogos.ts` (`actorVisual`) | Hecho |
 | 18 | Marco: recorrido de cuatro pasos sobre la base y marco guardado con su receta; sin base, la población se escribe a mano | `MarcoAcreditacion.tsx`, `marcoPublico/` | Hecho |
 | 19 | Meta: población del marco, respuesta esperada, meta, margen editable y respuesta que exige, con las propuestas A, B y C | `MetaAcreditacion.tsx` | Hecho |
 | 20 | Cuotas en pantalla: en Meta, la meta de un actor con base se reparte por sus segmentos, con una segunda variable opcional, por celda, con control o con mínimo de 10 | `RepartoAcreditacion.tsx`, ruta `/marco-publico/cuotas` | Hecho |
 | 21 | Tabla de conteos como fuente del marco en pantalla (un actor sin base por persona): N, un segmento por fila, cuotas por el cruce y sin listado de envío | `marcoPublico/FuenteConteos.tsx`, rutas `/declarar-conteos` y `/cuotas` | Hecho |
-| 22 | Rótulos corregibles en segmentos y tablas | Marco | Pendiente |
+| 22 | Rótulos corregibles: en Marco › Columnas cada valor de la columna elegida se renombra ("M" a "Hombres"); se aplica después de las reglas y nombra segmentos, cruces y cuotas | receta `rotulos`, `marcoPublico/ValoresConRotulo.tsx` | Hecho (base por persona) |
+| 23 | Rótulos corregibles en una tabla de conteos | `FuenteConteos.tsx` | Pendiente |
 
 ## Verificación
 

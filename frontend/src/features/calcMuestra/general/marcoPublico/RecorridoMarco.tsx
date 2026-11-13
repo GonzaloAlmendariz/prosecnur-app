@@ -20,6 +20,7 @@ import { useMuestraGeneralStore } from "../store";
 import { guardarEstudioPendiente } from "../useMuestraGeneral";
 import {
   columnasConUso,
+  conRotulo,
   ESTADO_MARCO_INICIAL,
   motivoNoAvanzar,
   PASOS_MARCO,
@@ -33,7 +34,8 @@ import { PasosDelMarco } from "./PasosDelMarco";
 import { PasoColumnas } from "./PasoColumnas";
 import { PasoInvitados, useEmbudo } from "./PasoInvitados";
 import { PasoSegmentos, useCruce } from "./PasoSegmentos";
-import { BarrasDeValores, cifra, conCortes, errorLegible, Pastilla } from "./piezas";
+import { cifra, conCortes, errorLegible, Pastilla } from "./piezas";
+import { ValoresConRotulo } from "./ValoresConRotulo";
 import { useRecorridoMarcoStore } from "./store";
 import { fmtInt } from "../../sharedCore";
 import "./marcoPublico.css";
@@ -149,13 +151,14 @@ export function RecorridoMarco({ componente, onCerrar, lateral, onPoblacionManua
       {paso === "columnas" && <PasoColumnas estado={estado} colElegida={colElegida} onElegir={setColElegida} onCambio={cambiar} />}
       {paso === "invitados" && <PasoInvitados estado={estado} embudo={embudo} leyendo={leyendoEmbudo} error={errorEmbudo} onCambio={cambiar} />}
       {paso === "segmentos" && <PasoSegmentos estado={estado} cruce={cruce} leyendo={leyendoCruce} error={errorCruce} onCambio={cambiar} />}
-      <ResumenMarco actor={actor} estado={estado} paso={paso} colElegida={colElegida} invitados={embudo?.invitados ?? null} />
+      <ResumenMarco actor={actor} estado={estado} paso={paso} colElegida={colElegida} invitados={embudo?.invitados ?? null} onCambio={cambiar} />
     </MesaDePestana>
   );
 }
 
-function ResumenMarco({ actor, estado, paso, colElegida, invitados }: {
+function ResumenMarco({ actor, estado, paso, colElegida, invitados, onCambio }: {
   actor: string; estado: EstadoMarco; paso: PasoMarco; colElegida: string; invitados: number | null;
+  onCambio: (e: EstadoMarco) => void;
 }) {
   const lectura = estado.lectura;
   const roles: Array<[string, string[], boolean]> = [
@@ -192,7 +195,14 @@ function ResumenMarco({ actor, estado, paso, colElegida, invitados }: {
       {paso === "columnas" && col ? (
         <section className="cmmp-sec" aria-label={`Valores de ${col.nombre}`}>
           <h4><span className="cmmp-nombre-col">{conCortes(col.nombre)}</span>{col.distribucion.length ? <span>{col.distribucion.length > 8 ? "8 más frecuentes" : `${fmtInt(col.distribucion.length)} valores`}</span> : null}</h4>
-          {col.distribucion.length ? <BarrasDeValores valores={col.distribucion} /> : <p className="cmmp-vacio-chico">Sus valores no se muestran: es un dato personal o casi todos son distintos.</p>}
+          {col.distribucion.length ? (
+            <ValoresConRotulo
+              columna={col.nombre}
+              valores={col.distribucion}
+              rotulos={estado.rotulos[col.nombre] ?? {}}
+              onRotulo={(valor, rotulo) => onCambio({ ...estado, rotulos: conRotulo(estado, col.nombre, valor, rotulo) })}
+            />
+          ) : <p className="cmmp-vacio-chico">Sus valores no se muestran: es un dato personal o casi todos son distintos.</p>}
         </section>
       ) : null}
     </PanelDeMesa>

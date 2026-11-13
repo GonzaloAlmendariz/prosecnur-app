@@ -175,3 +175,19 @@ test_that("una tabla de conteos se guarda como marco: N, un segmento por fila y 
   expect_equal(res$status, 400)
   expect_match(paste(unlist(out), collapse = " "), "tabla de conteos")
 })
+
+test_that("los rótulos corregidos se aplican después de las reglas y nombran segmentos y cruces", {
+  base <- .rc_base(); base$sexo <- rep(c("F", "M"), length.out = nrow(base))
+  r <- .rc_receta(); r$usos$sexo <- "cuota"
+  r$rotulos <- list(sexo = list(F = "Mujeres", M = "Hombres", X = ""), depto = list(Externo = "Fuera"))
+  ap <- calc_muestra_marco_aplicar_receta(base, r)
+  # La regla excluye "Externo" sobre el valor original: el rótulo no la desarma.
+  expect_identical(nrow(ap$datos), 190L)
+  expect_setequal(unique(ap$datos$sexo), c("Mujeres", "Hombres"))
+  expect_null(ap$receta$rotulos$sexo$X)
+  cu <- calc_muestra_marco_cuotas(base, r, 50, "celda", 10L, "sexo")
+  expect_setequal(cu$cruce$columnas, c("Mujeres", "Hombres"))
+  # Sin grupos, el segmento toma los rótulos de su columna.
+  sin <- r; sin$segmento <- list(nombre = "Sexo", fila = "sexo", columna = "", grupos = list())
+  expect_setequal(unique(calc_muestra_marco_aplicar_receta(base, sin)$datos$Sexo), c("Mujeres", "Hombres"))
+})

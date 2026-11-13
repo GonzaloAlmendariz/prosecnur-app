@@ -65,6 +65,8 @@ export type RecetaDelMarco = {
   usos: Record<string, UsoDeColumna>;
   reglas: ReglaDeInvitacion[];
   segmento: { nombre: string; fila: string; columna: string; grupos: GrupoDeCeldas[] };
+  /** Rótulos corregidos por columna: valor original -> rótulo. */
+  rotulos: Record<string, Record<string, string>>;
 };
 
 // ---------------------------------------------------------------------------
@@ -184,9 +186,11 @@ export async function apiMarcoPublicoInvitados(input: { fileId: string; hoja: st
 
 export async function apiMarcoPublicoCruce(input: {
   fileId: string; hoja: string; columnaCorreo: string; reglas: ReglaDeInvitacion[]; fila: string; columna: string;
+  rotulos?: Record<string, Record<string, string>>;
 }): Promise<{ invitados: number; cruce: CruceDelMarco }> {
   const r = await post("cruce", {
     file_id: input.fileId, hoja: input.hoja, columna_correo: input.columnaCorreo, reglas: input.reglas, fila: input.fila, columna: input.columna,
+    rotulos: input.rotulos ?? {},
   });
   const cruce = normalizarCruce(r.cruce);
   if (!cruce) throw sinForma("/marco-publico/cruce");

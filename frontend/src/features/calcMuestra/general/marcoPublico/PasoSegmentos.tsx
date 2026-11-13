@@ -33,12 +33,12 @@ export function useCruce(estado: EstadoMarco): { cruce: CruceDelMarco | null; le
   const reglas = useMemo(() => reglasDe(estado), [estado]);
   const correo = columnasConUso(estado, "correo")[0] ?? "";
   const { fila, columna } = estado.segmento;
-  const clave = JSON.stringify([estado.fileId, estado.hoja, correo, reglas, fila, columna]);
+  const clave = JSON.stringify([estado.fileId, estado.hoja, correo, reglas, fila, columna, estado.rotulos]);
   const [res, setRes] = useState<{ clave: string; cruce: CruceDelMarco | null; error: string | null }>({ clave: "", cruce: null, error: null });
   useEffect(() => {
     if (!estado.fileId || !fila) return undefined;
     let vivo = true;
-    apiMarcoPublicoCruce({ fileId: estado.fileId, hoja: estado.hoja, columnaCorreo: correo, reglas, fila, columna })
+    apiMarcoPublicoCruce({ fileId: estado.fileId, hoja: estado.hoja, columnaCorreo: correo, reglas, fila, columna, rotulos: estado.rotulos })
       .then((r) => { if (vivo) setRes({ clave, cruce: r.cruce, error: null }); })
       .catch((e: unknown) => { if (vivo) setRes({ clave, cruce: null, error: errorLegible(e) }); });
     return () => { vivo = false; };

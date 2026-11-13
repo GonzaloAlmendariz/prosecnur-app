@@ -51,6 +51,8 @@ export type EstadoMarco = {
   exclusiones: Record<string, string[]>;
   sinCorreo: boolean;
   segmento: { nombre: string; fila: string; columna: string; grupos: GrupoDeCeldas[] };
+  /** Rótulos corregidos por columna (valor original -> rótulo): "M" -> "Hombres", "EDUCACION" -> "Educación". */
+  rotulos: Record<string, Record<string, string>>;
 };
 
 export const ESTADO_MARCO_INICIAL: EstadoMarco = {
@@ -62,6 +64,7 @@ export const ESTADO_MARCO_INICIAL: EstadoMarco = {
   exclusiones: {},
   sinCorreo: false,
   segmento: { nombre: "", fila: "", columna: "", grupos: [] },
+  rotulos: {},
 };
 
 export function usoDe(columna: ColumnaDelMarco, usos: Readonly<Record<string, UsoDeColumna>>): UsoDeColumna {
@@ -93,6 +96,17 @@ export function reglasDe(estado: EstadoMarco): ReglaDeInvitacion[] {
     .map(([columna, valores]) => ({ tipo: "excluir_valores", columna, valores }));
   if (estado.sinCorreo && columnasConUso(estado, "correo").length) reglas.push({ tipo: "excluir_sin_correo" });
   return reglas;
+}
+
+/** Corrige el rótulo de un valor; vacío o igual al valor lo quita. */
+export function conRotulo(estado: EstadoMarco, columna: string, valor: string, rotulo: string): Record<string, Record<string, string>> {
+  const limpio = rotulo.trim();
+  const deColumna = { ...(estado.rotulos[columna] ?? {}) };
+  if (!limpio || limpio === valor) delete deColumna[valor];
+  else deColumna[valor] = limpio;
+  const rotulos = { ...estado.rotulos, [columna]: deColumna };
+  if (!Object.keys(deColumna).length) delete rotulos[columna];
+  return rotulos;
 }
 
 /** Sin cruce, cada categoría es su propio grupo; con cruce, cada fila agrupa todas sus celdas. */
@@ -174,5 +188,6 @@ export function recetaDe(estado: EstadoMarco): RecetaDelMarco {
       columna: estado.segmento.columna,
       grupos: estado.segmento.fila ? estado.segmento.grupos : [],
     },
+    rotulos: estado.rotulos ?? {},
   };
 }

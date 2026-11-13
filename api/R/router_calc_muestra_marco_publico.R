@@ -35,14 +35,15 @@
   })
 }
 
-# Marco de los invitados: aplica las reglas del body si las trae.
+# Marco de los invitados: aplica las reglas del body si las trae y, después, los rótulos corregidos.
 .cm_mp_invitados_df <- function(sid, body) {
   df <- .cm_mp_leer(.cm_mp_archivo(sid, calc_str(body$file_id, "")), calc_str(body$hoja, ""))
   reglas <- body$reglas %||% list()
-  if (!length(reglas)) return(df)
+  rotulos <- .cm_receta_rotulos(body$rotulos)
+  if (!length(reglas)) return(.cm_receta_rotular(df, rotulos))
   otros <- .cm_mp_otros(sid, body$otros %||% list())
   inv <- calc_muestra_marco_invitados(df, calc_str(body$columna_correo, ""), reglas, otros)
-  df[inv$incluidos, , drop = FALSE]
+  .cm_receta_rotular(df[inv$incluidos, , drop = FALSE], rotulos)
 }
 
 .cm_mp_otros <- function(sid, otros) {

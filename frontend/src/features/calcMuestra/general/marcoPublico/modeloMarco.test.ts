@@ -4,6 +4,7 @@ import type { ColumnaDelMarco, CruceDelMarco, LecturaDelMarco } from "../../../.
 import {
   celdasSinGrupo,
   columnasConUso,
+  conRotulo,
   conUso,
   ESTADO_MARCO_INICIAL,
   gruposIniciales,
@@ -99,5 +100,18 @@ describe("hoja de una tabla de conteos", () => {
     ];
     expect(hojaDelActor(hojas, "Estudiantes de Pregrado", "Personas en varios públicos")).toBe("Estudiantes de pregrado");
     expect(hojaDelActor(hojas, "Docentes", "Personas en varios públicos")).toBe("Personas en varios públicos");
+  });
+});
+
+describe("rótulos corregidos", () => {
+  it("un rótulo vacío o igual al valor se quita y la receta lleva los demás", () => {
+    let e = conLectura();
+    e = { ...e, rotulos: conRotulo(e, "SEXO", "M", " Hombres ") };
+    e = { ...e, rotulos: conRotulo(e, "SEXO", "F", "Mujeres") };
+    expect(e.rotulos).toEqual({ SEXO: { M: "Hombres", F: "Mujeres" } });
+    e = { ...e, rotulos: conRotulo(e, "SEXO", "M", "M") };
+    e = { ...e, rotulos: conRotulo(e, "SEXO", "F", "") };
+    expect(e.rotulos).toEqual({});
+    expect(recetaDe({ ...e, rotulos: { CAT: { CONTRATADO: "Contratado" } } }).rotulos).toEqual({ CAT: { CONTRATADO: "Contratado" } });
   });
 });

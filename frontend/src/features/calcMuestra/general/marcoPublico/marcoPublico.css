@@ -174,3 +174,12 @@
 .cmmp-conteos { border-top: 1px solid var(--pulso-border); }
 .cmmp-leido--sec { padding: var(--pulso-space-3) var(--pulso-space-4) 0; }
 .cmmp-pie { display: flex; align-items: center; justify-content: space-between; gap: var(--pulso-space-3); padding: var(--pulso-space-3) var(--pulso-space-4); border-top: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }
+
+/* Marco › Columnas › rótulos de los valores de la columna elegida. */
+.cmmp-rotulos { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cmmp-rotulos li { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 52px; gap: 10px; align-items: center; font-size: var(--pulso-type-caption-size); }
+.cmmp-rotulo-campo { display: grid; gap: 2px; min-width: 0; }
+.cmmp-rotulo-campo small { font-size: var(--pulso-type-micro-size); color: var(--pulso-text-faint); overflow-wrap: anywhere; }
+.cmmp-rotulos li > i { display: block; height: 8px; border-radius: 3px; background: var(--pulso-surface-3); overflow: hidden; }
+.cmmp-rotulos li > i > b { display: block; height: 100%; border-radius: 3px; background: var(--module-accent); }
+.cmmp-rotulos li > em { font-style: normal; font-weight: var(--pulso-weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
