@@ -178,3 +178,32 @@ test_that("D9: quien figura en dos públicos se muestra en la población sin des
   textos <- suppressWarnings(officer::pptx_summary(officer::read_pptx(r$path)))$text
   expect_true(any(grepl("se cuenta en ambos", textos, fixed = TRUE)))
 })
+
+test_that("D8: con reparto elegido, las metas por segmento salen de las cuotas y hay una lámina de cruce por propuesta", {
+  p <- .prop_dci()
+  doc <- list(`Contratado a tiempo completo` = 114L, `Contratado a tiempo parcial` = 1751L,
+              `Ordinario auxiliar` = 269L, `Ordinario asociado` = 255L, `Ordinario principal` = 276L)
+  # Cuotas inventadas con mínimo: suman 10 más que la meta de A (900) y 4 más que la de B (600).
+  arma <- function(esc, total) {
+    segs <- names(doc); n <- round(unlist(doc) / sum(unlist(doc)) * total)
+    n[1] <- n[1] + (total - sum(n))
+    data.frame(`Público` = "Docentes", Propuesta = esc, Segmento = rep(segs, each = 2), Columna = rep(c("M", "F"), 5),
+               `Población` = rep(as.integer(unlist(doc)) %/% 2L, each = 2),
+               Cuota = as.integer(c(rbind(ceiling(n / 2), n - ceiling(n / 2)))), Forma = "Por celda, mínimo 10", check.names = FALSE)
+  }
+  p$cuotas <- rbind(arma("Propuesta A", 910), arma("Propuesta B", 604))
+  t <- calc_muestra_propuesta_tablas(p)
+  expect_identical(tail(t$segmentos$Docentes[["Meta Propuesta A"]], 1), "910")
+  expect_identical(t$comparacion[["Propuesta A"]][2], "910")
+  expect_true(any(grepl("Docentes +10 en Propuesta A", t$extra_cuotas, fixed = TRUE)))
+  expect_identical(attr(t$segmentos$Docentes, "forma"), "Por celda, mínimo 10")
+  expect_length(t$cruces, 2)
+  cz <- t$cruces[[1]]
+  expect_identical(names(cz), c("Segmento", "M", "F", "Total"))
+  expect_identical(tail(cz$Total, 1), "910")
+  r <- calc_muestra_propuesta_ppt(p, tempfile(fileext = ".pptx"))
+  textos <- suppressWarnings(officer::pptx_summary(officer::read_pptx(r$path)))$text
+  # El título se escribe en mayúsculas.
+  expect_true(any(grepl("CUOTAS POR CELDA: DOCENTES, PROPUESTA B", toupper(textos), fixed = TRUE)))
+  expect_true(any(grepl("mínimo de 10 por celda", textos, fixed = TRUE)))
+})

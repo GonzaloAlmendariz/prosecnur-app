@@ -58,6 +58,24 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   meta <- function(k) vapply(calc[[k]]$componentes, function(c) as.integer(c$resultado$n_objetivo), 1L)
   metas <- lapply(seq_along(calc), meta)
 
+  # D8: un actor con reparto elegido en Meta toma sus metas de esas cuotas (una sola fuente con el Excel y la
+  # pantalla); lo que suma el mínimo por celda se dice en la nota de escenarios.
+  cuotas <- propuesta$cuotas
+  cuotas_de <- function(publico, escenario) {
+    if (!is.data.frame(cuotas) || !nrow(cuotas)) return(NULL)
+    x <- cuotas[cuotas[["Público"]] == publico & cuotas$Propuesta == escenario, , drop = FALSE]
+    if (nrow(x)) x else NULL
+  }
+  extra_cuotas <- character()
+  for (k in seq_along(calc)) for (i in seq_along(base)) {
+    x <- cuotas_de(publicos[i], nombres[k])
+    if (is.null(x)) next
+    total <- sum(x$Cuota)
+    if (total > metas[[k]][i]) extra_cuotas <- c(extra_cuotas,
+      sprintf("%s +%d en %s", publicos[i], total - metas[[k]][i], nombres[k]))
+    metas[[k]][i] <- as.integer(total)
+  }
+
   # Para cada actor queda dicho cómo se reparte su meta (pedido de Gonzalo, 2026-11-11: "claridad absoluta
   # de que para cada actor cuáles van a ser finalmente las metas por cuota o por segmento"):
   #   - segmentos que se reportan (`uso_segmentos` = "reporte", por defecto con estratos);
@@ -116,6 +134,8 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
 
   # Lo que agrega el mínimo por segmento a cada meta (decisión 2026-11-11: el mínimo se suma encima).
   agregados <- unlist(lapply(seq_along(base), function(i) {
+    # Un actor con reparto elegido no usa el mínimo por segmento del motor: lo suyo va en extra_cuotas.
+    if (any(vapply(nombres, function(e) !is.null(cuotas_de(publicos[i], e)), logical(1)))) return(NULL)
     por_esc <- vapply(seq_along(calc), function(k) as.integer(calc[[k]]$componentes[[i]]$resultado$n_agregado_minimo %||% 0L), 1L)
     if (!any(por_esc > 0L)) return(NULL)
     # Sin "+0": sólo los escenarios donde el mínimo agrega algo.
@@ -136,9 +156,22 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
                      `% de la población` = c(.cmp_fmt_pct_grafico(N_seg / sum(N_seg), length(N_seg)), "100%"),
                      check.names = FALSE)
     num <- data.frame(segmento = vapply(est, `[[`, "", "label"), N = vapply(est, function(e) as.integer(e$N), 1L))
+    etiquetas <- vapply(est, `[[`, "", "label")
+    forma <- ""
     for (k in seq_along(calc)) {
       d <- calc[[k]]$componentes[[i]]$resultado$distribucion_estratos %||% list()
       n <- vapply(d, function(x) as.integer(x$n), 1L)
+      x <- cuotas_de(publicos[i], nombres[k])
+      if (!is.null(x)) {
+        por_seg <- tapply(x$Cuota, x$Segmento, sum)
+        # Se cruza por rótulo de segmento contra los estratos declarados; si alguno no está, se avisa y se deja el
+        # reparto del motor de cálculo (nunca se descarta en silencio).
+        if (all(etiquetas %in% names(por_seg))) {
+          n <- as.integer(por_seg[etiquetas]); forma <- x$Forma[1]
+        } else {
+          warning(sprintf("Las cuotas de %s no traen todos sus segmentos; la lámina usa el reparto proporcional.", publicos[i]), call. = FALSE)
+        }
+      }
       df[[paste0("Meta ", nombres[k])]] <- .cmp_fmt_n(c(n, sum(n)))
       num[[nombres[k]]] <- n
     }
@@ -153,9 +186,28 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
       d <- calc[[k]]$componentes[[i]]$resultado$distribucion_estratos %||% list()
       vapply(Filter(function(x) isTRUE(x$n > x$n_proporcional), d), `[[`, "", "estrato")
     })))
-    attr(segmentos[[publicos[i]]], "al_minimo") <- al_minimo
+    attr(segmentos[[publicos[i]]], "al_minimo") <- if (nzchar(forma)) character() else al_minimo
     attr(segmentos[[publicos[i]]], "uso") <- usos[i]
     attr(segmentos[[publicos[i]]], "criterio") <- crit_de(i)
+    attr(segmentos[[publicos[i]]], "forma") <- forma
+  }
+
+  # Cruce con la segunda variable elegida en Meta: una tabla por público y propuesta, segmento por columna.
+  cruces <- list()
+  if (is.data.frame(cuotas) && nrow(cuotas)) for (i in seq_along(base)) for (k in seq_along(calc)) {
+    x <- cuotas_de(publicos[i], nombres[k])
+    if (is.null(x) || !any(nzchar(x$Columna))) next
+    segs_x <- unique(x$Segmento); cols_x <- unique(x$Columna)
+    m <- matrix(0L, length(segs_x), length(cols_x), dimnames = list(segs_x, cols_x))
+    m[cbind(match(x$Segmento, segs_x), match(x$Columna, cols_x))] <- x$Cuota
+    pob <- tapply(x[["Población"]], x$Segmento, sum)[segs_x]
+    ord <- order(-pob)
+    tab <- data.frame(Segmento = c(segs_x[ord], "Total"), check.names = FALSE)
+    for (j in seq_along(cols_x)) tab[[cols_x[j]]] <- .cmp_fmt_n(c(m[ord, j], sum(m[, j])))
+    tab$Total <- .cmp_fmt_n(c(rowSums(m)[ord], sum(m)))
+    attr(tab, "forma") <- x$Forma[1]
+    attr(tab, "criterio") <- crit_de(i)
+    cruces[[paste(publicos[i], nombres[k], sep = "\r")]] <- tab
   }
 
   ref <- vapply(base, function(c) as.numeric(c$parametros$tasa_respuesta %||% NA_real_), 0)
@@ -193,7 +245,8 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
                 compartidos = compartidos)
   datos$usos <- usos
   list(datos = datos, publicos = publicos, escenarios = nombres, poblacion = poblacion, comparacion = comparacion,
-       segmentos = segmentos, viabilidad = viabilidad, avisos = avisos %||% character(), agregados = agregados %||% character())
+       segmentos = segmentos, viabilidad = viabilidad, avisos = avisos %||% character(),
+       agregados = agregados %||% character(), extra_cuotas = extra_cuotas, cruces = cruces)
 }
 
 #' Procedimiento por defecto de un barrido por correo o teléfono (ADR 0143).
@@ -360,6 +413,8 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   nota_esc <- "El margen de error es referencial, por tratarse de una muestra no probabilística."
   if (length(tablas$agregados)) nota_esc <- paste0(
     sprintf("Las metas incluyen lo que agrega el mínimo de %d por segmento: %s. ", piso, paste(tablas$agregados, collapse = "; ")), nota_esc)
+  if (length(tablas$extra_cuotas)) nota_esc <- paste0(
+    sprintf("Las metas incluyen lo que agrega el mínimo de 10 por celda: %s. ", paste(tablas$extra_cuotas, collapse = "; ")), nota_esc)
   doc <- .cmp_lamina_tabla(doc, "Escenarios de muestra", tablas$comparacion, primera = 0.40, nota = nota_esc)
   orden <- c(orden, "escenarios")
   for (p in names(tablas$segmentos)) {
@@ -370,12 +425,22 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
     # Sin nota de relleno: sólo se dice lo que la tabla no muestra.
     nota <- paste(c(
       if (control) "Cuotas para controlar la composición de la muestra; no se reportan resultados por cuota.",
+      if (nzchar(attr(tab, "forma") %||% "")) sprintf("Reparto: %s.", tolower(attr(tab, "forma"))),
       if (length(attr(tab, "al_minimo"))) sprintf("Suben al mínimo de %d (o a todas sus personas): %s.", piso, paste(attr(tab, "al_minimo"), collapse = ", "))),
       collapse = " ")
     if (!nzchar(nota)) nota <- NULL
     if (nzchar(crit)) names(tab)[1] <- crit
     doc <- .cmp_lamina_tabla(doc, titulo, tab, primera = 0.40, total = TRUE, nota = nota)
     orden <- c(orden, paste0("metas_", p))
+    # Con segunda variable (D8): una lámina por propuesta con la cuota de cada celda.
+    for (clave in Filter(function(k) startsWith(k, paste0(p, "\r")), names(tablas$cruces))) {
+      cz <- tablas$cruces[[clave]]
+      esc_nombre <- sub("^.*\r", "", clave)
+      if (nzchar(crit)) names(cz)[1] <- crit
+      doc <- .cmp_lamina_tabla(doc, sprintf("Cuotas por celda: %s, %s", p, esc_nombre), cz, primera = 0.34, total = TRUE,
+                               nota = sprintf("Reparto: %s.", tolower(attr(cz, "forma"))))
+      orden <- c(orden, paste0("metas_", p, "_", esc_nombre))
+    }
   }
   nota_v <- if (length(tablas$avisos)) paste0("Segmentos que exigen más respuesta de la esperada. ", paste(tablas$avisos, collapse = ". "), ".") else NULL
   # Lámina interna: una propuesta para el cliente no la lleva salvo que se pida ("Y esto para qué? Es una
@@ -388,7 +453,8 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   # Orden final: portada, diseño, población (tabla y gráficos), escenarios, metas por público, viabilidad y
   # contraportada.
   deseado <- c("portada", "diseno", "poblacion", grep("^graf_", orden, value = TRUE), "escenarios",
-               paste0("metas_", tablas$publicos), "viabilidad", "cierre")
+               unlist(lapply(tablas$publicos, function(p) c(paste0("metas_", p), Filter(function(o) startsWith(o, paste0("metas_", p, "_")), orden)))),
+               "viabilidad", "cierre")
   deseado <- deseado[deseado %in% orden]
   for (pos in seq_along(deseado)) {
     actual <- match(deseado[pos], orden)
