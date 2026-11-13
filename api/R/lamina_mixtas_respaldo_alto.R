@@ -129,7 +129,11 @@
   for (k in which(!vapply(respaldo, is.null, TRUE))) {
     if (k > length(els) || !.composicion_recibe_alto(els[[k]])) next
     cj <- .lam_respaldo_cajon_alto(plan$geo$paneles[[k]], preguntas[[k]] %||% NULL, (publicos %||% list())[k][[1]] %||% NULL, plan$estilo)
-    p <- tryCatch(redibujar(k, cj$w, cj$h), error = function(e) NULL)
+    # El gráfico ya se dibujó (y se contó) una vez en la composición: si al redibujarlo con su cajón vuelve a caer al canvas
+    # vacío, esa señal no es un gráfico vacío más (miniaturas contaban la multilista vacía dos veces en la lámina de dos).
+    p <- tryCatch(withCallingHandlers(redibujar(k, cj$w, cj$h),
+                                      pulso_grafico_sin_datos = function(cnd) invokeRestart("pulso_silenciar_sin_datos")),
+                  error = function(e) NULL)
     if (!inherits(p, "ggplot")) next
     respaldo[[k]] <- p
     n <- .lam_nota_sig_de(p)
