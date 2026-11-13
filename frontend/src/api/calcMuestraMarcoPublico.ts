@@ -318,3 +318,50 @@ export async function apiMarcoPublicoDeclararConteos(input: {
     estudio: est && Array.isArray(est.componentes) ? (est as unknown as CalcMuestraEstudio) : null,
   };
 }
+
+/** Un público frente a los demás: cuántas de sus personas figuran también en otro (D9: se muestra, no se descuenta). */
+export type CruceDeUnPublico = {
+  id: string;
+  nombre: string;
+  invitados: number;
+  sinCorreo: number;
+  compartidos: number;
+  pares: { id: string; nombre: string; n: number }[];
+  meta: number | null;
+  tasa: number | null;
+  /** Respuesta que exige la meta con todo el marco. */
+  exige: number | null;
+  /** La que exigiría si todas las personas compartidas se invitan como el otro público. */
+  exigeSinCompartidos: number | null;
+  alcanza: boolean | null;
+  alcanzaSinCompartidos: boolean | null;
+};
+
+export type CruceEntrePublicos = { publicos: CruceDeUnPublico[]; hayCruce: boolean; sinCorreo: { id: string; nombre: string }[] };
+
+const numONulo = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const boolONulo = (v: unknown): boolean | null => (typeof v === "boolean" ? v : null);
+
+export async function apiMarcoPublicoCrucePublicos(input: {
+  metas: Record<string, number>; tasas: Record<string, number>;
+}): Promise<CruceEntrePublicos> {
+  const r = await post("cruce-publicos", { metas: input.metas, tasas: input.tasas });
+  const idNombre = (x: Record<string, unknown>) => ({ id: texto(x.id), nombre: texto(x.nombre) });
+  return {
+    hayCruce: r.hay_cruce === true,
+    sinCorreo: lista(r.sin_correo).map(rec).filter((x): x is Record<string, unknown> => x != null).map(idNombre),
+    publicos: lista(r.publicos).map(rec).filter((x): x is Record<string, unknown> => x != null).map((p) => ({
+      ...idNombre(p),
+      invitados: numero(p.invitados),
+      sinCorreo: numero(p.sin_correo),
+      compartidos: numero(p.compartidos),
+      pares: lista(p.pares).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => ({ ...idNombre(x), n: numero(x.n) })),
+      meta: numONulo(p.meta),
+      tasa: numONulo(p.tasa),
+      exige: numONulo(p.exige),
+      exigeSinCompartidos: numONulo(p.exige_sin_compartidos),
+      alcanza: boolONulo(p.alcanza),
+      alcanzaSinCompartidos: boolONulo(p.alcanza_sin_compartidos),
+    })),
+  };
+}

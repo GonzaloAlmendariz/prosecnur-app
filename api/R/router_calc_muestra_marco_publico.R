@@ -226,5 +226,36 @@ mount_calc_muestra_marco_publico <- function(pr) {
       cu$cuotas <- .cm_seg_matriz_json(cu$cuotas, out$cruce$filas)
       cu$esperadas <- .cm_seg_matriz_json(cu$esperadas, out$cruce$filas)
       list(ok = TRUE, cruce = calc_muestra_cruce_json(out$cruce), cuotas = cu, columnas_cuota = out$columnas_cuota)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/cruce-publicos
+    # Body: { metas?: {<componente_id>: n}, tasas?: {<componente_id>: proporción} }
+    # Personas que figuran en más de un público, por correo, entre los actores con
+    # base por persona y columna de correo (D9: se muestra, no se descuenta).
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/cruce-publicos",
+                     serializer = .cm_serializer_sin_redondeo(),
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
+      marcos <- .cm_general_estado(s$calc_muestra_general)$marcos
+      publicos <- list(); fuera <- list()
+      for (comp in estudio$componentes %||% list()) {
+        marco <- marcos[[comp$id %||% ""]]
+        if (is.null(marco) || is.null(marco$receta)) next
+        nombre <- calc_str(comp$actor, calc_str(comp$id, ""))
+        correos <- if (identical(calc_str(marco$receta$tipo, ""), "conteos")) NULL else
+          .cm_cruce_correos_del_actor(.cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% ""), marco$receta)
+        if (is.null(correos)) {
+          fuera[[length(fuera) + 1L]] <- list(id = comp$id, nombre = nombre)
+        } else {
+          publicos[[length(publicos) + 1L]] <- list(id = comp$id, nombre = nombre, correos = correos)
+        }
+      }
+      out <- calc_muestra_cruce_entre_publicos(publicos, body$metas %||% list(), body$tasas %||% list())
+      list(ok = TRUE, publicos = out$publicos, hay_cruce = out$hay_cruce, sin_correo = fuera)
     }))
 }
