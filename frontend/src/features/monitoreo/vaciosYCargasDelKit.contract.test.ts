@@ -44,14 +44,14 @@ const RECETA = /\b(?:mon|acr|aulas|ter|tel)(?:-[a-z0-9]+)*-(?:empty|vacio|loadin
 
 /**
  * Las que se quedan, con su motivo:
- * - la pantalla de preparación del perfil (`mon-territorial-loading`,
- *   `mon-acr-loading-card`) enseña los pasos del warm start y una silueta de la
- *   vista: es una pantalla diseñada, no una espera suelta;
+ * (La pantalla de preparación del perfil, `mon-territorial-loading` y
+ * `mon-acr-loading-card`, estuvo declarada hasta el 2026-11-12: sus "pasos"
+ * eran texto fijo y hoy la carga de una sección es `LoadingBlock` del kit.)
  * - las fichas de capa sobre el mapa (`mon-territorial-route-map-loading`)
  *   dicen qué capa falta mientras el mapa ya se ve: son el rótulo ocupado de
  *   una capa, como el de un botón.
  */
-const DECLARADAS = /^(?:mon-territorial-loading|mon-acr-loading-card|mon-territorial-route-map-loading)(?=$|[-_])/;
+const DECLARADAS = /^(?:mon-territorial-route-map-loading)(?=$|[-_])/;
 
 // Una espera con objeto («Leyendo la lista…») escrita como texto. Dentro de
 // `label=` es el rótulo de LoadingBlock y está bien; tras `? "` es el rótulo
@@ -93,8 +93,9 @@ describe("vacíos y cargas de Monitoreo", () => {
     expect(casa('<p className="aulas-tav-vacio">')).toEqual(["aulas-tav-vacio"]);
     expect(casa('<div className="mon-territorial-loading-steps">')).toEqual(["mon-territorial-loading-steps"]);
     expect(casa('<div className="mon-mod mon-mod--vacio is-empty">')).toEqual([]);
-    expect(DECLARADAS.test("mon-territorial-loading-steps")).toBe(true);
-    expect(casa('<div className="mon-acr-loading-card__copy">').filter((c) => !DECLARADAS.test(c))).toEqual([]);
+    expect(DECLARADAS.test("mon-territorial-loading-steps")).toBe(false);
+    expect(DECLARADAS.test("mon-territorial-route-map-loading")).toBe(true);
+    expect(casa('<div className="mon-acr-loading-card__copy">').filter((c) => !DECLARADAS.test(c))).toEqual(["mon-acr-loading-card__copy"]);
     expect(ESPERA_PERMITIDA.test('{pdf ? "Preparando el reporte…" : copy.button}')).toBe(true);
     expect(ESPERA_A_MANO.test("<p>Leyendo el estado de Mailchimp…</p>")).toBe(true);
     expect(ESPERA_A_MANO.test('{ocupado ? "Leyendo…" : "Leer"}')).toBe(false);

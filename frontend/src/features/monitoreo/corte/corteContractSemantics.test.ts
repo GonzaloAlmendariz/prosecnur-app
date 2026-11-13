@@ -99,9 +99,9 @@ describe("máquina de estados visual", () => {
 
 describe("honestidad de los conteos", () => {
   it("la banda territorial no llama 'registros' al conteo crudo", () => {
-    // Lo verificado es la distinción, no la palabra: pasó de «en el snapshot» a
-    // «recibidas» para hablar igual que los otros perfiles.
-    expect(TERRITORIAL).toContain("recibidas");
+    // Lo verificado es que la página no vuelva a rotular el conteo crudo como
+    // «registros». La palabra «recibidas» salió de esta página con la pantalla
+    // de carga propia (2026-11-12): la banda del módulo rotula su cifra aparte.
     expect(TERRITORIAL).not.toContain("`${fmt(nRows)} registros`");
   });
 

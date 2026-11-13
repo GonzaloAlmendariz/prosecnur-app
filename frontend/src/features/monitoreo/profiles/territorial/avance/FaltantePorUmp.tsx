@@ -1,5 +1,6 @@
-import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRightLeft, ChevronDown, ChevronRight, Info, Map as MapIcon, Target, SearchX } from "lucide-react";
+import { memo, useMemo, useState } from "react";
+import { ArrowRightLeft, ChevronLeft, ChevronRight, Info, Map as MapIcon, Target, SearchX } from "lucide-react";
+import { Sideover } from "../../../../../components/Sideover";
 import { EstadoVacio } from "../../../../../components/EstadoVacio";
 import { EstadoChip } from "../../../../../components/EstadoChip";
 import type { MonitoreoTerritorialDashboard } from "../../../../../api/client";
@@ -16,7 +17,7 @@ import {
   type FiltroDeFaltante,
   type ModeloFaltante,
 } from "./faltanteModel";
-import { DetalleDeUmp } from "./DetalleDeUmp";
+import { DetalleDeUmp, ubicacionDeUmp } from "./DetalleDeUmp";
 import { aplicadorCorto, hayAlgunSaldo, quienCubreCorto } from "./celdasDeCuotaUmp";
 import { AvancePorZona } from "./AvancePorZona";
 import { avancePorZona } from "./porZonaModelo";
@@ -35,8 +36,10 @@ import { BloqueDeMonitoreo } from "../../../core/BloqueDeMonitoreo";
  * Arriba, lo que falta en la manzana en uso de cada UMP pendiente y quién lo
  * cubre; a la derecha, lo logrado frente a la cuota por distrito. Abajo, la
  * cuota de cada UMP celda por celda, con el signo de lo subsanado, la falta y
- * quién la cubre. Cada fila se despliega con su matriz observada (paridad con
- * Validación › Cuotas: encuestadores, subsanado y falta real).
+ * quién la cubre. Cada fila abre su detalle en un panel lateral (`foco` en la
+ * dirección): la matriz observada, con paridad con Validación › Cuotas
+ * (encuestadores, subsanado y falta real). Antes se desplegaba bajo la fila y
+ * tapaba la tabla entera (2026-11-12).
  */
 function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboard | null }) {
   const modelo = useMemo(() => construirFaltante(reports), [reports]);
@@ -139,10 +142,17 @@ function FaltantePorUmpImpl({ reports }: { reports: MonitoreoTerritorialDashboar
           filas={filas}
           columnas={modelo.columnas}
           foco={foco}
-          onFoco={(ump) => escribirFoco(foco === ump ? null : ump)}
-          coordinacionDe={coordinacionDe}
+          onFoco={(ump) => escribirFoco(ump)}
         />
       </BloqueDeMonitoreo>
+
+      <PanelDeUmp
+        filas={filas}
+        todas={modelo.filas}
+        foco={foco}
+        onFoco={(ump) => escribirFoco(ump)}
+        coordinacionDe={coordinacionDe}
+      />
     </section>
   );
 }
@@ -277,40 +287,73 @@ function CeldaDeTabla({ celda }: { celda: CeldaDeCuota }) {
   );
 }
 
-function TablaDeCuotas({
+/**
+ * Detalle de una UMP en un panel lateral. Lo abre `foco` (enlazable con
+ * `&foco=<ump>`); cerrar lo borra. Anterior y siguiente recorren las UMP del
+ * filtro activo, en el orden de la tabla.
+ */
+function PanelDeUmp({
   filas,
-  columnas,
+  todas,
   foco,
   onFoco,
   coordinacionDe,
 }: {
   filas: readonly FilaDeUmp[];
+  todas: readonly FilaDeUmp[];
+  foco: string | null;
+  onFoco: (ump: string | null) => void;
+  coordinacionDe: ReadonlyMap<string, UmpPlanificada>;
+}) {
+  const fila = foco == null ? null : todas.find((item) => item.ump === foco) ?? null;
+  const indice = fila ? filas.findIndex((item) => item.ump === fila.ump) : -1;
+  const anterior = indice > 0 ? filas[indice - 1] : null;
+  const siguiente = indice >= 0 && indice < filas.length - 1 ? filas[indice + 1] : null;
+  return (
+    <Sideover
+      open={fila != null}
+      onOpenChange={(abierto) => { if (!abierto) onFoco(null); }}
+      title={fila ? `UMP ${fila.ump}` : "UMP"}
+      subtitle={fila ? ubicacionDeUmp(fila) : undefined}
+      icon={<Target size={18} />}
+      className="mon-falt-sideover"
+      footerHint={indice >= 0 ? `${fmt(indice + 1)} de ${fmt(filas.length)} en la tabla` : null}
+      footer={indice >= 0 ? (
+        <>
+          <button type="button" className="pulso-button" disabled={!anterior} onClick={() => anterior && onFoco(anterior.ump)}>
+            <ChevronLeft size={14} aria-hidden="true" />
+            <span>{anterior ? `UMP ${anterior.ump}` : "Anterior"}</span>
+          </button>
+          <button type="button" className="pulso-button" disabled={!siguiente} onClick={() => siguiente && onFoco(siguiente.ump)}>
+            <span>{siguiente ? `UMP ${siguiente.ump}` : "Siguiente"}</span>
+            <ChevronRight size={14} aria-hidden="true" />
+          </button>
+        </>
+      ) : undefined}
+    >
+      {fila ? (
+        <DetalleDeUmp
+          key={fila.ump}
+          fila={fila}
+          coordinacion={coordinacionDe.get(fila.bloque.id_manzana) ?? null}
+        />
+      ) : null}
+    </Sideover>
+  );
+}
+
+function TablaDeCuotas({
+  filas,
+  columnas,
+  foco,
+  onFoco,
+}: {
+  filas: readonly FilaDeUmp[];
   columnas: ModeloFaltante["columnas"];
   foco: string | null;
   onFoco: (ump: string) => void;
-  coordinacionDe: ReadonlyMap<string, UmpPlanificada>;
 }) {
-  const filaAbierta = useRef<HTMLTableRowElement | null>(null);
-  const abiertaPorClick = useRef<string | null>(null);
-  const hayFilaEnFoco = foco != null && filas.some((fila) => fila.ump === foco);
   const conSaldo = hayAlgunSaldo(filas);
-  // `foco` llega por la dirección (`&foco=7`): la fila se despliega y se lleva
-  // a la vista, también a 1024, donde la tabla queda bajo el pliegue (C4). Un
-  // click sobre una fila visible no desplaza. Espera dos cuadros porque el
-  // marco de la pestaña vuelve su scroll a cero en el mismo commit.
-  useEffect(() => {
-    if (!hayFilaEnFoco || foco === abiertaPorClick.current) return undefined;
-    let segundo = 0;
-    const primero = window.requestAnimationFrame(() => {
-      segundo = window.requestAnimationFrame(() => {
-        filaAbierta.current?.scrollIntoView({ block: "start", behavior: "auto" });
-      });
-    });
-    return () => {
-      window.cancelAnimationFrame(primero);
-      window.cancelAnimationFrame(segundo);
-    };
-  }, [foco, hayFilaEnFoco]);
 
   if (!filas.length) {
     return (
@@ -338,21 +381,16 @@ function TablaDeCuotas({
           {filas.map((fila) => {
             const abierta = foco === fila.ump;
             return (
-              <Fragment key={fila.ump}>
-                <tr className={`is-${fila.estado}${abierta ? " is-abierta" : ""}`} ref={abierta ? filaAbierta : undefined}>
+                <tr key={fila.ump} className={`is-${fila.estado}${abierta ? " is-abierta" : ""}`}>
                   <th scope="row" className="is-ump">
                     <button
                       type="button"
-                      aria-expanded={abierta}
-                      aria-controls={`mon-falt-detalle-${fila.ump}`}
-                      aria-label={`UMP ${fila.ump}: ${abierta ? "ocultar" : "ver"} el detalle de su cuota`}
-                      onClick={() => {
-                        abiertaPorClick.current = fila.ump;
-                        onFoco(fila.ump);
-                      }}
+                      aria-haspopup="dialog"
+                      aria-label={`UMP ${fila.ump}: ver el detalle de su cuota`}
+                      onClick={() => onFoco(fila.ump)}
                     >
-                      {abierta ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
                       {fila.ump}
+                      <ChevronRight size={14} aria-hidden="true" />
                     </button>
                   </th>
                   <td className="is-distrito">{fila.distrito}</td>
@@ -374,14 +412,6 @@ function TablaDeCuotas({
                     ) : fila.falta > 0 ? quienCubreCorto(fila.cubre).texto : "—"}
                   </td>
                 </tr>
-                {abierta ? (
-                  <tr className="mon-falt-detalle-fila" id={`mon-falt-detalle-${fila.ump}`}>
-                    <td colSpan={columnas.length + (conSaldo ? 7 : 6)}>
-                      <DetalleDeUmp fila={fila} coordinacion={coordinacionDe.get(fila.bloque.id_manzana) ?? null} />
-                    </td>
-                  </tr>
-                ) : null}
-              </Fragment>
             );
           })}
         </tbody>

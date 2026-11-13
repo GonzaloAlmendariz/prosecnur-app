@@ -16329,29 +16329,12 @@ function AcreditacionAdvanceSummaryWorkbench({
 }
 
 function AcreditacionLoadingPanel({ view, label, phoneMode = false }: { view: MonitoreoSeccion; label: string; phoneMode?: boolean }) {
-  // Decía «Actualizando cache local» con tres fichas de jerga («Cache local»,
-  // «Corte reportes», «Vista Llamadas») ocupando la pantalla entera. Un estado
-  // de carga se explica en una línea y no reserva media vista.
-  return (
-    <section className={`mon-acr-loading-card is-${view}`} aria-live="polite" aria-label={`Preparando ${label}`}>
-      <div className="mon-acr-loading-card__copy">
-        <span><Loader2 size={14} className="pulso-spin" /> Un momento</span>
-        <strong>Preparando {label.toLowerCase()}</strong>
-        <p>
-          {view === "consultas"
-            ? phoneMode
-              ? "Cruzando las entrevistas con la base de llamadas."
-              : "Cruzando respuestas con la base de cada actor."
-            : "Leyendo los datos del último corte."}
-        </p>
-      </div>
-      <div className="mon-acr-loading-card__skeleton" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-    </section>
-  );
+  // La espera de una sección es la del kit (isotipo, rótulo y barra en el tono
+  // del módulo); el rótulo dice qué se está cruzando.
+  if (view === "consultas") {
+    return <LoadingBlock label={phoneMode ? "Cruzando las entrevistas con la base de llamadas…" : "Cruzando las respuestas con la base de cada actor…"} />;
+  }
+  return <LoadingBlock label={`Cargando ${label.toLowerCase()}…`} />;
 }
 
 /**

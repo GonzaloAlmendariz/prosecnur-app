@@ -12,7 +12,8 @@ import { construirCruceConCoordinacion } from "./cruceConCoordinacionModelo";
 import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
 
 /**
- * Tarjeta de una UMP, desplegada bajo su fila de la cuota. Sigue a la tarjeta
+ * Detalle de una UMP, en el panel lateral de Faltante por UMP: el título y la
+ * ubicación los lleva la cabecera del panel y aquí queda el estado. Sigue a la tarjeta
  * de Validación › Cuotas que Gonzalo tomó de modelo (§2a-bis): cabecera con
  * distrito, zona y manzana y el estado en chip; responsable y actividad en sus
  * celdas; una sub-tarjeta por variable de cuota; y «Encuestadores» con lo
@@ -21,6 +22,15 @@ import { SiluetaDeDistrito } from "./SiluetaDeDistrito";
  */
 const ROTULO_DE_ESTADO = { pendiente: "Cuota pendiente", subsanada: "Completa con subsanación", completa: "Completa" } as const;
 const TONO_DE_ESTADO = { pendiente: "warn", subsanada: "info", completa: "success" } as const satisfies Record<string, ChromeStatusTone>;
+
+/** Distrito, zona y manzana en uso de la UMP, en una línea. */
+export function ubicacionDeUmp(fila: FilaDeUmp): string {
+  return [
+    fila.distrito,
+    fila.zona ? `zona ${fila.zona}` : "",
+    `manzana ${fila.reemplazo ? "de reemplazo" : "titular"} ${fila.manzana}`,
+  ].filter(Boolean).join(", ");
+}
 
 export function DetalleDeUmp({ fila, coordinacion = null }: {
   fila: FilaDeUmp;
@@ -35,19 +45,10 @@ export function DetalleDeUmp({ fila, coordinacion = null }: {
   const observado = Math.max(0, Math.round(Number(bloque.observed_validas ?? fila.logrado - delta) || 0));
   const celdasAjustadas = fila.celdas.filter((celda) => celda.delta !== 0).map((celda) => celda.rotulo);
   const avance = fila.meta > 0 ? Math.min(100, (fila.logrado / fila.meta) * 100) : 0;
-  const ubicacion = [
-    fila.distrito,
-    fila.zona ? `zona ${fila.zona}` : "",
-    `manzana ${fila.reemplazo ? "de reemplazo" : "titular"} ${fila.manzana}`,
-  ].filter(Boolean).join(", ");
   return (
     <article className={`mon-falt-detalle is-${fila.estado}`} aria-label={`Cuota de la UMP ${fila.ump}`}>
       <header className="mon-falt-detalle-cabecera">
-        <SiluetaDeDistrito distrito={fila.distrito} tono={fila.estado === "pendiente" ? "falta" : fila.estado === "subsanada" ? "info" : "ok"} lado={40} />
-        <span className="mon-falt-detalle-titulo">
-          <small>{ubicacion}</small>
-          <strong>UMP {fila.ump}</strong>
-        </span>
+        <SiluetaDeDistrito distrito={fila.distrito} tono={fila.estado === "pendiente" ? "falta" : fila.estado === "subsanada" ? "info" : "ok"} lado={28} />
         <EstadoChip label={ROTULO_DE_ESTADO[fila.estado]} tone={TONO_DE_ESTADO[fila.estado]} />
       </header>
 

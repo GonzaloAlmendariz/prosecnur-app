@@ -405,3 +405,4 @@ una reparación esté implementada.
 - [Checklist: Validación usada por un practicante](checklist-validacion-practicante-2026-11-12.md): prueba con la base digitada de Ser Adolescente, cobertura frente a las 552 observaciones de referencia.
 - [Destino de las pestañas de Procesamiento sin pantalla en el prototipo](destino-pestanas-procesamiento-2026-11-12.md): decisión por pestaña, ADR 0144.
 - [Propuesta: script de limpieza replicable en Quarto](propuesta-script-limpieza-qmd-2026-11-11.md): diseño previo al ADR 0145.
+- [Checklist: Monitoreo territorial, carga y Faltante por UMP](checklist-monitoreo-territorial-faltante-2026-11-12.md): carga estándar del kit, switch de reemplazos y detalle de la UMP en panel lateral.

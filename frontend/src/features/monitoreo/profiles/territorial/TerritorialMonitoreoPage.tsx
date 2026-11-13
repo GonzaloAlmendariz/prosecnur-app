@@ -1,33 +1,16 @@
 import { formatoDecimal } from "../../../../lib/formatoNumero";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
-  ArrowRight,
   BarChart3,
-  CalendarRange,
-  CheckCircle2,
-  ClipboardCheck,
-  Clock,
-  ContactRound,
   DatabaseZap,
-  Download,
-  Link2,
-  ListChecks,
-  Loader2,
-  MapPin,
   MapPinned,
   Maximize2,
   Minus,
   Plus,
-  PlugZap,
   RefreshCw,
   Route,
   Search,
   ShieldAlert,
-  SlidersHorizontal,
-  Table2,
-  Target,
-  Trash2,
 } from "lucide-react";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import {
@@ -47,6 +30,7 @@ import {
   type TerritorialResponseAuditRow,
 } from "../../../../api/client";
 import { Alert } from "../../../../components/Alert";
+import { LoadingBlock } from "../../../../components/States";
 import { PageFrame } from "../../../../components/PageFrame";
 import { MONITOREO_PESTANAS_INTERNAS_TERRITORIAL } from "../../../../lib/navegacion/catalogos/monitoreo";
 import { MonitoreoWorkbenchChrome } from "../../components";
@@ -341,198 +325,22 @@ function EmptyPanel({ icon: Icon, title, detail }: { icon: typeof Route; title: 
   );
 }
 
-function territorialLoadingLabelForView(view: MonitoreoSeccion) {
+/** Lo que se está cargando en cada sección; el rótulo de la espera lo arma `LoadingBlock`. */
+function objetoDeCargaTerritorial(view: MonitoreoSeccion) {
   switch (view) {
     case "modelo":
-      return "Cargando UMPs...";
+      return "las UMP";
     case "avance":
-      return "Cargando avance territorial...";
+      return "el avance territorial";
     case "consultas":
-      return "Cargando consultas internas...";
+      return "las consultas internas";
     case "ocurrencias":
-      return "Cargando ocurrencias de campo...";
+      return "las ocurrencias de campo";
     case "calidad":
-      return "Cargando validación territorial...";
+      return "la validación territorial";
     default:
-      return "Cargando datos territoriales...";
+      return "los datos territoriales";
   }
-}
-
-function territorialLoadingPresentation(view: MonitoreoSeccion): {
-  title: string;
-  detail: string;
-  status: string;
-  icon: typeof BarChart3;
-  steps: Array<{ label: string; detail: string; icon: typeof BarChart3 }>;
-} {
-  switch (view) {
-    case "modelo":
-      return {
-        title: "Preparando UMPs",
-        detail: "Cruzando Hojas de Ruta, UMP titulares, reemplazos y responsables para abrir el tablero operativo.",
-        status: "UMPs, responsables y manzanas",
-        icon: Route,
-        steps: [
-          { label: "Marco territorial", detail: "Titulares y reemplazos", icon: Route },
-          { label: "Responsables", detail: "Equipo y asignación", icon: ContactRound },
-          { label: "Ficha UMP", detail: "Manzanas y metas", icon: Table2 },
-        ],
-      };
-    case "calidad":
-      return {
-        title: "Preparando validación territorial",
-        detail: "Agrupando GPS, UMP, estados de duración y cuotas para lectura operativa.",
-        status: "GPS, reconciliación, tiempo y cuotas",
-        icon: ShieldAlert,
-        steps: [
-          { label: "Geolocalización", detail: "Puntos contra manzanas", icon: MapPin },
-          { label: "Reconciliación UMP", detail: "Sospechas espaciales", icon: Route },
-          { label: "Tiempo y cuotas", detail: "Outliers y sexo/edad", icon: Clock },
-        ],
-      };
-    case "consultas":
-      return {
-        title: "Preparando consultas internas",
-        detail: "Construyendo la tabla de registros, filtros operativos y accesos directos a GPS y estados de tiempo.",
-        status: "Registros por validar",
-        icon: Search,
-        steps: [
-          { label: "Registro maestro", detail: "Una fila por respuesta", icon: Table2 },
-          { label: "Filtros", detail: "Distrito, UMP y responsable", icon: SlidersHorizontal },
-          { label: "Auditoría UMP", detail: "Cruces y reconciliación", icon: ListChecks },
-        ],
-      };
-    case "avance":
-      return {
-        title: "Preparando avance territorial",
-        detail: "Calculando avance por distrito, manzana, ritmo diario y brechas contra la meta de fase.",
-        status: "Distrito, manzana y ritmo",
-        icon: BarChart3,
-        steps: [
-          { label: "KPIs de fase", detail: "Meta, válidas y brecha", icon: Target },
-          { label: "Avance por UMP", detail: "Titulares y reemplazos", icon: Route },
-          { label: "Ritmo diario", detail: "Serie de campo", icon: CalendarRange },
-        ],
-      };
-    case "ocurrencias":
-      return {
-        title: "Preparando ocurrencias de campo",
-        detail: "Leyendo estados por UMP y señales de atención para seguimiento entre supervisión y campo.",
-        status: "Estados y UMP",
-        icon: ClipboardCheck,
-        steps: [
-          { label: "Estados", detail: "Ocurrencias recibidas", icon: ClipboardCheck },
-          { label: "Resumen UMP", detail: "Pendientes y resueltos", icon: Route },
-          { label: "Sincronización", detail: "Ficha de seguimiento", icon: RefreshCw },
-        ],
-      };
-    default:
-      return {
-        title: "Preparando datos territoriales",
-        detail: "Leyendo los datos locales del proyecto para abrir esta superficie de trabajo.",
-        status: "Datos territoriales",
-        icon: Activity,
-        steps: [
-          { label: "Fuente", detail: "Proyecto local", icon: PlugZap },
-          { label: "Resumen", detail: "Indicadores", icon: BarChart3 },
-          { label: "Vista", detail: "Controles listos", icon: CheckCircle2 },
-        ],
-      };
-  }
-}
-
-function territorialLoadingPreview(view: MonitoreoSeccion) {
-  switch (view) {
-    case "modelo":
-      return [
-        { label: "Marco", value: "Titulares + R", detail: "rutas y reemplazos", tone: "route" },
-        { label: "Equipo", value: "Responsables", detail: "códigos y asignación", tone: "team" },
-        { label: "Ficha", value: "UMP / Mz", detail: "metas por manzana", tone: "sheet" },
-        { label: "Salida", value: "Tablero", detail: "se abre al terminar", tone: "ready" },
-      ];
-    case "calidad":
-      return [
-        { label: "GPS", value: "Manzana", detail: "punto contra ruta", tone: "route" },
-        { label: "Tiempo", value: "3 estados", detail: "normal/corta/muy corta", tone: "team" },
-        { label: "Cuotas", value: "Sexo/edad", detail: "brechas operativas", tone: "sheet" },
-        { label: "Casos", value: "Prioridad", detail: "señales primero", tone: "ready" },
-      ];
-    case "avance":
-      return [
-        { label: "Avance", value: "Distrito", detail: "meta y brecha", tone: "route" },
-        { label: "UMP", value: "Completas", detail: "titulares/reemplazos", tone: "team" },
-        { label: "Ritmo", value: "Diario", detail: "serie del corte", tone: "sheet" },
-        { label: "Salidas", value: "PDF/Sheets", detail: "preparación local", tone: "ready" },
-      ];
-    case "consultas":
-      return [
-        { label: "Registro", value: "Maestro", detail: "una fila por caso", tone: "route" },
-        { label: "Filtros", value: "Distrito/UMP", detail: "foco operativo", tone: "team" },
-        { label: "Tiempo", value: "3 estados", detail: "normal/corta/muy corta", tone: "sheet" },
-        { label: "Auditoría", value: "UMP", detail: "cruces y señales", tone: "ready" },
-      ];
-    default:
-      return [
-        { label: "Fuente", value: "Local", detail: "proyecto .pulso", tone: "route" },
-        { label: "Resumen", value: "KPIs", detail: "indicadores", tone: "team" },
-        { label: "Vista", value: "Controles", detail: "panel activo", tone: "sheet" },
-        { label: "Estado", value: "Listo", detail: "sin tocar Kobo", tone: "ready" },
-      ];
-  }
-}
-
-function TerritorialLoadingView({
-  view,
-}: {
-  view: MonitoreoSeccion;
-}) {
-  const meta = territorialLoadingPresentation(view);
-  const preview = territorialLoadingPreview(view);
-  const Icon = meta.icon;
-  return (
-    <section className={`mon-territorial-loading is-${view}`} role="status" aria-live="polite">
-      <div className="mon-territorial-loading-shell">
-        <div className="mon-territorial-loading-main">
-          <span className="mon-territorial-loading-icon" aria-hidden="true">
-            <Icon size={19} />
-          </span>
-          <div>
-            <span className="mon-territorial-loading-eyebrow">Preparación local</span>
-            <strong>{meta.title}</strong>
-            <p>{meta.detail}</p>
-          </div>
-          <em>
-            <Loader2 size={14} className="pulso-spin" />
-            {territorialLoadingLabelForView(view)}
-          </em>
-        </div>
-        <div className="mon-territorial-loading-steps" aria-label="Pasos de preparación">
-          {meta.steps.map((step) => {
-            const StepIcon = step.icon;
-            return (
-              <article key={step.label}>
-                <span><StepIcon size={15} /></span>
-                <div>
-                  <strong>{step.label}</strong>
-                  <small>{step.detail}</small>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-        <div className="mon-territorial-loading-preview" aria-label="Lectura previa de la superficie">
-          {preview.map((item) => (
-            <span key={`${item.label}-${item.value}`} className={`is-${item.tone}`}>
-              <em>{item.label}</em>
-              <strong>{item.value}</strong>
-              <small>{item.detail}</small>
-            </span>
-          ))}
-        </div>
-        <small className="mon-territorial-loading-foot">{meta.status}, preparación local</small>
-      </div>
-    </section>
-  );
 }
 
 function TerritorialViewError({
@@ -1893,7 +1701,7 @@ export default function TerritorialMonitoreoPage() {
           )}
 
           {activeLoading ? (
-            <TerritorialLoadingView view={seccionActiva} />
+            <LoadingBlock label={`Cargando ${objetoDeCargaTerritorial(seccionActiva)}…`} />
           ) : (
             <RotuloDePestanaProvider valor={rotulo}>
             {renderPestana(direccion, reports, {

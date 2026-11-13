@@ -5079,11 +5079,6 @@
 }
 
 /* El panel de carga reservaba media pantalla; ahora ocupa lo que dice. */
-.is-telefonico-profile .mon-acr-loading-card {
-  min-height: 0;
-  height: auto;
-  padding: 14px 16px;
-}
 
 /* La cifra que decide (casos sin dueño) pesa más que el contexto. */
 .is-telefonico-profile .mon-phone-pending-workbench-summary > span.is-lead strong {

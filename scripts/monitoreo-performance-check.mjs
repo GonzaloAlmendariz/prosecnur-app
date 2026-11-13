@@ -274,7 +274,7 @@ function filenameSlug(value) {
 const DEFAULT_LOADING_SELECTORS = [
   ".mon-shell-fallback",
   ".mon-shell-error",
-  ".mon-territorial-loading",
+  ".pulso-loading-block",
   ".mon-territorial-route-map-loading",
 ];
 
@@ -889,7 +889,7 @@ function evaluateHydrationProbe(probe) {
   const defaultLoadingSelectors = [
     ".mon-shell-fallback",
     ".mon-shell-error",
-    ".mon-territorial-loading",
+    ".pulso-loading-block",
     ".mon-territorial-route-map-loading",
   ];
   const root = probe.rootSelector ? document.querySelector(probe.rootSelector) : document.body;
@@ -992,7 +992,7 @@ function evaluateDeclaredTabHydration(tab) {
   const defaultLoadingSelectors = [
     ".mon-shell-fallback",
     ".mon-shell-error",
-    ".mon-territorial-loading",
+    ".pulso-loading-block",
     ".mon-territorial-route-map-loading",
   ];
   const root = document.querySelector(`.mon-workbench-content--${tab.view}`) || document.querySelector(".mon-workbench-content") || document.querySelector(".mon-profile-content");

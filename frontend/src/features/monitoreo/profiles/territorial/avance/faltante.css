@@ -537,59 +537,21 @@
   color: var(--pulso-danger-fg);
 }
 
-/* Tarjeta de la UMP desplegada bajo su fila (modelo: Validación › Cuotas). La
- * fila que la contiene no se tiñe; la tarjeta lleva borde lateral sólido del
- * color de su estado. */
-.mon-falt-detalle-fila > td {
-  padding: var(--pulso-space-3) var(--pulso-space-4) var(--pulso-space-4) !important;
-  background: var(--pulso-surface-2) !important;
-  white-space: normal !important;
+/* Detalle de la UMP en el panel lateral (modelo: Validación › Cuotas). El panel
+ * pone el marco y el título; aquí sólo el estado y las secciones apiladas. */
+.pulso-sideover.mon-falt-sideover {
+  width: min(720px, 92vw);
 }
 
 .mon-falt-detalle {
   display: grid;
   gap: var(--pulso-space-3);
-  padding: var(--pulso-space-4);
-  border: 1px solid var(--pulso-border);
-  border-left: 3px solid var(--pulso-success-border);
-  border-radius: 12px;
-  background: var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-low);
-}
-
-.mon-falt-detalle.is-pendiente {
-  border-left-color: var(--pulso-warn-border);
-}
-
-.mon-falt-detalle.is-subsanada {
-  border-left-color: var(--pulso-primary-border);
 }
 
 .mon-falt-detalle-cabecera {
   display: flex;
   align-items: center;
-  gap: var(--pulso-space-3);
-}
-
-.mon-falt-detalle-titulo {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 2px;
-  min-width: 0;
-}
-
-.mon-falt-detalle-titulo small {
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.mon-falt-detalle-titulo strong {
-  color: var(--pulso-text);
-  font-size: var(--pulso-type-title-size);
-  font-weight: var(--pulso-weight-bold);
+  gap: var(--pulso-space-2);
 }
 
 .mon-falt-detalle-meta {
@@ -855,27 +817,6 @@
   z-index: 2;
 }
 
-.mon-falt-detalle-fila > td {
-  width: 100%;
-}
-
-.mon-falt-detalle {
-  position: sticky;
-  left: var(--pulso-space-4);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Si la tabla desplaza en horizontal, la tarjeta mide lo visible del marco
- * (no el ancho total de la tabla) y queda fija a la izquierda. */
-.mon-falt-tabla-marco {
-  container-type: inline-size;
-}
-
-.mon-falt-detalle {
-  max-width: calc(100cqi - 2 * var(--pulso-space-4));
-}
-
 @media (max-width: 1180px) {
   .mon-falt-tabla tbody td.is-distrito {
     min-width: 0;
@@ -924,11 +865,6 @@
   .mon-falt-tabla td.is-cubre .mon-falt-chip {
     border-radius: 10px;
   }
-}
-
-/* La fila que trae `foco` llega a la vista bajo la cabecera fija de la tabla. */
-.mon-falt-tabla tbody tr.is-abierta {
-  scroll-margin-top: 44px;
 }
 
 /* «Logrado frente a la cuota» a 1280: la columna «60 o más» quedaba cortada

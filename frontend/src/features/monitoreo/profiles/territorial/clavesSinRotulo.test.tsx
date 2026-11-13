@@ -220,9 +220,14 @@ describe("Territorial: ninguna clave llega a la pantalla sin rótulo", () => {
     expect(clavesCrudas(html)).toEqual([]);
   });
 
-  it("el detalle abierto es el de la UMP enfocada", () => {
+  it("la UMP enfocada se marca en la tabla y su detalle ya no se despliega bajo la fila", () => {
+    // El detalle vive en un panel lateral (portal de Radix, que el render
+    // estático no pinta): aquí se comprueba la fila enfocada y que la tabla
+    // no lleve filas de detalle.
     const html = pintar(<FaltantePorUmp reports={CORTE_DE_CUOTAS} />, `${RUTA}&pestana=faltante&foco=143`);
-    expect(html).toContain('id="mon-falt-detalle-143"');
+    expect(html).toMatch(/<tr class="[^"]*is-abierta[^"]*"><th scope="row" class="is-ump"><button[^>]*aria-label="UMP 143: ver el detalle de su cuota"/);
+    expect(html).not.toContain("mon-falt-detalle-fila");
+    expect(html).not.toContain('id="mon-falt-detalle-143"');
   });
 
   it("Avance › UMP abre la ficha de la UMP enfocada y declara su readiness de detalle", () => {
