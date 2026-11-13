@@ -244,5 +244,49 @@ mount_calc_muestra_marco_publico <- function(pr) {
       marcos <- .cm_general_estado(s$calc_muestra_general)$marcos
       out <- .cm_cruce_publicos_de_sesion(sid, estudio, marcos, body$metas %||% list(), body$tasas %||% list())
       list(ok = TRUE, publicos = out$publicos, hay_cruce = out$hay_cruce, sin_correo = out$sin_correo)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/listado
+    # Body: { decisiones?: [{ a, b, va }] }
+    # Listado de envío (D9): con `decisiones` las guarda en el estudio; devuelve, por público, cuántos quedan y
+    # cuántos se ceden, y los pares con personas en común con su decisión.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/listado",
+                     serializer = .cm_serializer_sin_redondeo(),
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
+      estado <- .cm_general_estado(s$calc_muestra_general)
+      if (!is.null(body$decisiones)) {
+        estado$envio$decisiones <- calc_muestra_listado_decisiones(body$decisiones)
+        session_set(sid, "calc_muestra_general", estado)
+      }
+      leidos <- .cm_publicos_con_correo(sid, estudio, estado$marcos)
+      out <- calc_muestra_listado_asignar(leidos$publicos, estado$envio$decisiones %||% list())
+      out$destino <- NULL
+      c(list(ok = TRUE, sin_correo = leidos$fuera), out)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/listado/descargar
+    # Excel del listado de envío con las decisiones guardadas; 400 si falta decidir algún par.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/listado/descargar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      s <- session_get(sid)
+      estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
+      estado <- .cm_general_estado(s$calc_muestra_general)
+      leidos <- .cm_publicos_con_correo(sid, estudio, estado$marcos)
+      asignacion <- calc_muestra_listado_asignar(leidos$publicos, estado$envio$decisiones %||% list())
+      out_path <- tempfile("listado_envio_", fileext = ".xlsx")
+      calc_muestra_listado_xlsx(leidos$publicos, asignacion, out_path)
+      out_name <- .export_filename(sid, "listado_de_envio", "xlsx")
+      meta <- .register_output_file(sid, "calc_muestra_listado_envio", out_path, original_name = out_name)
+      list(ok = TRUE, export = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name,
+                                                         size = meta$size), meta))
     }))
 }

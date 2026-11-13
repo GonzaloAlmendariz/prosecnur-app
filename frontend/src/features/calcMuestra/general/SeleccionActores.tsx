@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { CircleSlash2, Users } from "lucide-react";
 
 import type { CalcMuestraComponente } from "../../../api/calcMuestra";
@@ -11,6 +12,7 @@ import { vigenciaSorteo } from "./bandaDisenoModelo";
 import { pestanaPorDefectoActor } from "./modeloPestanas";
 import { PestanasMesa } from "./PestanasMesa";
 import { SeleccionGeneral } from "./SeleccionGeneral";
+import { ListadoEnvio } from "./ListadoEnvio";
 import { ID_TRABAJO_DEL_ACTOR, SelectorActor, type ActorDelSelector } from "./SelectorActor";
 import { useMuestraGeneralStore } from "./store";
 import { useActorEnFoco } from "./useActorEnFoco";
@@ -95,6 +97,7 @@ export function SeleccionActores({ componentes }: { componentes: readonly CalcMu
       onElegir={elegir}
       pestana={pestanas.activa}
       onPestana={pestanas.elegir}
+      antes={<ListadoEnvio />}
     />
   );
 }
@@ -107,6 +110,7 @@ export function SeleccionActoresVista({
   onElegir,
   pestana = "seleccion-sorteo",
   onPestana = () => {},
+  antes = null,
 }: {
   actores: readonly ActorDelSelector[];
   activo: CalcMuestraComponente | null;
@@ -114,6 +118,8 @@ export function SeleccionActoresVista({
   onElegir: (id: string) => void;
   pestana?: string;
   onPestana?: (id: string) => void;
+  /** Lo que va sobre el trabajo por actor: en un barrido, el listado de envío de todos los públicos. */
+  antes?: ReactNode;
 }) {
   const irASeccion = useIrASeccionGeneral();
   const actor = activo ? actores.find((a) => a.id === activo.id) ?? null : null;
@@ -129,6 +135,7 @@ export function SeleccionActoresVista({
       data-qa-geometry-group="calc-muestra/acreditacion-seleccion"
       data-qa-geometry-contract="intrinsic"
     >
+      {antes}
       {!activo || !actor ? (
         <Panel
           aria-labelledby="cmg-actores-titulo"

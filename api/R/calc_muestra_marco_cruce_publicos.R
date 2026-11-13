@@ -73,24 +73,35 @@ calc_muestra_cruce_entre_publicos <- function(publicos, metas = list(), tasas = 
   as.character(ap$datos[[col]])
 }
 
-#' Cruce entre los públicos de la sesión: lee el marco guardado de cada actor con base por persona y correo.
-#' @return list(publicos, hay_cruce, sin_correo = [{id, nombre}]) como `calc_muestra_cruce_entre_publicos`.
-.cm_cruce_publicos_de_sesion <- function(sid, estudio, marcos, metas = list(), tasas = list()) {
+#' Los públicos de la sesión con base por persona y columna de correo, con sus invitados ya filtrados por la receta.
+#' @return list(publicos = [{id, nombre, datos, col_id, col_correo, col_segmento, correos}], fuera = [{id, nombre}]).
+.cm_publicos_con_correo <- function(sid, estudio, marcos) {
   publicos <- list(); fuera <- list()
   for (comp in estudio$componentes %||% list()) {
     marco <- marcos[[comp$id %||% ""]]
     if (is.null(marco) || is.null(marco$receta)) next
     nombre <- calc_str(comp$actor, calc_str(comp$id, ""))
-    correos <- if (identical(calc_str(marco$receta$tipo, ""), "conteos")) NULL else
-      .cm_cruce_correos_del_actor(.cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% ""), marco$receta)
-    if (is.null(correos)) {
+    receta <- marco$receta
+    col <- calc_str((receta$columnas %||% list())$correo, "")
+    ap <- if (identical(calc_str(receta$tipo, ""), "conteos") || !nzchar(col)) NULL else
+      calc_muestra_marco_aplicar_receta(.cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% ""), receta)
+    if (is.null(ap) || !col %in% names(ap$datos)) {
       fuera[[length(fuera) + 1L]] <- list(id = comp$id, nombre = nombre)
-    } else {
-      publicos[[length(publicos) + 1L]] <- list(id = comp$id, nombre = nombre, correos = correos)
+      next
     }
+    publicos[[length(publicos) + 1L]] <- list(
+      id = comp$id, nombre = nombre, datos = ap$datos, col_id = calc_str(ap$receta$columnas$id, ""),
+      col_correo = col, col_segmento = calc_str(ap$columna_segmento, ""), correos = as.character(ap$datos[[col]]))
   }
-  out <- calc_muestra_cruce_entre_publicos(publicos, metas, tasas)
-  out$sin_correo <- fuera
+  list(publicos = publicos, fuera = fuera)
+}
+
+#' Cruce entre los públicos de la sesión: lee el marco guardado de cada actor con base por persona y correo.
+#' @return list(publicos, hay_cruce, sin_correo = [{id, nombre}]) como `calc_muestra_cruce_entre_publicos`.
+.cm_cruce_publicos_de_sesion <- function(sid, estudio, marcos, metas = list(), tasas = list()) {
+  leidos <- .cm_publicos_con_correo(sid, estudio, marcos)
+  out <- calc_muestra_cruce_entre_publicos(leidos$publicos, metas, tasas)
+  out$sin_correo <- leidos$fuera
   out
 }
 

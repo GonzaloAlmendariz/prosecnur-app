@@ -15,7 +15,8 @@
 
 .cm_general_estado <- function(x) {
   x <- if (is.list(x)) x else list()
-  list(marcos = x$marcos %||% list(), corridas = x$corridas %||% list())
+  # envio = {decisiones = [{a, b, va}]}: a qué público van las personas compartidas (D9, listado de envío).
+  list(marcos = x$marcos %||% list(), corridas = x$corridas %||% list(), envio = x$envio %||% list())
 }
 
 .cm_general_buscar_componente <- function(estudio, componente_id) {

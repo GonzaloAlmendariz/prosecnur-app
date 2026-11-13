@@ -54,3 +54,23 @@ test_that("una decisión que no elige a uno de los dos públicos del par es un 4
                   error = function(e) e)
   expect_s3_class(res, "api_error")
 })
+
+test_that("las decisiones se limpian y el Excel lleva una hoja por público solo con su destino", {
+  d <- calc_muestra_listado_decisiones(list(list(a = "a", b = "b", va = "a"), list(a = "b", b = "a", va = "b"),
+                                            list(a = "a", b = "a", va = "a"), list(a = "a", b = "c", va = "x")))
+  expect_length(d, 1)
+  expect_identical(d[[1]]$va, "b")
+  pubs <- list(
+    list(id = "a", nombre = "Docentes", datos = data.frame(ID = c("1", "2"), MAIL = c("x@p.pe", "y@p.pe")),
+         col_id = "ID", col_correo = "MAIL", col_segmento = "", correos = c("x@p.pe", "y@p.pe")),
+    list(id = "b", nombre = "Administrativos", datos = data.frame(ID = c("9"), MAIL = c("y@p.pe")),
+         col_id = "ID", col_correo = "MAIL", col_segmento = "", correos = c("y@p.pe")))
+  pendiente <- calc_muestra_listado_asignar(pubs)
+  expect_error(calc_muestra_listado_xlsx(pubs, pendiente, tempfile(fileext = ".xlsx")), class = "api_error")
+  asig <- calc_muestra_listado_asignar(pubs, d)
+  f <- tempfile(fileext = ".xlsx")
+  calc_muestra_listado_xlsx(pubs, asig, f)
+  expect_identical(openxlsx::getSheetNames(f), c("Docentes", "Administrativos"))
+  expect_identical(openxlsx::read.xlsx(f, "Docentes")$MAIL, "x@p.pe")
+  expect_identical(openxlsx::read.xlsx(f, "Administrativos")$MAIL, "y@p.pe")
+})

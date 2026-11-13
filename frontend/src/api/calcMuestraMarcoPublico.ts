@@ -11,7 +11,7 @@
  * llegan como `null`. Un payload sin forma reconocible es un error, no un objeto a medias.
  */
 import { ApiError, apiFetch, handle, headers } from "./core";
-import type { CalcMuestraComponente, CalcMuestraEstudio } from "./calcMuestra";
+import { normalizeCalcMuestraArchivoExportado, type CalcMuestraArchivoExportado, type CalcMuestraComponente, type CalcMuestraEstudio } from "./calcMuestra";
 
 export type UsoDeColumna = "id" | "correo" | "cuota" | "regla" | "personal" | "no";
 export type TipoDeColumna = "codigo" | "correo" | "telefono" | "texto" | "categoria" | "numero" | "vacia";
@@ -364,4 +364,40 @@ export async function apiMarcoPublicoCrucePublicos(input: {
       alcanzaSinCompartidos: boolONulo(p.alcanza_sin_compartidos),
     })),
   };
+}
+
+/** Decisión de un par de públicos: a cuál van las personas que están en ambos (D9). */
+export type DecisionDePar = { a: string; b: string; va: string };
+
+export type ListadoDeEnvio = {
+  publicos: { id: string; nombre: string; invitados: number; quedan: number; cedidas: number; porDecidir: number; sinAsignar: number }[];
+  pares: { a: string; b: string; nombreA: string; nombreB: string; n: number; va: string }[];
+  pendientes: number;
+  sinAsignar: number;
+  listo: boolean;
+  sinCorreo: { id: string; nombre: string }[];
+};
+
+/** Resumen del listado de envío; con `decisiones` las guarda en el estudio antes de calcularlo. */
+export async function apiMarcoPublicoListado(input: { decisiones?: DecisionDePar[] } = {}): Promise<ListadoDeEnvio> {
+  const r = await post("listado", input.decisiones ? { decisiones: input.decisiones } : {});
+  const filas = (v: unknown) => lista(v).map(rec).filter((x): x is Record<string, unknown> => x != null);
+  return {
+    publicos: filas(r.publicos).map((p) => ({
+      id: texto(p.id), nombre: texto(p.nombre), invitados: numero(p.invitados), quedan: numero(p.quedan),
+      cedidas: numero(p.cedidas), porDecidir: numero(p.por_decidir), sinAsignar: numero(p.sin_asignar),
+    })),
+    pares: filas(r.pares).map((p) => ({
+      a: texto(p.a), b: texto(p.b), nombreA: texto(p.nombre_a), nombreB: texto(p.nombre_b), n: numero(p.n), va: texto(p.va),
+    })),
+    pendientes: numero(r.pendientes),
+    sinAsignar: numero(r.sin_asignar),
+    listo: r.listo === true,
+    sinCorreo: filas(r.sin_correo).map((x) => ({ id: texto(x.id), nombre: texto(x.nombre) })),
+  };
+}
+
+/** Excel del listado de envío con las decisiones guardadas. */
+export async function apiMarcoPublicoListadoDescargar(): Promise<CalcMuestraArchivoExportado> {
+  return normalizeCalcMuestraArchivoExportado(await post("listado/descargar", {}), "el listado de envío");
 }

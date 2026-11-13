@@ -88,3 +88,43 @@ calc_muestra_listado_asignar <- function(publicos, decisiones = list()) {
   list(publicos = resumen, pares = pares, pendientes = pendientes, sin_asignar = length(sin_dueno),
        listo = pendientes == 0L && length(sin_dueno) == 0L, destino = destino)
 }
+
+#' Decisiones por par limpias: list(list(a, b, va)) sin vacías ni repetidas (gana la última de cada par).
+calc_muestra_listado_decisiones <- function(decisiones) {
+  out <- list()
+  for (d in if (is.list(decisiones)) decisiones else list()) {
+    a <- calc_str(d$a, ""); b <- calc_str(d$b, ""); va <- calc_str(d$va, "")
+    if (!nzchar(a) || !nzchar(b) || identical(a, b) || !va %in% c(a, b)) next
+    out[[.cm_par_clave(a, b)]] <- list(a = a, b = b, va = va)
+  }
+  unname(out)
+}
+
+#' Excel del listado de envío: una hoja por público con las personas a las que se les envía como ese público.
+#' @param publicos los de `.cm_publicos_con_correo()$publicos` (con datos y columnas).
+#' @param asignacion el resultado de `calc_muestra_listado_asignar()` sobre esos públicos.
+calc_muestra_listado_xlsx <- function(publicos, asignacion, path) {
+  if (!isTRUE(asignacion$listo)) {
+    stop_api(400, "E_BAD_REQUEST", "Decide a qué público van las personas compartidas antes de descargar el listado.")
+  }
+  wb <- openxlsx::createWorkbook()
+  usadas <- character()
+  for (p in publicos) {
+    d <- p$datos[asignacion$destino[[p$id]], , drop = FALSE]
+    cols <- unique(c(p$col_id, p$col_correo, if (nzchar(p$col_segmento)) p$col_segmento))
+    cols <- cols[nzchar(cols) & cols %in% names(d)]
+    d <- d[, cols, drop = FALSE]
+    # Nombre de hoja válido para Excel: sin caracteres reservados, 31 como máximo y sin repetir.
+    hoja <- substr(gsub("[][*?/\\\\:]", " ", p$nombre), 1, 31)
+    if (!nzchar(trimws(hoja))) hoja <- "Público"
+    base <- hoja; k <- 1L
+    while (tolower(hoja) %in% tolower(usadas)) { k <- k + 1L; hoja <- substr(paste0(substr(base, 1, 27), " (", k, ")"), 1, 31) }
+    usadas <- c(usadas, hoja)
+    openxlsx::addWorksheet(wb, hoja)
+    openxlsx::writeData(wb, hoja, d, headerStyle = openxlsx::createStyle(textDecoration = "bold"))
+    openxlsx::setColWidths(wb, hoja, cols = seq_along(cols), widths = "auto")
+    openxlsx::freezePane(wb, hoja, firstRow = TRUE)
+  }
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  invisible(path)
+}
