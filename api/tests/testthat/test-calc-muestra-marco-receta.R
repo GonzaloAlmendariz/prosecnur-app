@@ -218,28 +218,49 @@ test_that("los rótulos de una tabla de conteos renombran filas y columnas y sum
   expect_equal(cu$cruce$conteos["Educación", "M"], 15)
 })
 
-test_that("D8 en la propuesta: las cuotas salen en la forma elegida para cada propuesta y van al Excel", {
+test_that("D8 en la propuesta: las cuotas salen en la forma elegida, por id y posición de la propuesta", {
   datos <- data.frame(ID = as.character(1:60), SEG = rep(c("A", "B", "C"), c(30, 20, 10)), SEXO = rep(c("M", "H"), 30),
                       stringsAsFactors = FALSE)
   receta <- list(columnas = list(id = "ID"), usos = list(SEXO = "cuota"), reglas = list(), segmento = list(fila = "SEG"))
-  estudio <- list(componentes = list(list(id = "c1", actor = "Docentes")))
-  marcos <- list(c1 = list(file_id = "f", receta = .cm_receta_normalizar(receta)))
-  esc <- list(list(nombre = "Propuesta A", metas = list(c1 = 30)), list(nombre = "Propuesta B", metas = list(c1 = 12)))
+  estudio <- list(componentes = list(list(id = "c1", actor = "Docentes"), list(id = "c2", actor = "Otro")))
+  marcos <- list(c1 = list(file_id = "f", receta = .cm_receta_normalizar(receta)), c2 = list(file_id = "g", receta = .cm_receta_normalizar(receta)))
   leer <- function(m) datos
-  sin <- calc_muestra_propuesta_cuotas(estudio, marcos, esc, list(), leer)
-  expect_identical(unique(sin$Forma), "Por celda")
-  expect_equal(sum(sin$Cuota[sin$Propuesta == "Propuesta A"]), 30)
-  con <- calc_muestra_propuesta_cuotas(estudio, marcos, esc, list(c1 = list(modo = "minimo", columna = "SEXO")), leer)
-  b <- con[con$Propuesta == "Propuesta B", ]
+  # Dos propuestas con el mismo nombre y una sin nombre: se distinguen por su posición.
+  esc <- list(list(nombre = "A", metas = list(c1 = 30, c2 = 10)), list(nombre = "A", metas = list(c1 = 12)), list(metas = list(c1 = 20)))
+  sin <- calc_muestra_propuesta_cuotas(estudio, marcos, esc, list(), leer, ids = "c1")
+  expect_setequal(unique(sin$componente_id), "c1")
+  expect_equal(tapply(sin$Cuota, sin$escenario, sum)[["1"]], 30)
+  expect_equal(tapply(sin$Cuota, sin$escenario, sum)[["2"]], 12)
+  expect_equal(tapply(sin$Cuota, sin$escenario, sum)[["3"]], 20)
+  con <- calc_muestra_propuesta_cuotas(estudio, marcos, esc, list(c1 = list(modo = "minimo", columna = "SEXO")), leer, ids = "c1")
+  b <- con[con$escenario == 2, ]
   expect_setequal(unique(b$Columna), c("M", "H"))
-  # Mínimo 10 por celda (o toda la celda si es menor): C tiene 5 por sexo, así que lleva 5.
   expect_true(all(b$Cuota >= pmin(10, b$`Población`)))
+  r <- attr(con, "resumen")
+  expect_equal(r$total[r$escenario == 2], sum(b$Cuota))
+  expect_equal(r$extra[r$escenario == 2], sum(b$Cuota) - 12)
+  # Control: la meta de cada segmento suma la meta exacta (no las esperadas redondeadas) y va sin columna.
+  ctl <- calc_muestra_propuesta_cuotas(estudio, marcos, list(list(nombre = "A", metas = list(c1 = 20))),
+                                       list(c1 = list(modo = "control", columna = "SEXO")), leer, ids = "c1")
+  expect_equal(sum(ctl$Cuota), 20)
+  expect_true(all(ctl$Columna == ""))
+  expect_match(ctl$Forma[1], "control de SEXO")
+  # Meta mayor que la población: el resumen lo deja ver para avisarlo.
+  sobre <- attr(calc_muestra_propuesta_cuotas(estudio, marcos, list(list(nombre = "A", metas = list(c1 = 100))), list(), leer, ids = "c1"), "resumen")
+  expect_equal(c(sobre$meta, sobre$poblacion, sobre$total), c(100, 60, 60))
+  # Una segunda variable que ya no está: se reparte sin ella y se avisa, la exportación no se rompe.
+  falta <- calc_muestra_propuesta_cuotas(estudio, marcos, list(list(nombre = "A", metas = list(c1 = 20))),
+                                         list(c1 = list(modo = "celda", columna = "NO_EXISTE")), leer, ids = "c1")
+  expect_equal(sum(falta$Cuota), 20)
+  expect_match(attr(falta, "resumen")$aviso, "ya no tiene la variable NO_EXISTE")
   expect_null(calc_muestra_propuesta_cuotas(estudio, list(), esc, list(), leer))
-  p <- list(titulo = "x", escenarios = list(list(nombre = "Propuesta A", componentes = list(list(
+  p <- list(titulo = "x", escenarios = list(list(nombre = "A", componentes = list(list(
     actor = "Docentes", actor_categoria = "docentes", canal_recojo = "online_email", meta = list(valor = 30, origen = "usuario"),
     parametros = list(n_minimo_estrato = 0, tasa_respuesta = 0.3), marco = list(universo_bruto = 60, marco_validado = 60, marco_contactable = 60))))))
   p$cuotas <- con
   r <- calc_muestra_propuesta_xlsx(p, tempfile(fileext = ".xlsx"))
   expect_true("Cuotas" %in% r$hojas)
-  expect_true("Segunda variable" %in% names(openxlsx::read.xlsx(r$path, "Cuotas", startRow = 3, sep.names = " ")))
+  hoja <- openxlsx::read.xlsx(r$path, "Cuotas", startRow = 3, sep.names = " ")
+  expect_true("Segunda variable" %in% names(hoja))
+  expect_false(any(c("componente_id", "escenario") %in% names(hoja)))
 })

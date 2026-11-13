@@ -52,3 +52,14 @@ test_that("una tabla de conteos o un marco sin correo no se cruzan", {
   datos <- data.frame(id = c("1", "2"), mail = c("a@x.pe", "b@x.pe"), stringsAsFactors = FALSE)
   expect_equal(.cm_cruce_correos_del_actor(datos, receta), c("a@x.pe", "b@x.pe"))
 })
+
+test_that("el cruce cuenta personas, no filas: un correo repetido en el mismo público cuenta una vez", {
+  out <- calc_muestra_cruce_entre_publicos(list(
+    list(id = "a", nombre = "A", correos = c("x@p.pe", "X@p.pe ", "y@p.pe")),
+    list(id = "b", nombre = "B", correos = c("x@p.pe"))))
+  a <- out$publicos[[1]]
+  expect_equal(a$invitados, 2)
+  expect_equal(a$compartidos, 1)
+  expect_equal(a$pares[[1]]$n, 1)
+  expect_equal(out$publicos[[2]]$pares[[1]]$n, 1)
+})

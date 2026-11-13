@@ -163,7 +163,7 @@ mount_calc_muestra_general <- function(pr) {
       propuesta$cuotas <- calc_muestra_propuesta_cuotas(estudio, estado$marcos, body$escenarios, body$reparto, function(marco) {
         if (identical(calc_str(marco$receta$tipo, ""), "conteos")) .cm_mp_leer(.cm_mp_archivo(sid, marco$file_id), marco$hoja %||% "")
         else .cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% "")
-      })
+      }, ids = vapply(propuesta$escenarios[[1]]$componentes, function(c) calc_str(c$id, ""), ""))
       out_path <- tempfile("calc_muestra_propuesta_", fileext = paste0(".", formato))
       if (identical(formato, "pptx")) calc_muestra_propuesta_ppt(propuesta, out_path) else calc_muestra_propuesta_xlsx(propuesta, out_path)
       out_name <- .export_filename(sid, if (identical(formato, "pptx")) "propuesta_diseno_muestral" else "escenarios_de_muestra", formato)

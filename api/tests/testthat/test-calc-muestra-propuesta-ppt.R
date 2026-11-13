@@ -181,29 +181,49 @@ test_that("D9: quien figura en dos públicos se muestra en la población sin des
 
 test_that("D8: con reparto elegido, las metas por segmento salen de las cuotas y hay una lámina de cruce por propuesta", {
   p <- .prop_dci()
+  ids <- c("doc", "adm", "egr")
+  p$escenarios <- lapply(p$escenarios, function(e) { e$componentes <- Map(function(c, id) { c$id <- id; c }, e$componentes, ids); e })
   doc <- list(`Contratado a tiempo completo` = 114L, `Contratado a tiempo parcial` = 1751L,
               `Ordinario auxiliar` = 269L, `Ordinario asociado` = 255L, `Ordinario principal` = 276L)
-  # Cuotas inventadas con mínimo: suman 10 más que la meta de A (900) y 4 más que la de B (600).
-  arma <- function(esc, total) {
+  # Cuotas con mínimo: 10 más que la meta de A (900) y 4 más que la de B (600).
+  arma <- function(k, esc, total) {
     segs <- names(doc); n <- round(unlist(doc) / sum(unlist(doc)) * total)
     n[1] <- n[1] + (total - sum(n))
-    data.frame(`Público` = "Docentes", Propuesta = esc, Segmento = rep(segs, each = 2), Columna = rep(c("M", "F"), 5),
-               `Población` = rep(as.integer(unlist(doc)) %/% 2L, each = 2),
+    data.frame(componente_id = "doc", escenario = k, `Público` = "Docentes", Propuesta = esc, Segmento = rep(segs, each = 2),
+               Columna = rep(c("M", "F"), 5), `Población` = rep(as.integer(unlist(doc)) %/% 2L, each = 2),
                Cuota = as.integer(c(rbind(ceiling(n / 2), n - ceiling(n / 2)))), Forma = "Por celda, mínimo 10", check.names = FALSE)
   }
-  p$cuotas <- rbind(arma("Propuesta A", 910), arma("Propuesta B", 604))
+  p$cuotas <- rbind(arma(1, "Propuesta A", 910), arma(2, "Propuesta B", 604))
+  attr(p$cuotas, "resumen") <- data.frame(componente_id = "doc", escenario = 1:2, meta = c(900L, 600L), total = c(910L, 604L),
+                                          extra = c(10L, 4L), poblacion = 2665L, aviso = "", stringsAsFactors = FALSE)
   t <- calc_muestra_propuesta_tablas(p)
   expect_identical(tail(t$segmentos$Docentes[["Meta Propuesta A"]], 1), "910")
   expect_identical(t$comparacion[["Propuesta A"]][2], "910")
-  expect_true(any(grepl("Docentes +10 en Propuesta A", t$extra_cuotas, fixed = TRUE)))
+  expect_identical(t$extra_cuotas, c("Docentes +10 en Propuesta A", "Docentes +4 en Propuesta B"))
   expect_identical(attr(t$segmentos$Docentes, "forma"), "Por celda, mínimo 10")
   expect_length(t$cruces, 2)
   cz <- t$cruces[[1]]
   expect_identical(names(cz), c("Segmento", "M", "F", "Total"))
   expect_identical(tail(cz$Total, 1), "910")
+  # Las cuotas se cruzan por id y posición: con el nombre de la propuesta cambiado siguen llegando.
+  p2 <- p; p2$escenarios[[1]]$nombre <- "Otra"
+  expect_identical(calc_muestra_propuesta_tablas(p2)$comparacion[["Otra"]][2], "910")
   r <- calc_muestra_propuesta_ppt(p, tempfile(fileext = ".pptx"))
   textos <- suppressWarnings(officer::pptx_summary(officer::read_pptx(r$path)))$text
   # El título se escribe en mayúsculas.
   expect_true(any(grepl("CUOTAS POR CELDA: DOCENTES, PROPUESTA B", toupper(textos), fixed = TRUE)))
   expect_true(any(grepl("mínimo de 10 por celda", textos, fixed = TRUE)))
+  expect_false(any(grepl("; ", textos[grepl("mínimo de 10 por celda", textos)], fixed = TRUE)))
+})
+
+test_that("D8: una meta mayor que la población se dice en la nota, no se cambia en silencio", {
+  p <- .prop_dci()
+  p$escenarios <- lapply(p$escenarios, function(e) { e$componentes <- Map(function(c, id) { c$id <- id; c }, e$componentes, c("doc", "adm", "egr")); e })
+  p$cuotas <- data.frame(componente_id = "egr", escenario = 1, `Público` = "Egresados", Propuesta = "Propuesta A", Segmento = "Total",
+                         Columna = "", `Población` = 500L, Cuota = 500L, Forma = "Por celda", check.names = FALSE)
+  attr(p$cuotas, "resumen") <- data.frame(componente_id = "egr", escenario = 1, meta = 600L, total = 500L, extra = 0L,
+                                          poblacion = 500L, aviso = "", stringsAsFactors = FALSE)
+  t <- calc_muestra_propuesta_tablas(p)
+  expect_identical(t$comparacion[["Propuesta A"]][4], "500")
+  expect_match(t$ajustes_cuotas, "la meta de 600 supera su población de 500")
 })

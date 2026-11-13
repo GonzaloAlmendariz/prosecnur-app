@@ -44,9 +44,12 @@ export function ListadoEnvio() {
   }, [clave]);
 
   const datos = res.clave === clave ? res.datos : null;
-  if (datos && datos.publicos.length === 0) return null;
+  // Sin públicos con base y correo no hay listado; si los hay sin correo, se dice cuáles.
+  if (datos && datos.publicos.length === 0 && datos.sinCorreo.length === 0) return null;
 
   async function guardar(cambio: { decisiones?: DecisionDePar[]; tandas?: { n: number; semilla: number } }) {
+    // Mientras se guarda una decisión, la siguiente esperaría sobre datos viejos y la borraría.
+    if (guardando) return;
     setGuardando(true);
     try {
       const nuevo = await apiMarcoPublicoListado(cambio);
@@ -90,15 +93,16 @@ export function ListadoEnvio() {
     { id: "invitados", encabezado: "Invitados", ancho: 120, tipo: "cifra", celda: (p) => fmtInt(p.invitados) },
     { id: "cedidas", encabezado: "Van a otro público", ancho: 150, tipo: "cifra", celda: (p) => (p.cedidas ? fmtInt(p.cedidas) : <span className="cmmp-suave">0</span>) },
     { id: "pordecidir", encabezado: "Por decidir", ancho: 120, tipo: "cifra", celda: (p) => (p.porDecidir ? fmtInt(p.porDecidir) : <span className="cmmp-suave">0</span>) },
+    ...(datos?.publicos.some((p) => p.sinCorreo > 0) ? [{
+      id: "sincorreo", encabezado: "Sin correo", ancho: 110, tipo: "cifra" as const, celda: (p: Publico) => (p.sinCorreo ? fmtInt(p.sinCorreo) : <span className="cmmp-suave">0</span>),
+    }] : []),
+    ...(datos?.publicos.some((p) => p.repetidas > 0) ? [{
+      id: "repetidas", encabezado: "Correo repetido", ancho: 130, tipo: "cifra" as const, celda: (p: Publico) => (p.repetidas ? fmtInt(p.repetidas) : <span className="cmmp-suave">0</span>),
+    }] : []),
     { id: "quedan", encabezado: "Reciben la encuesta", ancho: 160, tipo: "cifra", celda: (p) => <strong>{fmtInt(p.quedan)}</strong> },
     ...(nTandas > 1 ? [{
-      id: "tanda", encabezado: "Por tanda", ancho: 130, tipo: "cifra" as const,
-      // El reparto en rueda deja tandas que difieren a lo más en una persona.
-      celda: (p: Publico) => {
-        const menor = Math.floor(p.quedan / nTandas);
-        const mayor = Math.ceil(p.quedan / nTandas);
-        return menor === mayor ? fmtInt(menor) : `${fmtInt(menor)} a ${fmtInt(mayor)}`;
-      },
+      id: "tanda", encabezado: "Por tanda", ancho: 160, tipo: "cifra" as const,
+      celda: (p: Publico) => p.porTanda.map(fmtInt).join(" / "),
     }] : []),
   ];
 
@@ -143,7 +147,7 @@ export function ListadoEnvio() {
           </div>
           {datos.sinAsignar ? (
             <div className="cmmp-pad">
-              <Alert kind="warn">{`${fmtInt(datos.sinAsignar)} personas están en tres o más públicos y las decisiones se contradicen entre sí (cada público gana un par). Cambia una de las decisiones de sus pares.`}</Alert>
+              <Alert kind="warn">{`${datos.sinAsignar === 1 ? "1 persona está" : `${fmtInt(datos.sinAsignar)} personas están`} en tres o más públicos y las decisiones de sus pares se contradicen (cada público gana un par). Cambia una de esas decisiones.`}</Alert>
             </div>
           ) : null}
           {datos.pares.length ? (

@@ -9,9 +9,9 @@ test_that("sin decidir el par, las compartidas quedan por decidir y el listado n
   expect_equal(out$pares[[1]]$n, 1)
   expect_identical(out$pares[[1]]$va, "")
   a <- out$publicos[[1]]
-  expect_equal(c(a$invitados, a$quedan, a$cedidas, a$por_decidir), c(3, 2, 0, 1))
-  # Quien no tiene correo no se cruza: se queda en su público.
-  expect_identical(out$destino$a, c(TRUE, FALSE, TRUE))
+  expect_equal(c(a$invitados, a$quedan, a$cedidas, a$por_decidir, a$sin_correo), c(3, 1, 0, 1, 1))
+  # Sin correo no recibe la encuesta por correo: va aparte, no entre quienes la reciben.
+  expect_identical(out$destino$a, c(TRUE, FALSE, FALSE))
 })
 
 test_that("decidido el par, las compartidas van al público elegido y salen del otro", {
@@ -75,20 +75,17 @@ test_that("las decisiones se limpian y el Excel lleva una hoja por público solo
   expect_identical(openxlsx::read.xlsx(f, "Administrativos")$MAIL, "y@p.pe")
 })
 
-test_that("las tandas reparten cada segmento por igual, con tamaños parejos y la misma semilla da lo mismo", {
-  seg <- c(rep("A", 10), rep("B", 5), rep("C", 2))
-  t <- calc_muestra_listado_tandas(seg, 3, 7)
+test_that("la tanda de cada persona no cambia si el listado cambia, y la semilla la fija", {
+  correos <- sprintf("p%04d@p.pe", 1:3000)
+  t <- calc_muestra_listado_tandas(correos, 3, 7)
   expect_setequal(unique(t), 1:3)
-  expect_lte(diff(range(table(t))), 1)
-  # Cada segmento se reparte entre las tandas: ninguna lleva más de un caso de diferencia en A.
-  expect_lte(diff(range(table(factor(t[seg == "A"], levels = 1:3)))), 1)
-  expect_identical(calc_muestra_listado_tandas(seg, 3, 7), t)
-  expect_false(identical(calc_muestra_listado_tandas(seg, 3, 8), t))
-  expect_identical(calc_muestra_listado_tandas(seg, 1, 7), rep(1L, 17))
-  # No hay más tandas que personas, y el RNG global queda como estaba.
-  set.seed(1); antes <- .Random.seed
-  expect_identical(sort(unique(calc_muestra_listado_tandas(c("A", "A"), 5, 3))), 1:2)
-  expect_identical(.Random.seed, antes)
+  # Quitar una persona no mueve a nadie más de tanda (antes movía a 71 de 99).
+  expect_identical(calc_muestra_listado_tandas(correos[-1], 3, 7), t[-1])
+  expect_identical(calc_muestra_listado_tandas(toupper(correos), 3, 7), t)
+  expect_false(identical(calc_muestra_listado_tandas(correos, 3, 8), t))
+  # Tamaños parejos en promedio: ninguna tanda se aleja más de 10 % de un tercio.
+  expect_true(all(abs(tabulate(t, 3) - 1000) < 100))
+  expect_identical(calc_muestra_listado_tandas(correos[1:5], 1, 7), rep(1L, 5))
 })
 
 test_that("con tandas, cada hoja del Excel lleva la columna Tanda y sale ordenada por ella", {
@@ -100,6 +97,16 @@ test_that("con tandas, cada hoja del Excel lleva la columna Tanda y sale ordenad
   d <- openxlsx::read.xlsx(f, "Docentes")
   expect_identical(names(d), c("ID", "MAIL", "SEG", "Tanda"))
   expect_false(is.unsorted(d$Tanda))
-  expect_equal(as.vector(table(d$Tanda)), c(3, 3))
+  expect_equal(sum(table(d$Tanda)), 6)
   expect_identical(calc_muestra_listado_tandas_config(list(n = 99))$n, 20L)
+})
+
+test_that("las columnas del resumen suman los invitados de cada público", {
+  out <- calc_muestra_listado_asignar(
+    list(.le_pub("a", c("x@p.pe", "X@p.pe", "y@p.pe", "", NA, "z@p.pe")), .le_pub("b", c("z@p.pe", "w@p.pe"))))
+  for (p in out$publicos) {
+    expect_equal(p$quedan + p$cedidas + p$por_decidir + p$sin_asignar + p$sin_correo + p$repetidas, p$invitados)
+  }
+  expect_equal(out$publicos[[1]]$repetidas, 1)
+  expect_equal(out$publicos[[1]]$sin_correo, 2)
 })

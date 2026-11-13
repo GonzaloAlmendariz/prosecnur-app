@@ -35,13 +35,15 @@ calc_muestra_cruce_entre_publicos <- function(publicos, metas = list(), tasas = 
     x <- claves[[i]]
     con_correo <- nzchar(x)
     otros <- setdiff(seq_along(publicos), i)
+    # Se cuentan personas: un correo repetido dentro del mismo público es una sola persona (como en el listado).
+    propios <- unicos[[i]]
     pares <- lapply(otros, function(j) {
       list(id = calc_str(publicos[[j]]$id, ""), nombre = calc_str(publicos[[j]]$nombre, ""),
-           n = sum(con_correo & x %in% unicos[[j]]))
+           n = length(intersect(propios, unicos[[j]])))
     })
     union_otros <- unique(unlist(unicos[otros], use.names = FALSE))
-    compartidos <- sum(con_correo & x %in% union_otros)
-    invitados <- length(x)
+    compartidos <- sum(propios %in% union_otros)
+    invitados <- sum(!con_correo) + length(propios)
     meta <- num(metas, id)
     tasa <- num(tasas, id)
     libres <- invitados - compartidos

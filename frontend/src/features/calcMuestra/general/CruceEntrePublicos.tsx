@@ -51,8 +51,8 @@ export function CruceEntrePublicos({ componentes }: { componentes: CalcMuestraCo
   if (!basta) return null;
   const datos = res.clave === clave ? res.datos : null;
   const publicos = datos?.publicos ?? [];
-  // Con un solo público cruzable no hay con quién comparar.
-  if (datos && publicos.length < 2) return null;
+  // Con un solo público cruzable no hay con quién comparar; si hay públicos sin correo, se dice cuáles.
+  if (datos && publicos.length < 2 && datos.sinCorreo.length === 0) return null;
   const sinAlcance = publicos.filter((p) => p.alcanza !== false && p.alcanzaSinCompartidos === false);
 
   const columnas: PulsoTableColumna<CruceDeUnPublico>[] = [
@@ -100,7 +100,9 @@ export function CruceEntrePublicos({ componentes }: { componentes: CalcMuestraCo
           {sinAlcance.map((p) => (
             <div key={p.id} className="cmmp-pad">
               <Alert kind="warn">
-                {`${p.nombre}: si sus ${fmtInt(p.compartidos)} personas compartidas se invitan como otro público, la meta exige ${p.exigeSinCompartidos == null ? "más personas de las que quedan" : pct(p.exigeSinCompartidos)} de respuesta y se espera ${pct(p.tasa ?? 0)}.`}
+                {p.exigeSinCompartidos == null
+                  ? `${p.nombre}: si sus ${fmtInt(p.compartidos)} personas compartidas se invitan como otro público, no queda nadie más a quien invitar para su meta.`
+                  : `${p.nombre}: si sus ${fmtInt(p.compartidos)} personas compartidas se invitan como otro público, la meta exige ${pct(p.exigeSinCompartidos)} de respuesta${p.tasa != null ? ` y se espera ${pct(p.tasa)}` : ""}.`}
               </Alert>
             </div>
           ))}

@@ -16,7 +16,7 @@
 #' @param decisiones lista de list(a, b, va): para el par {a, b}, `va` es el id del público que se queda con las
 #'   personas que están en ambos. El orden de a y b no importa.
 #' @return list(
-#'   publicos = [{id, nombre, invitados, quedan, cedidas, por_decidir, sin_asignar}],
+#'   publicos = [{id, nombre, invitados, quedan, cedidas, por_decidir, sin_asignar, sin_correo, repetidas}],
 #'   pares = [{a, b, nombre_a, nombre_b, n, va}],   # va = "" si falta decidir
 #'   pendientes, sin_asignar, listo,
 #'   destino = list(<id> = lógico por persona: TRUE si se le envía como ese público))
@@ -75,15 +75,16 @@ calc_muestra_listado_asignar <- function(publicos, decisiones = list()) {
     x <- claves[[id]]
     con <- nzchar(x)
     d <- unname(dueno_de[x])
-    queda <- !con | (!is.na(d) & d == id)
-    # Un correo repetido dentro del mismo público recibe una sola encuesta.
-    queda <- queda & !(con & duplicated(x))
+    # Sin correo no se le puede enviar: va aparte y no se cuenta entre quienes reciben la encuesta.
     unica <- con & !duplicated(x)
+    queda <- unica & !is.na(d) & d == id
     sin <- unica & x %in% sin_dueno
     por_decidir <- unica & !is.na(d) & d == .CM_POR_DECIDIR
     destino[[id]] <<- queda
+    # Las columnas suman las filas del público: quedan + cedidas + por decidir + sin asignar + sin correo + repetidas.
     list(id = id, nombre = nombres[[id]], invitados = length(x), quedan = sum(queda),
-         cedidas = sum(unica & !queda & !sin & !por_decidir), por_decidir = sum(por_decidir), sin_asignar = sum(sin))
+         cedidas = sum(unica & !queda & !sin & !por_decidir), por_decidir = sum(por_decidir), sin_asignar = sum(sin),
+         sin_correo = sum(!con), repetidas = sum(con & duplicated(x)))
   })
   list(publicos = resumen, pares = pares, pendientes = pendientes, sin_asignar = length(sin_dueno),
        listo = pendientes == 0L && length(sin_dueno) == 0L, destino = destino)
@@ -123,8 +124,7 @@ calc_muestra_listado_xlsx <- function(publicos, asignacion, path, tandas = list(
     cols <- cols[nzchar(cols) & cols %in% names(d)]
     d <- d[, cols, drop = FALSE]
     if (tandas$n > 1L) {
-      seg <- if (nzchar(p$col_segmento) && p$col_segmento %in% names(d)) d[[p$col_segmento]] else rep("", nrow(d))
-      d$Tanda <- calc_muestra_listado_tandas(seg, tandas$n, tandas$semilla)
+      d$Tanda <- calc_muestra_listado_tandas(d[[p$col_correo]], tandas$n, tandas$semilla)
       d <- d[order(d$Tanda), , drop = FALSE]
     }
     # Nombre de hoja válido para Excel: sin caracteres reservados, 31 como máximo y sin repetir.
@@ -142,23 +142,32 @@ calc_muestra_listado_xlsx <- function(publicos, asignacion, path, tandas = list(
   invisible(path)
 }
 
-#' Tanda de envío de cada persona: orden aleatorio reproducible dentro de cada segmento y reparto en rueda, así cada
-#' tanda lleva la misma composición por segmento y los tamaños difieren a lo más en uno.
-#' @param segmento vector con el segmento de cada persona (o NULL: un solo grupo).
+#' Tanda de envío de cada persona, fija por persona: sale de su correo y de la semilla, así que agregar, quitar o
+#' reasignar a otra persona no la mueve de tanda (una tanda ya enviada no cambia). Los tamaños y la composición por
+#' segmento quedan parejos en promedio, no exactos.
+#' @param claves correo de cada persona (normalizado aquí).
 #' @param n_tandas número de tandas (1 = todo en una).
-#' @param semilla entero; la misma semilla y el mismo listado dan las mismas tandas.
+#' @param semilla entero; la misma semilla da las mismas tandas.
 #' @return entero por persona, de 1 a n_tandas.
-calc_muestra_listado_tandas <- function(segmento, n_tandas = 1L, semilla = 1L) {
-  n <- length(segmento)
-  n_tandas <- max(1L, min(calc_int(n_tandas, 1L, min = 1L), max(1L, n)))
+calc_muestra_listado_tandas <- function(claves, n_tandas = 1L, semilla = 1L) {
+  n <- length(claves)
+  n_tandas <- max(1L, calc_int(n_tandas, 1L, min = 1L))
   if (!n) return(integer())
   if (n_tandas == 1L) return(rep(1L, n))
-  seg <- as.character(segmento); seg[is.na(seg)] <- ""
+  x <- .cm_marco_correo_clave(claves); x[is.na(x)] <- ""
   semilla <- calc_int(semilla, 1L)
-  orden <- .cm_general_con_semilla(semilla, {
-    unlist(lapply(split(seq_len(n), factor(seg, levels = unique(seg))), function(i) i[sample.int(length(i))]), use.names = FALSE)
+  # Los primeros 7 dígitos hexadecimales del md5 de "semilla|correo": un entero uniforme y fijo por persona.
+  h <- vapply(paste0(semilla, "|", x), function(k) strtoi(substr(digest::digest(k, algo = "md5", serialize = FALSE), 1, 7), 16L),
+              numeric(1), USE.NAMES = FALSE)
+  as.integer(h %% n_tandas) + 1L
+}
+
+#' Personas por tanda de cada público, con las mismas tandas que el Excel.
+calc_muestra_listado_por_tanda <- function(publicos, asignacion, tandas = list()) {
+  tandas <- calc_muestra_listado_tandas_config(tandas)
+  lapply(publicos, function(p) {
+    correos <- p$correos[asignacion$destino[[p$id]]]
+    t <- calc_muestra_listado_tandas(correos, tandas$n, tandas$semilla)
+    list(id = p$id, por_tanda = as.integer(tabulate(t, nbins = tandas$n)))
   })
-  tanda <- integer(n)
-  tanda[orden] <- ((seq_len(n) - 1L) %% n_tandas) + 1L
-  tanda
 }

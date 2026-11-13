@@ -104,36 +104,63 @@ calc_muestra_propuesta_desde_estudio <- function(estudio, marcos, body) {
 
 #' Cuotas de cada actor con marco y receta, por escenario, en la forma elegida en Meta (D8), como tabla larga.
 #'
+#' Cada fila lleva `componente_id` y `escenario` (posición de la propuesta) para cruzarla con su actor y su propuesta
+#' sin depender de nombres. En control, la meta de cada segmento es la del reparto por fila (suma exacta) y la segunda
+#' variable solo se mira, así que las filas van sin columna.
+#'
+#' @param ids componentes que entran en la propuesta (los demás no se reparten).
 #' @param leer function(marco) -> data.frame del archivo del marco (el router lo lee de la sesión).
-#' @return data.frame(Público, Propuesta, Segmento, Columna, Población, Cuota, Forma) o NULL si ningún actor aplica.
-calc_muestra_propuesta_cuotas <- function(estudio, marcos, escenarios, reparto, leer) {
+#' @return data.frame(componente_id, escenario, Público, Propuesta, Segmento, Columna, Población, Cuota, Forma) con
+#'   attr "resumen" = data.frame(componente_id, escenario, meta, total, extra, poblacion, aviso), o NULL.
+calc_muestra_propuesta_cuotas <- function(estudio, marcos, escenarios, reparto, leer, ids = NULL) {
   reparto <- .cm_normalize_reparto(reparto)
-  filas <- list()
+  filas <- list(); resumen <- list()
   for (comp in estudio$componentes %||% list()) {
+    if (!is.null(ids) && !(comp$id %in% ids)) next
     marco <- marcos[[comp$id %||% ""]]
     if (is.null(marco) || is.null(marco$receta)) next
     r <- reparto[[comp$id]] %||% list(modo = "celda", columna = "")
     datos <- leer(marco)
     conteos <- identical(calc_str(marco$receta$tipo, ""), "conteos")
-    for (e in escenarios %||% list()) {
+    cuotas_de <- function(meta, columna) if (conteos) calc_muestra_marco_cuotas_conteos(datos, marco$receta, meta, r$modo, 10L, columna) else
+      calc_muestra_marco_cuotas(datos, marco$receta, meta, r$modo, 10L, columna)
+    for (k in seq_along(escenarios %||% list())) {
+      e <- escenarios[[k]]
       meta <- calc_int((e$metas %||% list())[[comp$id]], 0L, min = 0L)
       if (meta <= 0L) next
-      out <- if (conteos) calc_muestra_marco_cuotas_conteos(datos, marco$receta, meta, r$modo, 10L, r$columna) else
-        calc_muestra_marco_cuotas(datos, marco$receta, meta, r$modo, 10L, r$columna)
+      aviso <- ""
+      # Una segunda variable guardada que el marco ya no tiene no rompe la exportación: se reparte sin ella y se dice.
+      out <- tryCatch(cuotas_de(meta, r$columna), api_error = function(err) {
+        if (!nzchar(r$columna)) stop(err)
+        aviso <<- sprintf("%s ya no tiene la variable %s: sus cuotas van sin ella.", calc_str(comp$actor, comp$id), r$columna)
+        cuotas_de(meta, "")
+      })
       cr <- out$cruce; cu <- out$cuotas
       control <- identical(cu$modo, "control")
-      m <- if (control) round(cu$esperadas) else cu$cuotas
-      cols <- if (length(cr$columnas)) cr$columnas else "Total"
-      for (i in seq_along(cr$filas)) for (j in seq_along(cols)) {
-        filas[[length(filas) + 1L]] <- data.frame(
-          `Público` = calc_str(comp$actor, comp$id), Propuesta = calc_str(e$nombre, "Propuesta"),
-          Segmento = cr$filas[i], Columna = if (nzchar(calc_str(cr$columna_variable, ""))) cols[j] else "",
-          `Población` = as.integer(cr$conteos[i, j]), Cuota = as.integer(m[i, j]),
-          Forma = switch(cu$modo, celda = "Por celda", control = "Esperadas, con control", minimo = "Por celda, mínimo 10"),
+      nombre_esc <- calc_str(e$nombre, "Escenario")
+      forma <- switch(cu$modo, celda = "Por celda", minimo = "Por celda, mínimo 10",
+                      control = sprintf("Por segmento, con control de %s", calc_str(cr$columna_variable, r$columna)))
+      if (control) {
+        for (f in cu$por_fila) filas[[length(filas) + 1L]] <- data.frame(
+          componente_id = comp$id, escenario = k, `Público` = calc_str(comp$actor, comp$id), Propuesta = nombre_esc,
+          Segmento = f$categoria, Columna = "", `Población` = as.integer(f$N), Cuota = as.integer(f$n), Forma = forma,
           check.names = FALSE)
+      } else {
+        cols <- if (length(cr$columnas)) cr$columnas else "Total"
+        for (i in seq_along(cr$filas)) for (j in seq_along(cols)) {
+          filas[[length(filas) + 1L]] <- data.frame(
+            componente_id = comp$id, escenario = k, `Público` = calc_str(comp$actor, comp$id), Propuesta = nombre_esc,
+            Segmento = cr$filas[i], Columna = if (nzchar(calc_str(cr$columna_variable, ""))) cols[j] else "",
+            `Población` = as.integer(cr$conteos[i, j]), Cuota = as.integer(cu$cuotas[i, j]), Forma = forma, check.names = FALSE)
+        }
       }
+      resumen[[length(resumen) + 1L]] <- data.frame(
+        componente_id = comp$id, escenario = k, meta = meta, total = as.integer(cu$total), extra = as.integer(cu$extra %||% 0L),
+        poblacion = as.integer(sum(cr$conteos)), aviso = aviso, stringsAsFactors = FALSE)
     }
   }
   if (!length(filas)) return(NULL)
-  do.call(rbind, filas)
+  out <- do.call(rbind, filas)
+  attr(out, "resumen") <- do.call(rbind, resumen)
+  out
 }

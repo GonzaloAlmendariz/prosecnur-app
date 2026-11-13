@@ -267,6 +267,7 @@ mount_calc_muestra_marco_publico <- function(pr) {
       }
       leidos <- .cm_publicos_con_correo(sid, estudio, estado$marcos)
       out <- calc_muestra_listado_asignar(leidos$publicos, estado$envio$decisiones %||% list())
+      out$por_tanda <- calc_muestra_listado_por_tanda(leidos$publicos, out, estado$envio$tandas %||% list())
       out$destino <- NULL
       c(list(ok = TRUE, sin_correo = leidos$fuera, tandas = calc_muestra_listado_tandas_config(estado$envio$tandas)), out)
     })) |>

@@ -71,6 +71,8 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
   notas_res <- c(
     if (length(t$agregados)) sprintf("Las metas incluyen lo que agrega el mínimo de %d por segmento: %s.",
                                      as.integer(propuesta$minimo_segmento %||% 30L), paste(t$agregados, collapse = "; ")),
+    if (length(t$extra_cuotas)) sprintf("Las metas incluyen lo que agrega el mínimo de 10 por celda: %s.", paste(t$extra_cuotas, collapse = ", ")),
+    t$ajustes_cuotas,
     "El margen de error es referencial, por tratarse de una muestra no probabilística.")
   res <- data.frame(`Público` = c(d$publicos, "Total"), `Segmento de cruce` = c(d$segmentacion, ""),
                     `Población` = c(d$N, sum(d$N)), check.names = FALSE)
@@ -158,6 +160,8 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
   if (is.data.frame(cuotas) && nrow(cuotas)) {
     .cmx_hoja(wb, "Cuotas", "Cuotas por segmento", "")
     cq <- cuotas
+    attr(cq, "resumen") <- NULL
+    cq$componente_id <- NULL; cq$escenario <- NULL
     if (!any(nzchar(cq$Columna))) cq$Columna <- NULL else names(cq)[names(cq) == "Columna"] <- "Segunda variable"
     .cmx_tabla(wb, "Cuotas", cq, 3, enteros = which(names(cq) %in% c("Población", "Cuota")))
     openxlsx::setColWidths(wb, "Cuotas", cols = seq_len(ncol(cq)), widths = "auto")

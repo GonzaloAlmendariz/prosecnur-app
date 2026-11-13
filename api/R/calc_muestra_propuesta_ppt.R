@@ -61,18 +61,28 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   # D8: un actor con reparto elegido en Meta toma sus metas de esas cuotas (una sola fuente con el Excel y la
   # pantalla); lo que suma el mínimo por celda se dice en la nota de escenarios.
   cuotas <- propuesta$cuotas
-  cuotas_de <- function(publico, escenario) {
-    if (!is.data.frame(cuotas) || !nrow(cuotas)) return(NULL)
-    x <- cuotas[cuotas[["Público"]] == publico & cuotas$Propuesta == escenario, , drop = FALSE]
+  # Se cruzan por id del actor y posición de la propuesta, nunca por nombre (dos propuestas pueden llamarse igual).
+  ids_base <- vapply(base, function(c) as.character(c$id %||% "")[1], "")
+  resumen_cuotas <- attr(cuotas, "resumen")
+  cuotas_de <- function(i, k) {
+    if (!is.data.frame(cuotas) || !nrow(cuotas) || !nzchar(ids_base[i])) return(NULL)
+    x <- cuotas[cuotas$componente_id == ids_base[i] & cuotas$escenario == k, , drop = FALSE]
     if (nrow(x)) x else NULL
   }
-  extra_cuotas <- character()
+  extra_cuotas <- character(); ajustes_cuotas <- character()
   for (k in seq_along(calc)) for (i in seq_along(base)) {
-    x <- cuotas_de(publicos[i], nombres[k])
+    x <- cuotas_de(i, k)
     if (is.null(x)) next
+    r <- if (is.data.frame(resumen_cuotas)) resumen_cuotas[resumen_cuotas$componente_id == ids_base[i] & resumen_cuotas$escenario == k, , drop = FALSE] else NULL
     total <- sum(x$Cuota)
-    if (total > metas[[k]][i]) extra_cuotas <- c(extra_cuotas,
-      sprintf("%s +%d en %s", publicos[i], total - metas[[k]][i], nombres[k]))
+    if (!is.null(r) && nrow(r)) {
+      # Cada diferencia con la meta pedida se dice con su causa.
+      if (r$extra[1] > 0L) extra_cuotas <- c(extra_cuotas, sprintf("%s +%d en %s", publicos[i], r$extra[1], nombres[k]))
+      if (r$meta[1] > r$poblacion[1]) ajustes_cuotas <- c(ajustes_cuotas, sprintf(
+        "%s en %s: la meta de %s supera su población de %s, así que se toma la población entera.",
+        publicos[i], nombres[k], .cmp_fmt_n(r$meta[1]), .cmp_fmt_n(r$poblacion[1])))
+      if (nzchar(r$aviso[1])) ajustes_cuotas <- c(ajustes_cuotas, r$aviso[1])
+    }
     metas[[k]][i] <- as.integer(total)
   }
 
@@ -135,7 +145,7 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   # Lo que agrega el mínimo por segmento a cada meta (decisión 2026-11-11: el mínimo se suma encima).
   agregados <- unlist(lapply(seq_along(base), function(i) {
     # Un actor con reparto elegido no usa el mínimo por segmento del motor: lo suyo va en extra_cuotas.
-    if (any(vapply(nombres, function(e) !is.null(cuotas_de(publicos[i], e)), logical(1)))) return(NULL)
+    if (any(vapply(seq_along(calc), function(k) !is.null(cuotas_de(i, k)), logical(1)))) return(NULL)
     por_esc <- vapply(seq_along(calc), function(k) as.integer(calc[[k]]$componentes[[i]]$resultado$n_agregado_minimo %||% 0L), 1L)
     if (!any(por_esc > 0L)) return(NULL)
     # Sin "+0": sólo los escenarios donde el mínimo agrega algo.
@@ -161,7 +171,7 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
     for (k in seq_along(calc)) {
       d <- calc[[k]]$componentes[[i]]$resultado$distribucion_estratos %||% list()
       n <- vapply(d, function(x) as.integer(x$n), 1L)
-      x <- cuotas_de(publicos[i], nombres[k])
+      x <- cuotas_de(i, k)
       if (!is.null(x)) {
         por_seg <- tapply(x$Cuota, x$Segmento, sum)
         # Se cruza por rótulo de segmento contra los estratos declarados; si alguno no está, se avisa y se deja el
@@ -195,7 +205,7 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   # Cruce con la segunda variable elegida en Meta: una tabla por público y propuesta, segmento por columna.
   cruces <- list()
   if (is.data.frame(cuotas) && nrow(cuotas)) for (i in seq_along(base)) for (k in seq_along(calc)) {
-    x <- cuotas_de(publicos[i], nombres[k])
+    x <- cuotas_de(i, k)
     if (is.null(x) || !any(nzchar(x$Columna))) next
     segs_x <- unique(x$Segmento); cols_x <- unique(x$Columna)
     m <- matrix(0L, length(segs_x), length(cols_x), dimnames = list(segs_x, cols_x))
@@ -246,7 +256,8 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   datos$usos <- usos
   list(datos = datos, publicos = publicos, escenarios = nombres, poblacion = poblacion, comparacion = comparacion,
        segmentos = segmentos, viabilidad = viabilidad, avisos = avisos %||% character(),
-       agregados = agregados %||% character(), extra_cuotas = extra_cuotas, cruces = cruces)
+       agregados = agregados %||% character(), extra_cuotas = extra_cuotas,
+       ajustes_cuotas = unique(ajustes_cuotas), cruces = cruces)
 }
 
 #' Procedimiento por defecto de un barrido por correo o teléfono (ADR 0143).
@@ -414,7 +425,8 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   if (length(tablas$agregados)) nota_esc <- paste0(
     sprintf("Las metas incluyen lo que agrega el mínimo de %d por segmento: %s. ", piso, paste(tablas$agregados, collapse = "; ")), nota_esc)
   if (length(tablas$extra_cuotas)) nota_esc <- paste0(
-    sprintf("Las metas incluyen lo que agrega el mínimo de 10 por celda: %s. ", paste(tablas$extra_cuotas, collapse = "; ")), nota_esc)
+    sprintf("Las metas incluyen lo que agrega el mínimo de 10 por celda: %s. ", paste(tablas$extra_cuotas, collapse = ", ")), nota_esc)
+  if (length(tablas$ajustes_cuotas)) nota_esc <- paste(paste(tablas$ajustes_cuotas, collapse = " "), nota_esc)
   doc <- .cmp_lamina_tabla(doc, "Escenarios de muestra", tablas$comparacion, primera = 0.40, nota = nota_esc)
   orden <- c(orden, "escenarios")
   for (p in names(tablas$segmentos)) {

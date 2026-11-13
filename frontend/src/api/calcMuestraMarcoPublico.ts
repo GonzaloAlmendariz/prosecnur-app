@@ -370,7 +370,12 @@ export async function apiMarcoPublicoCrucePublicos(input: {
 export type DecisionDePar = { a: string; b: string; va: string };
 
 export type ListadoDeEnvio = {
-  publicos: { id: string; nombre: string; invitados: number; quedan: number; cedidas: number; porDecidir: number; sinAsignar: number }[];
+  publicos: {
+    id: string; nombre: string; invitados: number; quedan: number; cedidas: number; porDecidir: number; sinAsignar: number;
+    sinCorreo: number; repetidas: number;
+    /** Personas por tanda, con las mismas tandas que el Excel. */
+    porTanda: number[];
+  }[];
   pares: { a: string; b: string; nombreA: string; nombreB: string; n: number; va: string }[];
   pendientes: number;
   sinAsignar: number;
@@ -389,6 +394,8 @@ export async function apiMarcoPublicoListado(input: { decisiones?: DecisionDePar
     publicos: filas(r.publicos).map((p) => ({
       id: texto(p.id), nombre: texto(p.nombre), invitados: numero(p.invitados), quedan: numero(p.quedan),
       cedidas: numero(p.cedidas), porDecidir: numero(p.por_decidir), sinAsignar: numero(p.sin_asignar),
+      sinCorreo: numero(p.sin_correo), repetidas: numero(p.repetidas),
+      porTanda: lista(filas(r.por_tanda).find((x) => texto(x.id) === texto(p.id))?.por_tanda).map(numero),
     })),
     pares: filas(r.pares).map((p) => ({
       a: texto(p.a), b: texto(p.b), nombreA: texto(p.nombre_a), nombreB: texto(p.nombre_b), n: numero(p.n), va: texto(p.va),
