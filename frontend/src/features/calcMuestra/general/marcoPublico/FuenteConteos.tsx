@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 
-import { apiMarcoPublicoConteos, apiMarcoPublicoDeclararConteos, type HojaDelMarco, type TablaDeConteos } from "../../../../api/calcMuestraMarcoPublico";
+import { apiMarcoPublicoConteos, apiMarcoPublicoDeclararConteos, type HojaDelMarco, type RotulosDeConteos, type TablaDeConteos } from "../../../../api/calcMuestraMarcoPublico";
 import { Alert } from "../../../../components/Alert";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
@@ -17,6 +17,16 @@ import { reconciliarEstudio } from "../modelo";
 import { useMuestraGeneralStore } from "../store";
 import { guardarEstudioPendiente } from "../useMuestraGeneral";
 import { cifra, errorLegible, Pastilla } from "./piezas";
+import { ValoresConRotulo } from "./ValoresConRotulo";
+
+/** Corrige un rótulo de la tabla; vacío o igual al valor lo quita. */
+function conRotuloConteo(rotulos: RotulosDeConteos, eje: "filas" | "columnas", valor: string, rotulo: string): RotulosDeConteos {
+  const limpio = rotulo.trim();
+  const m = { ...rotulos[eje] };
+  if (!limpio || limpio === valor) delete m[valor];
+  else m[valor] = limpio;
+  return { ...rotulos, [eje]: m };
+}
 
 type FilaConteo = { categoria: string; i: number };
 
@@ -45,15 +55,16 @@ export function FuenteConteos({ componenteId, actor, fileId, nombreArchivo, hoja
   const [hoja, setHoja] = useState(() => hojaDelActor(hojas, actor, sugerida));
   const [variable, setVariable] = useState("");
   const [variableLeida, setVariableLeida] = useState("");
+  const [rotulos, setRotulos] = useState<RotulosDeConteos>({ filas: {}, columnas: {} });
   const [tabla, setTabla] = useState<{ clave: string; datos: TablaDeConteos | null; error: string | null }>({ clave: "", datos: null, error: null });
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
 
   // El nombre de la variable se lee al salir del campo: no se relee la tabla con cada tecla.
-  const claveLectura = JSON.stringify([fileId, hoja, variableLeida]);
+  const claveLectura = JSON.stringify([fileId, hoja, variableLeida, rotulos]);
   useEffect(() => {
     let vivo = true;
-    apiMarcoPublicoConteos({ fileId, hoja, columnaVariable: variableLeida })
+    apiMarcoPublicoConteos({ fileId, hoja, columnaVariable: variableLeida, rotulos })
       .then((d) => { if (vivo) setTabla({ clave: claveLectura, datos: d, error: null }); })
       .catch((e: unknown) => { if (vivo) setTabla({ clave: claveLectura, datos: null, error: errorLegible(e) }); });
     return () => { vivo = false; };
@@ -69,7 +80,7 @@ export function FuenteConteos({ componenteId, actor, fileId, nombreArchivo, hoja
     try {
       await guardarEstudioPendiente();
       const enviado = useCalcMuestraStore.getState().estudio;
-      const res = await apiMarcoPublicoDeclararConteos({ componenteId, fileId, hoja, columnaVariable: variableLeida });
+      const res = await apiMarcoPublicoDeclararConteos({ componenteId, fileId, hoja, columnaVariable: variableLeida, rotulos });
       const store = useCalcMuestraStore.getState();
       const r = reconciliarEstudio({ componenteId, actual: store.estudio, enviado, estudioRespuesta: res.estudio, componenteRespuesta: res.componente });
       if (r?.limpio) store.hydrate(r.estudio);
@@ -103,7 +114,7 @@ export function FuenteConteos({ componenteId, actor, fileId, nombreArchivo, hoja
         {datos.length > 1 ? (
           <label className="cmmp-ctl">
             <small>Hoja</small>
-            <PulsoSelect size="sm" value={hoja} ariaLabel="Hoja de la tabla de conteos" options={datos.map((h) => ({ value: h.nombre, label: h.nombre }))} onValueChange={(h) => { setHoja(h); setVariable(""); setVariableLeida(""); }} />
+            <PulsoSelect size="sm" value={hoja} ariaLabel="Hoja de la tabla de conteos" options={datos.map((h) => ({ value: h.nombre, label: h.nombre }))} onValueChange={(h) => { setHoja(h); setVariable(""); setVariableLeida(""); setRotulos({ filas: {}, columnas: {} }); }} />
           </label>
         ) : null}
         {actual && actual.conteoColumnas.length > 1 ? (
@@ -134,6 +145,29 @@ export function FuenteConteos({ componenteId, actor, fileId, nombreArchivo, hoja
             </div>
           ) : null}
           {actual.avisos.map((a) => <div key={a} className="cmmp-pad"><Alert kind="warn">{a}</Alert></div>)}
+          {/* Los rótulos se corrigen sobre los valores del archivo; dos filas con el mismo rótulo se suman. */}
+          <div className="cmmp-rotulos-conteos" data-qa-geometry-group="calc-muestra/conteos-rotulos" data-qa-geometry-contract="intrinsic">
+            <section className="cmmp-sec" aria-label={`Rótulos de ${actual.categoria}`}>
+              <h4>{actual.categoria}<span>{cifra(actual.cruceOriginal.filas.length)} valores</span></h4>
+              <ValoresConRotulo
+                columna={actual.categoria}
+                valores={actual.cruceOriginal.filas.map((f, i) => ({ valor: f, n: actual.cruceOriginal.conteos[i]?.reduce((s, x) => s + x, 0) ?? 0 }))}
+                rotulos={rotulos.filas}
+                onRotulo={(valor, r) => setRotulos((x) => conRotuloConteo(x, "filas", valor, r))}
+              />
+            </section>
+            {actual.cruceOriginal.columnas.length > 1 ? (
+              <section className="cmmp-sec" aria-label={`Rótulos de ${actual.cruceOriginal.columnaVariable || "las columnas"}`}>
+                <h4>{actual.cruceOriginal.columnaVariable || "Columnas"}<span>{cifra(actual.cruceOriginal.columnas.length)} valores</span></h4>
+                <ValoresConRotulo
+                  columna={actual.cruceOriginal.columnaVariable || "Columnas"}
+                  valores={actual.cruceOriginal.columnas.map((c, j) => ({ valor: c, n: actual.cruceOriginal.conteos.reduce((s, fila) => s + (fila[j] ?? 0), 0) }))}
+                  rotulos={rotulos.columnas}
+                  onRotulo={(valor, r) => setRotulos((x) => conRotuloConteo(x, "columnas", valor, r))}
+                />
+              </section>
+            ) : null}
+          </div>
           <PulsoTable
             columnas={columnas}
             filas={(cruce?.filas ?? []).map((categoria, i) => ({ categoria, i }))}

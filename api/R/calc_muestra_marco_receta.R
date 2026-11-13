@@ -158,16 +158,39 @@ calc_muestra_marco_cuotas <- function(datos, receta, meta, modo = "celda", minim
 # Marco desde una tabla de conteos (un público sin base por persona)
 # ---------------------------------------------------------------------------
 
+#' Rótulos de una tabla de conteos: list(filas = list(<valor> = <rótulo>), columnas = ...).
+.cm_conteos_rotulos <- function(rotulos) {
+  r <- if (is.list(rotulos)) rotulos else list()
+  limpio <- .cm_receta_rotulos(list(filas = r$filas %||% list(), columnas = r$columnas %||% list()))
+  list(filas = limpio$filas %||% list(), columnas = limpio$columnas %||% list())
+}
+
+#' Aplica los rótulos a un cruce de conteos: renombra filas y columnas y suma las
+#' que quedan con el mismo rótulo (dos categorías que el equipo une en una).
+.cm_conteos_rotular <- function(cruce, rotulos) {
+  r <- .cm_conteos_rotulos(rotulos)
+  nuevo <- function(x, m) { x <- as.character(x); usa <- x %in% names(m); x[usa] <- unname(unlist(m)[x[usa]]); x }
+  filas <- nuevo(cruce$filas, r$filas)
+  columnas <- if (identical(cruce$columnas, "Total")) cruce$columnas else nuevo(cruce$columnas, r$columnas)
+  if (identical(filas, cruce$filas) && identical(columnas, cruce$columnas)) return(cruce)
+  uf <- unique(filas); uc <- unique(columnas)
+  m <- rowsum(cruce$conteos, factor(filas, levels = uf), reorder = FALSE)
+  m <- t(rowsum(t(m), factor(columnas, levels = uc), reorder = FALSE))
+  .cm_seg_cruce(cruce$fila_variable, cruce$columna_variable, uf, uc, m)
+}
+
 #' Declara el marco de un actor desde una tabla de conteos: la población es el
 #' total de la tabla y cada categoría de las filas es un segmento. Alcanza para
 #' la propuesta y las cuotas; el listado de envío necesita la base por persona.
 #' La receta guarda que es una tabla de conteos y cómo se llama la variable de
 #' sus columnas (por ejemplo "Sexo"), para repartir cuotas por el cruce.
-calc_muestra_marco_conteos_declarar <- function(estudio, estado, componente_id, df, file_id, hoja = "", columna_variable = "") {
+calc_muestra_marco_conteos_declarar <- function(estudio, estado, componente_id, df, file_id, hoja = "", columna_variable = "",
+                                                rotulos = list()) {
   estado <- .cm_general_estado(estado)
   idx <- .cm_general_buscar_componente(estudio, componente_id)
   lec <- calc_muestra_conteos_leer(df, columna_variable)
-  cruce <- lec$cruce
+  rotulos <- .cm_conteos_rotulos(rotulos)
+  cruce <- .cm_conteos_rotular(lec$cruce, rotulos)
   N_h <- as.integer(round(rowSums(cruce$conteos)))
   N <- sum(N_h)
   if (N <= 0L) stop_api(400, "E_BAD_REQUEST", "La tabla de conteos no suma población.")
@@ -180,7 +203,7 @@ calc_muestra_marco_conteos_declarar <- function(estudio, estado, componente_id, 
   comp$resultado <- NULL
   estudio$componentes[[idx]] <- calc_muestra_normalize_componente(comp)
   receta <- list(tipo = "conteos", columna_variable = cruce$columna_variable, categoria = lec$categoria,
-                 conteo_columnas = lec$conteo_columnas)
+                 conteo_columnas = lec$conteo_columnas, rotulos = rotulos)
   marco <- list(
     file_id = file_id, hoja = hoja, fuente = "conteos",
     columnas = list(id = lec$categoria, estrato = lec$categoria, tamano = ""),
@@ -198,7 +221,7 @@ calc_muestra_marco_conteos_declarar <- function(estudio, estado, componente_id, 
 #' variable de las columnas, el cruce completo.
 calc_muestra_marco_cuotas_conteos <- function(df, receta, meta, modo = "celda", minimo = 10L, columna = "") {
   lec <- calc_muestra_conteos_leer(df, calc_str(receta$columna_variable, ""))
-  cruce <- lec$cruce
+  cruce <- .cm_conteos_rotular(lec$cruce, receta$rotulos)
   variable <- cruce$columna_variable
   disponibles <- if (nzchar(variable)) list(variable) else list()
   columna <- calc_str(columna, "")

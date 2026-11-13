@@ -144,8 +144,10 @@ mount_calc_muestra_marco_publico <- function(pr) {
       body <- .cm_parse_body(req)
       df <- .cm_mp_leer(.cm_mp_archivo(sid, calc_str(body$file_id, "")), calc_str(body$hoja, ""))
       lec <- calc_muestra_conteos_leer(df, calc_str(body$columna_variable, ""))
+      # El cruce sale con los rótulos corregidos; el original sirve para corregirlos en pantalla.
       c(list(ok = TRUE, categoria = lec$categoria, conteo_columnas = lec$conteo_columnas,
-             calculadas = lec$calculadas, avisos = lec$avisos), .cm_mp_segmentos(lec$cruce, body))
+             calculadas = lec$calculadas, avisos = lec$avisos, cruce_original = calc_muestra_cruce_json(lec$cruce)),
+        .cm_mp_segmentos(.cm_conteos_rotular(lec$cruce, body$rotulos), body))
     })) |>
 
     # -----------------------------------------------------------------------
@@ -190,7 +192,8 @@ mount_calc_muestra_marco_publico <- function(pr) {
       estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
       out <- calc_muestra_marco_conteos_declarar(estudio, s$calc_muestra_general, componente_id, df,
                                                  file_id = file_id, hoja = hoja,
-                                                 columna_variable = calc_str(body$columna_variable, ""))
+                                                 columna_variable = calc_str(body$columna_variable, ""),
+                                                 rotulos = body$rotulos %||% list())
       session_set(sid, "calc_muestra_estudio", out$estudio)
       session_set(sid, "calc_muestra_general", out$estado)
       list(ok = TRUE, marco = out$marco, componente = out$componente, estudio = out$estudio)

@@ -28,7 +28,7 @@ Esta tanda deja el motor y sus rutas sin estado; guardar la receta del marco en 
 | 20 | Cuotas en pantalla: en Meta, la meta de un actor con base se reparte por sus segmentos, con una segunda variable opcional, por celda, con control o con mínimo de 10 | `RepartoAcreditacion.tsx`, ruta `/marco-publico/cuotas` | Hecho |
 | 21 | Tabla de conteos como fuente del marco en pantalla (un actor sin base por persona): N, un segmento por fila, cuotas por el cruce y sin listado de envío | `marcoPublico/FuenteConteos.tsx`, rutas `/declarar-conteos` y `/cuotas` | Hecho |
 | 22 | Rótulos corregibles: en Marco › Columnas cada valor de la columna elegida se renombra ("M" a "Hombres"); se aplica después de las reglas y nombra segmentos, cruces y cuotas | receta `rotulos`, `marcoPublico/ValoresConRotulo.tsx` | Hecho (base por persona) |
-| 23 | Rótulos corregibles en una tabla de conteos | `FuenteConteos.tsx` | Pendiente |
+| 23 | Rótulos corregibles en una tabla de conteos | `FuenteConteos.tsx`, `.cm_conteos_rotular` en `calc_muestra_marco_receta.R` (dos filas con el mismo rótulo se suman; la receta guarda los rótulos) | Hecho |
 
 ## Verificación
 

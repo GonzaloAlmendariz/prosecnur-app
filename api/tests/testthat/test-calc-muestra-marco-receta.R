@@ -201,3 +201,19 @@ test_that("un rótulo con nombre vacío se ignora y la columna sin rótulos qued
   expect_identical(out$s, c("Alfa", "", NA, " B"))
   expect_identical(out$n[2:4], c("2", "3", "4"))
 })
+
+test_that("los rótulos de una tabla de conteos renombran filas y columnas y suman las que se unen", {
+  df <- data.frame(Unidad = c("EDUCACION", "EDUC. INICIAL", "DERECHO"), Mujeres = c("10", "5", "20"), Hombres = c("4", "1", "30"),
+                   check.names = FALSE, stringsAsFactors = FALSE)
+  rot <- list(filas = list(EDUCACION = "Educación", "EDUC. INICIAL" = "Educación", DERECHO = "Derecho"),
+              columnas = list(Mujeres = "M", Hombres = "H"))
+  dec <- calc_muestra_marco_conteos_declarar(.rc_estudio(), list(), "cmp-doc", df, file_id = "f", columna_variable = "Sexo", rotulos = rot)
+  expect_setequal(vapply(dec$componente$marco$estratos, `[[`, "", "label"), c("Educación", "Derecho"))
+  expect_identical(as.integer(dec$componente$marco$marco_validado), 70L)
+  ed <- Filter(function(e) e$label == "Educación", dec$componente$marco$estratos)[[1]]
+  expect_identical(as.integer(ed$N), 20L)
+  cu <- calc_muestra_marco_cuotas_conteos(df, dec$marco$receta, 35, "celda", 10L, "Sexo")
+  expect_identical(cu$cruce$filas, c("Educación", "Derecho"))
+  expect_identical(cu$cruce$columnas, c("M", "H"))
+  expect_equal(cu$cruce$conteos["Educación", "M"], 15)
+})

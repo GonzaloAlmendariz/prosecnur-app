@@ -279,27 +279,37 @@ export type TablaDeConteos = {
   conteoColumnas: string[];
   calculadas: Array<{ columna: string; motivo: string }>;
   avisos: string[];
+  /** Con los rótulos corregidos aplicados. */
   cruce: CruceDelMarco;
+  /** Tal como viene en el archivo: de aquí salen los valores que se renombran. */
+  cruceOriginal: CruceDelMarco;
 };
 
-export async function apiMarcoPublicoConteos(input: { fileId: string; hoja: string; columnaVariable: string }): Promise<TablaDeConteos> {
-  const r = await post("conteos", { file_id: input.fileId, hoja: input.hoja, columna_variable: input.columnaVariable });
+export type RotulosDeConteos = { filas: Record<string, string>; columnas: Record<string, string> };
+
+export async function apiMarcoPublicoConteos(input: {
+  fileId: string; hoja: string; columnaVariable: string; rotulos?: RotulosDeConteos;
+}): Promise<TablaDeConteos> {
+  const r = await post("conteos", { file_id: input.fileId, hoja: input.hoja, columna_variable: input.columnaVariable, rotulos: input.rotulos ?? { filas: {}, columnas: {} } });
   const cruce = normalizarCruce(r.cruce);
-  if (!cruce) throw sinForma("/marco-publico/conteos");
+  const cruceOriginal = normalizarCruce(r.cruce_original) ?? cruce;
+  if (!cruce || !cruceOriginal) throw sinForma("/marco-publico/conteos");
   return {
     categoria: texto(r.categoria),
     conteoColumnas: lista(r.conteo_columnas).map(texto),
     calculadas: lista(r.calculadas).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => ({ columna: texto(x.columna), motivo: texto(x.motivo) })),
     avisos: lista(r.avisos).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => texto(x.texto)).filter(Boolean),
     cruce,
+    cruceOriginal,
   };
 }
 
 export async function apiMarcoPublicoDeclararConteos(input: {
-  componenteId: string; fileId: string; hoja: string; columnaVariable: string;
+  componenteId: string; fileId: string; hoja: string; columnaVariable: string; rotulos?: RotulosDeConteos;
 }): Promise<{ componente: CalcMuestraComponente | null; estudio: CalcMuestraEstudio | null }> {
   const r = await post("declarar-conteos", {
     componente_id: input.componenteId, file_id: input.fileId, hoja: input.hoja, columna_variable: input.columnaVariable,
+    rotulos: input.rotulos ?? { filas: {}, columnas: {} },
   });
   const comp = rec(r.componente);
   const est = rec(r.estudio);

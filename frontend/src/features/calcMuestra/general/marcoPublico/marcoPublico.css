@@ -183,3 +183,5 @@
 .cmmp-rotulos li > i { display: block; height: 8px; border-radius: 3px; background: var(--pulso-surface-3); overflow: hidden; }
 .cmmp-rotulos li > i > b { display: block; height: 100%; border-radius: 3px; background: var(--module-accent); }
 .cmmp-rotulos li > em { font-style: normal; font-weight: var(--pulso-weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
+.cmmp-rotulos-conteos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); border-top: 1px solid var(--pulso-border); }
+.cmmp-rotulos-conteos > .cmmp-sec + .cmmp-sec { border-top: 0; border-left: 1px solid var(--pulso-border); }
