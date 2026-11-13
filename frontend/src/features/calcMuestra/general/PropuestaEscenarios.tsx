@@ -145,7 +145,7 @@ export function PropuestaEscenarios({
         pie={(
           <div className="cmg-propuesta-pie">
             <div className="cmg-propuesta-redondeo">
-              <span id="cmg-redondeo">Meta desde un margen, redondeada a</span>
+              <span id="cmg-redondeo">Redondeo de la meta</span>
               <GlidingRadioGroup
                 value={redondeo}
                 options={REDONDEOS}
@@ -157,7 +157,7 @@ export function PropuestaEscenarios({
                 {(r) => <span>{r === 1 ? "Exacta" : cifra.format(r)}</span>}
               </GlidingRadioGroup>
             </div>
-            <span className="cmg-propuesta-nota">Margen de referencia al 95 % con p = 0.5.</span>
+            <span className="cmg-propuesta-nota">Margen al 95 %, p = 0.5</span>
           </div>
         )}
       >

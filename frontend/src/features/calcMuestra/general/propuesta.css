@@ -5,7 +5,8 @@
   container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
-  align-items: start;
+  /* La tabla y el inspector comparten alto: el espacio libre queda dentro del panel de la tabla, con su pie abajo. */
+  align-items: stretch;
   gap: var(--pulso-space-4);
 }
 @container (max-width: 1340px) {
