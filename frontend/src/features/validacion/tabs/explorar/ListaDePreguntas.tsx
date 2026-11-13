@@ -1,103 +1,205 @@
-import { useId, useMemo, useState } from "react";
-import { Search } from "../../../../vendor/lucide-react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { ChevronRight, Search } from "../../../../vendor/lucide-react";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { ExploradorSeccion, ExploradorVariable } from "../../types";
+import { ID_BUSCADOR_DE_PREGUNTAS, ID_LUPA_DE_PREGUNTAS } from "./AccionesDeLaLista";
 import ChipsTipo from "./ChipsTipo";
+import { rotuloDeSeccion, seccionDe, seccionesVisibles } from "./listaDePreguntasModelo";
+import { useEstadoDeLaLista, useListaDePreguntasStore } from "./listaDePreguntasStore";
 import {
   TIPO_ETIQUETA,
   TIPO_TONO,
   UMBRAL_COMPLETITUD,
-  coincide,
   completitud,
   conteoPorFamilia,
-  enFamilia,
   type FamiliaTipo,
 } from "./tiposVariable";
 
 /**
  * La lista de preguntas de Explorar (prototipo `validacion-explorar`, panel
- * "Preguntas"): buscador con lupa, chips de tipo con su conteo y, por
- * sección (con su rótulo, sin plegar), cada pregunta con su texto arriba, el código debajo con el punto
- * de su tipo y la completitud en una barra a todo el ancho.
+ * "Preguntas"): el buscador que abre la lupa de la cabecera, chips de tipo con
+ * su conteo y, por sección, un contenedor plegable con cada pregunta: su texto
+ * arriba, el código debajo con el punto de su tipo y la completitud en una
+ * barra a todo el ancho.
+ *
+ * Las secciones se pliegan a pedido de Gonzalo (ítem 38, 12 nov 2026); el
+ * porqué está en `sinAcordeones.contract.test.ts`. Al buscar se abren las que
+ * tienen coincidencias y la de la pregunta elegida se abre al elegirla.
  */
 export default function ListaDePreguntas({
+  base,
   secciones,
   elegida,
   onElegir,
   repeatCode = null,
   repeatLabel = null,
 }: {
+  /** Clave del estado de la lista (la base explorada). */
+  base: string;
   secciones: ExploradorSeccion[];
   elegida: string | null;
   onElegir: (v: ExploradorVariable) => void;
   repeatCode?: string | null;
   repeatLabel?: string | null;
 }) {
-  const [consulta, setConsulta] = useState("");
+  const { buscando, consulta, plegadas } = useEstadoDeLaLista(base);
+  const buscar = useListaDePreguntasStore((s) => s.buscar);
+  const cerrarBuscador = useListaDePreguntasStore((s) => s.cerrarBuscador);
+  const alternar = useListaDePreguntasStore((s) => s.alternar);
+  const abrir = useListaDePreguntasStore((s) => s.abrir);
   const [familia, setFamilia] = useState<FamiliaTipo>("todas");
   const listaId = useId();
+  const listaRef = useRef<HTMLDivElement>(null);
+  const campoRef = useRef<HTMLInputElement>(null);
 
   const todas = useMemo(() => secciones.flatMap((s) => s.variables), [secciones]);
   const conteo = useMemo(() => conteoPorFamilia(todas), [todas]);
-  const filtradas = useMemo(
-    () =>
-      secciones
-        .map((s) => ({ ...s, variables: s.variables.filter((v) => enFamilia(v, familia) && coincide(v, consulta)) }))
-        .filter((s) => s.variables.length > 0),
-    [secciones, consulta, familia],
-  );
+  const consultaActiva = buscando ? consulta : "";
+  const visibles = useMemo(() => seccionesVisibles(secciones, consultaActiva, familia), [secciones, consultaActiva, familia]);
+  const nVisibles = visibles.reduce((t, s) => t + s.variables.length, 0);
+  const cerradas = useMemo(() => new Set(plegadas), [plegadas]);
+
+  // La sección de la pregunta elegida se abre al elegirla (también al llegar con `foco` en la dirección).
+  const seccionElegida = useMemo(() => seccionDe(secciones, elegida), [secciones, elegida]);
+  useEffect(() => {
+    if (seccionElegida) abrir(base, [seccionElegida]);
+  }, [abrir, base, seccionElegida]);
+
+  // La pregunta elegida se trae a la vista dentro de la lista, sin mover lo que ya se ve.
+  useEffect(() => {
+    if (!elegida) return;
+    const filas = listaRef.current?.querySelectorAll<HTMLElement>("[data-pregunta]") ?? [];
+    const fila = Array.from(filas).find((f) => f.dataset.pregunta === elegida);
+    if (fila && typeof fila.scrollIntoView === "function") fila.scrollIntoView({ block: "nearest" });
+  }, [elegida, seccionElegida]);
+
+  useEffect(() => {
+    if (buscando) campoRef.current?.focus();
+  }, [buscando]);
+
+  const cerrar = () => {
+    cerrarBuscador(base);
+    document.getElementById(ID_LUPA_DE_PREGUNTAS)?.focus();
+  };
+
+  const alEscribir = (texto: string) => {
+    buscar(base, texto, seccionesVisibles(secciones, texto, familia).map((s) => s.nombre));
+    // Las coincidencias se leen desde la primera: el cuerpo vuelve arriba.
+    listaRef.current?.closest(".pulso-panel-de-mesa-cuerpo")?.scrollTo?.({ top: 0 });
+  };
+
+  const textoBuscado = consultaActiva.trim();
 
   return (
     <div className="vx-preguntas">
-      <div className="vx-busca">
-        <Search size={14} aria-hidden />
-        <PulsoInput
-          size="sm"
-          type="search"
-          aria-label="Buscar preguntas"
-          aria-controls={listaId}
-          placeholder="Buscar por texto o código"
-          value={consulta}
-          onChange={(e) => setConsulta(e.target.value)}
-        />
-      </div>
+      {buscando && (
+        <div className="vx-busca">
+          <span className="vx-busca-campo">
+            <Search size={14} aria-hidden />
+            <PulsoInput
+              ref={campoRef}
+              id={ID_BUSCADOR_DE_PREGUNTAS}
+              size="sm"
+              type="search"
+              aria-label="Buscar preguntas"
+              aria-controls={listaId}
+              placeholder="Código o texto de la pregunta"
+              value={consulta}
+              onChange={(e) => alEscribir(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  cerrar();
+                }
+              }}
+            />
+          </span>
+          {textoBuscado && (
+            <span className="vx-busca-conteo" role="status">
+              {nVisibles === 1 ? "1 coincidencia" : `${formatoConteo(nVisibles)} coincidencias`}
+            </span>
+          )}
+        </div>
+      )}
       <ChipsTipo valor={familia} conteo={conteo} onCambio={setFamilia} etiqueta="Filtrar la lista por tipo" />
-      <div className="vx-preguntas-lista" id={listaId}>
-        {filtradas.length === 0 && (
+      <div
+        className="vx-preguntas-lista"
+        id={listaId}
+        ref={listaRef}
+        data-qa-geometry-group="validacion/explorar-secciones"
+        data-qa-geometry-contract="intrinsic"
+      >
+        {visibles.length === 0 && (
           <p role="status" className="vx-barra-nota">
             {!secciones.length
               ? "Sin preguntas en esta base."
-              : consulta.trim()
-                ? `Ninguna pregunta coincide con "${consulta.trim()}".`
+              : textoBuscado
+                ? `Ninguna pregunta coincide con "${textoBuscado}".`
                 : "Ninguna pregunta de este tipo."}
           </p>
         )}
-        {filtradas.map((sec, i) => {
-          const seccionId = `${listaId}-seccion-${i}`;
-          return (
-            <div key={sec.nombre} className="vx-preguntas-seccion">
-              <h5 className="vx-preguntas-grupo" id={seccionId}>
-                <span>{sec.nombre}</span>
-                <span>{formatoConteo(sec.variables.length)}</span>
-              </h5>
-              <ul aria-labelledby={seccionId} data-qa-geometry-group="validacion/explorar-preguntas" data-qa-geometry-contract="intrinsic">
-                {sec.variables.map((v) => (
-                  <li key={v.name}>
-                    <FilaPregunta
-                      v={v}
-                      elegida={v.name === elegida}
-                      onClick={() => onElegir(v)}
-                      especifica={v.repeat_scope === "conditional" ? (repeatCode && repeatLabel ? `Variable específica de ${repeatLabel}` : "Variable condicional según el servicio") : null}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+        {visibles.map((sec, i) => (
+          <SeccionDePreguntas
+            key={sec.nombre}
+            id={`${listaId}-seccion-${i}`}
+            seccion={sec}
+            abierta={!cerradas.has(sec.nombre)}
+            onAlternar={() => alternar(base, sec.nombre)}
+          >
+            {sec.variables.map((v) => (
+              <li key={v.name}>
+                <FilaPregunta
+                  v={v}
+                  elegida={v.name === elegida}
+                  onClick={() => onElegir(v)}
+                  especifica={v.repeat_scope === "conditional" ? (repeatCode && repeatLabel ? `Variable específica de ${repeatLabel}` : "Variable condicional según el servicio") : null}
+                />
+              </li>
+            ))}
+          </SeccionDePreguntas>
+        ))}
       </div>
     </div>
+  );
+}
+
+function SeccionDePreguntas({
+  id,
+  seccion,
+  abierta,
+  onAlternar,
+  children,
+}: {
+  id: string;
+  seccion: ExploradorSeccion;
+  abierta: boolean;
+  onAlternar: () => void;
+  children: ReactNode;
+}) {
+  const rotulo = rotuloDeSeccion(seccion);
+  const n = seccion.variables.length;
+  return (
+    <section className="vx-preguntas-seccion" data-abierta={abierta ? "true" : "false"} aria-labelledby={`${id}-cab`}>
+      <h5 className="vx-preguntas-grupo">
+        <button type="button" id={`${id}-cab`} aria-expanded={abierta} aria-controls={`${id}-lista`} onClick={onAlternar}>
+          <ChevronRight size={14} className="vx-preguntas-grupo-chevron" aria-hidden />
+          {rotulo.esIdentificador ? (
+            <code className="vx-preguntas-grupo-nombre is-id">{rotulo.texto}</code>
+          ) : (
+            <span className="vx-preguntas-grupo-nombre">{rotulo.texto}</span>
+          )}
+          <span className="vx-preguntas-grupo-conteo">
+            {formatoConteo(n)}
+            <span className="pulso-sr-only">{n === 1 ? " pregunta" : " preguntas"}</span>
+          </span>
+        </button>
+      </h5>
+      <ul id={`${id}-lista`} hidden={!abierta} aria-labelledby={`${id}-cab`} data-qa-geometry-group="validacion/explorar-preguntas" data-qa-geometry-contract="intrinsic">
+        {children}
+      </ul>
+    </section>
   );
 }
 
@@ -118,7 +220,7 @@ function FilaPregunta({
   const texto = v.label || v.name;
   const tipo = TIPO_ETIQUETA[v.tipo] ?? TIPO_ETIQUETA.mixto;
   return (
-    <button type="button" className="vx-pregunta-fila" aria-current={elegida ? "true" : undefined} onClick={onClick} title={texto}>
+    <button type="button" className="vx-pregunta-fila" data-pregunta={v.name} aria-current={elegida ? "true" : undefined} onClick={onClick} title={texto}>
       <b>{texto}</b>
       {pct !== null && <em>{pct} %</em>}
       <span className="vx-pregunta-codigo">

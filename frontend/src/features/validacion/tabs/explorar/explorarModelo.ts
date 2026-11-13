@@ -13,6 +13,7 @@ import type {
 } from "../../../../api/validacionExplorar";
 import type { ViewDescriptor } from "../../types";
 import { fechaCorta } from "./escalas";
+import { nombreDelGrupo } from "./nombreDelGrupo";
 
 // --- Formatos -----------------------------------------------------------------
 // Propios y no `toLocaleString`: es-PE escribe «1,234.5» y el Node de los tests
@@ -157,10 +158,13 @@ export type LadoDivergente = "baja" | "centro" | "alta";
 
 export type Divergente = {
   segmentos: { fila: ExploradorDistFila; lado: LadoDivergente; intensidad: number }[];
-  baja: { pct: number; etiqueta: string };
-  centro: { pct: number; etiqueta: string } | null;
-  alta: { pct: number; etiqueta: string };
+  baja: LadoResumido;
+  centro: LadoResumido | null;
+  alta: LadoResumido;
 };
+
+/** Un lado de la escala sumado: porcentaje, casos y el nombre de las opciones que agrupa. */
+export type LadoResumido = { pct: number; n: number; etiqueta: string };
 
 /**
  * Una escala ordinal (sin las residuales) partida en sus dos mitades y, si es
@@ -177,19 +181,27 @@ export function divergente(filas: readonly ExploradorDistFila[]): Divergente | n
     const distancia = lado === "baja" ? mitad - i : lado === "alta" ? i - (centroIdx >= 0 ? centroIdx : mitad - 1) : 0;
     return { fila, lado, intensidad: lado === "centro" ? 0 : Math.min(1, distancia / Math.max(1, mitad)) };
   });
-  const suma = (lado: LadoDivergente) =>
-    segmentos.filter((s) => s.lado === lado).reduce((t, s) => t + s.fila.pct, 0);
-  // Cada lado se nombra con su opción más cercana al centro («En desacuerdo», «De acuerdo»): es el nombre del
-  // grupo entero, no del extremo («Totalmente…»), y es corto. Si las opciones son números (una escala de 0 a 10),
-  // el lado se nombra por su rango: «4» no dice nada, «0 a 4» sí.
+  const del = (lado: LadoDivergente) => segmentos.filter((s) => s.lado === lado);
+  // Cada lado se nombra con todas las opciones que suma ("Nada o poco interesado/a", ítem 39): con el nombre de
+  // una sola, "Poco interesado/a" sumaba también a "Nada". Si las opciones son números (una escala de 0 a 10),
+  // el lado se nombra por su rango: "4" no dice nada, "0 a 4" sí.
   const numerica = escala.every((f) => /^-?\d+([.,]\d+)?$/.test(f.etiqueta.trim()));
-  const lado = (desde: number, hasta: number, cerca: number) =>
-    numerica && desde !== hasta ? `${escala[desde].etiqueta} a ${escala[hasta].etiqueta}` : escala[cerca].etiqueta;
+  const resumir = (lado: LadoDivergente): LadoResumido => {
+    const filas = del(lado).map((s) => s.fila);
+    const etiqueta = numerica && filas.length > 1
+      ? `${filas[0].etiqueta} a ${filas[filas.length - 1].etiqueta}`
+      : nombreDelGrupo(filas.map((f) => f.etiqueta));
+    return {
+      pct: filas.reduce((t, f) => t + f.pct, 0),
+      n: filas.reduce((t, f) => t + f.n, 0),
+      etiqueta,
+    };
+  };
   return {
     segmentos,
-    baja: { pct: suma("baja"), etiqueta: lado(0, mitad - 1, mitad - 1) },
-    centro: centroIdx >= 0 ? { pct: suma("centro"), etiqueta: escala[centroIdx].etiqueta } : null,
-    alta: { pct: suma("alta"), etiqueta: lado(k - mitad, k - 1, k - mitad) },
+    baja: resumir("baja"),
+    centro: centroIdx >= 0 ? resumir("centro") : null,
+    alta: resumir("alta"),
   };
 }
 

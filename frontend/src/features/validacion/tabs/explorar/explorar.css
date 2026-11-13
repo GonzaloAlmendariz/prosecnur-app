@@ -63,12 +63,11 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+/* El rótulo sobre un control, en castellano normal: sin versalitas (ítem 39). */
 .vx-eyebrow {
   color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-eyebrow-size);
-  font-weight: var(--pulso-type-eyebrow-weight);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
 
@@ -498,10 +497,58 @@
   gap: 1px;
   font-weight: var(--pulso-weight-medium);
 }
-.vx-div-resumen > span > b {
+.vx-div-cifra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+}
+.vx-div-cifra > b {
   font-size: var(--pulso-type-kpi-size);
   font-weight: var(--pulso-weight-bold);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.vx-div-cifra > em {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.vx-div-resumen .is-alta .vx-div-cifra { justify-content: flex-end; }
+.vx-div-resumen .is-centro .vx-div-cifra { justify-content: center; }
+.vx-div-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.vx-div-resumen .is-alta .vx-div-grupo { flex-direction: row-reverse; }
+.vx-div-muestras {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+}
+.vx-div-muestras > i.vx-div-seg {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  min-width: 0;
+  border-radius: 3px;
+  box-shadow: none;
+}
+.vx-div-barra > .vx-div-seg { cursor: default; }
+.vx-div-barra > .vx-div-seg:focus-visible {
+  outline: 2px solid var(--module-accent-border, var(--pulso-primary-ring));
+  outline-offset: -2px;
+}
+.vx-div-globo {
+  font-variant-numeric: tabular-nums;
+}
+.vx-leyenda-cifra {
+  margin-inline-start: 4px;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 .vx-div-resumen .is-centro { align-items: center; }
@@ -1307,11 +1354,27 @@
   gap: var(--pulso-space-3);
   padding: var(--pulso-space-3) var(--pulso-space-3) var(--pulso-space-4);
 }
+/* El buscador que abre la lupa de la cabecera: fijo arriba del cuerpo mientras se recorre la lista. */
 .vx-busca {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  margin: calc(var(--pulso-space-3) * -1) calc(var(--pulso-space-3) * -1) 0;
+  padding: var(--pulso-space-3);
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+.vx-busca-campo {
   position: relative;
   display: block;
+  flex: 1 1 150px;
+  min-width: 0;
 }
-.vx-busca > svg {
+.vx-busca-campo > svg {
   position: absolute;
   top: 50%;
   left: 9px;
@@ -1323,6 +1386,30 @@
   width: 100%;
   padding-left: 28px;
   padding-right: var(--pulso-space-1);
+}
+.vx-busca-conteo {
+  flex: none;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.vx-lista-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+/* En la columna angosta (220 px) la cabecera no da para el ícono, el título, el conteo y los dos botones:
+   se van el ícono y el conteo, que el chip "Todas" ya dice. */
+@container mesa-pestana (max-width: 979px) {
+  .pulso-panel-de-mesa--preguntas .pulso-panel-de-mesa-tesela,
+  .pulso-panel-de-mesa--preguntas .pulso-panel-de-mesa-conteo {
+    display: none;
+  }
+}
+.vx-lupa.is-activa {
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  color: var(--module-accent, var(--pulso-primary));
 }
 .vx-preguntas .vx-chips {
   display: flex;
@@ -1337,13 +1424,25 @@
   flex-direction: column;
   gap: var(--pulso-space-2);
 }
+/* Cada sección en su contenedor: borde fino, encabezado en el tono bajo y las preguntas debajo. */
+.vx-preguntas-seccion {
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  overflow: clip;
+}
 .vx-preguntas-seccion > ul {
   margin: 0;
-  padding: 0;
+  padding: var(--pulso-space-1);
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  border-top: 1px solid var(--pulso-border);
+}
+.vx-preguntas-seccion > ul[hidden] {
+  display: none;
 }
 .vx-pregunta-fila {
   width: 100%;
@@ -1712,14 +1811,74 @@
 [data-qa-geometry-group="validacion/explorar-recodificacion"] .vx-barra-fila.is-primera .vx-relleno { background: var(--vx-mayor); }
 [data-qa-geometry-group="validacion/explorar-recodificacion"] .vx-barra-fila.is-residual .vx-relleno { background: var(--vx-resid); }
 .vx-preguntas-grupo {
+  margin: 0;
+  font: inherit;
+}
+.vx-preguntas-grupo > button {
+  width: 100%;
+  min-height: 40px;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--pulso-space-2);
-  margin: var(--pulso-space-2) 0 var(--pulso-space-1);
-  padding: 0 var(--pulso-space-3);
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 0;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  text-align: left;
+  cursor: pointer;
+}
+.vx-preguntas-grupo > button:hover {
+  background: var(--pulso-surface-3);
+}
+.vx-preguntas-grupo > button:focus-visible {
+  outline: 2px solid var(--module-accent-border, var(--pulso-primary-ring));
+  outline-offset: -2px;
+}
+.vx-preguntas-grupo-chevron {
+  flex: none;
+  color: var(--pulso-text-soft);
+  transition: transform 160ms ease;
+}
+.vx-preguntas-seccion[data-abierta="true"] .vx-preguntas-grupo-chevron {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .vx-preguntas-grupo-chevron { transition: none; }
+}
+.vx-preguntas-grupo-nombre {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.vx-preguntas-grupo-nombre.is-id {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-medium);
+}
+.vx-preguntas-grupo-conteo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 26px;
+  block-size: 22px;
+  box-sizing: border-box;
+  padding-inline: var(--pulso-space-2);
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: inset 0 0 0 1px var(--pulso-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+  font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+/* La fila de una pregunta deja libre el buscador fijo al traerse a la vista. */
+.vx-pregunta-fila {
+  scroll-margin-top: 64px;
 }
 
 /* En la columna derecha, "En el formulario" y "Lectura del cruce" miden lo

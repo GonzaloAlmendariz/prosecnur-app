@@ -44,6 +44,25 @@ export function acordeonesEn(linea: string): number {
   return details + plegado;
 }
 
+/**
+ * Plegados pedidos expresamente, con su cupo exacto. No es una lista de
+ * excepciones abierta: cada entrada cita el pedido y el cupo no sube sin otro.
+ *
+ * - `tabs/explorar/ListaDePreguntas.tsx`, 1: el encabezado de cada sección de
+ *   la lista "Preguntas" de Explorar (211 preguntas en el estudio de la
+ *   captura). Gonzalo, 12 nov 2026, ítem 38 del checklist del practicante:
+ *   "Le falta un buscador de variables con un botón de lupa elegante y las
+ *   secciones deberían tener contenedores que los diferencien mejor y las
+ *   secciones deberían poder expandirse o comprimirse". Con cientos de
+ *   preguntas la lista abierta entera obliga a desplazarse para llegar a una
+ *   sección; plegar es navegación dentro de la misma lista, no esconde otra
+ *   superficie. La sección de la pregunta elegida se abre al elegirla y la
+ *   búsqueda abre las que tienen coincidencias.
+ */
+const PEDIDOS: Record<string, number> = {
+  "tabs/explorar/ListaDePreguntas.tsx": 1,
+};
+
 /** Foto del 11 nov 2026, tras partir Instrumento y Limpieza. Sólo baja. */
 const SNAPSHOT: Record<string, number> = {
   "components/InstrumentoOperationalControls.tsx": 1,
@@ -61,8 +80,8 @@ describe("acordeones de Validación", () => {
   it("ningún archivo suma acordeones ni aparece uno nuevo", () => {
     expect(fuentes(aqui).length).toBeGreaterThan(70);
     const regresiones = Object.entries(conteo)
-      .filter(([f, n]) => n > (SNAPSHOT[f] ?? 0))
-      .map(([f, n]) => `${f}: ${SNAPSHOT[f] ?? 0} → ${n}`);
+      .filter(([f, n]) => n > (SNAPSHOT[f] ?? PEDIDOS[f] ?? 0))
+      .map(([f, n]) => `${f}: ${SNAPSHOT[f] ?? PEDIDOS[f] ?? 0} → ${n}`);
     expect(regresiones, "Lo que la vista promete se muestra a la vista, no plegado.").toEqual([]);
   });
 
@@ -71,6 +90,13 @@ describe("acordeones de Validación", () => {
       .filter(([f, n]) => (conteo[f] ?? 0) < n)
       .map(([f, n]) => `${f}: ${n} → ${conteo[f] ?? 0}`);
     expect(viejos).toEqual([]);
+  });
+
+  it("cada plegado pedido usa exactamente su cupo", () => {
+    const desfasados = Object.entries(PEDIDOS)
+      .filter(([f, n]) => (conteo[f] ?? 0) !== n)
+      .map(([f, n]) => `${f}: cupo ${n}, hay ${conteo[f] ?? 0}`);
+    expect(desfasados).toEqual([]);
   });
 
   it("el detector reconoce un acordeón y deja pasar el Ver más", () => {

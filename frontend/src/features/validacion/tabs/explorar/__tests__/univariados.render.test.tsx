@@ -89,13 +89,18 @@ test('una escala de 7 con "No sabe" y un código fuera de lista: los dos cierran
   const seg = host.querySelectorAll(".vx-div-barra > .vx-div-seg");
   expect(seg).toHaveLength(10);
   expect(host.querySelectorAll(".vx-div-barra > .vx-div-seg.is-aparte")).toHaveLength(3);
-  expect(host.querySelector(".vx-div-barra > .vx-div-seg.is-corte")?.getAttribute("title")).toContain("No sabe");
+  expect(host.querySelector(".vx-div-barra > .vx-div-seg.is-corte")?.getAttribute("aria-label")).toContain("No sabe");
   const leyenda = Array.from(host.querySelectorAll(".vx-div .vx-leyenda > span")).map((x) => x.textContent);
   expect(leyenda).toHaveLength(10);
-  expect(leyenda.slice(-3)).toEqual(["No sabe", "Sin información", "77"]);
-  // Los lados se nombran por la opción junto al centro; el centro, «Neutral».
+  // La cifra que no entra en su tramo va junto a su opción en la leyenda (ítem 39).
+  expect(leyenda.slice(-3)).toEqual(["No sabe", "Sin información3%", "772%"]);
+  // Cada lado se nombra con todas las opciones que suma (ítem 39); el centro, "Neutral".
   const resumen = Array.from(host.querySelectorAll(".vx-div-resumen > span")).map((x) => x.textContent);
-  expect(resumen).toEqual(["24.3%En desacuerdo", "19.4%Neutral", "43.7%De acuerdo"]);
+  expect(resumen).toEqual([
+    "24.3%Muy en desacuerdo, bastante en desacuerdo o en desacuerdo",
+    "19.4%Neutral",
+    "43.7%De acuerdo, bastante de acuerdo o muy de acuerdo",
+  ]);
 });
 
 test("una escala de 0 a 10 (11 puntos) y una de 4 sin centro se dibujan enteras", () => {
@@ -106,6 +111,6 @@ test("una escala de 0 a 10 (11 puntos) y una de 4 sin centro se dibujan enteras"
   const cuatro = escala(["Nada", "Poco", "Algo", "Mucho"], [10, 20, 30, 40]);
   act(() => root.render(<DistribucionBarras dist={cuatro} sinRespuesta={null} />));
   const resumen = Array.from(host.querySelectorAll(".vx-div-resumen > span")).map((x) => x.textContent);
-  expect(resumen).toEqual(["30.0%Poco", "70.0%Algo"]);
+  expect(resumen).toEqual(["30.0%Nada o poco", "70.0%Algo o mucho"]);
   expect(host.querySelector(".vx-div-resumen .is-alta")).toBeTruthy();
 });

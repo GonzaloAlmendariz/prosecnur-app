@@ -39,6 +39,7 @@ import { cabeceraDeExplorar } from "../pestanas/cabeceraDeValidacion";
 import CabeceraPregunta from "./explorar/CabeceraPregunta";
 import FlechasDePregunta from "./explorar/FlechasDePregunta";
 import ListaDePreguntas from "./explorar/ListaDePreguntas";
+import AccionesDeLaLista from "./explorar/AccionesDeLaLista";
 import { fraseEnTexto, lecturaDelFormulario } from "./explorar/lecturaDelFormulario";
 import { useSeleccionDeValidacion } from "../pestanaDireccionable";
 import Cruce from "./explorar/Cruce";
@@ -523,14 +524,17 @@ export default function ExplorarTab({
     </GraficoTarjeta>
   );
 
+  const claveLista = baseNombre ?? "";
   const lista = (
     <PanelDeMesa
       zona="preguntas"
       titulo={selectedRepeatOption ? `Preguntas para ${selectedRepeatOption.label}` : "Preguntas"}
       icono={<List size={16} aria-hidden />}
       conteo={flatVars.length}
+      acciones={<AccionesDeLaLista base={claveLista} secciones={scopedSections} elegida={selected?.name ?? null} />}
     >
       <ListaDePreguntas
+        base={claveLista}
         secciones={scopedSections}
         elegida={selected?.name ?? null}
         onElegir={onPickVariable}
