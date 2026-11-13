@@ -130,16 +130,16 @@ describe("P4 · la siguiente condición enlaza con la pestaña donde se resuelve
   const calcular = { tipo: "calcular", etiqueta: "Calcular" } as const;
   const sortear = { tipo: "seccion", seccion: "seleccion", etiqueta: "Ir a Selección" } as const;
 
-  it("Calcular vive en Método › Parámetros (general) y en Actores (acreditación)", () => {
+  it("Calcular vive en Método › Parámetros (general) y en Meta (acreditación)", () => {
     expect(enlaceSiguiente("marco_disponible", calcular, { seccion: "marco", pestana: "marco-archivo" }))
       .toEqual({ etiqueta: "Calcular en Parámetros", seccion: "metodo", pestana: "metodo-parametros" });
     expect(enlaceSiguiente("acreditacion", calcular, { seccion: "resultados", pestana: null }))
-      .toEqual({ etiqueta: "Calcular en Actores", seccion: "actores", pestana: null });
+      .toEqual({ etiqueta: "Calcular en Meta", seccion: "meta", pestana: null });
   });
 
   it("en la pestaña donde se resuelve no se enlaza consigo misma", () => {
     expect(enlaceSiguiente("marco_disponible", calcular, { seccion: "metodo", pestana: "metodo-parametros" })).toBeNull();
-    expect(enlaceSiguiente("acreditacion", calcular, { seccion: "actores", pestana: null })).toBeNull();
+    expect(enlaceSiguiente("acreditacion", calcular, { seccion: "meta", pestana: null })).toBeNull();
     expect(enlaceSiguiente("marco_disponible", sortear, { seccion: "seleccion", pestana: "seleccion-sorteo" })).toBeNull();
   });
 

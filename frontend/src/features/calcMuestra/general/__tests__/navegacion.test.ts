@@ -51,9 +51,11 @@ describe("Muestra general › Selección", () => {
 });
 
 describe("Acreditación › Selección (E5)", () => {
-  it("se declara entre Contexto y Resultados del modo acreditacion", () => {
+  it("se declara entre Contexto y Resultados del modo acreditacion, después de Marco y Meta", () => {
     expect(seccionesDelModo(CALC, "acreditacion").map((s) => s.id)).toEqual([
       "actores",
+      "marco",
+      "meta",
       "contexto",
       "seleccion",
       "resultados",
@@ -71,9 +73,9 @@ describe("Acreditación › Selección (E5)", () => {
 
   it("la página la monta en el rail y en la mesa con el mismo id, sin crecer", () => {
     const fuente = fs.readFileSync(path.join(__dirname, "..", "..", "CalcMuestraPage.tsx"), "utf8");
-    const rail = fuente.slice(fuente.indexOf("function railSectionsForDesk"), fuente.indexOf("function tecnicaLabel"));
-    const acreditacion = rail.slice(rail.indexOf('desk === "acreditacion"'), rail.indexOf('desk === "territorial_handoff"'));
-    expect(acreditacion.match(/id: "(\w+)"/g)).toEqual(['id: "actores"', 'id: "contexto"', 'id: "seleccion"', 'id: "resultados"']);
+    expect(fuente).toContain('if (desk === "acreditacion") return railAcreditacion();');
+    const acreditacion = fs.readFileSync(path.join(__dirname, "..", "railAcreditacion.ts"), "utf8");
+    expect(acreditacion.match(/id: "(\w+)"/g)).toEqual(['id: "actores"', 'id: "marco"', 'id: "meta"', 'id: "contexto"', 'id: "seleccion"', 'id: "resultados"']);
     expect(acreditacion).toContain('targetId: "cmv2-section-acreditacion-seleccion"');
     expect(fuente).toContain("<MesaAcreditacion");
     const mesa = fs.readFileSync(path.join(__dirname, "..", "MesaAcreditacion.tsx"), "utf8");

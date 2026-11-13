@@ -50,6 +50,13 @@ test_that("aplicar la receta deja a los invitados y etiqueta a cada uno con su g
   expect_false(anyNA(ap$datos[["Condición y categoría"]]))
 })
 
+test_that("sin nombre, el segmento se nombra por sus columnas y no pisa una columna de la base", {
+  r <- .rc_receta(); r$segmento$nombre <- ""
+  ap <- calc_muestra_marco_aplicar_receta(.rc_base(), r)
+  expect_identical(ap$columna_segmento, "cat por ded")
+  expect_true(all(c("cat", "ded") %in% names(ap$datos)))
+})
+
 test_that("una celda sin grupo o la regla de una encuesta por persona no entran en la receta", {
   r <- .rc_receta(); r$segmento$grupos[[5]] <- NULL
   expect_error(calc_muestra_marco_aplicar_receta(.rc_base(), r), class = "api_error")

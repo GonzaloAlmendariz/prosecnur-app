@@ -94,7 +94,7 @@ export function enlaceSiguiente(
 function destinoDeAccion(modo: ModoMesa, accion: AccionSiguiente): EnlaceSiguiente {
   if (accion.tipo === "calcular") {
     return modo === "acreditacion"
-      ? { etiqueta: "Calcular en Actores", seccion: "actores", pestana: null }
+      ? { etiqueta: "Calcular en Meta", seccion: "meta", pestana: null }
       : { etiqueta: "Calcular en Parámetros", seccion: "metodo", pestana: "metodo-parametros" };
   }
   const pestana = pestanaDestino(modo, accion.seccion);

@@ -41,7 +41,7 @@ describe("dirección de Cálculo de muestra", () => {
       "salidas",
     ]);
     // E5 (ADR 0090): Acreditación gana «Selección», el sorteo por actor.
-    expect(acreditacion.map((s) => s.id)).toEqual(["actores", "contexto", "seleccion", "resultados"]);
+    expect(acreditacion.map((s) => s.id)).toEqual(["actores", "marco", "meta", "contexto", "seleccion", "resultados"]);
   });
 
   it("cae al default del modo cuando la dirección pide una sección de otra mesa", () => {

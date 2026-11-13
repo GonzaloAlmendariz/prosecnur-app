@@ -1,0 +1,18 @@
+/* Acreditación › Actores y Meta (secciones de 2026-11-12). Solo tokens; el campo del nombre es PulsoInput. */
+.cmg-actor-nombre { display: flex; align-items: center; gap: 8px; min-width: 260px; }
+.cmg-actor-estado { display: inline-flex; align-items: baseline; gap: 6px; color: var(--pulso-text); text-decoration: none; }
+.cmg-actor-estado strong { font-variant-numeric: tabular-nums; }
+.cmg-actor-estado small { font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
+.cmg-actor-estado svg { align-self: center; color: var(--pulso-text-faint); transition: transform .15s; }
+.cmg-actor-estado:hover svg { transform: translateX(2px); color: var(--module-accent); }
+.cmg-sin-dato { color: var(--pulso-text-faint); font-weight: var(--pulso-weight-semibold); }
+.cmg-th-nota { margin-left: 2px; font-size: var(--pulso-type-micro-size); color: var(--pulso-text-faint); }
+.cmg-poblacion { font-weight: var(--pulso-weight-bold); font-variant-numeric: tabular-nums; }
+.cmg-exige { display: inline-grid; grid-template-columns: 96px 48px; gap: 8px; align-items: center; }
+.cmg-exige-barra { position: relative; display: block; height: 6px; border-radius: 3px; background: var(--pulso-surface-3); }
+.cmg-exige-barra i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--pulso-data-seq-4); }
+.cmg-exige-barra b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--pulso-text-soft); }
+.cmg-exige em { font-style: normal; font-weight: var(--pulso-weight-bold); text-align: right; font-variant-numeric: tabular-nums; }
+.cmg-exige[data-excede="true"] .cmg-exige-barra i { background: var(--pulso-danger-solid); }
+.cmg-exige[data-excede="true"] em { color: var(--pulso-danger-fg); }
+@media (prefers-reduced-motion: reduce) { .cmg-actor-estado svg { transition: none; } }

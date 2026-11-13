@@ -278,7 +278,7 @@ describe("G6 · Resultados contiene su vacío y el motivo del reporte", () => {
     expect(sinMarco.pista).toContain("reporte");
     const conMarco = vacioDeResultados("marco_disponible", [comp({ marco: { ...comp().marco, marco_validado: 5000 } })]);
     expect(conMarco.accion.seccion).toBeNull();
-    expect(vacioDeResultados("acreditacion", [comp()]).accion.seccion).toBe("actores");
+    expect(vacioDeResultados("acreditacion", [comp()]).accion.seccion).toBe("marco");
     expect(motivoReporteDeshabilitado(0)).toContain("Calcula primero");
     expect(motivoReporteDeshabilitado(1)).toBeNull();
   });
@@ -306,15 +306,15 @@ describe("A1/A2 · Acreditación", () => {
     expect(origenDeTecnica(sinCalcular).etiqueta).toBe("Se infiere al calcular");
   });
 
-  it("la tabla explica el cuadro maestro y enlaza cada actor con su Selección", () => {
+  it("Actores nombra cada público y enlaza su marco y su meta con el actor en foco", () => {
     const html = conRouter(
       <ActoresAcreditacion componentes={[actor({})]} onComponente={() => {}} />,
       "/calc-muestra?modo=acreditacion&seccion=actores",
     );
-    expect(html).toContain("cuadro maestro PULSO");
-    expect(html).toContain('href="/calc-muestra?modo=acreditacion&amp;seccion=seleccion&amp;foco=cmp-doc"');
+    expect(html).toContain('aria-label="Nombre de Docentes"');
+    expect(html).toContain('href="/calc-muestra?modo=acreditacion&amp;seccion=marco&amp;foco=cmp-doc"');
+    expect(html).toContain('href="/calc-muestra?modo=acreditacion&amp;seccion=meta&amp;foco=cmp-doc"');
     expect(html).not.toContain("Actor institucional de cobertura censal");
-    expect(html).toContain('data-desborda="false"');
     expect(hrefSeleccionDeActor("/calc-muestra", "?modo=acreditacion&seccion=actores&pestana=x", "c9"))
       .toBe("/calc-muestra?modo=acreditacion&seccion=seleccion&foco=c9");
   });

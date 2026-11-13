@@ -23,7 +23,9 @@ const ENCABEZADOS: Record<ModoMesa, Record<string, EncabezadoDeSeccion>> = {
     resultados: { titulo: "Resultados", linea: "El tamaño de muestra (n) calculado, su reparto por estrato y la propuesta." },
   },
   acreditacion: {
-    actores: { titulo: "Actores", linea: "Marco, canal y meta mínima de cada actor." },
+    actores: { titulo: "Actores", linea: "Los públicos del estudio, con su nombre y su canal." },
+    marco: { titulo: "Marco", linea: "La base de cada público y quién se invita." },
+    meta: { titulo: "Meta", linea: "Las encuestas de cada público, con su margen de error." },
     contexto: { titulo: "Contexto", linea: "Datos del estudio que van al reporte." },
     seleccion: { titulo: "Selección", linea: "Marco y selección aleatoria de cada actor, con probabilidad de selección (π) y peso." },
     resultados: { titulo: "Resultados", linea: "Meta y n de cada actor." },
@@ -61,7 +63,7 @@ export function vacioDeResultados(modo: ModoMesa, componentes: readonly CalcMues
   if (modo === "acreditacion") {
     return conMarco
       ? { titulo: "Falta calcular", pista: `Hay marcos declarados pero ningún actor calculado. ${motivo}`, accion: { etiqueta: "Calcular", seccion: null } }
-      : { titulo: "Ningún actor tiene marco", pista: `Declara el N de cada actor en Actores y calcula. ${motivo}`, accion: { etiqueta: "Ir a Actores", seccion: "actores" } };
+      : { titulo: "Ningún actor tiene marco", pista: `Carga el marco de cada actor y calcula. ${motivo}`, accion: { etiqueta: "Ir a Marco", seccion: "marco" } };
   }
   return conMarco
     ? { titulo: "Falta calcular", pista: `El marco está declarado; calcula el n con los parámetros de Método. ${motivo}`, accion: { etiqueta: "Calcular", seccion: null } }

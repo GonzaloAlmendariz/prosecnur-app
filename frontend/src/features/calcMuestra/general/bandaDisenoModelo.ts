@@ -299,8 +299,8 @@ export function estadoMesaAcreditacion(args: {
       clave: "sin-marco",
       tono: "pendiente",
       etiqueta: "Falta el N",
-      siguiente: "Declara el marco (N) de cada actor.",
-      accion: irA("actores", "Ir a Actores"),
+      siguiente: "Carga el marco de cada actor.",
+      accion: irA("marco", "Ir a Marco"),
     };
   }
   const sinCalculo = conN.filter((c) => !hayResultado([c]));
@@ -350,7 +350,7 @@ export function estadoMesaAcreditacion(args: {
       tono: "pendiente",
       etiqueta: "Actores sin N",
       siguiente: `${plural(sinN, "actor queda", "actores quedan")} fuera del cálculo por no tener marco.`,
-      accion: irA("actores", "Ir a Actores"),
+      accion: irA("marco", "Ir a Marco"),
     };
   }
   return {
@@ -804,7 +804,7 @@ export function requisitosReporteAcreditacion(args: {
       etiqueta: "Marco (N) por actor",
       listo: total > 0 && conN === total,
       estado: total > 0 ? `${fmtInt(conN)} de ${fmtInt(total)}` : "Sin actores",
-      seccion: "actores",
+      seccion: "marco",
     },
     {
       clave: "calculo",

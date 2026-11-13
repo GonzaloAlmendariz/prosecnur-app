@@ -2,6 +2,9 @@ import type { CalcMuestraEstudio, CalcMuestraWorkspace } from "../../../api/calc
 import { safeNumber, type ComponentePatch } from "../sharedCore";
 import { AccionCalcular } from "./AccionCalcular";
 import { ActoresAcreditacion } from "./ActoresAcreditacion";
+import { MarcoAcreditacion } from "./MarcoAcreditacion";
+import { MetaAcreditacion } from "./MetaAcreditacion";
+import { SECCIONES_ACREDITACION } from "./railAcreditacion";
 import { estadoMesaAcreditacion } from "./bandaDisenoModelo";
 import { ContextoReporte } from "./ContextoReporte";
 import { CabeceraAcreditacion } from "./CabeceraAcreditacion";
@@ -19,11 +22,11 @@ import "./mesa.css";
 import "./escala.css";
 import { Panel } from "../../../components/Panel";
 
-const SECCIONES = ["actores", "contexto", "seleccion", "resultados"];
+const SECCIONES: readonly string[] = SECCIONES_ACREDITACION;
 
 /**
- * Acreditación (modo `acreditacion`): Actores, Contexto, Selección y
- * Resultados. Misma cabecera que Muestra general: estado de la mesa con su
+ * Acreditación (modo `acreditacion`): Actores, Marco, Meta, Contexto, Selección
+ * y Resultados, en el orden del trabajo. Misma cabecera que Muestra general: estado de la mesa con su
  * siguiente condición y la banda «Diseño vigente» con totales y actores.
  */
 export function MesaAcreditacion({
@@ -65,6 +68,14 @@ export function MesaAcreditacion({
   // Ningún botón hijo le pasa su evento a `calcular`: la página lo leería
   // como el estudio a calcular y fallaría antes de pedir nada.
   const calcular = () => onCalcular();
+  // Marco es su propia mesa: la cabecera es la del actor en foco y sus pasos (no hay dos cabeceras apiladas).
+  if (selectedSection === "marco") {
+    return (
+      <div className="cmv2-desk cmg-mesa cmmp-mesa" data-seccion="marco" data-audit-ready="true" id="cmv2-section-acreditacion-marco">
+        <MarcoAcreditacion componentes={estudio.componentes} onComponente={onComponente} />
+      </div>
+    );
+  }
   return (
     <div className="cmv2-desk cmg-mesa" data-seccion={selectedSection}>
       <div className="cmg-cabecera" data-qa-geometry-group="calc-muestra/acreditacion-cabecera" data-qa-geometry-contract="intrinsic">
@@ -87,14 +98,26 @@ export function MesaAcreditacion({
             data-qa-geometry-contract="intrinsic"
           >
             <ActoresAcreditacion componentes={estudio.componentes} onComponente={onComponente} />
-            {/* Calcular vive donde se declaran N, canal y meta (E15 · P4). */}
+          </section>
+        )}
+        {selectedSection === "meta" && (
+          <section
+            id="cmv2-section-acreditacion-meta"
+            className="cmv2-tab-panel"
+            aria-labelledby="cmg-seccion-titulo"
+            data-qa-geometry-group="calc-muestra/acreditacion-meta"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <MetaAcreditacion componentes={estudio.componentes} onComponente={onComponente} />
+            {/* Calcular vive donde se fija la meta (E15 · P4). */}
             <AccionCalcular
               calculado={hayResultado(estudio.componentes)}
               calculando={calculando}
               onCalcular={calcular}
-              nota="Calcula el n de cada actor con su N, su canal y su meta."
-              motivo={estudio.componentes.some((c) => safeNumber(c.marco?.marco_validado, 0) > 0) ? null : "Declara el N de al menos un actor."}
+              nota="Calcula el n de cada actor con su población, su canal y su meta."
+              motivo={estudio.componentes.some((c) => safeNumber(c.marco?.marco_validado, 0) > 0) ? null : "Carga el marco de al menos un actor."}
             />
+            <PropuestaEscenarios componentes={estudio.componentes} workspace={workspace} onWorkspace={onWorkspace} />
           </section>
         )}
         {selectedSection === "contexto" && (
@@ -129,7 +152,6 @@ export function MesaAcreditacion({
             data-qa-geometry-contract="intrinsic"
           >
             <ResultadosComponentes modo="acreditacion" componentes={estudio.componentes} calculando={calculando} onCalcular={calcular} />
-            <PropuestaEscenarios componentes={estudio.componentes} workspace={workspace} onWorkspace={onWorkspace} />
             <Panel className="cmg-salida-acreditacion" aria-label="Reporte del diseño" data-qa-geometry-member>
               <SalidaReporte reporte={reporte} />
             </Panel>

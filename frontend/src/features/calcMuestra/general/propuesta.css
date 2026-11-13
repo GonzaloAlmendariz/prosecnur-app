@@ -38,12 +38,13 @@
 .cmg-campo-margen {
   box-sizing: border-box;
   block-size: var(--pulso-control-height-sm);
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--pulso-control-radius);
   background: transparent;
   font: inherit;
   font-variant-numeric: tabular-nums;
-  transition: border-color var(--motion-dur-fast) ease, background-color var(--motion-dur-fast) ease;
+  /* El borde es una sombra interior: el campo se lee como cifra y gana su línea al pasar o al enfocar. */
+  transition: box-shadow var(--motion-dur-fast) ease, background-color var(--motion-dur-fast) ease;
 }
 .cmg-campo-meta {
   inline-size: 100%;
@@ -77,13 +78,13 @@
 @media (hover: hover) {
   .cmg-campo-meta:hover,
   .cmg-campo-margen:hover {
-    border-color: var(--pulso-border);
+    box-shadow: inset 0 0 0 1px var(--pulso-border);
     background: var(--pulso-surface);
   }
 }
 .cmg-campo-meta:focus,
 .cmg-campo-margen:focus-within {
-  border-color: var(--module-accent, var(--pulso-primary));
+  box-shadow: inset 0 0 0 1px var(--module-accent, var(--pulso-primary));
   background: var(--pulso-surface);
   outline: var(--mov-foco);
   outline-offset: 1px;
@@ -98,7 +99,7 @@
 /* Una meta que exige más respuesta que la esperada. */
 .cmg-campo-meta[data-excede="true"],
 .cmg-campo-meta[data-excede="true"]:not(:focus) {
-  border-color: var(--pulso-danger-border);
+  box-shadow: inset 0 0 0 1px var(--pulso-danger-border);
   background: var(--pulso-danger-bg);
   color: var(--pulso-danger-fg);
 }
@@ -327,15 +328,6 @@
   .cmg-campo-margen {
     transition: none;
   }
-}
-.cmg-propuesta-aviso {
-  margin: 0;
-  padding: var(--pulso-space-2) var(--pulso-space-3);
-  border: 1px solid var(--pulso-danger-border);
-  border-radius: var(--pulso-control-radius);
-  background: var(--pulso-danger-bg);
-  color: var(--pulso-danger-fg);
-  font-size: var(--pulso-type-caption-size);
 }
 .cmg-insp-opciones {
   display: grid;

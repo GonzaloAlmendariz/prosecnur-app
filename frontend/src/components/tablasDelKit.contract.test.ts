@@ -28,7 +28,8 @@ const SNAPSHOT_TABLAS: Record<string, number> = {
   "features/analitica/MetadatosEditor.tsx": 1,
   "features/analitica/panes/PanelBasePane.tsx": 2,
   "features/calcMuestra/ComponenteTablas.tsx": 2,
-  "features/calcMuestra/general/ActoresAcreditacion.tsx": 1,
+  // La tabla de metas por actor era la de Actores (2026-11-12): Actores pasó a PulsoTable y la tabla a mano se mudó a Meta.
+  "features/calcMuestra/general/MetaAcreditacion.tsx": 1,
   "features/calcMuestra/general/EstratosGeneral.tsx": 1,
   "features/calcMuestra/general/FichaCorrida.tsx": 1,
   "features/calcMuestra/general/RepartoEstratosGrafico.tsx": 1,

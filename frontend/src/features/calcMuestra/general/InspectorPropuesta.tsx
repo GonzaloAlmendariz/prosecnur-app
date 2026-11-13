@@ -9,6 +9,7 @@ import { FileSpreadsheet, Presentation, Scale } from "lucide-react";
 import { apiCalcMuestraPropuestaExportar } from "../../../api/calcMuestra";
 import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
 import { useGeneracion } from "../../../components/entregables/useGeneracion";
+import { Alert } from "../../../components/Alert";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -131,10 +132,10 @@ export function InspectorPropuesta({ estado, filas, activa, onActiva, onCambio }
           ))}
         </ul>
         {excedidas.length > 0 ? (
-          <p className="cmg-propuesta-aviso" role="status">
+          <Alert kind="error">
             {excedidas.map(({ f }) => f.actor).join(", ")}: la meta exige más respuesta que la esperada y no se alcanza
             invitando a todos.
-          </p>
+          </Alert>
         ) : null}
       </section>
 

@@ -22,7 +22,7 @@ import {
 } from "../../../../api/calcMuestraGeneral";
 import { defaultComponente, fmtInt } from "../../sharedCore";
 import { NumberCell } from "../../universidad/aulas";
-import { ActoresAcreditacion } from "../ActoresAcreditacion";
+import { MetaAcreditacion } from "../MetaAcreditacion";
 import { EstratosGeneralVista } from "../EstratosGeneral";
 import { MetodoGeneralVista, metodoListo } from "../MetodoGeneral";
 import {
@@ -104,8 +104,8 @@ describe("V11 · NumberCell con nombre accesible", () => {
   });
 });
 
-describe("Acreditación › Actores", () => {
-  const tabla = (componentes: CalcMuestraComponente[]) => conRouter(<ActoresAcreditacion componentes={componentes} onComponente={() => {}} />);
+describe("Acreditación › Meta", () => {
+  const tabla = (componentes: CalcMuestraComponente[]) => conRouter(<MetaAcreditacion componentes={componentes} onComponente={() => {}} />, "/calc-muestra?modo=acreditacion&seccion=meta");
 
   it('V16 · docentes con MAS muestran la respuesta esperada y el margen, no "sobremuestra 0 %"', () => {
     const html = tabla([docentesMas()]);
@@ -116,10 +116,12 @@ describe("Acreditación › Actores", () => {
     expect(html).not.toContain("0.0%");
   });
 
-  it('V11 · Marco (N) y la cuota llevan nombre y rótulo real; nada de "Cuota sin fijar."', () => {
+  it('V11 · la población viene del Marco y la cuota lleva nombre y rótulo real; nada de "Cuota sin fijar."', () => {
     const cuotas = { ...docentesMas(), tecnica: "no_prob_cuotas" as const };
     const html = tabla([cuotas]);
-    expect(html).toContain('aria-label="Marco (N) de Docentes"');
+    // La población no se edita en Meta: se lee del Marco.
+    expect(html).not.toContain('aria-label="Marco (N) de Docentes"');
+    expect(html).toContain('<td class="cmg-num cmg-poblacion">1,000</td>');
     expect(html).toContain('aria-label="Cuota de Docentes"');
     expect(html).not.toContain("Cuota sin fijar.");
     // Cada input de la tabla tiene nombre propio.
@@ -131,7 +133,7 @@ describe("Acreditación › Actores", () => {
   it("V9 · caption, cabeceras con scope, actor como rótulo de fila y numéricas a la derecha", () => {
     const html = tabla([docentesMas()]);
     expect(html).toMatch(/<caption class="cmg-sr-only">/);
-    expect(html).toContain('<th scope="col" class="cmg-num">Marco (N)</th>');
+    expect(html).toContain('<th scope="col" class="cmg-num">Población</th>');
     expect(html).toContain('<th scope="row">');
     expect(html).not.toMatch(/<th>(?!<)/);
   });
@@ -139,7 +141,7 @@ describe("Acreditación › Actores", () => {
   it("V13 · readiness declarada y V12 · el título es un h3 bajo el h2 de la sección", () => {
     const html = tabla([docentesMas()]);
     expect(html).toContain('data-audit-ready="true"');
-    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-actores-marco-titulo">');
+    expect(html).toContain('<h3 class="pulso-panel-title"><span id="cmg-meta-titulo">');
     expect(sinSaltos(html)).toBe(true);
   });
 

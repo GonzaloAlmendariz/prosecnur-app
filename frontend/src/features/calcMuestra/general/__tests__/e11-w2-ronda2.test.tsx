@@ -17,7 +17,7 @@ import {
   type CalcMuestraCatalogoParametros,
 } from "../../../../api/calcMuestraGeneral";
 import { defaultComponente } from "../../sharedCore";
-import { ActoresAcreditacion } from "../ActoresAcreditacion";
+import { MetaAcreditacion } from "../MetaAcreditacion";
 import { EstratosGeneralVista } from "../EstratosGeneral";
 import { campoMetaDelActor, pieDeCuota } from "../modelo";
 import { ParametrosTecnicaVista } from "../ParametrosTecnica";
@@ -37,7 +37,7 @@ function docentes(patch: Partial<CalcMuestraComponente["parametros"]> = {}, tecn
 function actores(componentes: CalcMuestraComponente[]): string {
   return renderToStaticMarkup(
     <MemoryRouter initialEntries={["/calc-muestra?modo=acreditacion&seccion=actores"]}>
-      <ActoresAcreditacion componentes={componentes} onComponente={() => {}} />
+      <MetaAcreditacion componentes={componentes} onComponente={() => {}} />
     </MemoryRouter>,
   );
 }
@@ -145,11 +145,12 @@ describe("V9 · la divisoria recorre la fila entera", () => {
 });
 
 describe("V10 · los inputs numéricos declaran es-PE sin tocar su valor", () => {
-  it("Actores: tabla y porcentaje en es-PE; el valor sigue siendo la cifra cruda", () => {
+  it("Meta: tabla y porcentaje en es-PE; el valor sigue siendo la cifra cruda", () => {
     const html = actores([docentes()]);
     expect(html).toMatch(/<table class="cmv2-table cmg-tabla-actores"[^>]*lang="es-PE"/);
     expect(html).toMatch(/<input type="number" lang="es-PE"[^>]*aria-label="Respuesta esperada de Docentes"[^>]*value="60"/);
-    expect(html).toMatch(/aria-label="Marco \(N\) de Docentes" value="1000"/);
+    // La población se escribe en Marco; en Meta se lee.
+    expect(html).toContain('<td class="cmg-num cmg-poblacion">1,000</td>');
   });
 
   it('Parámetros: el margen se escribe "0.05", no "0,05"', () => {

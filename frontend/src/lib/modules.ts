@@ -383,7 +383,9 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "acreditacion",
         label: "Acreditación",
         sections: [
-          { id: "actores", label: "Actores", icon: ClipboardList, to: "/calc-muestra?modo=acreditacion&seccion=actores", layoutPolicy: "viewport" },
+          { id: "actores", label: "Actores", icon: Users, to: "/calc-muestra?modo=acreditacion&seccion=actores", layoutPolicy: "viewport" },
+          { id: "marco", label: "Marco", icon: FileSpreadsheet, to: "/calc-muestra?modo=acreditacion&seccion=marco", layoutPolicy: "viewport" },
+          { id: "meta", label: "Meta", icon: Target, to: "/calc-muestra?modo=acreditacion&seccion=meta", layoutPolicy: "viewport" },
           { id: "contexto", label: "Contexto", icon: IconStudyDesign, to: "/calc-muestra?modo=acreditacion&seccion=contexto", layoutPolicy: "viewport" },
           { id: "seleccion", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=acreditacion&seccion=seleccion", layoutPolicy: "viewport", tabs: CALC_MUESTRA_ACREDITACION_PESTANAS.seleccion },
           { id: "resultados", label: "Resultados", icon: BarChart3, to: "/calc-muestra?modo=acreditacion&seccion=resultados", layoutPolicy: "viewport" },

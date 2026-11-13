@@ -161,6 +161,7 @@ import { usePlannerModos } from "../estudio/usePlannerModos";
 import { AvisoDiferenciaDeTipo } from "./AvisoDiferenciaDeTipo";
 import { diferenciaDeTipo } from "./diferenciaDeTipo";
 import { loQueSePierde } from "./modeloVistaPreviaTipo";
+import { railAcreditacion } from "./general/railAcreditacion";
 import { MesaAcreditacion, MesaGeneral, TerritorialHandoff, labelMarcoOcasional, productoLabel, tecnicaCalculadaLabel, tecnicaLabel, tecnicaProducto, variableControl, type MarcoOcasional } from "./general";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
@@ -364,14 +365,7 @@ function railSectionsForDesk(desk: ActiveDesk): CalcMuestraSectionNavItem[] {
       { id: "resultados", label: "Resultados", detail: "n, distribución y reporte", icon: BarChart3, targetId: "cmv2-section-general-resultados" },
     ];
   }
-  if (desk === "acreditacion") {
-    return [
-      { id: "actores", label: "Actores", detail: "marco y canal", icon: ClipboardList, targetId: "cmv2-section-acreditacion-actores" },
-      { id: "contexto", label: "Contexto", detail: "programa y fuente", icon: Database, targetId: "cmv2-section-acreditacion-contexto" },
-      { id: "seleccion", label: "Selección", detail: "marco y sorteo por actor", icon: Grid3X3, targetId: "cmv2-section-acreditacion-seleccion" },
-      { id: "resultados", label: "Resultados", detail: "metas por actor", icon: BarChart3, targetId: "cmv2-section-acreditacion-resultados" },
-    ];
-  }
+  if (desk === "acreditacion") return railAcreditacion();
   if (desk === "territorial_handoff") {
     return [
       { id: "hojas-ruta", label: "Diseño de rutas", detail: "zonas, manzanas y viviendas", icon: MapPinned, route: "hojas-ruta" },

@@ -12,7 +12,7 @@ import type { CalcMuestraComponente } from "../../../api/calcMuestra";
 import type { CalcMuestraGeneralCorrida, CalcMuestraGeneralMarco } from "../../../api/calcMuestraGeneral";
 import { CabeceraDePestana, type TonoDeEstadoDePestana } from "../../../components/procesamiento/CabeceraDePestana";
 import type { CifraDePestana } from "../../../components/procesamiento/CifrasDePestana";
-import { safeNumber } from "../sharedCore";
+import { fmtInt, safeNumber } from "../sharedCore";
 import { conteoSorteosAcreditacion, type EstadoMesa, type TonoEstadoMesa } from "./bandaDisenoModelo";
 import { enlaceSiguiente, searchConSeccionYPestana } from "./modeloPestanas";
 import { encabezadoDeSeccion, MODO_ETIQUETA } from "./secciones";
@@ -38,7 +38,7 @@ export function cifrasCabeceraAcreditacion(args: {
       clave: "poblacion",
       valor: conN.length ? cifra.format(conN.reduce((s, c) => s + safeNumber(c.marco?.marco_validado, 0), 0)) : "Sin N",
       rotulo: "población",
-      titulo: `Suma de los marcos de ${conN.length} ${conN.length === 1 ? "actor" : "actores"}.`,
+      titulo: `Suma de los marcos de ${fmtInt(conN.length)} ${conN.length === 1 ? "actor" : "actores"}.`,
       rango: 1,
     },
     {

@@ -71,7 +71,8 @@ calc_muestra_marco_aplicar_receta <- function(datos, receta) {
   } else if (nzchar(seg$columna)) {
     paste(vf, vc, sep = ", ")
   } else vf
-  nombre <- if (nzchar(seg$nombre)) seg$nombre else seg$fila
+  # Sin nombre, el de sus columnas: "CAT_DESCRI por DEDICACION" no choca con una columna de la base.
+  nombre <- if (nzchar(seg$nombre)) seg$nombre else if (nzchar(seg$columna)) paste(seg$fila, "por", seg$columna) else paste("Segmento por", seg$fila)
   col <- nombre
   k <- 2L
   while (col %in% names(df)) { col <- paste0(nombre, " (", k, ")"); k <- k + 1L }

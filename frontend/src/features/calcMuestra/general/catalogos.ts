@@ -123,6 +123,9 @@ const ACTOR_ETIQUETA: Record<string, string> = {
 export function actorVisual(comp: CalcMuestraComponente): { key: string; label: string } {
   const key = comp.actor_categoria === "otros" ? comp.actor_id || "otros" : comp.actor_categoria;
   const label = ACTOR_ETIQUETA[key];
+  // El nombre que el usuario le puso al público manda; la categoría solo da el color.
+  const propio = (comp.actor ?? "").trim();
+  if (propio) return { key: label ? key : "otros", label: propio };
   return label ? { key, label } : { key: "otros", label: comp.actor };
 }
 
