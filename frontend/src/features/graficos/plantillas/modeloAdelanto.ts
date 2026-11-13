@@ -44,8 +44,14 @@ export function seleccionSinLeer(fuera: number): string {
   return fuera === 1 ? "1 pregunta queda fuera del informe." : `${fuera.toLocaleString("en-US")} preguntas quedan fuera del informe.`;
 }
 
-/** El aviso de reemplazo que acompaña al botón de crear: una plantilla siempre reemplaza el informe. */
+/**
+ * El aviso junto a los botones de crear cuando el proyecto ya tiene láminas (ítem 48, 2026-11-13): dice cuántas son y
+ * qué hace cada opción. Reemplazar el informe borra esas láminas; el informe aparte las deja y sale como otro archivo.
+ */
 export function avisoDeReemplazo(laminas: number): string {
   if (laminas <= 0) return "";
-  return laminas === 1 ? "Se reemplaza la lámina del informe." : `Se reemplazan las ${laminas.toLocaleString("en-US")} láminas del informe.`;
+  const una = laminas === 1;
+  const cuantas = una ? "1 lámina" : `${laminas.toLocaleString("en-US")} láminas`;
+  return `El proyecto ya tiene un informe de ${cuantas}. Reemplazarlo ${una ? "la borra" : "las borra"}; el informe aparte sale `
+    + `como un PowerPoint nuevo y ${una ? "la deja como está" : "las deja como están"}.`;
 }

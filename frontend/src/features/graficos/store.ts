@@ -137,7 +137,7 @@ type Snapshot = {
 // analista edita mucho tiempo sin recargar.
 const MAX_HISTORY = 30;
 
-type PlanStore = {
+export type PlanStore = {
   // --- Config principal (persistida) ---
   plan: PlanJson;
   presets: Record<string, Record<string, unknown>>;
@@ -522,6 +522,25 @@ function estiloDePerfil(state: PlanStore, profile: PptStyleProfileMeta) {
   };
 }
 
+/**
+ * Lo que cambia en el estado al aplicar un plan sugerido, sin aplicarlo. Lo usa la acción única del store y el informe
+ * aparte de la pestaña Plantillas, que genera el PowerPoint con la plantilla sin tocar las láminas del proyecto.
+ */
+export function cambiosDePlanSugerido(state: PlanStore, { plan, perfil, identidad, autoOtrosSlides, perfilQueSale }: PlanSugeridoAplicable) {
+  // Al cambiar de estilo se quita primero lo que dejó el perfil anterior (identidadDePlantilla.ts): volver a Pulso
+  // desde ACNUR no conserva el estilo, las paletas ni los ajustes de ACNUR que nadie editó.
+  const quitado = perfilQueSale ? sinPerfil(state, perfilQueSale) : null;
+  const base = quitado ? ({ ...state, ...quitado } as PlanStore) : state;
+  const estilo = perfil ? estiloDePerfil(base, perfil) : quitado;
+  return {
+    plan,
+    selectedSlideId: plan.slides[0]?.id ?? null,
+    ...(estilo ?? {}),
+    scopeRules: scopeRulesConIdentidad(estilo?.scopeRules ?? state.scopeRules, identidad) as ScopeRulesConfig,
+    ...(autoOtrosSlides !== undefined ? { autoOtrosSlides } : {}),
+  };
+}
+
 export const usePlanStore = create<PlanStore>((set) => ({
   plan: { slides: [] },
   presets: {},
@@ -545,20 +564,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
   setAutoOtrosSlides: (value) => set((state) => (
     state.autoOtrosSlides === value ? state : dirty(state, { autoOtrosSlides: value })
   )),
-  aplicarPlanSugerido: ({ plan, perfil, identidad, autoOtrosSlides, perfilQueSale }) => set((state) => {
-    // Al cambiar de estilo se quita primero lo que dejó el perfil anterior (identidadDePlantilla.ts): volver a Pulso
-    // desde ACNUR no conserva el estilo, las paletas ni los ajustes de ACNUR que nadie editó.
-    const quitado = perfilQueSale ? sinPerfil(state, perfilQueSale) : null;
-    const base = quitado ? ({ ...state, ...quitado } as PlanStore) : state;
-    const estilo = perfil ? estiloDePerfil(base, perfil) : quitado;
-    return dirty(state, {
-      plan,
-      selectedSlideId: plan.slides[0]?.id ?? null,
-      ...(estilo ?? {}),
-      scopeRules: scopeRulesConIdentidad(estilo?.scopeRules ?? state.scopeRules, identidad) as ScopeRulesConfig,
-      ...(autoOtrosSlides !== undefined ? { autoOtrosSlides } : {}),
-    });
-  }),
+  aplicarPlanSugerido: (entrada) => set((state) => dirty(state, cambiosDePlanSugerido(state, entrada))),
   hydrated: false,
   hydrationRetrying: false,
   setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),

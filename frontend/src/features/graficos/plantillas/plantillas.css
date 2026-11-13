@@ -323,7 +323,7 @@
   color: var(--pulso-text);
 }
 
-/* Confirmación: la pregunta, el aviso de reemplazo y el botón primario en una fila al pie del adelanto. */
+/* Confirmación: la pregunta, el aviso de reemplazo y los botones en una fila al pie del adelanto. */
 .pulso-plantillas-generar {
   display: flex;
   flex-wrap: wrap;
@@ -337,9 +337,17 @@
 
 .pulso-plantillas-generar-texto {
   display: flex;
+  flex: 1 1 320px;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+}
+
+/* Con láminas en el proyecto: informe aparte (primario) y reemplazar (secundario), juntos a la derecha. */
+.pulso-plantillas-generar-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
 }
 
 .pulso-plantillas-generar-pregunta {

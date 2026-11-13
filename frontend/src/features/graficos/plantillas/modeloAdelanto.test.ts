@@ -23,7 +23,11 @@ describe("adelanto de la plantilla", () => {
     expect(seleccionSinLeer(1)).toBe("1 pregunta queda fuera del informe.");
     expect(seleccionSinLeer(3)).toBe("3 preguntas quedan fuera del informe.");
     expect(avisoDeReemplazo(0)).toBe("");
-    expect(avisoDeReemplazo(1)).toBe("Se reemplaza la lámina del informe.");
-    expect(avisoDeReemplazo(24)).toBe("Se reemplazan las 24 láminas del informe.");
+    expect(avisoDeReemplazo(1)).toBe(
+      "El proyecto ya tiene un informe de 1 lámina. Reemplazarlo la borra; el informe aparte sale como un PowerPoint nuevo y la deja como está.",
+    );
+    expect(avisoDeReemplazo(1524)).toBe(
+      "El proyecto ya tiene un informe de 1,524 láminas. Reemplazarlo las borra; el informe aparte sale como un PowerPoint nuevo y las deja como están.",
+    );
   });
 });

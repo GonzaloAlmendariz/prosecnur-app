@@ -8,6 +8,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { ChevronDown, ChevronRight, ListChecks, Loader2, Plus, Trash2 } from "../../../vendor/lucide-react";
 import { apiGraficosPlanSugerido, apiGraficosTemplates } from "../../../api/client";
 import { apiPlannerEstado } from "../../../api/planner";
+import { apiGraficosPpt } from "../../../api/graficos";
+import { ContenedorEntregable } from "../../../components/entregables/ContenedorEntregable";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
+import type { PlanSugeridoAplicable } from "../armarDesde/aplicarPlanSugerido";
 import { apiGraficosEstructuraInforme, type EstructuraDelInforme, type GraficoPorPregunta, type SeccionDelInforme } from "../../../api/graficosEstructura";
 import { Alert } from "../../../components/Alert";
 import { PulsoButton } from "../../../components/PulsoButton";
@@ -53,6 +57,7 @@ import {
 } from "./modeloPlantillas";
 import { AdelantoPlantilla } from "./AdelantoPlantilla";
 import { avisoDeReemplazo, seleccionSinLeer } from "./modeloAdelanto";
+import { pedidoDeInformeAparte } from "./informeAparte";
 import "./plantillas.css";
 
 type Carga = { fase: "sin-leer" } | { fase: "cargando" } | { fase: "lista"; estructura: EstructuraDelInforme } | { fase: "error"; mensaje: string };
@@ -120,6 +125,7 @@ export default function PestanaPlantillas() {
   const [guardando, setGuardando] = useState(false);
   const [nombreNueva, setNombreNueva] = useState("");
   const pedido = useRef(0);
+  const informeAparte = useGeneracion({ titulo: "Informe aparte", modulo: "Procesamiento", articulo: "el", formato: "pptx" });
 
   // La estructura depende sólo de la plantilla: encender o apagar preguntas no la vuelve a pedir (cada pedido arma el
   // plan completo en el backend, decenas de segundos en un estudio grande). Cambiar de plantilla vuelve al adelanto.
@@ -177,43 +183,53 @@ export default function PestanaPlantillas() {
     });
   }
 
-  // Una plantilla siempre reemplaza el informe (Gonzalo, 2026-11-11): no se agregan láminas de otra plantilla al final.
-  // El reemplazo y los cambios de identidad se leen junto al botón de crear, que es la única confirmación.
+  // El plan de la plantilla, listo para aplicar o para exportar aparte: plan, estilo e identidad que trae.
+  async function planDePlantilla(): Promise<PlanSugeridoAplicable> {
+    let plan;
+    let perfil = null;
+    let identidad = null;
+    if (plantilla.enBlanco) {
+      const { templates } = await apiGraficosTemplates();
+      const vacio = templates.find((t) => t.name === "plan_vacio") ?? templates[0];
+      if (!vacio) throw new Error("No se encontró la plantilla en blanco.");
+      plan = clonePlanWithFreshIds(vacio.plan);
+    } else {
+      const perfilId = (plantilla.config.profile_id as string | undefined) ?? "auto";
+      const result = await apiGraficosPlanSugerido(configDePlantilla(buildGraficosConfigFromStore(), plantilla));
+      plan = clonePlanWithFreshIds(result.plan);
+      perfil = perfiles.find((p) => p.name === perfilResuelto(result, perfilId)) ?? null;
+      identidad = identidadDelPlan(result, perfilId);
+    }
+    // Con varias bases, cada pregunta sale con su base escrita (`default$p7`): el plan nuevo no arranca con el aviso
+    // "se leen de la base principal sin que el plan lo diga" en cada lámina (fijarBase.ts).
+    if (multi) plan = { ...plan, slides: conBaseFijada(plan.slides, variables, relacionBases).slides };
+    const cambiaEstilo = !plantilla.enBlanco && nombreDeEstilo(perfilVigente(reglas)) !== nombreDeEstilo(idPerfilNuevo);
+    return { plan, perfil, identidad, perfilQueSale: cambiaEstilo ? perfilActual : null };
+  }
+
+  // Sin láminas, la plantilla crea el informe. Con láminas, reemplazarlas es una de dos opciones y se dice cuántas son:
+  // la otra es el informe aparte (ítem 48, 2026-11-13; antes, "una plantilla siempre reemplaza el informe", 2026-11-11).
   async function crearLaminas() {
     setCreando(true);
     setErrorCrear("");
     try {
-      let plan;
-      let perfil = null;
-      let identidad = null;
-      if (plantilla.enBlanco) {
-        const { templates } = await apiGraficosTemplates();
-        const vacio = templates.find((t) => t.name === "plan_vacio") ?? templates[0];
-        if (!vacio) throw new Error("No se encontró la plantilla en blanco.");
-        plan = clonePlanWithFreshIds(vacio.plan);
-      } else {
-        const perfilId = (plantilla.config.profile_id as string | undefined) ?? "auto";
-        const result = await apiGraficosPlanSugerido(configDePlantilla(buildGraficosConfigFromStore(), plantilla));
-        plan = clonePlanWithFreshIds(result.plan);
-        perfil = perfiles.find((p) => p.name === perfilResuelto(result, perfilId)) ?? null;
-        identidad = identidadDelPlan(result, perfilId);
-      }
-      // Con varias bases, cada pregunta sale con su base escrita (`default$p7`): el plan nuevo no arranca con el aviso
-      // "se leen de la base principal sin que el plan lo diga" en cada lámina (fijarBase.ts).
-      if (multi) plan = { ...plan, slides: conBaseFijada(plan.slides, variables, relacionBases).slides };
-      const cambiaEstilo = !plantilla.enBlanco && nombreDeEstilo(perfilVigente(reglas)) !== nombreDeEstilo(idPerfilNuevo);
-      aplicarPlanSugerido({
-        plan,
-        perfil,
-        identidad,
-        perfilQueSale: cambiaEstilo ? perfilActual : null,
-      });
+      aplicarPlanSugerido(await planDePlantilla());
       irA("pestana", "laminas");
     } catch (e) {
       setErrorCrear(mensajeDeError(e));
     } finally {
       setCreando(false);
     }
+  }
+
+  // El informe aparte: el PowerPoint de la plantilla, con su identidad, generado sobre una copia del estado. Las láminas
+  // del proyecto no cambian y el archivo sale por la bandeja de entregables, como cualquier exportación.
+  async function crearInformeAparte() {
+    setErrorCrear("");
+    await informeAparte.ejecutar(async () => {
+      const pedido = pedidoDeInformeAparte(usePlanStore.getState(), await planDePlantilla());
+      return apiGraficosPpt(pedido.plan, pedido.presets, pedido.wPresets, pedido.config);
+    }, { titulo: `Informe aparte con ${plantilla.nombre}`, formato: "pptx" });
   }
 
   function guardarPlantilla() {
@@ -226,7 +242,9 @@ export default function PestanaPlantillas() {
 
   const hayLaminas = planActual.slides.length > 0;
   // Validación de "Crear láminas" (ítem 5): el botón dice por qué no se puede.
+  const generandoAparte = informeAparte.estado.fase === "en_curso";
   const motivoNoCrear = creando ? "Creando las láminas."
+    : generandoAparte ? "Generando el informe aparte."
     : esperandoFicha ? "Falta leer la Ficha del estudio."
     : carga.fase === "cargando" ? "Faltan las secciones y preguntas del cuestionario."
     : identidadPendiente ? "Falta leer el estilo de la plantilla."
@@ -337,11 +355,25 @@ export default function PestanaPlantillas() {
                   <p id="pulso-plantillas-generar-pregunta" className="pulso-plantillas-generar-pregunta">¿Crear el informe con esta plantilla?</p>
                   {hayLaminas && <p className="pulso-plantillas-generar-aviso">{avisoDeReemplazo(planActual.slides.length)}</p>}
                 </div>
-                <PulsoButton variant="primary" onClick={() => void crearLaminas()} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
-                  {creando && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
-                  {hayLaminas ? `Reemplazar las ${formatoConteo(planActual.slides.length)} láminas` : "Crear láminas"}
-                </PulsoButton>
+                {hayLaminas && !plantilla.enBlanco ? (
+                  <div className="pulso-plantillas-generar-botones">
+                    <PulsoButton variant="primary" onClick={() => void crearInformeAparte()} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
+                      {generandoAparte && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
+                      Crear informe aparte
+                    </PulsoButton>
+                    <PulsoButton variant="secondary" onClick={() => void crearLaminas()} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
+                      {creando && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
+                      {`Reemplazar las ${formatoConteo(planActual.slides.length)} láminas`}
+                    </PulsoButton>
+                  </div>
+                ) : (
+                  <PulsoButton variant="primary" onClick={() => void crearLaminas()} disabled={!puedeCrear} title={motivoNoCrear || undefined}>
+                    {creando && <Loader2 size={14} className="pulso-spin" aria-hidden="true" />}
+                    {hayLaminas ? `Reemplazar las ${formatoConteo(planActual.slides.length)} láminas` : "Crear láminas"}
+                  </PulsoButton>
+                )}
               </div>
+              <ContenedorEntregable estado={informeAparte.estado} forma="bloque" onCerrar={informeAparte.cerrar} />
             </Panel>
             {errorCrear && <p className="pulso-plantillas-error" role="alert">{errorCrear}</p>}
 

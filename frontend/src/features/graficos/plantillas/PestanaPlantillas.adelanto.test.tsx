@@ -21,10 +21,16 @@ const estructura: EstructuraDelInforme = {
 const api = vi.hoisted(() => ({
   estructura: vi.fn(),
   planSugerido: vi.fn(),
+  ppt: vi.fn(),
+  ejecutar: vi.fn(),
 }));
 
 vi.mock("../../../api/graficosEstructura", () => ({ apiGraficosEstructuraInforme: api.estructura }));
 vi.mock("../../../api/client", () => ({ apiGraficosPlanSugerido: api.planSugerido, apiGraficosTemplates: vi.fn() }));
+vi.mock("../../../api/graficos", async (original) => ({ ...(await original<object>()), apiGraficosPpt: api.ppt }));
+vi.mock("../../../components/entregables/useGeneracion", () => ({
+  useGeneracion: () => ({ estado: { fase: "inactiva" }, ejecutar: api.ejecutar, seguirJob: vi.fn(), cerrar: vi.fn() }),
+}));
 vi.mock("../../../api/planner", () => ({
   apiPlannerEstado: async () => ({ planner: { estudio: { nombre: "Estudio", codigo: "E1", cliente: "Otro" } } }),
 }));
@@ -43,7 +49,9 @@ let root: Root;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   api.estructura.mockReset().mockResolvedValue(estructura);
-  api.planSugerido.mockReset().mockResolvedValue({ plan: { slides: [] } });
+  api.planSugerido.mockReset().mockResolvedValue({ plan: { slides: [{ id: "n1", tipo: "p_slide_portada", payload: { titulo: "Nuevo" } }] } });
+  api.ppt.mockReset().mockResolvedValue({ job_id: "j1" });
+  api.ejecutar.mockReset().mockImplementation(async (fn: () => Promise<unknown>) => ({ ok: true, datos: await fn() }));
   usePlanStore.setState({
     scopeRules: { plantilla_elegida: "pulso" },
     plan: { ...usePlanStore.getState().plan, slides: [] },
@@ -99,5 +107,42 @@ describe("pestaña Plantillas: adelanto antes de generar", () => {
     await act(async () => { boton("Crear láminas")?.click(); });
     await act(async () => { await Promise.resolve(); });
     expect(api.planSugerido).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("pestaña Plantillas: un informe armado no se reemplaza en silencio", () => {
+  const armadas = Array.from({ length: 52 }, (_, i) => ({ id: `a${i}`, tipo: "p_slide_1_grafico", payload: { titulo: `Dimensión ${i}` } }));
+
+  beforeEach(() => {
+    usePlanStore.setState({ plan: { ...usePlanStore.getState().plan, slides: armadas } as never });
+  });
+
+  it("el aviso dice cuántas láminas tiene el informe y ofrece un informe aparte antes que reemplazar", async () => {
+    await montar();
+    expect(host.textContent).toContain("El proyecto ya tiene un informe de 52 láminas.");
+    expect(boton("Crear informe aparte")).toBeDefined();
+    expect(boton("Reemplazar las 52 láminas")).toBeDefined();
+    expect(boton("Crear láminas")).toBeUndefined();
+  });
+
+  it("el informe aparte genera el PowerPoint con la plantilla y deja las láminas del proyecto", async () => {
+    await montar();
+    await act(async () => { boton("Crear informe aparte")?.click(); });
+    await act(async () => { await Promise.resolve(); });
+    expect(api.planSugerido).toHaveBeenCalledTimes(1);
+    expect(api.ppt).toHaveBeenCalledTimes(1);
+    const [plan] = api.ppt.mock.calls[0];
+    expect(plan.slides).toHaveLength(1);
+    expect(plan.slides[0].payload.titulo).toBe("Nuevo");
+    expect(usePlanStore.getState().aplicarPlanSugerido).not.toHaveBeenCalled();
+    expect(usePlanStore.getState().plan.slides).toHaveLength(52);
+  });
+
+  it("reemplazar sigue disponible y aplica el plan de la plantilla", async () => {
+    await montar();
+    await act(async () => { boton("Reemplazar las 52 láminas")?.click(); });
+    await act(async () => { await Promise.resolve(); });
+    expect(usePlanStore.getState().aplicarPlanSugerido).toHaveBeenCalledTimes(1);
+    expect(api.ppt).not.toHaveBeenCalled();
   });
 });
