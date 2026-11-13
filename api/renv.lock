@@ -1005,7 +1005,7 @@
     },
     "lattice": {
       "Package": "lattice",
-      "Version": "0.23-1",
+      "Version": "0.22-9",
       "Depends": "R (>= 4.0.0)",
       "Imports": "grid, grDevices, graphics, stats, utils",
       "License": "GPL (>= 2)",
@@ -1139,7 +1139,7 @@
     },
     "mitools": {
       "Package": "mitools",
-      "Version": "2.7",
+      "Version": "2.4",
       "Imports": "DBI, methods, stats",
       "License": "GPL-2",
       "MD5sum": "ec76d158c6b83c6ae049bf6724410c52",
@@ -1790,7 +1790,7 @@
     },
     "survival": {
       "Package": "survival",
-      "Version": "3.8-12",
+      "Version": "3.8-9",
       "Depends": "R (>= 4.1.0)",
       "Imports": "graphics, Matrix, methods, splines, stats, utils",
       "License": "LGPL (>= 2)",
