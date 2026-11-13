@@ -256,8 +256,7 @@ test_that("ficha ACNUR usa el periodo manual y solo informacion afirmativa", {
   if (!length(technical)) return(invisible(NULL))
   text <- .acnur_report_slide_rows(technical[[1L]])
   expect_match(text, "Periodo de campo", ignore.case = TRUE)
-  expect_match(text, "26 jun. 2026", fixed = TRUE)
-  expect_match(text, "6 jul. 2026", fixed = TRUE)
+  expect_match(text, "Del 26 de jun. al 6 de jul. 2026", fixed = TRUE)
   expect_false(grepl("Fuente|KoboToolbox", text, ignore.case = TRUE))
   expect_match(text, "4 personas", ignore.case = TRUE)
   expect_match(text, "Servicios registrados 5 aportados por 3 personas", ignore.case = TRUE)
@@ -521,7 +520,7 @@ test_that("perfil ACNUR resume categorias con etiquetas del instrumento", {
 
   expect_equal(
     .graficos_acnur_profile_breakdown(context, "sexo"),
-    "Hombre 1 · Mujer 2 · Otro 1"
+    "Hombre 1, Mujer 2, Otro 1"
   )
 })
 
@@ -536,7 +535,7 @@ test_that("portada ACNUR compacta el año cuando el periodo pertenece al mismo a
   expect_equal(.graficos_scalar_chr(payload$fecha, ""), "")
   expect_equal(
     .graficos_scalar_chr(payload$subtitulo, ""),
-    "Informe de resultados\n26 jun. – 6 jul. 2026"
+    "Informe de resultados\nDel 26 de jun. al 6 de jul. 2026"
   )
 })
 
@@ -547,7 +546,7 @@ test_that("plan sugerido ACNUR expone los insumos del informe sin metadata inter
   suggested <- .graficos_suggested_plan(sid, config = list())
   inputs <- suggested$report_inputs %||% list()
 
-  expect_equal(inputs$period, "26 jun. 2026 – 6 jul. 2026")
+  expect_equal(inputs$period, "Del 26 de jun. al 6 de jul. 2026")
   expect_equal(inputs$period_source, "manual")
   expect_true(is.list(inputs$technical_rows))
   expect_true(all(vapply(inputs$technical_rows, function(row) {
@@ -633,7 +632,7 @@ test_that("periodo observado queda identificado cuando no hay fechas manuales", 
 
   period <- .graficos_acnur_field_period(sid, "principal")
 
-  expect_equal(period$label, "26 jun. 2026 – 6 jul. 2026")
+  expect_equal(period$label, "Del 26 de jun. al 6 de jul. 2026")
   expect_equal(period$source, "observed")
 })
 
@@ -745,4 +744,15 @@ test_that("la nota de base ACNUR de una opción múltiple se arma desde sus colu
   nota <- .graficos_acnur_question_semantics("sin-sesion", "default", variable, ctx = ctx)$note
   expect_match(nota, "^3 respuestas")
   expect_match(nota, "5 menciones")
+})
+
+test_that("el periodo de campo se escribe sin raya entre fechas (ítem 48)", {
+  f <- .graficos_acnur_rango_fechas
+  expect_equal(f("2026-10-23", "2026-10-31"), "del 23 al 31 de oct. 2026")
+  expect_equal(f("2026-06-26", "2026-07-06"), "del 26 de jun. al 6 de jul. 2026")
+  expect_equal(f("2025-12-28", "2026-01-04"), "del 28 de dic. 2025 al 4 de ene. 2026")
+  expect_equal(f("2026-10-23", "2026-10-23"), "23 de oct. 2026")
+  p <- .graficos_acnur_period_from_dates("2026-10-23", "2026-10-31")
+  expect_equal(p$cover_label, "Del 23 al 31 de oct. 2026")
+  expect_false(grepl("–|—", p$label))
 })

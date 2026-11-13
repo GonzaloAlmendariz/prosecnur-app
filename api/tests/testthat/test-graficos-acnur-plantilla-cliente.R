@@ -113,7 +113,7 @@ test_that("en opción múltiple cuentan las opciones marcadas en alguna respuest
 # D4: la portada escribe el subtítulo en dos líneas, no pegado.
 test_that("un subtítulo con salto de línea se escribe en dos párrafos", {
   pml <- function(x) paste(if (inherits(x, "block_list")) vapply(x, officer::to_pml, "") else officer::to_pml(x), collapse = "")
-  doble <- .ppt_fpar_con_saltos("Informe de resultados\n23 oct. – 31 oct. 2026", officer::fp_text(font.size = 20))
+  doble <- .ppt_fpar_con_saltos("Informe de resultados\nDel 23 al 31 de oct. 2026", officer::fp_text(font.size = 20))
   expect_s3_class(doble, "block_list")
   expect_length(doble, 2L)
   expect_match(pml(doble[[1]]), "Informe de resultados</a:t>", fixed = TRUE)

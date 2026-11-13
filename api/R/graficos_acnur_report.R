@@ -63,6 +63,28 @@
   "Resultados del estudio"
 }
 
+# Periodo en prosa, sin raya entre fechas (CLAUDE.md, Redacción): "del 23 al
+# 31 de oct. 2026", "del 26 de jun. al 6 de jul. 2026" o "del 28 de dic. 2025
+# al 4 de ene. 2026". Lo que se repite en las dos fechas se dice una vez.
+.graficos_acnur_rango_fechas <- function(start, end, date_label = identity) {
+  d1 <- suppressWarnings(as.Date(start))
+  d2 <- suppressWarnings(as.Date(end))
+  if (is.na(d1) || is.na(d2)) return(sprintf("del %s al %s", date_label(start), date_label(end)))
+  meses <- c("ene.", "feb.", "mar.", "abr.", "may.", "jun.",
+             "jul.", "ago.", "set.", "oct.", "nov.", "dic.")
+  dia <- function(d) as.integer(format(d, "%d"))
+  mes <- function(d) meses[[as.integer(format(d, "%m"))]]
+  anio <- function(d) format(d, "%Y")
+  if (identical(d1, d2)) return(sprintf("%d de %s %s", dia(d1), mes(d1), anio(d1)))
+  if (anio(d1) != anio(d2)) {
+    return(sprintf("del %d de %s %s al %d de %s %s", dia(d1), mes(d1), anio(d1), dia(d2), mes(d2), anio(d2)))
+  }
+  if (mes(d1) != mes(d2)) {
+    return(sprintf("del %d de %s al %d de %s %s", dia(d1), mes(d1), dia(d2), mes(d2), anio(d2)))
+  }
+  sprintf("del %d al %d de %s %s", dia(d1), dia(d2), mes(d2), anio(d2))
+}
+
 .graficos_acnur_period_from_dates <- function(start, end, source = "") {
   start <- .graficos_scalar_chr(start, "")
   end <- .graficos_scalar_chr(end, "")
@@ -73,20 +95,14 @@
     }
     value
   }
-  label_start <- date_label(start)
-  label_end <- date_label(end)
-  start_date <- suppressWarnings(as.Date(start))
-  end_date <- suppressWarnings(as.Date(end))
-  cover_label <- paste(label_start, label_end, sep = " – ")
-  if (!is.na(start_date) && !is.na(end_date) &&
-      identical(format(start_date, "%Y"), format(end_date, "%Y"))) {
-    label_start <- sub(paste0(" ", format(start_date, "%Y"), "$"), "", label_start)
-    cover_label <- paste(label_start, label_end, sep = " – ")
-  }
+  label <- .graficos_acnur_rango_fechas(start, end, date_label)
+  # Va sola en su línea (portada) o en su celda (ficha técnica): con mayúscula.
+  label <- paste0(toupper(substr(label, 1, 1)), substring(label, 2))
+  cover_label <- label
   list(
     start = start,
     end = end,
-    label = paste(date_label(start), date_label(end), sep = " – "),
+    label = label,
     cover_label = cover_label,
     source = .graficos_scalar_chr(source, "")
   )
@@ -291,7 +307,7 @@
   labels[!nzchar(labels)] <- specials$codes[!nzchar(labels)]
   paste(vapply(which(keep), function(i) {
     noun <- if (identical(as.integer(counts[[i]]), 1L)) "respuesta" else "respuestas"
-    sprintf("%s %s: «%s»", .graficos_acnur_number(counts[[i]]), noun, labels[[i]])
+    sprintf("%s %s: \"%s\"", .graficos_acnur_number(counts[[i]]), noun, labels[[i]])   # comillas rectas (CLAUDE.md, Redacción)
   }, character(1)), collapse = "; ")
 }
 
@@ -648,7 +664,7 @@
   counts <- counts[counts > 0L]
   paste(vapply(seq_along(counts), function(i) {
     paste0(names(counts)[[i]], " ", .graficos_acnur_number(counts[[i]]))
-  }, character(1)), collapse = " · ")
+  }, character(1)), collapse = ", ")
 }
 
 .graficos_acnur_profile_slides <- function(sid, coverage = NULL) {
@@ -802,10 +818,10 @@
     for (sample in samples) {
       district_text <- paste(vapply(names(sample$districts), function(name) {
         paste(name, .graficos_acnur_number(sample$districts[[name]]))
-      }, character(1)), collapse = " · ")
+      }, character(1)), collapse = ", ")
       add(
         sample$label,
-        paste0(.graficos_acnur_number(sample$n), " personas · ", district_text)
+        paste0(.graficos_acnur_number(sample$n), " personas: ", district_text)
       )
     }
     return(rows)

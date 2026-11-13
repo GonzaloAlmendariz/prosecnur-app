@@ -133,3 +133,10 @@ test_that("el público ignora el control operativo del formulario", {
   expect_equal(res$publico, "Homologación Laboral")
   expect_false(grepl("Yes", res$publico, fixed = TRUE))
 })
+
+test_that("la nota de base separa los miles con coma, como el resto del mazo (ítem 48)", {
+  # La ficha técnica de ACNUR decía "1,478" y las láminas "1 478 respuestas":
+  # dos convenciones en el mismo PPT. Los motores de salida usan coma.
+  expect_equal(.graficos_base_texto_elegible(1478L, 1478L), "1,478 respuestas de la muestra total (100%)")
+  expect_equal(.graficos_base_texto_elegible(1478L, NULL), "1,478 respuestas")
+})

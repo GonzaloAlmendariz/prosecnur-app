@@ -955,6 +955,15 @@
 .pulso_xlsform_label_col <- function(df) {
   nms <- names(df)
   hits <- which(tolower(nms) %in% c("label", "label::spanish (es)", "label::es", "label_spanish_es"))
+  # La columna del español se reconoce por el idioma, no por un nombre fijo: el
+  # XLSForm de ACNUR RMS 2026 la llama `label::Español (es)` y deja `label`
+  # vacía. Sin esto se elegía `label`, los rótulos de los grupos nuevos de
+  # Codificación se escribían donde nadie los lee y la lámina mostraba "6", "7"
+  # con 0.0 %. Mismo patrón que `detectar_label_col()` de reporte_instrumento.R.
+  hits <- sort(unique(c(hits, grep(
+    "^label(::|_).*(\\(es\\)|españ|espanol|spanish|castellano|::es\\b|_es\\b)",
+    nms, ignore.case = TRUE
+  ))))
   if (!length(hits)) return(NA_character_)
 
   # Se elige la candidata con MÁS texto, no la primera por nombre. Un XLSForm
@@ -1220,10 +1229,18 @@
       for (i in seq_len(nrow(src))) {
         raw_code <- as.character(src$name[[i]] %||% "")
         if (!nzchar(raw_code) || raw_code %in% names(code_map)) next
-        raw_label <- as.character(src[[lab_col_c]][[i]] %||% raw_code)
+        # Una opción sin rótulo se queda sin rótulo. Antes tomaba su propio
+        # código ("105"), que no coincidía con el rótulo vacío que ya tenía en
+        # la lista `_recod`, chocaba contra sí misma y se renumeraba en cada
+        # apertura (105, 113, 121...). Tampoco se empareja por rótulo: un vacío
+        # no es la misma categoría que otro vacío.
+        raw_label <- as.character(src[[lab_col_c]][[i]] %||% "")
+        if (is.na(raw_label)) raw_label <- ""
         raw_key <- .pulso_norm_label(raw_label)
 
-        same_label_code <- names(parent_label_keys)[parent_label_keys == raw_key][1]
+        same_label_code <- if (nzchar(raw_key)) {
+          names(parent_label_keys)[parent_label_keys == raw_key][1]
+        } else NA_character_
         if (!is.na(same_label_code) && nzchar(same_label_code)) {
           target_code <- same_label_code
           needs_row <- FALSE
@@ -1255,7 +1272,7 @@
           new_choice <- src[i, names(choices), drop = FALSE]
           new_choice$list_name <- recod_list
           new_choice$name <- target_code
-          new_choice[[lab_col_c]] <- raw_label
+          new_choice[[lab_col_c]] <- if (nzchar(raw_label)) raw_label else NA_character_
           recod_rows <<- rbind(recod_rows, new_choice)
           parent_label_keys <<- c(parent_label_keys, stats::setNames(raw_key, target_code))
         }

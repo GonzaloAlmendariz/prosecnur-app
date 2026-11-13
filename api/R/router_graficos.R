@@ -880,6 +880,7 @@
     # que tablas y PPT respeten la misma secuencia. Va después de normalize
     # (que re-fija los `names` al orden del instrumento).
     src <- tryCatch(.graficos_apply_orden_categorias_sources(sid, src), error = function(e) src)
+    src <- tryCatch(.graficos_opciones_sin_rotulo_sources(src), error = function(e) src)   # ítem 48: sin rótulo no se dibuja como un número (graficos_opciones_sin_rotulo.R)
     # Los dummies de select_multiple llegan de `reporte_data()` en el orden
     # arbitrario en que los generó la codificación. Se reordenan con el MISMO
     # helper que usa Analítica para que la variable se lea igual en la base

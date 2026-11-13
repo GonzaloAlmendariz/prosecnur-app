@@ -1402,7 +1402,8 @@
   page <- suppressWarnings(as.integer((page_spec %||% list())$page %||% 1L)[1])
   if (!is.finite(pages) || pages <= 1L) return(subtitle)
   marker <- sprintf("%d de %d", page, pages)
-  if (nzchar(subtitle)) paste(subtitle, marker, sep = " · ") else marker
+  # Sin punto medio como separador (CLAUDE.md, Redacción): "Salud (1 de 2)".
+  if (nzchar(subtitle)) sprintf("%s (%s)", subtitle, marker) else marker
 }
 
 .graficos_is_ordinal_signature <- function(v) {
@@ -1986,6 +1987,9 @@
     error = function(e) character(0)
   )
   if (length(recod_gate_warnings)) warnings <- c(warnings, as.list(recod_gate_warnings))
+  # Opciones sin rótulo con respuestas: salen como "Sin rótulo (código X)".
+  sin_rotulo_warnings <- .graficos_opciones_sin_rotulo_avisos_session(sid)
+  if (length(sin_rotulo_warnings)) warnings <- c(warnings, as.list(sin_rotulo_warnings))
   if (requested_coverage_maps && !isTRUE(coverage_caps$has_coverage_maps)) {
     warnings <- c(
       warnings,

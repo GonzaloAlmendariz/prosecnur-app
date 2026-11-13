@@ -160,7 +160,7 @@
 .graficos_base_texto_elegible <- function(n, elegibles, publico = "", total = NULL,
                                           universo_label = "la muestra total") {
   n <- as.integer(n %||% 0L)
-  fmt <- function(x) format(as.integer(x), big.mark = " ", trim = TRUE)
+  fmt <- function(x) format(as.integer(x), big.mark = ",", trim = TRUE)   # miles con coma, como el resto de los motores de salida
   unidad <- if (n == 1L) "respuesta" else "respuestas"
   pct <- function(a, b) {
     v <- if (is.finite(b) && b > 0) 100 * a / b else NA_real_
