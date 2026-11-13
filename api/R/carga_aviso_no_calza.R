@@ -80,16 +80,16 @@
   n_por_rotulo <- .carga_no_calza_por_texto(columnas_texto, instrumento)
   hacer <- if (n_por_rotulo > 0L && n_por_rotulo >= 0.5 * faltan) {
     sprintf(paste(" %d de %d %s de la base %s con el texto de una pregunta del formulario: empareja la base",
-                  "por el texto de las preguntas o renombra sus encabezados con los nombres del formulario",
-                  "(columna name)."),
+                  "por el texto de las preguntas o renombra sus encabezados con los nombres de las preguntas",
+                  "del formulario."),
             n_por_rotulo, length(columnas_texto),
             if (length(columnas_texto) == 1L) "encabezado" else "encabezados",
             if (n_por_rotulo == 1L) "coincide" else "coinciden")
   } else if (length(hojas) > 1L) {
     paste(" Deja primero en el libro la hoja de las respuestas; si ya lo es, el formulario no es de esta base.")
   } else {
-    paste(" Si es la base de este formulario, renombra los encabezados de la base con los nombres del",
-          "formulario (columna name); si no, el formulario no es de esta base.")
+    paste(" Si es la base de este formulario, renombra los encabezados de la base con los nombres de",
+          "las preguntas del formulario; si no, el formulario no es de esta base.")
   }
   list(
     message = paste0(partes, hacer),
