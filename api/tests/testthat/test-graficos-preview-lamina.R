@@ -61,6 +61,7 @@ test_that("se rasterizan todas las partes, no sólo la primera", {
   skip_if_not(isTRUE(.preview_renderer_status()$available), "sin renderer de vista previa")
   skip_if_not(nzchar(Sys.which("pdftoppm")) || requireNamespace("pdftools", quietly = TRUE) || .artifact_renderer_configured(),
               "sin rasterizador de PDF")
+  skip_si_soffice_no_convierte_en_ci()
   f <- .pl_mini_pptx()
   r <- .render_pptx_preview_partes(f, 4L)
   expect_length(r, 4L)
@@ -93,6 +94,7 @@ test_that("la URI del perfil codifica espacios y tildes y conserva las barras", 
 test_that("la vista previa sale aunque la ruta tenga espacios y tildes (P1)", {
   skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
   skip_if_not(nzchar(Sys.which("pdftoppm")), "sin pdftoppm")
+  skip_si_soffice_no_convierte_en_ci()
   local_mocked_bindings(.artifact_renderer_configured = function() FALSE)
   dir <- file.path(tempdir(), "Juan Pérez con espacio"); dir.create(dir, showWarnings = FALSE)
   f <- file.path(dir, "lámina de prueba.pptx"); file.copy(.pl_mini_pptx(), f, overwrite = TRUE)
@@ -104,6 +106,7 @@ test_that("la vista previa sale aunque la ruta tenga espacios y tildes (P1)", {
 test_that("pdftools rasteriza sin pdftoppm (P2): lo que viaja en el instalador", {
   skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
   skip_if_not_installed("pdftools")
+  skip_si_soffice_no_convierte_en_ci()
   local_mocked_bindings(.artifact_renderer_configured = function() FALSE, .first_available_cmd = function(...) "")
   r <- .render_pptx_preview_partes(.pl_mini_pptx(), 4L, max_partes = 4L)
   expect_length(r, 4L)
@@ -172,6 +175,7 @@ test_that("el perfil de LibreOffice se reutiliza entre conversiones y, si está 
 test_that("un perfil compartido de LibreOffice dañado se rehace y la conversión sale igual", {
   skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
   doc <- officer::read_pptx(); doc <- officer::add_slide(doc, layout = "Title and Content"); f <- tempfile(fileext = ".pptx"); print(doc, target = f)
+  skip_si_soffice_no_convierte_en_ci()
   raiz <- tempfile("raiz"); dir.create(file.path(raiz, "prosecnur-lo-perfil", "user"), recursive = TRUE)
   for (x in c("registrymodifications.xcu", "basura.dat")) writeBin(as.raw(sample(0:255, 4096, TRUE)), file.path(raiz, "prosecnur-lo-perfil", "user", x))
   local_mocked_bindings(.preview_perfil_tomar = function(out_dir, raiz_ = raiz) {

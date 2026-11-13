@@ -485,3 +485,15 @@ calc_bool <- function(x, default = FALSE) {
   out[pend & grepl("hombre|masculin|varon", k)] <- "M"
   out
 }
+
+# Rellena con ceros a la izquierda un código de texto (ubigeo, zona, manzana) hasta `ancho`.
+# `sprintf("%06s", x)` no sirve: el flag 0 con %s depende de la libc. macOS rellena con ceros y glibc (Linux) y
+# Windows rellenan con espacios, así que "70101" quedaba " 70101" y Callao (0701) desaparecía de todo filtro por
+# prefijo fuera de una Mac (CI de 0.10.0). Conserva la semántica de macOS: no recorta lo que ya es más largo y NA
+# se lee como "NA", igual que sprintf.
+.pulso_ceros_izq <- function(ancho, x) {
+  x <- as.character(x)
+  x[is.na(x)] <- "NA"
+  falta <- pmax(0L, as.integer(ancho) - nchar(x, type = "chars"))
+  paste0(strrep("0", falta), x)
+}

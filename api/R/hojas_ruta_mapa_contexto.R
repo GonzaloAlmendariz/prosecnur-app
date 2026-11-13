@@ -23,7 +23,7 @@
     active_district <- NULL
     if (length(district_context_all)) {
       active_idx <- which(vapply(district_context_all, function(feature) {
-        identical(as.character(feature$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
+        identical(as.character(feature$ubigeo %||% ""), .pulso_ceros_izq(6L, as.character(block$ubigeo %||% "")))
       }, logical(1)))[1]
       if (!is.na(active_idx)) active_district <- district_context_all[[active_idx]]
     }
@@ -86,10 +86,10 @@
     # quede flotando sobre blanco.
     if (length(district_context_mini)) {
       ordered_districts <- district_context_mini[order(vapply(district_context_mini, function(feature) {
-        if (identical(as.character(feature$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))) 1L else 0L
+        if (identical(as.character(feature$ubigeo %||% ""), .pulso_ceros_izq(6L, as.character(block$ubigeo %||% "")))) 1L else 0L
       }, integer(1)))]
       for (district in ordered_districts) {
-        active <- identical(as.character(district$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
+        active <- identical(as.character(district$ubigeo %||% ""), .pulso_ceros_izq(6L, as.character(block$ubigeo %||% "")))
         for (ring in district$rings) {
           p <- mini_project(ring)
           grid::grid.polygon(
@@ -108,10 +108,10 @@
     # Capa 3: limites distritales solidos, como fronteras politicas.
     if (length(district_context_mini)) {
       ordered_districts <- district_context_mini[order(vapply(district_context_mini, function(feature) {
-        if (identical(as.character(feature$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))) 1L else 0L
+        if (identical(as.character(feature$ubigeo %||% ""), .pulso_ceros_izq(6L, as.character(block$ubigeo %||% "")))) 1L else 0L
       }, integer(1)))]
       for (district in ordered_districts) {
-        active <- identical(as.character(district$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
+        active <- identical(as.character(district$ubigeo %||% ""), .pulso_ceros_izq(6L, as.character(block$ubigeo %||% "")))
         for (ring in district$rings) {
           smoothed <- .hojas_ruta_chaikin_smooth(ring, iters = 1L, closed = TRUE)
           p <- mini_project(smoothed)
@@ -144,7 +144,7 @@
       accepted_labels <- list()
       label_count <- 0L
       for (district in district_context_mini) {
-        active <- identical(as.character(district$ubigeo %||% ""), sprintf("%06s", as.character(block$ubigeo %||% "")))
+        active <- identical(as.character(district$ubigeo %||% ""), .pulso_ceros_izq(6L, as.character(block$ubigeo %||% "")))
         if (active || label_count >= 7L) next  # el activo ya está en la cabecera y tapaba la zona
         lon <- suppressWarnings(as.numeric(district$label_lon %||% NA_real_))
         lat <- suppressWarnings(as.numeric(district$label_lat %||% NA_real_))

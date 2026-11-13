@@ -39,7 +39,7 @@
 
 .hojas_ruta_entrega_soltar_calles <- function(render_ctx, ubigeo) {
   if (!is.environment(render_ctx)) return(invisible(FALSE))
-  u <- sprintf("%06s", as.character(ubigeo %||% ""))
+  u <- .pulso_ceros_izq(6L, as.character(ubigeo %||% ""))
   for (cache in c("street_features", "street_feature_index", "street_label_maps")) {
     env <- render_ctx[[cache]]
     if (!is.environment(env)) next

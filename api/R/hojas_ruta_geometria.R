@@ -124,7 +124,7 @@ HOJAS_RUTA_GEOMETRIA_ORIGEN <- c(lon = -76.99, lat = -12.03)
 #' censales, en metros con origen común. Ver ADR 0114 §7.
 #' @noRd
 hojas_ruta_geometria_compacta <- function(ubigeo) {
-  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  ubigeo <- .pulso_ceros_izq(6L, as.character(ubigeo %||% ""))
   cache <- .hojas_ruta_geometria_cache[[ubigeo]]
   if (!is.null(cache)) return(cache)
 
@@ -209,7 +209,7 @@ hojas_ruta_geometria_compacta <- function(ubigeo) {
 #' y las siguientes lecturas lo devuelven tal cual.
 #' @noRd
 hojas_ruta_geometria_compacta_json <- function(ubigeo) {
-  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  ubigeo <- .pulso_ceros_izq(6L, as.character(ubigeo %||% ""))
   archivo <- .hojas_ruta_geometria_archivo(ubigeo)
   if (file.exists(archivo)) {
     con <- gzfile(archivo, "rb")

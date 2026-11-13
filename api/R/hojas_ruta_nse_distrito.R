@@ -49,7 +49,7 @@ hojas_ruta_nse_por_distrito <- function() {
 #' distrito: «medio» predominante puede esconder un 40 % de hogares bajos (revisión del 7 nov 2026).
 #' @noRd
 hojas_ruta_nse_columnas <- function(ubigeos) {
-  ubigeos <- sprintf("%06s", as.character(ubigeos))
+  ubigeos <- .pulso_ceros_izq(6L, as.character(ubigeos))
   tabla <- hojas_ruta_nse_por_distrito()
   i <- match(ubigeos, tabla$ubigeo)
   out <- data.frame(nse_predominante = tabla$nse_predominante[i])

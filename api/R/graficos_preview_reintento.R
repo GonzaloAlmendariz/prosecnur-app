@@ -19,12 +19,12 @@
 
 #' Convierte un PPTX (o cualquier documento) a PDF con LibreOffice y dice cómo le fue
 #'
-#' @return `list(pdf, motivo, segundos)`: `pdf` es la ruta o `NULL`; `motivo` es `NA` si hubo PDF, o «renderer_ausente»,
-#'   «renderer_timeout» o «conversion_fallida».
+#' @return `list(pdf, motivo, segundos, salida)`: `pdf` es la ruta o `NULL`; `motivo` es `NA` si hubo PDF, o
+#'   "renderer_ausente", "renderer_timeout" o "conversion_fallida"; `salida`, el estado y lo que escribió LibreOffice.
 #' @keywords internal
 .pptx_to_pdf_soffice_info <- function(pptx_path, out_dir, timeout = 30) {
   cmd <- .soffice_cmd()
-  if (!nzchar(cmd)) return(list(pdf = NULL, motivo = "renderer_ausente", segundos = 0))
+  if (!nzchar(cmd)) return(list(pdf = NULL, motivo = "renderer_ausente", segundos = 0, salida = character()))
   pptx_path <- tryCatch(normalizePath(pptx_path, winslash = "/", mustWork = TRUE), error = function(e) pptx_path)
 
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -61,7 +61,9 @@
     pdf <- if (length(pdfs)) pdfs[[1]] else NULL
     agotado <- identical(estado, 124L) || segundos >= timeout
     motivo <- if (!is.null(pdf)) NA_character_ else if (agotado) "renderer_timeout" else "conversion_fallida"
-    list(pdf = pdf, motivo = motivo, segundos = segundos)
+    # Lo que LibreOffice escribió (estado y últimas líneas): sin esto una conversión fallida no dice por qué.
+    salida <- if (ok) c(sprintf("estado %s", estado %||% 0L), utils::tail(as.character(res), 20L)) else conditionMessage(res)
+    list(pdf = pdf, motivo = motivo, segundos = segundos, salida = salida)
   }
   r <- convertir()
   # Un perfil compartido dañado haría fallar todas las vistas previas de la sesión (verificadores de 9bce4f10e y

@@ -29,7 +29,7 @@ hojas_ruta_cpv2025_edad_simple <- function() {
   path <- .hojas_ruta_inst_path("hojas_ruta", "cpv2025_edad_simple_distrito.csv.gz")
   if (!file.exists(path)) .hojas_ruta_rb_incompleta("la edad simple × sexo del CPV 2025 (cpv2025_edad_simple_distrito.csv.gz)")
   df <- utils::read.csv(path, colClasses = c(ubigeo = "character"), stringsAsFactors = FALSE, encoding = "UTF-8")
-  df <- data.frame(ubigeo = sprintf("%06s", df$ubigeo), edad = as.integer(df$edad), sexo = as.character(df$sexo),
+  df <- data.frame(ubigeo = .pulso_ceros_izq(6L, df$ubigeo), edad = as.integer(df$edad), sexo = as.character(df$sexo),
                    poblacion = as.numeric(df$poblacion), stringsAsFactors = FALSE)
   .hojas_ruta_cpv2025_edad_memo$df <- df
   df

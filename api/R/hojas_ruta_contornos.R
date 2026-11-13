@@ -48,7 +48,7 @@ hojas_ruta_contornos_region_json <- function(region) {
     bbox <- .hojas_ruta_bbox_from_rings(rings)
     if (is.null(bbox)) return(NULL)
     list(
-      ubigeo = sprintf("%06s", as.character(props$ubigeo %||% "")),
+      ubigeo = .pulso_ceros_izq(6L, as.character(props$ubigeo %||% "")),
       distrito = as.character(props$distrito %||% ""),
       label_lon = suppressWarnings(as.numeric(props$label_lon %||% NA_real_)),
       label_lat = suppressWarnings(as.numeric(props$label_lat %||% NA_real_)),
@@ -65,7 +65,7 @@ hojas_ruta_contornos_region_json <- function(region) {
 #' de ambas (son un solo continuo urbano en dos departamentos).
 #' @keywords internal
 hojas_ruta_contornos_contexto <- function(ubigeo) {
-  region <- substr(sprintf("%06s", as.character(ubigeo %||% "")), 1, 2)
+  region <- substr(.pulso_ceros_izq(6L, as.character(ubigeo %||% "")), 1, 2)
   regiones <- if (region %in% c("15", "07")) c("15", "07") else region
   unlist(lapply(regiones, .hojas_ruta_contornos_region_distritos), recursive = FALSE) %||% list()
 }

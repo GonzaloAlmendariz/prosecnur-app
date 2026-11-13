@@ -7974,7 +7974,7 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
 }
 
 .monitoreo_territorial_packaged_block_path <- function(ubigeo) {
-  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  ubigeo <- .pulso_ceros_izq(6L, as.character(ubigeo %||% ""))
   if (exists(".hojas_ruta_cartografia_profile_for_ubigeo", mode = "function") &&
       exists(".hojas_ruta_block_map_packaged_file", mode = "function")) {
     profile <- tryCatch(.hojas_ruta_cartografia_profile_for_ubigeo(ubigeo), error = function(e) NULL)
@@ -8817,7 +8817,7 @@ monitoreo_enrich_kobo_datetime_columns <- function(data) {
   df$route_key <- sprintf("m%04d", seq_len(nrow(df)))
   zone_raw <- paste(df$ubigeo, df$zona, sep = "_")
   df$zone_key <- paste0("z", vapply(zone_raw, .monitoreo_safe_name, character(1)))
-  df$district_key <- sprintf("%06s", as.character(df$ubigeo))
+  df$district_key <- .pulso_ceros_izq(6L, as.character(df$ubigeo))
   pick_ump <- function(primary, fallback = "") {
     primary <- suppressWarnings(as.integer(primary))
     fallback <- suppressWarnings(as.integer(fallback))

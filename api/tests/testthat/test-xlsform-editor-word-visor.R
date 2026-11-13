@@ -60,6 +60,7 @@ test_that("el worker dibuja el Word, lo pasa a páginas y ubica las preguntas", 
   skip_if_not_installed("pdftools")
   skip_if(!nzchar(Sys.which("soffice")) && !file.exists("/Applications/LibreOffice.app/Contents/MacOS/soffice"),
           "sin LibreOffice")
+  skip_si_soffice_no_convierte_en_ci()
   f <- test_path("..", "..", "inst", "samples", "acreditacion", "docentes_inst.xlsx")
   skip_if_not(file.exists(f))
   entrada <- tempfile(fileext = ".rds")

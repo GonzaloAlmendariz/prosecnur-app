@@ -67,7 +67,7 @@ hojas_ruta_reparto_base_activa <- function(params) {
 #' @return data.frame(ubigeo, pob25, pob17_redatam, pob17_en_capa, pob18_17, u17,
 #'   a17, p25, g), una fila por ubigeo en el mismo orden.
 hojas_ruta_reparto_base_distritos <- function(ubigeos) {
-  ubigeos <- sprintf("%06s", as.character(ubigeos))
+  ubigeos <- .pulso_ceros_izq(6L, as.character(ubigeos))
   if (!length(ubigeos)) {
     return(data.frame(ubigeo = character(0), pob25 = numeric(0), pob17_redatam = numeric(0),
                       pob17_en_capa = numeric(0), pob18_17 = numeric(0), u17 = numeric(0),

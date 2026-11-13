@@ -31,7 +31,7 @@ HOJAS_RUTA_MACRORREGIONES_ETIQUETAS <- c(norte = "Norte", centro = "Centro", sur
 #' Macrorregión de cada ubigeo o código de provincia (se lee el departamento).
 #' Un departamento fuera de la tabla es un error declarado, nunca un grupo vacío.
 hojas_ruta_macrorregion_de <- function(codigos) {
-  dep <- substr(sprintf("%06s", as.character(codigos)), 1L, 2L)
+  dep <- substr(.pulso_ceros_izq(6L, as.character(codigos)), 1L, 2L)
   dep[nchar(as.character(codigos)) == 4L] <- substr(as.character(codigos)[nchar(as.character(codigos)) == 4L], 1L, 2L)
   out <- rep(NA_character_, length(dep))
   for (g in names(HOJAS_RUTA_MACRORREGIONES)) out[dep %in% HOJAS_RUTA_MACRORREGIONES[[g]]] <- g

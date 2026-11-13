@@ -25,7 +25,7 @@
 #' Se cachea por distrito en el contexto de render.
 #' @keywords internal
 .hojas_ruta_mapa_referencias <- function(ubigeo, render_ctx = NULL) {
-  u <- sprintf("%06s", as.character(ubigeo %||% ""))
+  u <- .pulso_ceros_izq(6L, as.character(ubigeo %||% ""))
   vacio <- data.frame(lon = numeric(0), lat = numeric(0), tipo = character(0), nombre = character(0))
   .hojas_ruta_render_cache_get(render_ctx, "referencias", u, function() {
     f <- tryCatch(.hojas_ruta_context_map_packaged_file(u), error = function(e) "")

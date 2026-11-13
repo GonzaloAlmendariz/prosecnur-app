@@ -24,7 +24,7 @@ hojas_ruta_territorios <- function() {
 
 # Provincia del registro a la que pertenece un distrito; NULL si no está empaquetado.
 .hojas_ruta_territorio_de_ubigeo <- function(ubigeo) {
-  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  ubigeo <- .pulso_ceros_izq(6L, as.character(ubigeo %||% ""))
   if (!grepl("^[0-9]{6}$", ubigeo)) return(NULL)
   for (prov in hojas_ruta_territorios()$provincias %||% list()) {
     if (ubigeo %in% unlist(prov$distritos)) return(prov)
@@ -123,7 +123,7 @@ hojas_ruta_territorios <- function() {
 hojas_ruta_territorio_cobertura <- function(ubigeo) {
   prov <- .hojas_ruta_territorio_de_ubigeo(ubigeo)
   if (is.null(prov)) return(NULL)
-  ubigeo <- sprintf("%06s", as.character(ubigeo))
+  ubigeo <- .pulso_ceros_izq(6L, as.character(ubigeo))
   c(
     list(
       ubigeo = ubigeo,

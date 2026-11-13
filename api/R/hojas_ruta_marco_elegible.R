@@ -195,7 +195,7 @@ hojas_ruta_marco_elegible_punto_interior <- function(m) {
 #' El marco `current` no trae coordenadas: salen de las mismas features que usa
 #' `hojas_ruta_geometria_compacta()` (`hojas_ruta_block_map_preview`).
 hojas_ruta_marco_elegible_puntos <- function(ubigeo) {
-  ubigeo <- sprintf("%06s", as.character(ubigeo %||% ""))
+  ubigeo <- .pulso_ceros_izq(6L, as.character(ubigeo %||% ""))
   cache <- .hojas_ruta_me_puntos_cache[[ubigeo]]
   if (!is.null(cache)) return(cache)
   vacio <- data.frame(id_manzana = character(0), lon = numeric(0), lat = numeric(0), nse_nivel = character(0), stringsAsFactors = FALSE)

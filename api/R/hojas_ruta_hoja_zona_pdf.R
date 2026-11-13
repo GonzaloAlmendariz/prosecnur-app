@@ -163,7 +163,7 @@ hojas_ruta_hoja_zona_pdf <- function(zone_row, zone_blocks, config, out_pdf, ren
   for (p in an$p[sp]) .hojas_ruta_draw_no_population_texture(p, density = 0.010)
   hay_sin_poblacion <- hay_sin_poblacion || any(sp)
 
-  ub6 <- sprintf("%06s", ubigeo)
+  ub6 <- .pulso_ceros_izq(6L, ubigeo)
   for (d in distritos[order(vapply(distritos, function(f) identical(as.character(f$ubigeo %||% ""), ub6), logical(1)))]) {
     activo <- identical(as.character(d$ubigeo %||% ""), ub6)
     for (ring in d$rings) {

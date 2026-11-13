@@ -65,7 +65,7 @@ hojas_ruta_estrato_vigente <- function(cfg) {
 #' Estrato de cada ubigeo según el modo: el código de provincia (4 dígitos) o,
 #' en `provincia_lima_areas`, `1501-<área>` para Lima Metropolitana.
 hojas_ruta_estrato_de <- function(ubigeos, modo = "provincia") {
-  ubigeos <- sprintf("%06s", as.character(ubigeos))
+  ubigeos <- .pulso_ceros_izq(6L, as.character(ubigeos))
   h <- substr(ubigeos, 1L, 4L)
   if (identical(modo, "provincia_lima_areas")) {
     area <- rep(NA_character_, length(ubigeos))
@@ -134,7 +134,7 @@ hojas_ruta_estrato_asignacion <- function(ubigeos, route_total, cfg) {
     stop_api(422, "E_HOJAS_RUTA_ESTRATO_CUOTA_ZONA",
              "Con estrato provincia la cuota es por distrito: la cuota por zona reparte las rutas con otra medida y la π dejaría de ser n·MOS/ΣMOS.")
   }
-  ubigeos <- sort(unique(sprintf("%06s", as.character(ubigeos))))
+  ubigeos <- sort(unique(.pulso_ceros_izq(6L, as.character(ubigeos))))
   route_total <- as.integer(route_total)
   estrato <- hojas_ruta_estrato_de(ubigeos, params$estrato)
   ciudad <- substr(ubigeos, 1L, 4L)
@@ -208,7 +208,7 @@ hojas_ruta_estrato_asignacion <- function(ubigeos, route_total, cfg) {
 .hojas_ruta_estrato_rutas_en_orden <- function(ubigeos, route_total, cfg) {
   a <- hojas_ruta_estrato_asignacion(ubigeos, route_total, cfg)
   if (is.null(a)) return(NULL)
-  as.integer(a$distritos$rutas[match(sprintf("%06s", as.character(ubigeos)), a$distritos$ubigeo)])
+  as.integer(a$distritos$rutas[match(.pulso_ceros_izq(6L, as.character(ubigeos)), a$distritos$ubigeo)])
 }
 
 #' Entrevistas por distrito de la vista previa del tamaño en modo estrato: las mismas

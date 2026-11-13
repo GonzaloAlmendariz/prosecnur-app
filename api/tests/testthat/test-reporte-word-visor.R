@@ -31,6 +31,7 @@ test_that("un índice sin entradas (LibreOffice no rellena el TOC) se marca para
 test_that("las páginas del Word salen como PNG con su mapa", {
   skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
   skip_if_not_installed("pdftools")
+  skip_si_soffice_no_convierte_en_ci()
   doc <- officer::read_docx()
   doc <- officer::body_add_par(doc, "CAPÍTULO 1"); doc <- officer::body_add_par(doc, "Introducción")
   doc <- officer::body_add_par(doc, "1.1. Objetivo"); doc <- officer::body_add_break(doc)
@@ -65,6 +66,7 @@ test_that("el visor toma el último Word exportado de la sesión y dice qué fal
 test_that("el worker del visor deja las páginas y la respuesta las entrega como imágenes con su mapa", {
   skip_if_not(nzchar(.soffice_cmd()), "sin LibreOffice")
   skip_if_not_installed("pdftools")
+  skip_si_soffice_no_convierte_en_ci()
   doc <- officer::read_docx()
   doc <- officer::body_add_par(doc, "CAPÍTULO 1"); doc <- officer::body_add_par(doc, "Introducción")
   f <- tempfile(fileext = ".docx"); print(doc, target = f)

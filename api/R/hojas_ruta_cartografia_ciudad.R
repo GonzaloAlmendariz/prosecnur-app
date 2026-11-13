@@ -8,7 +8,7 @@
 #' Cartografía de manzanas por provincia de los ubigeos pedidos, sin repetir provincia. Pura.
 #' @keywords internal
 hojas_ruta_cartografia_de_ciudad <- function(ubigeos = character(0)) {
-  u <- unique(sprintf("%06s", trimws(as.character(unlist(ubigeos %||% character(0))))))
+  u <- unique(.pulso_ceros_izq(6L, trimws(as.character(unlist(ubigeos %||% character(0))))))
   u <- u[grepl("^[0-9]{6}$", u)]
   por_provincia <- u[!duplicated(substr(u, 1L, 4L))]
   lapply(por_provincia, function(x) {

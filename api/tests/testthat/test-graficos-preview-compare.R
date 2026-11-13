@@ -15,6 +15,13 @@ preview_renderer_available <- function() {
   isTRUE(.preview_renderer_status()$available)
 }
 
+# Sin renderer el test se salta; con LibreOffice que no convierte, sólo en el CI (helper-soffice-ci.R).
+skip_sin_renderer_preview <- function() {
+  skip_if(!preview_renderer_available(), "No hay renderer headless disponible para renderizar PPTX")
+  if (identical(.preview_renderer_status()$renderer, "soffice")) skip_si_soffice_no_convierte_en_ci()
+  invisible(TRUE)
+}
+
 test_that("diagnostico de renderer de preview es headless y estable", {
   ensure_preview_renderer_helpers()
 
@@ -128,7 +135,7 @@ test_that("preview y export pueden usar config visual actual sin esperar autosav
 test_that("render headless devuelve PNG inline con dimensiones reales de slide", {
   skip_if_not_installed("officer")
   skip_if_not_installed("png")
-  skip_if(!preview_renderer_available(), "No hay renderer headless disponible para renderizar PPTX")
+  skip_sin_renderer_preview()
 
   doc <- officer::read_pptx()
   size <- officer::slide_size(doc)
@@ -197,7 +204,7 @@ preview_compare_pkg_file <- function(...) {
 
 test_that("QA interno compara PPTX completo vs mini-PPTX en layouts y tamaños distintos", {
   skip_if_not_installed("officer")
-  skip_if(!preview_renderer_available(), "No hay renderer headless disponible para renderizar PPTX")
+  skip_sin_renderer_preview()
 
   make_deck <- function(path = NULL, case, include_cover = FALSE) {
     doc <- if (is.null(path)) officer::read_pptx() else officer::read_pptx(path)
@@ -261,7 +268,7 @@ test_that("QA interno compara reporte_ppt_plan completo vs preview de un slide",
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
-  skip_if(!preview_renderer_available(), "No hay renderer headless disponible para renderizar PPTX")
+  skip_sin_renderer_preview()
 
   load_preview_compare_package()
 
