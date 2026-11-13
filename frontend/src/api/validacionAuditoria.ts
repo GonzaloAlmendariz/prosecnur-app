@@ -31,6 +31,7 @@ import { apiFetch, handle, headers } from "./core";
 import { booleano, enteroONulo, escalar, lista, numeroONulo, registro, texto } from "./normalizarR";
 import { normalizarCatalogoCompleto, type CatalogoCompleto, type OrigenDeRegla, type PiezaDelCatalogo } from "./validacionCatalogo";
 import { normalizarLecturaDeCatalogo, normalizarResumenDeCatalogo, type LecturaDeCatalogo, type ResumenDeCatalogo } from "./catalogoUbigeo";
+import { normalizarLecturaDeModa, normalizarResumenDeModa, type LecturaDeModa, type ResumenDeModa } from "./modaDeGrupo";
 
 function encabezados(baseNombre?: string | null, extra: Record<string, string> = {}): Record<string, string> {
   const h = headers(extra);
@@ -836,6 +837,8 @@ export type EjemploDePrueba = {
   formato?: ResumenDeFormato;
   /** Solo en "Combinación fuera de catálogo": estado, causa y candidatos (catalogoUbigeo.ts). */
   catalogo?: ResumenDeCatalogo;
+  /** Solo en "Valor distinto del más frecuente en su grupo": estado y causa con la moda y su peso (modaDeGrupo.ts). */
+  moda?: ResumenDeModa;
 };
 
 /** Estado de lectura de una fecha u hora en un caso. */
@@ -1022,6 +1025,8 @@ export type PruebaDeRegla = {
   formato?: LecturaDeFormato;
   /** Solo en "Combinación fuera de catálogo". */
   catalogo?: LecturaDeCatalogo;
+  /** Solo en "Valor distinto del más frecuente en su grupo". */
+  moda?: LecturaDeModa;
 };
 
 const PAPELES: readonly PapelEnLaPrueba[] = ["revisada", "comparada", "condicion", "filtro"];
@@ -1051,6 +1056,10 @@ export function normalizarPruebaDeRegla(value: unknown): PruebaDeRegla {
       const catalogo = normalizarLecturaDeCatalogo(r.catalogo);
       return catalogo ? { catalogo } : {};
     })(),
+    ...(() => {
+      const moda = normalizarLecturaDeModa(r.moda);
+      return moda ? { moda } : {};
+    })(),
     ejemplos: lista(r.ejemplos).map((ej) => ({
       ...conResumenDeBateria(ej.bateria),
       ...(() => {
@@ -1064,6 +1073,10 @@ export function normalizarPruebaDeRegla(value: unknown): PruebaDeRegla {
       ...(() => {
         const catalogo = normalizarResumenDeCatalogo(ej.catalogo);
         return catalogo ? { catalogo } : {};
+      })(),
+      ...(() => {
+        const moda = normalizarResumenDeModa(ej.moda);
+        return moda ? { moda } : {};
       })(),
       id_caso: textoONulo(ej.id_caso),
       valores: lista(ej.valores)

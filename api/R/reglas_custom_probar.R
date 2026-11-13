@@ -65,6 +65,8 @@
     rango_fecha = , comparar_fechas = stats::setNames(rep("revisada", length(vars)), vars),
     cruce_identidad = stats::setNames(rep("revisada", length(vars)), vars),
     combinacion_catalogo = stats::setNames(rep("revisada", length(vars)), vars),
+    # El valor es lo revisado; el grupo es lo que lo compara.
+    moda_en_grupo = stats::setNames(c("revisada", "comparada")[seq_along(vars)], vars),
     stats::setNames("revisada", vars[1])
   )
   extra <- setdiff(filtro, names(papel))
@@ -101,7 +103,7 @@
 .probar_respuesta <- function(base_nombre, regla, n_filas = 0L, n_base = 0L, n_casos = 0L,
                               evaluada = FALSE, estado = "sin_datos", motivo = NULL,
                               base_vacia = FALSE, ejemplos = list(), tiene_filtro = FALSE,
-                              lectura = NULL, formato = NULL, catalogo = NULL) {
+                              lectura = NULL, formato = NULL, catalogo = NULL, moda = NULL) {
   entero <- function(x) if (is.null(x)) NA_integer_ else as.integer(x)
   out <- list(
     ok = TRUE,
@@ -123,6 +125,7 @@
   if (!is.null(lectura)) out$lectura <- lectura
   if (!is.null(formato)) out$formato <- formato
   if (!is.null(catalogo)) out$catalogo <- catalogo
+  if (!is.null(moda)) out$moda <- moda
   out
 }
 
@@ -240,20 +243,21 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   base_fila <- res[as.character(res$id_regla) == id_base, , drop = FALSE]
   n_base <- as.integer(base_fila$n_inconsistencias[1] %||% NA_integer_)
   if (is.na(n_base)) n_base <- n_filas
-  ejemplos <- .probar_ejemplos(ev, mapa, regla, gate_ast, res, ids_cond)
+  ejemplos <- .probar_ejemplos(ev, mapa, regla, gate_ast, res, ids_cond, etiquetas = as.list(.vrf_contexto(inst)$etiquetas))
   lectura <- if (.regla_fechas_es(regla)) .regla_fechas_lectura(ev$datos %||% principal, regla) else NULL
   formato <- if (.regla_formato_es(regla)) .regla_formato_lectura(ev$datos %||% principal, regla) else NULL
   catalogo <- if (.regla_catalogo_es(regla)) .regla_catalogo_lectura(ev$datos %||% principal, regla) else NULL
+  moda <- if (.regla_moda_es(regla)) .regla_moda_lectura(ev$datos %||% principal, regla) else NULL
 
   .probar_respuesta(
     base_eff, regla, evaluada = TRUE, estado = "evaluada",
     n_filas = n_filas, n_base = n_base, n_casos = length(mapa$row_idx),
     ejemplos = ejemplos, tiene_filtro = tiene_filtro, lectura = lectura, formato = formato,
-    catalogo = catalogo
+    catalogo = catalogo, moda = moda
   )
 }
 
-.probar_ejemplos <- function(ev, mapa, regla, gate_ast, res, ids_cond) {
+.probar_ejemplos <- function(ev, mapa, regla, gate_ast, res, ids_cond, etiquetas = list()) {
   filas <- utils::head(mapa$row_idx, .probar_limite_ejemplos)
   if (!length(filas)) return(list())
   df <- ev$datos_tablas[[mapa$table]] %||% ev$datos
@@ -272,6 +276,9 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   es_fechas <- .regla_fechas_es(regla)
   es_formato <- .regla_formato_es(regla)
   es_catalogo <- .regla_catalogo_es(regla)
+  es_moda <- .regla_moda_es(regla)
+  # En valor más frecuente por grupo, el grupo entero se mide una vez.
+  med_moda <- if (es_moda) .regla_moda_revisar_df(df, regla$params) else NULL
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
     valores <- lapply(names(papeles), function(v) {
@@ -298,6 +305,8 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
     if (es_formato) ejemplo <- .regla_formato_ejemplo(ejemplo, df, i, regla)
     # En catálogo, el estado, la causa y los candidatos (reglas_custom_catalogo.R).
     if (es_catalogo) ejemplo <- .regla_catalogo_ejemplo(ejemplo, df, i, regla)
+    # En valor más frecuente por grupo, la causa con la moda y su peso (reglas_custom_moda_grupo.R).
+    if (es_moda) ejemplo$moda <- .regla_moda_resumen(med_moda, i, regla$params, etiquetas)
     ejemplo
   })
 }

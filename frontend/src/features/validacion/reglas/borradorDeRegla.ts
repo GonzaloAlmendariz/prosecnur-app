@@ -41,6 +41,7 @@ import {
 import { metaDeTipo, rangoDePreguntas } from "./tiposDeRegla";
 import { validarFechas, variablesDeComparar } from "./modeloFechas";
 import { validarFormato } from "./modeloFormato";
+import { APOYO_MIN_POR_DEFECTO, N_MIN_POR_DEFECTO, validarModa, variablesDeModa } from "./modeloModa";
 import { CATALOGO_POR_DEFECTO, validarCombinacion, variablesDeCombinacion } from "./modeloCombinacion";
 import { conservarAlCambiarDeTipo } from "./cambioDeTipo";
 import { ORIGEN_COPIA } from "./duplicarRegla";
@@ -81,6 +82,8 @@ function paramsDeArranque(tipo: TipoReglaPropia | null, primera: string): Record
   if (tipo === "formato") return { modo: "digitos" };
   // Los papeles llegan de la propuesta del motor (CamposDeCombinacion).
   if (tipo === "combinacion_catalogo") return { catalogo: CATALOGO_POR_DEFECTO, roles: {} };
+  // Los umbrales arrancan escritos con los valores por defecto del motor.
+  if (tipo === "moda_en_grupo") return { grupo: "", valor: "", apoyo_min: APOYO_MIN_POR_DEFECTO, n_min: N_MIN_POR_DEFECTO };
   if (tipo === "comparar_fechas") {
     return {
       unidad: "fecha",
@@ -160,7 +163,7 @@ export function reducirBorrador(b: Borrador, accion: AccionDeBorrador): Borrador
       if (traspasado) return { ...base, tipo: nuevo, variables: traspasado.variables, params: traspasado.params };
       const meta = metaDeTipo(nuevo);
       const [, max] = meta ? rangoDePreguntas(meta) : [1, 1];
-      const aparte = nuevo === "condiciones" || nuevo === "comparar_fechas" || nuevo === "combinacion_catalogo";
+      const aparte = nuevo === "condiciones" || nuevo === "comparar_fechas" || nuevo === "combinacion_catalogo" || nuevo === "moda_en_grupo";
       // Las preguntas que el tipo nuevo admite se conservan, en su orden.
       const variables = nuevo === "condiciones" ? [] : b.variables.filter(Boolean).slice(0, aparte ? 1 : max);
       const params = paramsDeArranque(nuevo, nuevo === "condiciones" || nuevo === "comparar_fechas" ? b.variables[0] ?? "" : "");
@@ -203,6 +206,8 @@ export function variablesEfectivas(b: Borrador): string[] {
   if (b.tipo === "comparar_fechas") return variablesDeComparar(b.params).filter(Boolean);
   // Los papeles de la combinación, la más específica primero (reglas_custom_catalogo.R).
   if (b.tipo === "combinacion_catalogo") return variablesDeCombinacion(b.params);
+  // El valor primero y el grupo después (reglas_custom_moda_grupo.R).
+  if (b.tipo === "moda_en_grupo") return variablesDeModa(b.params);
   // Una fila de pregunta vacía no es una pregunta de la regla.
   return b.variables.every(Boolean) ? b.variables : b.variables.filter(Boolean);
 }
@@ -264,6 +269,9 @@ export function validarBorrador(b: Borrador): string {
     if (error) return error;
   } else if (tipo === "combinacion_catalogo") {
     const error = validarCombinacion(params);
+    if (error) return error;
+  } else if (tipo === "moda_en_grupo") {
+    const error = validarModa(params);
     if (error) return error;
   } else {
     const [needed] = rangoDePreguntas(meta);

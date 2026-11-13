@@ -508,6 +508,7 @@
              bateria = "Patrón en una batería",
              formato = "Formato de la respuesta",
              combinacion_catalogo = "Combinación fuera de catálogo",
+             moda_en_grupo = "Valor distinto del más frecuente en su grupo",
              comparar_fechas = "Dos fechas u horas que deben cuadrar")
 )
 
@@ -647,6 +648,7 @@
     "bateria" = c(.vrf_frase_bateria(info, ctx), filtro),
     "formato" = c(.vrf_frase_formato(info, ctx), filtro),
     "combinacion_catalogo" = c(.vrf_frase_catalogo(info, ctx), filtro),
+    "moda_en_grupo" = c(.vrf_frase_moda(info, ctx), filtro),
     "rango_fecha" = , "comparar_fechas" = c(.vrf_frase_fechas(info, ctx), filtro),
     c(.vrf_t("Se marca cuando "), .vrf_cond(info$cuerpo, ctx), punto, filtro)
   )

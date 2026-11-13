@@ -47,7 +47,8 @@
   bateria <- (regla %||% list())$bateria
   fechas <- (regla %||% list())$fechas
   catalogo <- (regla %||% list())$catalogo
-  if ((is.null(bateria) && is.null(fechas) && is.null(catalogo) && (is.na(anomalia) || !nzchar(anomalia))) || !is.data.frame(df)) {
+  moda <- (regla %||% list())$moda
+  if ((is.null(bateria) && is.null(fechas) && is.null(catalogo) && is.null(moda) && (is.na(anomalia) || !nzchar(anomalia))) || !is.data.frame(df)) {
     return(rep(list(NA), length(filas)))
   }
   roles <- roles %||% list()
@@ -58,11 +59,18 @@
                    as.character(unlist(fechas$regla$variables %||% list(), use.names = FALSE)),
                    as.character((regla %||% list())$formato$var %||% character(0)),
                    if (!is.null(catalogo)) .regla_catalogo_columnas(catalogo$params) else character(0),
+                   if (!is.null(moda)) .regla_moda_variables(moda$params) else character(0),
                    as.character(unlist((regla %||% list())$seccion$variables %||% character(0)))))
   vars <- vars[!is.na(vars) & nzchar(vars) & vars %in% names(df)]
+  # Valor más frecuente por grupo: el grupo entero se mide una vez y cada fila
+  # recibe su propia medida (la causa nombra la moda y su peso en el grupo).
+  med_moda <- if (!is.null(moda)) .regla_moda_revisar_df(df, moda$params) else NULL
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
     if (is.na(i)) return(NA)
+    if (!is.null(med_moda)) {
+      regla$moda$caso <- .regla_moda_resumen(med_moda, i, moda$params, regla$etiquetas)
+    }
     valores <- stats::setNames(lapply(vars, function(v) {
       x <- df[[v]][i]
       if (length(x) && !is.na(x)) as.character(x) else NA_character_

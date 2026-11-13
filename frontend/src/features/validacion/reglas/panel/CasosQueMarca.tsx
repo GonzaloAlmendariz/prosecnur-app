@@ -34,9 +34,12 @@ import { textoDeFechas, textoDeLectura } from "../modeloFechas";
 import { motivoEnTexto, textoDeFormato, textoDeLecturaDeFormato } from "../modeloFormato";
 import { candidatosEnTexto, causaEnTexto, textoDeLecturaDeCatalogo } from "../modeloCombinacion";
 import type { LecturaDeCatalogo, ResumenDeCatalogo } from "../../../../api/catalogoUbigeo";
+import type { LecturaDeModa } from "../../../../api/modaDeGrupo";
+import { causaDeModa, textoDeLecturaDeModa } from "../modeloModa";
 import "./camposDeFechas.css";
 import "./camposDeFormato.css";
 import "./camposDeCombinacion.css";
+import "./camposDeModa.css";
 import type { ExploradorVariable } from "../../types";
 import { etiquetaDeOpcion, useOpcionesDeVariables } from "../campos/opcionesDeVariable";
 import { tieneOpciones } from "../campos/tipoDeFicha";
@@ -125,7 +128,9 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
   const formato = prueba.ejemplos.some((ej) => ej.formato);
   // En una combinación de catálogo, la causa (que nombra lo declarado) y la propuesta.
   const catalogo = prueba.ejemplos.some((ej) => ej.catalogo);
-  const columnas = bateria || fechas || formato || catalogo ? [] : columnasDeEjemplos(prueba.ejemplos);
+  // En el valor más frecuente por grupo, la causa nombra el valor, su grupo y el peso de la moda.
+  const moda = prueba.ejemplos.some((ej) => ej.moda);
+  const columnas = bateria || fechas || formato || catalogo || moda ? [] : columnasDeEjemplos(prueba.ejemplos);
   const primeraDeLaBateria = bateria ? prueba.ejemplos.find((ej) => ej.bateria)?.valores[0]?.variable ?? null : null;
   const opcionesDeLaBateria = useOpcionesDeVariables(
     primeraDeLaBateria && tieneOpciones(porNombre.get(primeraDeLaBateria)?.tipo) ? [primeraDeLaBateria] : [],
@@ -216,6 +221,16 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       valor: (ej: EjemploDePrueba) => (ej.catalogo ? textoDeCausaDeCatalogo(ej.catalogo) : "Sin dato"),
     });
   }
+  if (moda) {
+    definicion.push({
+      id: "moda",
+      encabezado: "Causa",
+      ancho: ANCHO_TABLA - ANCHO_CASO,
+      tipo: "texto" as const,
+      celda: (ej: EjemploDePrueba) => (ej.moda ? <b className="pulso-regla-falla">{causaDeModa(ej.moda)}</b> : "Sin dato"),
+      valor: (ej: EjemploDePrueba) => (ej.moda ? causaDeModa(ej.moda) : "Sin dato"),
+    });
+  }
   return (
     <PulsoTable
       columnas={definicion}
@@ -251,6 +266,18 @@ export function LecturaDeCatalogoDeLaRegla({ lectura }: { lectura: LecturaDeCata
   return (
     <ul className="pulso-regla-formato-lectura" aria-label="Encuestas revisadas contra el catálogo">
       {textoDeLecturaDeCatalogo(lectura).map((l) => (
+        <li key={l}>{l}</li>
+      ))}
+    </ul>
+  );
+}
+
+/** Encuestas por estado y grupos sin referencia en el valor más frecuente por grupo, sobre las filas que evalúa la auditoría. */
+export function LecturaDeModaDeLaRegla({ lectura }: { lectura: LecturaDeModa | undefined }) {
+  if (!lectura) return null;
+  return (
+    <ul className="pulso-regla-formato-lectura" aria-label="Encuestas comparadas con el valor más frecuente de su grupo">
+      {textoDeLecturaDeModa(lectura).map((l) => (
         <li key={l}>{l}</li>
       ))}
     </ul>
@@ -381,6 +408,7 @@ export function CasosQueMarca({
         <LecturaDeLaRegla lectura={prueba.lectura ?? []} />
         <LecturaDeFormatoDeLaRegla lectura={prueba.formato} />
         <LecturaDeCatalogoDeLaRegla lectura={prueba.catalogo} />
+        <LecturaDeModaDeLaRegla lectura={prueba.moda} />
         {nCasos > 0 && prueba.ejemplos.length > 0 ? (
           <TablaDeEjemplos prueba={prueba} variables={variables} />
         ) : (

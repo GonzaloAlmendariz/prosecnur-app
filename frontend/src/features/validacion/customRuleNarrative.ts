@@ -18,6 +18,7 @@ import type { ReglaGateCondition } from "./types";
 import type { ReglaLike } from "./components/v2";
 import { descripcionDeFormato, modoDeFormato } from "./reglas/modeloFormato";
 import { papelesDeParams } from "./reglas/modeloCombinacion";
+import { APOYO_MIN_POR_DEFECTO, N_MIN_POR_DEFECTO, preguntasDeModa } from "./reglas/modeloModa";
 import { PAPELES_DE_CATALOGO } from "../../api/catalogoUbigeo";
 import {
   ademasDeBateria,
@@ -25,6 +26,7 @@ import {
   esOperadorSinValor,
   minimoDeBateria,
   modoDeCondiciones,
+  nullableNumber,
   paramList,
   patronDeBateria,
   textoDeAdemas,
@@ -62,6 +64,7 @@ const CUSTOM_TIPO_TO_AST: Record<TipoReglaPropia, string> = {
   comparar_fechas: "coherence",
   formato: "pattern",
   combinacion_catalogo: "coherence",
+  moda_en_grupo: "coherence",
 };
 
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
@@ -84,6 +87,7 @@ export const CUSTOM_TIPO_LABEL: Record<TipoReglaPropia, string> = {
   comparar_fechas: "Dos fechas u horas que deben cuadrar",
   formato: "Formato de la respuesta",
   combinacion_catalogo: "Combinación fuera de catálogo",
+  moda_en_grupo: "Valor distinto del más frecuente en su grupo",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
@@ -173,6 +177,10 @@ export function describeCustomParams(
     case "combinacion_catalogo": {
       const piezas = fraseDeReglaPropia({ tipo, variables, params });
       return piezas ? fraseEnTexto(piezas) : "Se marca cuando el lugar declarado no existe en el catálogo de ubigeos o sus partes no calzan.";
+    }
+    case "moda_en_grupo": {
+      const piezas = fraseDeReglaPropia({ tipo, variables, params });
+      return piezas ? fraseEnTexto(piezas) : "Se marca cuando el valor de una pregunta difiere del más frecuente entre las encuestas de su grupo.";
     }
     default:
       return "";
@@ -545,6 +553,16 @@ export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leer
       f.texto(" no existe en Ubigeos del Perú (INEI), o algún nombre no se reconoce.");
       const omitir = paramList(p.omitir);
       if (omitir.length) f.texto(` No se revisan los casos con ${omitir.map((x) => `"${x}"`).join(", ")}.`);
+      break;
+    }
+    case "moda_en_grupo": {
+      // Las palabras de `.vrf_frase_moda()` en el motor.
+      const { valor, grupo } = preguntasDeModa(p);
+      if (!valor || !grupo) return null;
+      const apoyo = nullableNumber(p.apoyo_min) ?? APOYO_MIN_POR_DEFECTO;
+      const minimo = nullableNumber(p.n_min) ?? N_MIN_POR_DEFECTO;
+      f.pregunta(valor).texto(" es distinto del valor más frecuente entre las encuestas con la misma respuesta en ").pregunta(grupo);
+      f.texto(`, si ese valor reúne al menos ${apoyo} % del grupo y el grupo tiene al menos ${minimo} encuestas con respuesta.`);
       break;
     }
     default:

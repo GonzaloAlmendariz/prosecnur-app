@@ -233,6 +233,9 @@ bridge_regla_custom <- function(r) {
     # "Combinación fuera de catálogo" (reglas_custom_catalogo.R).
     "combinacion_catalogo" = .regla_catalogo_rule(params = params, gate = gate_ast, nombre = nombre,
                                                   objetivo = objetivo, severidad = sev),
+    # "Valor distinto del más frecuente en su grupo" (reglas_custom_moda_grupo.R).
+    "moda_en_grupo" = .regla_moda_rule(params = params, gate = gate_ast, nombre = nombre,
+                                       objetivo = objetivo, severidad = sev),
     stop(sprintf("bridge_regla_custom(): tipo '%s' no soportado.", tipo))
   )
 

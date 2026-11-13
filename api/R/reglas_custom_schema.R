@@ -39,6 +39,9 @@
 #                            provincia, distrito, ubigeo) que no existe o no
 #                            calza en un catálogo territorial;
 #                            reglas_custom_catalogo.R.
+#   - moda_en_grupo        — el valor de una pregunta difiere del más frecuente
+#                            entre las encuestas de su grupo (otra pregunta);
+#                            reglas_custom_moda_grupo.R.
 
 .regla_tipos_soportados <- c(
   "no_nulo", "rango_num", "rango_fecha",
@@ -48,7 +51,7 @@
   "select_multiple_cardinality", "select_multiple_selection",
   "continuidad_secuencia", "cruce_identidad",
   "condiciones", "bateria", "comparar_fechas", "formato",
-  "combinacion_catalogo"
+  "combinacion_catalogo", "moda_en_grupo"
 )
 
 # Comparar con otra pregunta solo admite operadores de comparación: "está
@@ -86,7 +89,9 @@
   if (identical(tipo, "condiciones")) .regla_validar_condiciones(r$params %||% list())
   # En "Combinación fuera de catálogo" las variables salen de los papeles.
   if (identical(tipo, "combinacion_catalogo")) .regla_catalogo_validar(r)
-  vars <- if (tipo %in% c("condiciones", "combinacion_catalogo")) .regla_variables_efectivas(r)
+  # En "Valor distinto del más frecuente en su grupo" salen de grupo y valor.
+  if (identical(tipo, "moda_en_grupo")) .regla_moda_validar(r)
+  vars <- if (tipo %in% c("condiciones", "combinacion_catalogo", "moda_en_grupo")) .regla_variables_efectivas(r)
           else unlist(r$variables %||% list())
   if (!length(vars) || any(!nzchar(vars))) {
     stop_api(400, "E_REGLA_SIN_VARS",
@@ -380,6 +385,9 @@
   } else if (identical(tipo, "combinacion_catalogo")) {
     # Los papeles mandan: la revisada (la más específica) primero.
     vars <- .regla_catalogo_variables(params)
+  } else if (identical(tipo, "moda_en_grupo")) {
+    # La revisada (valor) primero, luego el grupo.
+    vars <- .regla_moda_variables(params)
   }
   vars <- vars[!is.na(vars) & nzchar(vars)]
   unique(vars)

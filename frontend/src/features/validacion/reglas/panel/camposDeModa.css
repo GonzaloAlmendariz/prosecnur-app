@@ -1,0 +1,11 @@
+/* "Valor distinto del más frecuente en su grupo": los dos umbrales (CamposDeModa.tsx). */
+
+.pulso-regla-moda-umbral {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(56px, 80px) auto;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  color: var(--pulso-text-muted);
+}

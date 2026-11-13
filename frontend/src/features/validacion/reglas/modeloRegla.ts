@@ -17,6 +17,7 @@ import type {
 import type { TipoMeta } from "./tiposDeRegla";
 import { paramsDeComparar } from "./modeloFechas";
 import { paramsDeFormato } from "./modeloFormato";
+import { paramsDeModa } from "./modeloModa";
 import { paramsDeCombinacion } from "./modeloCombinacion";
 import {
   esOperadorDeComparacion,
@@ -167,6 +168,7 @@ export function normalizeParamsForSubmit(
   if (tipo === "comparar_fechas") return paramsDeComparar(params);
   if (tipo === "formato") return paramsDeFormato(params);
   if (tipo === "combinacion_catalogo") return paramsDeCombinacion(params);
+  if (tipo === "moda_en_grupo") return paramsDeModa(params);
   return params;
 }
 

@@ -18,7 +18,8 @@ export type TipoReglaPropia =
   | "bateria"
   | "comparar_fechas"
   | "formato"
-  | "combinacion_catalogo";
+  | "combinacion_catalogo"
+  | "moda_en_grupo";
 
 /** "todas": se marca si se cumplen todas; "alguna": si se cumple al menos una. */
 export type ModoCondiciones = "todas" | "alguna";
@@ -58,6 +59,7 @@ const TIPOS_CONOCIDOS: readonly TipoReglaPropia[] = [
   "comparar_fechas",
   "formato",
   "combinacion_catalogo",
+  "moda_en_grupo",
 ];
 
 export function esTipoReglaPropia(valor: unknown): valor is TipoReglaPropia {

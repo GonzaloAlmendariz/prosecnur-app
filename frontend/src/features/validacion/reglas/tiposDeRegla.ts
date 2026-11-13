@@ -164,6 +164,16 @@ export const TIPOS: TipoMeta[] = [
     grupo: "coherencia",
   },
   {
+    key: "moda_en_grupo",
+    label: "Valor distinto del más frecuente en su grupo",
+    rotulo: "Valor distinto del más frecuente en su grupo",
+    ejemploCorto: "Un ubigeo distinto del que tienen casi todas las encuestas de su distrito",
+    descripcion: "Se marca cuando el valor de una pregunta difiere del más frecuente entre las encuestas del mismo grupo, si ese valor reúne el apoyo mínimo y el grupo es lo bastante grande.",
+    // El valor que se compara y la pregunta que define el grupo.
+    nVars: 2,
+    grupo: "coherencia",
+  },
+  {
     key: "select_multiple_hierarchy",
     label: "Completar opciones asumidas",
     rotulo: "Opciones que van juntas",

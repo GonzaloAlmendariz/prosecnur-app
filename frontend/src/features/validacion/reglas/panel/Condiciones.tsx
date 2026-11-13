@@ -37,6 +37,7 @@ import { esOperadorDeComparacion, type CondicionCombinada, type ModoCondiciones,
 import { CamposDeBateria } from "./CamposDeBateria";
 import { CamposDeFechas } from "./CamposDeFechas";
 import { CamposDeFormato } from "./CamposDeFormato";
+import { CamposDeModa } from "./CamposDeModa";
 import { CamposDeCombinacion } from "./CamposDeCombinacion";
 import { Fila } from "./FilaDeRegla";
 import { Segmentado } from "./Segmentado";
@@ -104,6 +105,9 @@ export function preguntasDelTipo(tipo: Borrador["tipo"], variables: readonly Exp
     case "select_multiple_cardinality":
     case "select_multiple_selection":
       return variables.filter((v) => v.tipo === "sm");
+    case "moda_en_grupo":
+      // El grupo y el valor se leen como texto; la opción múltiple reparte la respuesta en columnas.
+      return variables.filter((v) => v.tipo !== "sm");
     case "formato":
       // El formato se lee del texto de la respuesta (o de un número escrito
       // como texto); la opción múltiple reparte la respuesta en columnas.
@@ -366,6 +370,10 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
     }
     case "combinacion_catalogo": {
       filas = <CamposDeCombinacion borrador={b} despachar={despachar} variables={variables} />;
+      break;
+    }
+    case "moda_en_grupo": {
+      filas = <CamposDeModa borrador={b} despachar={despachar} variables={preguntasDelTipo("moda_en_grupo", variables)} />;
       break;
     }
     case "rango_fecha":

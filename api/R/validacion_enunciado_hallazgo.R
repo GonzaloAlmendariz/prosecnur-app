@@ -154,6 +154,7 @@
   if (!is.null(regla$fechas)) return("fechas")
   if (!is.null(regla$formato)) return("formato")
   if (!is.null(regla$catalogo)) return("combinacion_catalogo")
+  if (!is.null(regla$moda)) return("moda_en_grupo")
   a <- as.character(anomalia %||% NA_character_)[1]
   if (is.na(a) || !nzchar(a)) return(NA_character_)
   tipo <- as.character(regla$tipo_regla %||% "")[1]
@@ -323,9 +324,14 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
       hecho <- catalogo$hecho
       catalogo$choque
     },
+    moda_en_grupo = {
+      m <- .regla_moda_enunciado(regla$moda, valores, regla)
+      hecho <- m$hecho
+      m$choque
+    },
     ""
   )
-  if (!nzchar(target) && !(sub %in% c("procedencia", "combinacion_catalogo"))) hecho <- ""
+  if (!nzchar(target) && !(sub %in% c("procedencia", "combinacion_catalogo", "moda_en_grupo"))) hecho <- ""
 
   acc <- as.character(accion %||% "")[1]
   if (is.na(acc) || !nzchar(acc)) {
@@ -378,7 +384,8 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
                 bateria = .regla_bateria_contexto(propia),
                 fechas = .regla_fechas_contexto(propia),
                 formato = .regla_formato_contexto(propia),
-                catalogo = .regla_catalogo_contexto(propia)))
+                catalogo = .regla_catalogo_contexto(propia),
+                moda = .regla_moda_contexto(propia)))
   }
   origen <- .vrc_origen(rule, ids_propias)
   familia <- .vrc_familia(rule, origen, propia = propia)
@@ -412,6 +419,7 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
     bateria = .regla_bateria_contexto(propia),
     fechas = .regla_fechas_contexto(propia),
     formato = .regla_formato_contexto(propia),
-    catalogo = .regla_catalogo_contexto(propia)
+    catalogo = .regla_catalogo_contexto(propia),
+    moda = .regla_moda_contexto(propia)
   )
 }
