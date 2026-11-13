@@ -48,7 +48,7 @@ export function MarcoAcreditacion({ componentes, onComponente }: {
                 <button type="button" className="cmmp-cola-actor" onClick={() => elegir(c.id)}>
                   <b>{v.label}</b>
                   <span className="cmmp-pastilla" data-tono={conBase ? "ok" : borrador ? "acento" : N > 0 ? undefined : "aviso"}>
-                    {conBase ? "Base cargada" : borrador ? "En curso" : N > 0 ? "Escrita a mano" : "Sin marco"}
+                    {conBase ? (marcos[c.id]?.fuente === "conteos" ? "Tabla de conteos" : "Base cargada") : borrador ? "En curso" : N > 0 ? "Escrita a mano" : "Sin marco"}
                   </span>
                 </button>
                 {/* La población sale del marco: aquí solo se lee. */}
@@ -150,8 +150,9 @@ function MarcoDeclarado({ componente, lateral, onCambiar }: { componente: CalcMu
           <section className="cmmp-sec" aria-label="Archivo">
             <h4>Archivo</h4>
             <dl className="cmmp-roles">
+              <div><dt>Fuente</dt><dd>{marco.fuente === "conteos" ? "Tabla de conteos" : "Base con una fila por persona"}</dd></div>
               <div><dt>Hoja</dt><dd>{marco.hoja || "Única"}</dd></div>
-              <div><dt>Identificador</dt><dd>{marco.columnas.id}</dd></div>
+              <div><dt>{marco.fuente === "conteos" ? "Categorías" : "Identificador"}</dt><dd>{marco.columnas.id}</dd></div>
             </dl>
           </section>
         ) : null}

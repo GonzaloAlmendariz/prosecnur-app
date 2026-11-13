@@ -172,6 +172,30 @@ mount_calc_muestra_marco_publico <- function(pr) {
     })) |>
 
     # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/declarar-conteos
+    # Body: { componente_id, file_id, hoja?, columna_variable? }
+    # Guarda como marco del actor una tabla de conteos: N y un segmento por fila.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/declarar-conteos",
+                     serializer = .cm_serializer_sin_redondeo(),
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      componente_id <- calc_str(body$componente_id, "")
+      file_id <- calc_str(body$file_id, "")
+      hoja <- calc_str(body$hoja, "")
+      df <- .cm_mp_leer(.cm_mp_archivo(sid, file_id), hoja)
+      s <- session_get(sid)
+      estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
+      out <- calc_muestra_marco_conteos_declarar(estudio, s$calc_muestra_general, componente_id, df,
+                                                 file_id = file_id, hoja = hoja,
+                                                 columna_variable = calc_str(body$columna_variable, ""))
+      session_set(sid, "calc_muestra_estudio", out$estudio)
+      session_set(sid, "calc_muestra_general", out$estado)
+      list(ok = TRUE, marco = out$marco, componente = out$componente, estudio = out$estudio)
+    })) |>
+
+    # -----------------------------------------------------------------------
     # POST /api/calc-muestra/marco-publico/cuotas
     # Body: { componente_id, meta, modo: celda|control|minimo, minimo?, columna? }
     # Reparte la meta del actor por sus segmentos (y una segunda variable si se
@@ -186,9 +210,14 @@ mount_calc_muestra_marco_publico <- function(pr) {
       if (is.null(marco) || is.null(marco$receta)) {
         stop_api(400, "E_BAD_REQUEST", "Este actor no tiene una base cargada en Marco.")
       }
-      datos <- .cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% "")
-      out <- calc_muestra_marco_cuotas(datos, marco$receta, body$meta, calc_str(body$modo, "celda"),
-                                       body$minimo %||% 10L, calc_str(body$columna, ""))
+      out <- if (identical(calc_str(marco$receta$tipo, ""), "conteos")) {
+        calc_muestra_marco_cuotas_conteos(.cm_mp_leer(.cm_mp_archivo(sid, marco$file_id), marco$hoja %||% ""), marco$receta,
+                                          body$meta, calc_str(body$modo, "celda"), body$minimo %||% 10L, calc_str(body$columna, ""))
+      } else {
+        datos <- .cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% "")
+        calc_muestra_marco_cuotas(datos, marco$receta, body$meta, calc_str(body$modo, "celda"),
+                                  body$minimo %||% 10L, calc_str(body$columna, ""))
+      }
       cu <- out$cuotas
       cu$cuotas <- .cm_seg_matriz_json(cu$cuotas, out$cruce$filas)
       cu$esperadas <- .cm_seg_matriz_json(cu$esperadas, out$cruce$filas)

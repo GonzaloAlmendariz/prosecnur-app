@@ -57,6 +57,8 @@ export type CalcMuestraGeneralMarco = {
   N: number;
   estratos: CalcMuestraGeneralMarcoEstrato[];
   declarado_at: string;
+  /** De dónde salió: una base con una fila por persona o una tabla de conteos (sin listado de envío). */
+  fuente?: "base" | "conteos";
 };
 
 export type CalcMuestraGeneralCorridaMeta = {
@@ -230,6 +232,7 @@ export function normalizeCalcMuestraGeneralMarco(raw: unknown): CalcMuestraGener
     N: Math.max(0, Math.round(N)),
     estratos,
     declarado_at: asText(r.declarado_at),
+    fuente: asText(r.fuente) === "conteos" ? "conteos" : "base",
   };
 }
 

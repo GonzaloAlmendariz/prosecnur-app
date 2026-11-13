@@ -124,7 +124,13 @@ describe("normalizeCalcMuestraGeneralMarco", () => {
       N: 300,
       estratos: [{ clave: "Cayma", N_h: 100 }, { clave: "Cercado", N_h: 200 }],
       declarado_at: "2026-09-24T06:00:00Z",
+      fuente: "base",
     });
+  });
+
+  it("un marco de una tabla de conteos dice su fuente; otra fuente desconocida vale base", () => {
+    expect(normalizeCalcMuestraGeneralMarco({ N: 10, columnas: { id: "Unidad" }, fuente: "conteos" })?.fuente).toBe("conteos");
+    expect(normalizeCalcMuestraGeneralMarco({ N: 10, columnas: { id: "dni" }, fuente: "otra" })?.fuente).toBe("base");
   });
 
   it("sin N o sin columna de id no hay marco", () => {

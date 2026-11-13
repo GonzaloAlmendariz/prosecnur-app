@@ -143,6 +143,7 @@ export function RecorridoMarco({ componente, onCerrar, lateral, onPoblacionManua
           estado={estado}
           onCambio={cambiar}
           poblacionManual={onPoblacionManual ? { valor: componente.marco.marco_validado, onGuardar: onPoblacionManual } : undefined}
+          conteos={{ componenteId: componente.id, actor, onGuardado: () => { descartar(componente.id); onCerrar(); } }}
         />
       )}
       {paso === "columnas" && <PasoColumnas estado={estado} colElegida={colElegida} onElegir={setColElegida} onCambio={cambiar} />}

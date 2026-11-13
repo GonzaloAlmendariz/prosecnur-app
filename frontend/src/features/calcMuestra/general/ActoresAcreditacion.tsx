@@ -81,7 +81,7 @@ export function ActoresAcreditacion({
         return (
           <Link className="cmg-actor-estado" to={hrefSeccionDeActor(location.pathname, location.search, "marco", comp.id)}>
             {N > 0
-              ? <><strong>{cifra.format(N)}</strong><small>{marcos[comp.id] ? "desde la base" : "escrita a mano"}</small></>
+              ? <><strong>{cifra.format(N)}</strong><small>{marcos[comp.id] ? (marcos[comp.id].fuente === "conteos" ? "desde una tabla" : "desde la base") : "escrita a mano"}</small></>
               : <span className="cmg-sin-dato">Sin marco</span>}
             <ArrowRight size={13} aria-hidden="true" />
           </Link>

@@ -265,3 +265,42 @@ export async function apiMarcoPublicoCuotas(input: {
     columnasCuota: lista(r.columnas_cuota).map(texto).filter(Boolean),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Tabla de conteos
+// ---------------------------------------------------------------------------
+
+export type TablaDeConteos = {
+  categoria: string;
+  conteoColumnas: string[];
+  calculadas: Array<{ columna: string; motivo: string }>;
+  avisos: string[];
+  cruce: CruceDelMarco;
+};
+
+export async function apiMarcoPublicoConteos(input: { fileId: string; hoja: string; columnaVariable: string }): Promise<TablaDeConteos> {
+  const r = await post("conteos", { file_id: input.fileId, hoja: input.hoja, columna_variable: input.columnaVariable });
+  const cruce = normalizarCruce(r.cruce);
+  if (!cruce) throw sinForma("/marco-publico/conteos");
+  return {
+    categoria: texto(r.categoria),
+    conteoColumnas: lista(r.conteo_columnas).map(texto),
+    calculadas: lista(r.calculadas).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => ({ columna: texto(x.columna), motivo: texto(x.motivo) })),
+    avisos: lista(r.avisos).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => texto(x.texto)).filter(Boolean),
+    cruce,
+  };
+}
+
+export async function apiMarcoPublicoDeclararConteos(input: {
+  componenteId: string; fileId: string; hoja: string; columnaVariable: string;
+}): Promise<{ componente: CalcMuestraComponente | null; estudio: CalcMuestraEstudio | null }> {
+  const r = await post("declarar-conteos", {
+    componente_id: input.componenteId, file_id: input.fileId, hoja: input.hoja, columna_variable: input.columnaVariable,
+  });
+  const comp = rec(r.componente);
+  const est = rec(r.estudio);
+  return {
+    componente: comp && typeof comp.id === "string" ? (comp as unknown as CalcMuestraComponente) : null,
+    estudio: est && Array.isArray(est.componentes) ? (est as unknown as CalcMuestraEstudio) : null,
+  };
+}

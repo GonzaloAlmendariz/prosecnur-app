@@ -46,6 +46,9 @@
 #'
 #' @return list(datos, columna_segmento, invitados (embudo), receta).
 calc_muestra_marco_aplicar_receta <- function(datos, receta) {
+  if (identical(calc_str(receta$tipo, ""), "conteos")) {
+    stop_api(400, "E_BAD_REQUEST", "El marco de este actor es una tabla de conteos. Alcanza para la propuesta y las cuotas, pero el listado de envío necesita la base con una fila por persona.")
+  }
   r <- .cm_receta_normalizar(receta)
   if (!nzchar(r$columnas$id)) stop_api(400, "E_BAD_REQUEST", "Elige la columna que identifica a cada persona.")
   if (!r$columnas$id %in% names(datos)) {
@@ -119,4 +122,61 @@ calc_muestra_marco_cuotas <- function(datos, receta, meta, modo = "celda", minim
   cruce <- calc_muestra_segmento_cruce(ap$datos, ap$columna_segmento, columna)
   cuotas <- calc_muestra_cuotas_cruce(cruce, meta, modo, minimo)
   list(cruce = cruce, cuotas = cuotas, columnas_cuota = as.list(disponibles))
+}
+
+# ---------------------------------------------------------------------------
+# Marco desde una tabla de conteos (un público sin base por persona)
+# ---------------------------------------------------------------------------
+
+#' Declara el marco de un actor desde una tabla de conteos: la población es el
+#' total de la tabla y cada categoría de las filas es un segmento. Alcanza para
+#' la propuesta y las cuotas; el listado de envío necesita la base por persona.
+#' La receta guarda que es una tabla de conteos y cómo se llama la variable de
+#' sus columnas (por ejemplo "Sexo"), para repartir cuotas por el cruce.
+calc_muestra_marco_conteos_declarar <- function(estudio, estado, componente_id, df, file_id, hoja = "", columna_variable = "") {
+  estado <- .cm_general_estado(estado)
+  idx <- .cm_general_buscar_componente(estudio, componente_id)
+  lec <- calc_muestra_conteos_leer(df, columna_variable)
+  cruce <- lec$cruce
+  N_h <- as.integer(round(rowSums(cruce$conteos)))
+  N <- sum(N_h)
+  if (N <= 0L) stop_api(400, "E_BAD_REQUEST", "La tabla de conteos no suma población.")
+  comp <- estudio$componentes[[idx]]
+  comp$marco$universo_bruto <- N
+  comp$marco$marco_validado <- N
+  comp$marco$marco_contactable <- N
+  comp$marco$estado <- "validado"
+  comp$marco$estratos <- lapply(seq_along(cruce$filas), function(h) list(id = paste0("est-", h), label = cruce$filas[[h]], N = N_h[[h]]))
+  comp$resultado <- NULL
+  estudio$componentes[[idx]] <- calc_muestra_normalize_componente(comp)
+  receta <- list(tipo = "conteos", columna_variable = cruce$columna_variable, categoria = lec$categoria,
+                 conteo_columnas = lec$conteo_columnas)
+  marco <- list(
+    file_id = file_id, hoja = hoja, fuente = "conteos",
+    columnas = list(id = lec$categoria, estrato = lec$categoria, tamano = ""),
+    marco_hash = digest::digest(list(cruce$filas, cruce$columnas, cruce$conteos)),
+    N = N, estratos = lapply(seq_along(cruce$filas), function(h) list(clave = cruce$filas[[h]], N_h = N_h[[h]])),
+    receta = receta, avisos = lec$avisos,
+    declarado_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  )
+  estado$marcos[[componente_id]] <- marco
+  estado$corridas[[componente_id]] <- NULL
+  list(estudio = estudio, estado = estado, marco = marco, componente = estudio$componentes[[idx]])
+}
+
+#' Cuotas sobre un marco de conteos: filas por categoría y, si se pide la
+#' variable de las columnas, el cruce completo.
+calc_muestra_marco_cuotas_conteos <- function(df, receta, meta, modo = "celda", minimo = 10L, columna = "") {
+  lec <- calc_muestra_conteos_leer(df, calc_str(receta$columna_variable, ""))
+  cruce <- lec$cruce
+  variable <- cruce$columna_variable
+  disponibles <- if (nzchar(variable)) list(variable) else list()
+  columna <- calc_str(columna, "")
+  if (nzchar(columna) && !identical(columna, variable)) {
+    stop_api(400, "E_BAD_REQUEST", sprintf("\"%s\" no es una columna de la tabla de conteos de este actor.", columna))
+  }
+  if (!nzchar(columna)) {
+    cruce <- .cm_seg_cruce(cruce$fila_variable, "", cruce$filas, "Total", rowSums(cruce$conteos))
+  }
+  list(cruce = cruce, cuotas = calc_muestra_cuotas_cruce(cruce, meta, modo, minimo), columnas_cuota = disponibles)
 }

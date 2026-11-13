@@ -45,6 +45,8 @@
 .cmmp-capac { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .cmmp-capac li { display: inline-flex; align-items: center; gap: 6px; font-size: var(--pulso-type-caption-size); font-weight: var(--pulso-weight-semibold); }
 .cmmp-capac li svg { color: var(--pulso-success-fg); }
+.cmmp-capac li[data-no="true"] { color: var(--pulso-text-faint); font-weight: var(--pulso-weight-medium); }
+.cmmp-capac li[data-no="true"] svg { color: var(--pulso-text-faint); }
 .cmmp-manual { display: inline-flex; align-items: center; gap: 8px; font-size: var(--pulso-type-caption-size); color: var(--pulso-text-soft); }
 .cmmp-manual > span { white-space: nowrap; }
 .cmmp-leido { padding-top: var(--pulso-space-3); }
@@ -167,3 +169,8 @@
 .cmmp-cuota[data-esperada="true"] b { color: var(--pulso-text-soft); font-weight: var(--pulso-weight-semibold); }
 .cmmp-cuota[data-chica="true"] b { color: var(--pulso-warn-fg); }
 .cmmp-cuota[data-chica="true"] { box-shadow: inset 0 -2px 0 var(--pulso-warn-fg); }
+
+/* Marco › Archivo › tabla de conteos. */
+.cmmp-conteos { border-top: 1px solid var(--pulso-border); }
+.cmmp-leido--sec { padding: var(--pulso-space-3) var(--pulso-space-4) 0; }
+.cmmp-pie { display: flex; align-items: center; justify-content: space-between; gap: var(--pulso-space-3); padding: var(--pulso-space-3) var(--pulso-space-4); border-top: 1px solid var(--pulso-border); background: var(--pulso-surface-2); }

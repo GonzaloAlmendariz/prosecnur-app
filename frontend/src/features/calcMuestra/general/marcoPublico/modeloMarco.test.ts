@@ -88,3 +88,16 @@ describe("modelo del recorrido del marco", () => {
     expect(sinNombre.segmento.nombre).toBe("CAT por DED");
   });
 });
+
+describe("hoja de una tabla de conteos", () => {
+  it("elige la hoja que se llama como el actor antes que la más grande", async () => {
+    const { hojaDelActor } = await import("./FuenteConteos");
+    const hojas = [
+      { nombre: "Personas en varios públicos", tipo: "datos" as const, filas: 900, columnas: 9, encabezadoFila: 1 },
+      { nombre: "Estudiantes de pregrado", tipo: "datos" as const, filas: 40, columnas: 6, encabezadoFila: 6 },
+      { nombre: "Notas", tipo: "notas" as const, filas: 1, columnas: 1, encabezadoFila: 1 },
+    ];
+    expect(hojaDelActor(hojas, "Estudiantes de Pregrado", "Personas en varios públicos")).toBe("Estudiantes de pregrado");
+    expect(hojaDelActor(hojas, "Docentes", "Personas en varios públicos")).toBe("Personas en varios públicos");
+  });
+});

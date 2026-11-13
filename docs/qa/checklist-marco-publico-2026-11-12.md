@@ -26,7 +26,8 @@ Esta tanda deja el motor y sus rutas sin estado; guardar la receta del marco en 
 | 18 | Marco: recorrido de cuatro pasos sobre la base y marco guardado con su receta; sin base, la población se escribe a mano | `MarcoAcreditacion.tsx`, `marcoPublico/` | Hecho |
 | 19 | Meta: población del marco, respuesta esperada, meta, margen editable y respuesta que exige, con las propuestas A, B y C | `MetaAcreditacion.tsx` | Hecho |
 | 20 | Cuotas en pantalla: en Meta, la meta de un actor con base se reparte por sus segmentos, con una segunda variable opcional, por celda, con control o con mínimo de 10 | `RepartoAcreditacion.tsx`, ruta `/marco-publico/cuotas` | Hecho |
-| 21 | Tabla de conteos como fuente del marco en pantalla (un actor sin base por persona, como pregrado en el DCI) | Marco, paso Archivo | Pendiente |
+| 21 | Tabla de conteos como fuente del marco en pantalla (un actor sin base por persona): N, un segmento por fila, cuotas por el cruce y sin listado de envío | `marcoPublico/FuenteConteos.tsx`, rutas `/declarar-conteos` y `/cuotas` | Hecho |
+| 22 | Rótulos corregibles en segmentos y tablas | Marco | Pendiente |
 
 ## Verificación
 

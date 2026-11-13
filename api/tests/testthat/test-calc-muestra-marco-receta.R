@@ -136,3 +136,42 @@ test_that("la ruta de cuotas responde 400 con su causa si el actor no tiene base
   expect_equal(res$status, 400)
   expect_match(paste(unlist(out), collapse = " "), "no tiene una base cargada")
 })
+
+test_that("una tabla de conteos se guarda como marco: N, un segmento por fila y cuotas por el cruce", {
+  path <- tempfile("rc-conteos-", fileext = ".csv"); withr::defer(unlink(path))
+  writeBin(iconv("Unidad;Mujeres;Hombres;Total;%;Meta\nLetras;250;150;400;0.55;50\nEducación;20;5;25;0.03;3\nCiencias;100;200;300;0.41;40\nTotal;370;355;725;1;93\n",
+                 "UTF-8", "latin1", toRaw = TRUE)[[1]], path)
+  sid <- session_create(); withr::defer(session_delete(sid))
+  meta <- save_upload(sid, "data", basename(path), readBin(path, "raw", file.size(path)))
+  session_set(sid, "calc_muestra_estudio", .rc_estudio())
+  dec <- .bv_call(mount_calc_muestra_marco_publico, "POST", "/api/calc-muestra/marco-publico/declarar-conteos", sid,
+                  list(componente_id = "cmp-doc", file_id = meta$file_id, columna_variable = "Sexo"))
+  expect_true(dec$ok)
+  expect_identical(as.integer(dec$componente$marco$marco_validado), 725L)
+  expect_setequal(vapply(dec$componente$marco$estratos, `[[`, "", "label"), c("Letras", "Educación", "Ciencias"))
+  marco <- session_get(sid)$calc_muestra_general$marcos[["cmp-doc"]]
+  expect_identical(marco$fuente, "conteos")
+  expect_identical(marco$columnas$id, "Unidad")
+
+  por_fila <- .bv_call(mount_calc_muestra_marco_publico, "POST", "/api/calc-muestra/marco-publico/cuotas", sid,
+                       list(componente_id = "cmp-doc", meta = 70, modo = "celda"))
+  expect_identical(por_fila$cuotas$total, 70L)
+  expect_identical(unlist(por_fila$cruce$columnas), "Total")
+  expect_identical(unlist(por_fila$columnas_cuota), "Sexo")
+  cruce <- .bv_call(mount_calc_muestra_marco_publico, "POST", "/api/calc-muestra/marco-publico/cuotas", sid,
+                    list(componente_id = "cmp-doc", meta = 70, modo = "minimo", columna = "Sexo"))
+  expect_identical(unlist(cruce$cruce$columnas), c("Mujeres", "Hombres"))
+  expect_gt(cruce$cuotas$extra, 0L)
+  expect_error(calc_muestra_marco_cuotas_conteos(.cm_mp_leer(path), marco$receta, 70, "celda", 10L, "Otra"), class = "api_error")
+  # Otros conteos, otro hash: la selección no confunde dos tablas.
+  df <- .cm_mp_leer(path); df$Hombres[1] <- "151"
+  otro <- calc_muestra_marco_conteos_declarar(.rc_estudio(), list(), "cmp-doc", df, file_id = "f", columna_variable = "Sexo")
+  expect_false(identical(otro$marco$marco_hash, marco$marco_hash))
+
+  # El listado de envío no sale de una tabla de conteos: la selección lo dice.
+  res <- plumber:::PlumberResponse$new()
+  ep <- .bv_endpoint(mount_calc_muestra_general, "POST", "/api/calc-muestra/general/seleccionar")
+  out <- ep$getFunc()(req = .bv_req(sid, list(componente_id = "cmp-doc")), res = res)
+  expect_equal(res$status, 400)
+  expect_match(paste(unlist(out), collapse = " "), "tabla de conteos")
+})
