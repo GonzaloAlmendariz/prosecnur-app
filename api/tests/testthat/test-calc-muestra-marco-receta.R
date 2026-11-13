@@ -191,3 +191,13 @@ test_that("los rótulos corregidos se aplican después de las reglas y nombran s
   sin <- r; sin$segmento <- list(nombre = "Sexo", fila = "sexo", columna = "", grupos = list())
   expect_setequal(unique(calc_muestra_marco_aplicar_receta(base, sin)$datos$Sexo), c("Mujeres", "Hombres"))
 })
+
+test_that("un rótulo con nombre vacío se ignora y la columna sin rótulos queda como venía", {
+  df <- data.frame(s = c("A", "", NA, " B"), n = 1:4, stringsAsFactors = FALSE)
+  r <- .cm_receta_rotulos(list(s = list(A = "Alfa"), n = list("1" = "uno")))
+  r$s[[""]] <- "Sin dato"
+  r <- .cm_receta_rotulos(r)
+  out <- .cm_receta_rotular(df, r)
+  expect_identical(out$s, c("Alfa", "", NA, " B"))
+  expect_identical(out$n[2:4], c("2", "3", "4"))
+})

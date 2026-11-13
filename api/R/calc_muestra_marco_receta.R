@@ -27,7 +27,7 @@
   out <- lapply(rotulos, function(m) {
     if (!is.list(m) || is.null(names(m))) return(list())
     m <- lapply(m, function(x) trimws(calc_str(x, "")))
-    m[nzchar(unlist(m)) & names(m) != unlist(m)]
+    m[nzchar(names(m)) & nzchar(unlist(m)) & names(m) != unlist(m)]
   })
   out[lengths(out) > 0]
 }
@@ -38,10 +38,13 @@
 .cm_receta_rotular <- function(df, rotulos) {
   for (col in intersect(names(rotulos), names(df))) {
     m <- unlist(rotulos[[col]])
-    v <- trimws(as.character(df[[col]]))
+    original <- as.character(df[[col]])
+    v <- trimws(original)
     usa <- !is.na(v) & v %in% names(m)
-    v[usa] <- unname(m[v[usa]])
-    df[[col]] <- v
+    if (!any(usa)) next
+    # Solo se reescriben los valores con rótulo; el resto de la columna queda como venía.
+    original[usa] <- unname(m[v[usa]])
+    df[[col]] <- original
   }
   df
 }

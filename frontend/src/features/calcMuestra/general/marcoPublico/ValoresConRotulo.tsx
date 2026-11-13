@@ -7,7 +7,7 @@ import { cifra } from "./piezas";
  * "EDUCACION" a "Educación". El valor original queda debajo cuando se corrigió. Se confirma al salir del campo o con
  * Enter; vacío vuelve al valor original.
  */
-export function ValoresConRotulo({ columna, valores, rotulos, onRotulo, max = 12 }: {
+export function ValoresConRotulo({ columna, valores, rotulos, onRotulo, max = Number.POSITIVE_INFINITY }: {
   columna: string;
   valores: readonly ValorDeColumna[];
   rotulos: Readonly<Record<string, string>>;
@@ -27,7 +27,12 @@ export function ValoresConRotulo({ columna, valores, rotulos, onRotulo, max = 12
                 size="sm"
                 defaultValue={rotulo ?? v.valor}
                 aria-label={`Rótulo de ${v.valor}`}
-                onBlur={(e) => { if (e.currentTarget.value.trim() !== (rotulo ?? v.valor)) onRotulo(v.valor, e.currentTarget.value); }}
+                onBlur={(e) => {
+                  const escrito = e.currentTarget.value.trim();
+                  // Vacío vuelve al rótulo vigente (o al valor original) también en pantalla.
+                  if (!escrito) e.currentTarget.value = rotulo ?? v.valor;
+                  if (escrito !== (rotulo ?? v.valor)) onRotulo(v.valor, escrito);
+                }}
                 onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
               />
               {rotulo ? <small>{v.valor}</small> : null}
