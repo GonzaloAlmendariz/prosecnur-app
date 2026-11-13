@@ -772,6 +772,8 @@ export type OpcionDeTratamiento = {
   conserva?: CualSeConserva;
   /** Por qué no se puede elegir; `undefined` si se puede. */
   deshabilitada?: string;
+  /** En qué situación corresponde, según las pautas del tipo de hallazgo (`pautasDelHallazgo.ts`). */
+  situacion?: string;
 };
 
 /**

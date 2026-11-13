@@ -34,6 +34,8 @@ import { Decision, type AlcanceDeDecision, type AvisosDeDecision } from "./Decis
 import { DecisionVacia, EsqueletoDeHallazgos, RevisionPorFamilia } from "./EstadosDeHallazgos";
 import { PanelCaso } from "./PanelCaso";
 import { notaDelResultadoAnterior } from "./modeloFranjaDeAuditoria";
+import { PautasDeRevision } from "./PautasDeRevision";
+import { pautasDelHallazgo, situacionDeOpcion, subtipoDeLosCasos } from "./pautasDelHallazgo";
 import { useFranjaDeAuditoria } from "./useFranjaDeAuditoria";
 import { DistribucionDelHallazgo } from "./vistas/DistribucionDelHallazgo";
 import { HallazgoCasiIguales } from "./vistas/HallazgoCasiIguales";
@@ -192,6 +194,16 @@ export function PestanaHallazgosMesa() {
     setForm((f) => ({ ...f, action_type: "exclude_cases", use_all_cases: false, scope_mode: "selected", target_case_ids: [...excluidos] }));
   }, [aMano, conservados, criterio, elegidoId, pares, paresTodos, setForm, vista]);
 
+  // --- Las pautas de revisión (ítem 27) ------------------------------------------
+  const pautas = useMemo(() => (h.elegido ? pautasDelHallazgo({
+    vista,
+    familia: h.reglaDelCatalogo?.familia ?? h.elegido.narrativa.familia ?? null,
+    direccion: h.reglaDelCatalogo?.direccion ?? null,
+    subtipo: subtipoDeLosCasos(tabla.filas.map((f) => f.esperado?.subtipo)),
+    tipoRegla: h.item?.tipo_regla ?? null,
+    semillaOrigen: h.reglaDelCatalogo?.semilla_origen ?? null,
+  }) : null), [h.elegido, h.item?.tipo_regla, h.reglaDelCatalogo, tabla.filas, vista]);
+
   // --- La decisión -------------------------------------------------------------
   const opciones = useMemo((): OpcionDeTratamiento[] => {
     if (!h.elegido) return [];
@@ -210,8 +222,11 @@ export function PestanaHallazgosMesa() {
     if (vista !== "casi-iguales" && !base.some((o) => o.accion === accion)) {
       base.push({ clave: `guardada-${accion}`, accion, titulo: humanizeAction(accion), detalle: "La acción de la decisión guardada.", prevista: h.prevista === accion });
     }
-    return base;
-  }, [h.elegido, h.form.action_type, h.item, h.prevista, h.reglaDelCatalogo?.familia, pares, pregunta?.etiqueta, vista]);
+    return base.map((o) => {
+      const situacion = situacionDeOpcion(pautas, o);
+      return situacion ? { ...o, situacion } : o;
+    });
+  }, [h.elegido, h.form.action_type, h.item, h.prevista, h.reglaDelCatalogo?.familia, pares, pautas, pregunta?.etiqueta, vista]);
   const opcionElegida = vista === "casi-iguales"
     ? (criterio === "todas" ? "todas" : criterio)
     : opciones.find((o) => o.accion === h.form.action_type)?.clave ?? null;
@@ -528,6 +543,7 @@ export function PestanaHallazgosMesa() {
                 onVerRegla={verRegla}
               />
             )}
+            pautas={pautas ? <PautasDeRevision pautas={pautas.revisar} /> : null}
           >
             {sentidos ? <SentidosDelSalto sentidos={sentidos} enCola={enCola} onAbrir={elegirHallazgo} /> : null}
             {distribuible && modoEfectivo === "distribucion" ? (
@@ -562,7 +578,7 @@ export function PestanaHallazgosMesa() {
             opciones={opciones}
             elegida={opcionElegida}
             onElegir={elegirOpcion}
-            tituloOpciones={vista === "casi-iguales" ? "Cuál se conserva" : "Qué hacer"}
+            tituloOpciones={vista === "casi-iguales" ? "Cuál se conserva" : "Tratamiento"}
             alcance={alcance}
             form={h.form}
             setForm={h.setForm}

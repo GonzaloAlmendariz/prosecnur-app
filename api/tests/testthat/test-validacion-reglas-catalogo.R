@@ -882,3 +882,16 @@ test_that("antes de la primera auditoría y tras reconstruir el plan, toda regla
   expect_identical(validacion_reglas_catalogo(sid, "Hogares")$n_sin_evaluar, hogares_antes)
   expect_identical(hogares_antes, 0L)
 })
+
+test_that("una regla propia del detector publica de dónde salió; las demás, NA", {
+  dir <- withr::local_tempdir()
+  sid <- .m3_sesion(dir)
+  del_detector <- .m1_regla("RC_020", "rango_num", list("edad"), list(min = 18, max = 65),
+                            origen = "sembrado", semilla = list(origen = "detector_consistencia", porque = "x"))
+  a_mano <- .m1_regla("RC_021", "rango_num", list("edad"), list(min = 18, max = 65))
+  validacion_scope_set(sid, "Hogares", "reglas_custom", list(del_detector, a_mano))
+  cat <- validacion_reglas_catalogo(sid, "Hogares")
+  por_id <- stats::setNames(cat$reglas, vapply(cat$reglas, function(f) f$id, character(1)))
+  expect_identical(por_id$RC_020$semilla_origen, "detector_consistencia")
+  expect_true(is.na(por_id$RC_021$semilla_origen))
+})

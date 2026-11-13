@@ -1343,6 +1343,11 @@ observaciones_regla <- function(evaluacion,
   var1 <- mrow$variable_1 %||% NA_character_
   var2 <- mrow$variable_2 %||% NA_character_
   var3 <- mrow$variable_3 %||% NA_character_
+  # Todas las preguntas de la regla, no solo las tres de Variable 1 a 3: una
+  # batería de 14 ítems o una condición combinada traen más. La evaluación
+  # AST publica `variable_roles` por regla; la del plan Excel no, y ahí quedan
+  # las tres de siempre. Columnas aditivas: las de antes siguen primero.
+  var_rol <- .observaciones_variables_de_roles(mrow)
 
   df <- tablas[[tabla_key]] %||% evaluacion$datos
   if (!is.data.frame(df) || !nzchar(flag_name) || !flag_name %in% names(df)) return(tibble())
@@ -1364,11 +1369,25 @@ observaciones_regla <- function(evaluacion,
     case_id_cols,
     codigo_col,
     var1, var2, var3,
-    paste0(var1,"_label"), paste0(var2,"_label"), paste0(var3,"_label")
+    paste0(var1,"_label"), paste0(var2,"_label"), paste0(var3,"_label"),
+    var_rol, if (length(var_rol)) paste0(var_rol, "_label")
   )))
   keep <- keep[keep %in% names(df)]
   if (!length(keep)) keep <- intersect(case_id_cols, names(df))
   out <- tibble::as_tibble(df[inc, keep, drop = FALSE])
+}
+
+# Preguntas de una regla según sus roles (target, drivers, compare, gate y
+# all), en ese orden y sin repetir. Sin la columna `variable_roles` (plan
+# Excel o una evaluación guardada antes de que existiera) devuelve vacío.
+.observaciones_variables_de_roles <- function(mrow) {
+  if (!is.data.frame(mrow) || !nrow(mrow) || !"variable_roles" %in% names(mrow)) return(character(0))
+  roles <- mrow$variable_roles[[1]]
+  if (!is.list(roles)) return(character(0))
+  v <- as.character(unlist(roles[intersect(c("target", "drivers", "compare", "gate", "all"), names(roles))],
+                           use.names = FALSE))
+  v <- v[!is.na(v) & nzchar(v)]
+  unique(v)
 }
 
 # -------------------------------------------------------------------

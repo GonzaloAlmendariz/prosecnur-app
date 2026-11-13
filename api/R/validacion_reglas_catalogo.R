@@ -328,6 +328,12 @@
     # El "Detalle" que el equipo escribió en la regla propia, para leerlo con
     # los casos marcados. Un mensaje igual al nombre lo copió el asistente.
     detalle = .vrc_detalle(propia),
+    # De dónde salió una regla propia propuesta por un sembrador (por ejemplo
+    # "detector_consistencia"): Hallazgos ajusta las pautas de revisión. NA
+    # en las del formulario, del operativo y las escritas a mano.
+    semilla_origen = if (identical(origen, "propia")) {
+      as.character(((propia %||% list())$semilla %||% list())$origen %||% NA_character_)[1]
+    } else NA_character_,
     estado_evaluacion = "evaluada",
     causa_codigo = NA_character_,
     causa = NA_character_,

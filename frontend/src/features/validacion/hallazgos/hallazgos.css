@@ -338,6 +338,73 @@
   font-weight: var(--pulso-weight-medium);
 }
 
+/* ---------- Hallazgo abierto: pautas de revisión (ítem 27) ---------- */
+
+/* Una franja del cuerpo, como la cabecera: línea fina abajo, sin marco propio.
+   Las pautas van una debajo de otra y numeradas: en dos columnas la tercera
+   quedaba sola y el bloque crecía (medido a 1440: 144 px contra 110). */
+.pulso-hz-pautas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5) var(--pulso-space-4);
+  border-bottom: 1px solid var(--pulso-border);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 3%, var(--pulso-surface));
+}
+
+.pulso-hz-pautas h4 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-hz-pautas h4 > svg {
+  flex: none;
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.pulso-hz-pautas-lista {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pulso-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: pauta;
+}
+
+.pulso-hz-pautas-lista > li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: var(--pulso-space-2);
+  align-items: baseline;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  counter-increment: pauta;
+}
+
+.pulso-hz-pautas-lista > li::before {
+  content: counter(pauta);
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  box-shadow: inset 0 0 0 1px var(--module-accent-border, var(--pulso-border));
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .pulso-hz-frase .pulso-frase-regla-nombre {
   display: inline-flex;
   flex-wrap: wrap;
@@ -1119,6 +1186,13 @@ button.pulso-hz-sentido:hover {
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   line-height: 1.4;
+}
+
+/* La situación en que corresponde la opción (pautas del ítem 27): debajo del
+   efecto, en el color del texto para leerla como criterio y no como nota. */
+.pulso-hz-opcion-texto small.pulso-hz-opcion-situacion {
+  margin-block-start: 3px;
+  color: var(--pulso-text);
 }
 
 .pulso-hz-previsto {

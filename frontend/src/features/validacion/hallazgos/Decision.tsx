@@ -1,6 +1,6 @@
 /**
  * La columna "Decisión" de Hallazgos (prototipo `decHall`, `vistas.js:163`):
- * "Sobre qué casos" (segmentado), "Qué hacer" (opciones con su descripción y
+ * "Sobre qué casos" (segmentado), "Tratamiento" (opciones con su descripción y
  * la marca "Previsto"), "Motivo" y el pie con el efecto previsto, "Omitir" y
  * "Guardar y seguir ⌘ ↵".
  *
@@ -218,6 +218,7 @@ export function Decision({
                     {o.prevista ? <em className="pulso-hz-previsto" title="Tratamiento previsto en la regla">Previsto</em> : null}
                   </span>
                   <small>{o.deshabilitada ?? o.detalle}</small>
+                  {o.situacion && !o.deshabilitada ? <small className="pulso-hz-opcion-situacion">{o.situacion}</small> : null}
                 </span>
               </>
             )}

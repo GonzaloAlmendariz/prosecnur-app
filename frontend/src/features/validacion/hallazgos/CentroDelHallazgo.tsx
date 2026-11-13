@@ -2,7 +2,7 @@
  * La columna central de Hallazgos (prototipo `HALL[k]`, `vistas.js:172`): el
  * título de la regla con su cuenta, el segmentado "Casos / Distribución" (o
  * "Distribución / Solo casos" en un rango), la cabecera del hallazgo y la
- * evidencia según su tipo: la tabla de casos, los dos sentidos de un salto, la
+ * evidencia según su tipo (con las pautas de revisión antes): la tabla de casos, los dos sentidos de un salto, la
  * distribución con el límite o los pares de respuestas casi iguales.
  *
  * El segmentado solo aparece si hay una pregunta numérica que dibujar. Si los
@@ -30,6 +30,7 @@ export function CentroDelHallazgo({
   onModo,
   rango,
   cabecera,
+  pautas,
   estado,
   mensajeError,
   onReintentar,
@@ -47,6 +48,8 @@ export function CentroDelHallazgo({
   /** En un rango la distribución va primero ("Distribución / Solo casos"). */
   rango: boolean;
   cabecera: ReactNode;
+  /** Pautas de revisión del tipo de hallazgo (ítem 27); van entre la frase y la evidencia. */
+  pautas?: ReactNode;
   estado: "cargando" | "error" | "lista";
   mensajeError?: string;
   onReintentar: () => void;
@@ -66,7 +69,7 @@ export function CentroDelHallazgo({
       conteo={conteo(n, unidad === "respuestas" ? "respuesta" : "caso", unidad)}
       ocupado={ocupado}
       acciones={distribuible && estado === "lista" ? (
-        <Segmentado<ModoDelCentro> etiqueta="Qué se ve del hallazgo" valor={modo} opciones={opciones} onCambio={onModo} />
+        <Segmentado<ModoDelCentro> etiqueta="Vista del hallazgo" valor={modo} opciones={opciones} onCambio={onModo} />
       ) : undefined}
     >
       {estado === "error" ? (
@@ -92,6 +95,7 @@ export function CentroDelHallazgo({
       ) : (
         <>
           {cabecera}
+          {pautas}
           {estado === "cargando" ? <CargaDeBloque label="Leyendo los casos del hallazgo" /> : children}
         </>
       )}

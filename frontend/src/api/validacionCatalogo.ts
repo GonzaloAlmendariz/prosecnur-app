@@ -127,6 +127,12 @@ export type ReglaDelCatalogo = {
   causa_codigo: string | null;
   causa: string | null;
   ultima_auditoria: UltimaAuditoriaDeRegla | null;
+  /**
+   * De dónde salió una regla propia que propuso un sembrador
+   * ("detector_consistencia", "dominio"...); `null` si la escribió el equipo o
+   * es del formulario. Opcional: un motor anterior no lo publica.
+   */
+  semilla_origen?: string | null;
 };
 
 export type FamiliaDelCatalogoCompleto = {
@@ -258,6 +264,7 @@ function normalizarRegla(valor: Record<string, unknown>, posicion: number): Regl
     causa_codigo: textoONulo(valor.causa_codigo),
     causa: textoONulo(valor.causa),
     ultima_auditoria: normalizarUltimaAuditoria(valor.ultima_auditoria),
+    semilla_origen: textoONulo(valor.semilla_origen),
     anomalia: !idLeido ? "sin_id" : origen === null ? "origen" : null,
   };
 }
