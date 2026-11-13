@@ -127,7 +127,7 @@ reglas_semilla_fechas_pares <- function(data, survey = NULL, reglas_existentes =
         semilla = list(origen = "fechas_iguales", variable = a, columnas = list(a, b),
                        n_par = n, n_iguales = as.integer(iguales),
                        porque = sprintf("%s y %s coinciden en %d de %d casos con las dos fechas legibles (%s).",
-                                        a, b, iguales, n, .semilla_pct(iguales, n))))
+                                        .semilla_nombrar_var(a, survey), .semilla_en_frase(.semilla_nombrar_var(b, survey)), iguales, n, .semilla_pct(iguales, n))))
       next
     }
     # Orden: se prueba en los dos sentidos; "fin" es la que suele ser posterior.
@@ -147,7 +147,8 @@ reglas_semilla_fechas_pares <- function(data, survey = NULL, reglas_existentes =
         semilla = list(origen = "fechas_orden", variable = fin, columnas = list(ini, fin),
                        n_par = n, n_en_orden = as.integer(ge),
                        porque = sprintf("%s es igual o posterior a %s en %d de %d casos con las dos fechas legibles (%s); la regla marca los que van al revés.",
-                                        fin, ini, ge, n, .semilla_pct(ge, n))))
+                                        .semilla_nombrar_var(fin, survey), .semilla_en_frase(.semilla_nombrar_var(ini, survey)),
+                                        ge, n, .semilla_pct(ge, n))))
       break
     }
   }
@@ -258,8 +259,8 @@ reglas_semilla_horas <- function(data, survey = NULL, choices = NULL, reglas_exi
   if (en_orden / n < 0.8) return(list())
   ampm_txt <- if (!is.null(b$ampm)) sprintf(" (a.m. = %s, p.m. = %s)", b$ampm$am, b$ampm$pm)
               else if (!is.null(a$ampm)) sprintf(" (a.m. = %s, p.m. = %s)", a$ampm$am, a$ampm$pm) else ""
-  lectura <- sprintf("Se leyó el inicio en %s y el fin en %s%s.", paste(a$columnas, collapse = ", "),
-                     paste(b$columnas, collapse = ", "), ampm_txt)
+  cols_txt <- function(x) paste(vapply(x$columnas, .semilla_nombrar_cod, character(1), survey = survey), collapse = ", ")
+  lectura <- sprintf("Se leyó el inicio en %s y el fin en %s%s.", cols_txt(a), cols_txt(b), ampm_txt)
   out <- list()
   if (!.semilla_ya_cubierta_conjunto(reglas_existentes, "comparar_fechas", vars, "orden")) {
     out[[length(out) + 1L]] <- .semilla_fechas_propuesta(

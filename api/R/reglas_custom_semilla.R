@@ -82,6 +82,9 @@
   et <- trimws(as.character(survey[[lab_col]][fila[1]]))
   if (is.na(et) || !nzchar(et)) return(nombre)
   et <- trimws(sub("^[Pp]?\\s*[0-9]+([.][0-9]+)*[a-z]?\\s*[.):-]\\s*", "", et))
+  # El formato de captura entre paréntesis ("(dd.mm.aaaa)", "(hh.mm)") es una
+  # instrucción para quien digita, no parte del nombre de la pregunta.
+  et <- trimws(gsub("\\s*\\([dmyahs]{1,4}\\s*[./:-]\\s*[dmyahs]{1,4}(\\s*[./:-]\\s*[dmyahs]{1,4})?\\)", "", et))
   if (!nzchar(et) || nchar(et) > .semilla_etiqueta_max || grepl("[?\u00bf]", et)) return(nombre)
   et
 }

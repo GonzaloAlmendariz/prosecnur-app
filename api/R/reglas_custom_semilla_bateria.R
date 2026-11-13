@@ -60,12 +60,6 @@
        no_aplica = cod[grepl(.SEMILLA_BAT_NO_APLICA, rl, perl = TRUE)])
 }
 
-# "p29_1 a p29_14" si el orden es correlativo; si no, los primeros y "y N más".
-.semilla_bat_tramo <- function(vars) {
-  if (length(vars) <= 3L) return(paste(vars, collapse = ", "))
-  sprintf("%s a %s", vars[1], vars[length(vars)])
-}
-
 # "de 1 a 7" si la escala es numérica y correlativa; si no, la lista.
 .semilla_bat_escala_txt <- function(escala) {
   num <- suppressWarnings(as.numeric(escala))
@@ -120,7 +114,7 @@
   )
 }
 
-.semilla_bat_iguales <- function(g, info, reglas_existentes) {
+.semilla_bat_iguales <- function(g, info, reglas_existentes, survey = NULL) {
   vars <- g$variables
   k <- length(vars)
   if (k < .SEMILLA_BAT_MIN_ITEMS || length(info$escala) < .SEMILLA_BAT_MIN_ESCALA) return(NULL)
@@ -128,7 +122,8 @@
   minimo <- as.integer(ceiling(.SEMILLA_BAT_IGUALES * k))
   params <- list(patron = "iguales", minimo = minimo)
   if (length(info$salida)) params$no_cuentan <- as.list(info$salida)
-  tramo <- .semilla_bat_tramo(vars)
+  nb <- .semilla_nombrar_bateria(vars, survey)
+  tramo <- nb$nombre
   salida_txt <- .semilla_bat_salida_txt(info)
   porque <- sprintf(
     "%s comparten la escala %s%s. La regla marca los casos con la misma respuesta en todos los ítems respondidos, con al menos %d de los %d respondidos%s.",
@@ -139,8 +134,8 @@
                                      .semilla_plural(length(info$salida), "cuenta", "cuentan")) else "")
   .semilla_bat_base_regla(
     vars, params,
-    nombre = sprintf("Misma respuesta en %s", tramo),
-    mensaje = sprintf("Respondió lo mismo en todos los ítems de %s.", tramo),
+    nombre = sprintf("Misma respuesta en %s", nb$nombre),
+    mensaje = sprintf("Respondió lo mismo en todos los ítems de %s.", nb$corto),
     semilla = list(origen = "bateria_iguales", variable = vars[1], lista = g$lista,
                    n_items = k, minimo = minimo, porque = porque)
   )
@@ -179,7 +174,7 @@
   Filter(function(b) length(b) >= .SEMILLA_BAT_NA_MIN_ITEMS, unname(bloques))
 }
 
-.semilla_bat_no_aplica <- function(data, bloque, info, codigo, reglas_existentes) {
+.semilla_bat_no_aplica <- function(data, bloque, info, codigo, reglas_existentes, survey = NULL) {
   if (.semilla_ya_cubierta_conjunto(reglas_existentes, "bateria", bloque)) return(NULL)
   k <- length(bloque)
   # En un bloque corto el 85 % redondea al bloque entero, y entonces nadie
@@ -194,7 +189,8 @@
   }, logical(nrow(data)))) == k
   rot <- info$rotulos[match(codigo, info$codigos)]
   cod_txt <- if (is.na(rot) || !nzchar(rot)) codigo else sprintf("%s (%s)", rot, codigo)
-  tramo <- .semilla_bat_tramo(bloque)
+  nb <- .semilla_nombrar_bateria(bloque, survey)
+  tramo <- nb$nombre
   porque <- sprintf(
     paste("Los %d ítems de %s se marcan %s juntos: en %s los %d son %s.",
           "La regla marca los casos con %s en %d o más de esos ítems y alguna respuesta %s en el resto, es decir, el bloque saltado a medias."),
@@ -203,8 +199,8 @@
   .semilla_bat_base_regla(
     bloque,
     list(patron = "codigo", codigos = list(codigo), minimo = minimo, ademas = ademas),
-    nombre = sprintf("%s a medias en %s", if (is.na(rot) || !nzchar(rot)) codigo else rot, tramo),
-    mensaje = sprintf("Marcó %s en casi todo el bloque %s y respondió alguno de sus ítems.", codigo, tramo),
+    nombre = sprintf("%s a medias en %s", if (is.na(rot) || !nzchar(rot)) codigo else rot, nb$nombre),
+    mensaje = sprintf("Marcó %s en casi todo el bloque %s y respondió alguno de sus ítems.", codigo, nb$corto),
     semilla = list(origen = "bateria_no_aplica", variable = bloque[1], codigo = codigo,
                    n_items = k, minimo = minimo, n_bloque_completo = as.integer(sum(todo)), porque = porque)
   )
@@ -226,7 +222,7 @@ reglas_semilla_baterias <- function(data, survey, choices, reglas_existentes = l
   for (g in grupos) {
     info <- .semilla_bat_lista(choices, g$lista)
     if (is.null(info)) next
-    out[[length(out) + 1L]] <- .semilla_bat_iguales(g, info, reglas_existentes)
+    out[[length(out) + 1L]] <- .semilla_bat_iguales(g, info, reglas_existentes, survey)
   }
   # Bloques No aplica: por lista, sobre todos los ítems que la usan, porque el
   # bloque puede cruzar prefijos (la madre en P11 a P14).
@@ -236,7 +232,7 @@ reglas_semilla_baterias <- function(data, survey, choices, reglas_existentes = l
     if (is.null(info) || length(info$no_aplica) != 1L || length(info$escala) < .SEMILLA_BAT_MIN_ESCALA) next
     vars <- unlist(lapply(Filter(function(g) identical(g$lista, lista), grupos), `[[`, "variables"))
     for (b in .semilla_bat_bloques_na(data, vars, info$no_aplica)) {
-      out[[length(out) + 1L]] <- .semilla_bat_no_aplica(data, b, info, info$no_aplica, reglas_existentes)
+      out[[length(out) + 1L]] <- .semilla_bat_no_aplica(data, b, info, info$no_aplica, reglas_existentes, survey)
     }
   }
   Filter(Negate(is.null), out)

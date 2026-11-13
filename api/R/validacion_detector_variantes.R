@@ -54,12 +54,16 @@
     sprintf("\"%s\" (%d) frente a \"%s\" (%d)", ej$v[i], sum(v[filas] == ej$v[i]), ej$f[i],
             sum(!is.na(v) & v == ej$f[i]))
   }, character(1))
+  # La columna se nombra por su etiqueta; sin ella, por su código.
+  nom <- if (is.null(pregs)) var else
+    .semilla_en_frase(.semilla_nombrar_var(var, data.frame(name = pregs$name, label = pregs$rotulo,
+                                                            stringsAsFactors = FALSE)))
   list(
     familia = "columna", tipo = "variante", fuerte = TRUE, peso = 2,
     variables = list(.vdc_pregunta_ref(pregs, var)),
-    titulo = sprintf("Un mismo valor escrito de otra forma en %s", var),
+    titulo = sprintf("Un mismo valor escrito de otra forma en %s", nom),
     texto = sprintf("%d %s de %s solo %s de la escritura más común en mayúsculas, tildes, signos o espacios: %s. En un tabulado saldrían como valores distintos.",
-                    k, .vdc_plural(k, "caso", "casos"), var, .vdc_plural(k, "difiere", "difieren"),
+                    k, .vdc_plural(k, "caso", "casos"), nom, .vdc_plural(k, "difiere", "difieren"),
                     paste(ej_txt, collapse = "; ")),
     cifra = list(n_casos = k, base_n = n_ok, base = "casos con dato en la columna",
                  n_variantes = nrow(pares)),

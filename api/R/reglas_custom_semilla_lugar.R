@@ -69,7 +69,7 @@ reglas_semilla_lugar <- function(data, survey = NULL, reglas_existentes = list()
     vars <- unname(roles)
     detalle <- vapply(names(roles), function(papel) {
       p <- partes[[roles[[papel]]]]$parte[[papel]] %||% NA_real_
-      sprintf("%s es %s (%s de sus valores en el catálogo)", roles[[papel]], .SEMILLA_LUGAR_PAPEL_TXT[[papel]],
+      sprintf("%s es %s (%s de sus valores en el catálogo)", .semilla_en_frase(.semilla_nombrar_var(roles[[papel]], survey)), .SEMILLA_LUGAR_PAPEL_TXT[[papel]],
               .semilla_pct(p, 1))
     }, character(1))
     if (!.semilla_ya_cubierta_conjunto(reglas_existentes, "combinacion_catalogo", vars)) {
@@ -77,7 +77,7 @@ reglas_semilla_lugar <- function(data, survey = NULL, reglas_existentes = list()
         tipo = "combinacion_catalogo",
         variables = list(),
         params = list(roles = as.list(roles), catalogo = catalogo),
-        nombre = sprintf("Lugar fuera del catálogo de ubigeos: %s", .semilla_lugar_lista_txt(vars)),
+        nombre = sprintf("Lugar fuera del catálogo de ubigeos: %s", .semilla_nombrar_lista(vars, survey)),
         mensaje = "La combinación de lugar no existe en el catálogo de ubigeos.",
         severidad = "advertencia", activa = TRUE, hallazgo_kind = "caso_validar",
         planned_action_type = "ignore_rule", origen = "sembrado",
@@ -130,7 +130,8 @@ reglas_semilla_lugar <- function(data, survey = NULL, reglas_existentes = list()
       n_grupos = as.integer(n_eval),
       porque = sprintf(paste("%s y %s son el lugar del caso. En %d valores de %s con %d encuestas o más, el %s más frecuente reúne al menos el %d %%;",
                              "la regla marca la encuesta con otro %s. El catálogo no marca una combinación que existe aunque no sea la habitual; esta regla sí."),
-                       grupo, valor, n_eval, grupo, .REGLA_MODA_N_DEFECTO, valor,
-                       as.integer(.REGLA_MODA_APOYO_DEFECTO), valor))
+                       tg, .semilla_en_frase(tv), n_eval,
+                       .semilla_en_frase(tg), .REGLA_MODA_N_DEFECTO, .semilla_en_frase(tv),
+                       as.integer(.REGLA_MODA_APOYO_DEFECTO), .semilla_en_frase(tv)))
   )
 }

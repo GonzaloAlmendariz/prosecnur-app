@@ -70,7 +70,8 @@ reglas_semilla_recopilador <- function(data, config = NULL, survey = NULL, regla
         n_grupos = as.integer(nrow(g)),
         porque = sprintf(paste("%s es un dato de quien recolecta: en %d de %d casos (%s) es el valor más frecuente de su recopilador (%s),",
                                "y cambia entre recopiladores. La regla marca los casos con otro valor."),
-                         v, n_ok, n_ok + n_marca, .semilla_pct(n_ok, n_ok + n_marca), rec))
+                         tv, n_ok, n_ok + n_marca, .semilla_pct(n_ok, n_ok + n_marca),
+                         .semilla_en_frase(tr)))
     )
   }
   out
@@ -120,7 +121,7 @@ reglas_semilla_repetidos <- function(data, config = NULL, survey = NULL, reglas_
         origen = "repetidos", variable = v, parece = tipo,
         porque = sprintf(paste("%s parece %s por su contenido y casi no se repite: %d valores distintos en %d casos con dato.",
                                "Un mismo número en dos encuestas es la misma persona encuestada dos veces o un número mal copiado."),
-                         v, tipo, n_dist, length(con)))
+                         tv, tipo, n_dist, length(con)))
     )
   }
   out

@@ -166,3 +166,69 @@
   }
   out
 }
+
+# --- Nombres para una persona --------------------------------------------------
+# El título de una sugerida nombra la pregunta como la ve el practicante: su
+# etiqueta corta (`.semilla_nombrar_var()`), el número de pregunta del
+# cuestionario para una batería, nunca el código ni un formato de captura. El
+# código aparece solo como dato secundario, entre paréntesis, en el porqué.
+
+# "Fecha de entrevista (fecha_entrevista)"; solo el código si no hay etiqueta.
+.semilla_nombrar_cod <- function(nombre, survey = NULL) {
+  et <- .semilla_nombrar_var(nombre, survey)
+  if (identical(et, as.character(nombre)[1])) et else sprintf("%s (%s)", et, nombre)
+}
+
+.semilla_unir_y <- function(x) {
+  x <- as.character(x)
+  if (length(x) <= 1L) return(paste(x, collapse = ""))
+  paste(paste(utils::head(x, -1), collapse = ", "), "y", utils::tail(x, 1))
+}
+
+# Varias columnas en una frase: "distrito y ubigeo del distrito". Si todas las
+# etiquetas comparten el encabezado antes de los dos puntos ("Lugar de
+# nacimiento: región", "Lugar de nacimiento: provincia"), se dice una vez:
+# "lugar de nacimiento (región y provincia)".
+.semilla_nombrar_lista <- function(vars, survey = NULL) {
+  et <- vapply(vars, .semilla_nombrar_var, character(1), survey = survey, USE.NAMES = FALSE)
+  partes <- strsplit(et, ": ", fixed = TRUE)
+  if (length(et) >= 2L && all(lengths(partes) == 2L)) {
+    cab <- vapply(partes, `[`, character(1), 1L)
+    if (length(unique(cab)) == 1L) {
+      return(sprintf("%s (%s)", .semilla_en_frase(cab[1]),
+                     .semilla_unir_y(vapply(partes, `[`, character(1), 2L))))
+    }
+  }
+  .semilla_unir_y(.semilla_en_frase(et))
+}
+
+# Una batería por su número de pregunta: "P29, ítems 1 a 14" si los ítems son
+# de una pregunta, "P11.1 a P14.5" si el bloque cruza preguntas. Sin número en
+# las etiquetas, el enunciado común del grupo si es corto; en último caso el
+# tramo de códigos. Devuelve `nombre` (para el título), `corto` (para una
+# frase: "P29") y `codigos` (el tramo de códigos, dato secundario).
+.semilla_nombrar_bateria <- function(vars, survey = NULL) {
+  codigos <- if (length(vars) <= 3L) paste(vars, collapse = ", ") else sprintf("%s a %s", vars[1], vars[length(vars)])
+  fallback <- list(nombre = codigos, corto = codigos, codigos = codigos)
+  if (is.null(survey) || !is.data.frame(survey) || !all(c("name", "label") %in% names(survey))) return(fallback)
+  fila <- match(c(vars[1], vars[length(vars)]), survey$name)
+  if (anyNA(fila)) return(fallback)
+  num <- lapply(as.character(survey$label[fila]), function(l)
+    regmatches(l, regexec("^\\s*[Pp]\\s*([0-9]+)\\s*[._]\\s*([0-9]+)", l))[[1]])
+  if (all(lengths(num) == 3L)) {
+    a <- num[[1]]; b <- num[[2]]
+    if (identical(a[2], b[2])) {
+      return(list(nombre = sprintf("P%s, %s %s a %s", a[2], "ítems", a[3], b[3]),
+                  corto = sprintf("P%s", a[2]), codigos = codigos))
+    }
+    nom <- sprintf("P%s.%s a P%s.%s", a[2], a[3], b[2], b[3])
+    return(list(nombre = nom, corto = nom, codigos = codigos))
+  }
+  if ("group_label" %in% names(survey)) {
+    g <- unique(as.character(survey$group_label[fila]))
+    if (length(g) == 1L && !is.na(g) && nzchar(g) && nchar(g) <= .semilla_etiqueta_max && !grepl("[?¿]", g)) {
+      return(list(nombre = g, corto = g, codigos = codigos))
+    }
+  }
+  fallback
+}
