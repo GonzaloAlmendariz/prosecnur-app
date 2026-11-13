@@ -61,22 +61,33 @@
   if (length(cand)) cand[1] else NA_character_
 }
 
-# "¿Cuál es su situación laboral?" (p12) · o solo «p12» si no hay etiqueta que
-# mostrar. Los ejemplos de los comentarios son inventados a propósito: usar el
-# nombre real de una variable de un cliente lo deja escrito en el repo.
+# Largo máximo de una etiqueta para nombrar la columna en un título: más allá
+# es un enunciado, no un nombre, y se usa el código.
+.semilla_etiqueta_max <- 40L
+
+# Etiqueta corta de la pregunta, sin su número ("P3. Edad" pasa a "Edad").
+# Sin etiqueta, con un enunciado largo o con signos de pregunta queda el código,
+# que es lo único que existe o lo único que cabe en un título. Los ejemplos son
+# inventados a propósito: el nombre real de una variable de un cliente no se
+# deja escrito en el repo.
 .semilla_nombrar_var <- function(nombre, survey = NULL) {
   nombre <- as.character(nombre)[1]
   if (is.null(survey) || !is.data.frame(survey) || !("name" %in% names(survey))) {
-    return(sprintf("«%s»", nombre))
+    return(nombre)
   }
   lab_col <- .semilla_label_col(survey)
-  if (is.na(lab_col)) return(sprintf("«%s»", nombre))
+  if (is.na(lab_col)) return(nombre)
   fila <- which(!is.na(survey$name) & survey$name == nombre)
-  if (!length(fila)) return(sprintf("«%s»", nombre))
+  if (!length(fila)) return(nombre)
   et <- trimws(as.character(survey[[lab_col]][fila[1]]))
-  if (is.na(et) || !nzchar(et)) return(sprintf("«%s»", nombre))
-  sprintf("«%s» (%s)", et, nombre)
+  if (is.na(et) || !nzchar(et)) return(nombre)
+  et <- trimws(sub("^[Pp]?\\s*[0-9]+([.][0-9]+)*[a-z]?\\s*[.):-]\\s*", "", et))
+  if (!nzchar(et) || nchar(et) > .semilla_etiqueta_max || grepl("[?\u00bf]", et)) return(nombre)
+  et
 }
+
+# Fecha para una persona: dd.mm.aaaa. Los params y la semilla conservan ISO.
+.semilla_fecha_txt <- function(x) format(as.Date(x), "%d.%m.%Y")
 
 # "Sí, trabajo (1)" · o "1" si la lista no trae etiqueta.
 .semilla_nombrar_opciones <- function(codigos, lista, choices = NULL, max_n = 8L) {
@@ -321,7 +332,8 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
   # Necesita el rol declarado: sin él no propone, no adivina la columna.
   props <- c(props, reglas_semilla_agente(data, config, reglas_existentes, survey))
   props <- c(props, reglas_semilla_continuidad(data, reglas_existentes))
-  props <- c(props, reglas_semilla_periodo(data, config, reglas_existentes))
+  props <- c(props, reglas_semilla_periodo(data, config, survey = survey,
+                                              reglas_existentes = reglas_existentes))
   # Lo que el instrumento no acotó: se activan por la ausencia de `constraint`,
   # que es donde las reglas derivadas del XLSForm no tienen nada que mirar.
   if (!is.null(survey)) {
@@ -577,11 +589,12 @@ reglas_semilla_continuidad <- function(data, reglas_existentes = list()) {
 #'   declarado no se propone nada.
 #' @param reglas_existentes lista de criterios ya definidos en el scope.
 #' @param cobertura proporción mínima de casos que debe quedar dentro.
+#' @param survey hoja `survey` del instrumento; opcional, solo para nombrar la columna.
 #' @return lista con 0 o 1 candidato.
 #' @family validacion
 #' @export
 reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list(),
-                                   cobertura = .semilla_periodo_cobertura) {
+                                   cobertura = .semilla_periodo_cobertura, survey = NULL) {
   if (!is.data.frame(data) || nrow(data) < 3L) return(list())
   # Ya declarado: el control operativo `OP_field_period` lo cubre y proponer una
   # regla equivalente sería duplicar la verificación.
@@ -622,9 +635,10 @@ reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list
     params = list(min = as.character(ini), max = as.character(fin),
                   timezone = "America/Lima"),
     nombre = sprintf("Periodo de campo: %s fuera de %s a %s",
-                     .semilla_nombrar_var(col), as.character(ini), as.character(fin)),
+                     .semilla_nombrar_var(col, survey), .semilla_fecha_txt(ini),
+                     .semilla_fecha_txt(fin)),
     mensaje = sprintf("Se registró fuera del periodo de trabajo de campo (%s a %s).",
-                      as.character(ini), as.character(fin)),
+                      .semilla_fecha_txt(ini), .semilla_fecha_txt(fin)),
     severidad = "advertencia",
     activa = TRUE,
     planned_action_type = "ignore_rule",
@@ -641,7 +655,8 @@ reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list
               "Quedan %d fuera de esa ventana: puede ser el piloto que se quedó",
               "en la base, un equipo con la fecha mal configurada o casos que no",
               "pertenecen al estudio — y cualquiera de los tres cambia el N."),
-        as.character(ini), as.character(fin), total - length(fuera), total, length(fuera)
+        .semilla_fecha_txt(ini), .semilla_fecha_txt(fin), total - length(fuera), total,
+        length(fuera)
       )
     )
   ))
@@ -803,7 +818,7 @@ reglas_semilla_fecha_declarada <- function(data, survey, reglas_existentes = lis
       params = list(max = as.character(cierre), timezone = "America/Lima"),
       nombre = sprintf("Fecha posterior al campo: %s", .semilla_nombrar_var(nm, survey)),
       mensaje = sprintf("La fecha declarada es posterior al último día de recolección (%s).",
-                        as.character(cierre)),
+                        .semilla_fecha_txt(cierre)),
       severidad = "error",
       activa = TRUE,
       planned_action_type = "ignore_rule",

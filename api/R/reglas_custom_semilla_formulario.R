@@ -31,16 +31,9 @@
 # (`.regla_formato_medir()`).
 # =============================================================================
 
-# "Ubigeo del distrito (ubigeo)", o solo el código si no hay rótulo. Sin
-# comillas: el nombre ya se distingue por el código entre paréntesis.
-.semilla_form_nombrar <- function(nombre, survey) {
-  lab_col <- .semilla_label_col(survey)
-  if (is.na(lab_col)) return(nombre)
-  i <- which(!is.na(survey$name) & as.character(survey$name) == nombre)[1]
-  if (is.na(i)) return(nombre)
-  et <- trimws(as.character(survey[[lab_col]][i]))
-  if (is.na(et) || !nzchar(et) || identical(et, nombre)) nombre else sprintf("%s (%s)", et, nombre)
-}
+# Etiqueta corta de la pregunta, o el código; una sola regla para todos los
+# sembradores (`.semilla_nombrar_var()`).
+.semilla_form_nombrar <- function(nombre, survey) .semilla_nombrar_var(nombre, survey)
 
 # El primer nodo `range_numeric` sobre la propia pregunta dentro de un AST.
 .semilla_form_rango <- function(ast, var) {
