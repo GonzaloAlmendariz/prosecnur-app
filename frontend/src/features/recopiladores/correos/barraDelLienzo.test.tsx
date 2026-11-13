@@ -1,7 +1,7 @@
 // Barra del bloque elegido en el lienzo (L10): duplicar, cambiar por y estilo.
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { MailBlock, MailTemplate } from "../../../api/materialMail";
 import { AccionesDeSeccion, botonesDeSeccion } from "./AccionesDeSeccion";
@@ -35,15 +35,26 @@ describe("duplicar", () => {
 });
 
 describe("barra", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("una sección suma duplicar, cambiar por y estilo; el pie, nada", () => {
     const t = plantilla([pasos, pie]);
     expect(botonesDeSeccion(t, pasos)).toBe(3);
     expect(botonesDeSeccion(t, pie)).toBe(0);
     const parrafo = bloqueNuevo("paragraph", "p");
     expect(botonesDeSeccion(plantilla([parrafo]), parrafo)).toBe(2);
-    const html = renderToStaticMarkup(
-      <AccionesDeSeccion template={t} block={pasos} onDuplicar={() => {}} onEditarBloque={() => {}} onEstilo={() => {}} />,
-    );
+    // El atajo se rotula con la tecla del sistema que mira (lib/teclado.ts): se fija la plataforma para
+    // que la prueba diga lo mismo en macOS, en Windows y en el Linux de CI (Node 20 no trae navigator).
+    const barra = () =>
+      renderToStaticMarkup(
+        <AccionesDeSeccion template={t} block={pasos} onDuplicar={() => {}} onEditarBloque={() => {}} onEstilo={() => {}} />,
+      );
+    vi.stubGlobal("navigator", { platform: "Win32" });
+    expect(barra()).toContain('aria-label="Duplicar el bloque (Ctrl+D)"');
+    vi.stubGlobal("navigator", { platform: "MacIntel" });
+    const html = barra();
     expect(html).toContain('aria-label="Duplicar el bloque (⌘D)"');
     expect(html).toContain('aria-label="Cambiar por otra sección"');
     expect(html).toContain('aria-expanded="false"');

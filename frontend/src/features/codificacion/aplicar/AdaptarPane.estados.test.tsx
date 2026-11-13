@@ -22,6 +22,14 @@ vi.mock("../../../api/dashboard", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../api/dashboard")>()),
   apiCodifPlanAdaptacion: espia.plan,
 }));
+// El avance por pregunta ("Lista" o "Faltan N") se lee aparte. Sin simularlo salía a la red: en Node 20
+// (CI) el fetch real se rechazaba unos milisegundos después de montar y la marca de lista aún no estaba;
+// en Node 25 fallaba antes por el localStorage del propio Node. Aquí esa lectura falla siempre, al
+// instante: la lista va sin grupos y la pantalla queda lista (useAvanceParaAplicar).
+vi.mock("../../../api/codificacion", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../api/codificacion")>()),
+  apiCodifPreguntasAbiertas: () => Promise.reject(new Error("sin lectura de avance en la prueba")),
+}));
 vi.mock("../useBaseYaCodificada", () => ({ useBaseYaCodificada: () => false }));
 // La prueba del resultado deja un job terminado en el store: su sondeo no sale a la red.
 vi.mock("../../../hooks/useJob", () => ({ iniciarJobPoll: () => () => undefined }));

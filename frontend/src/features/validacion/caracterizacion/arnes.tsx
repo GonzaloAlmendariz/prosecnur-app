@@ -33,7 +33,7 @@ import path from "node:path";
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { afterAll, afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import type { SessionState } from "../../../api/core";
 import type { EstudioPayload } from "../../../api/estudio";
 
@@ -374,6 +374,8 @@ type Huella = { marcado: string; pedidos?: string; guardado?: string[] };
 
 const ACTUALIZAR = process.env.ACTUALIZAR_HUELLAS_VALIDACION === "1";
 const CARPETA_VOLCADO = process.env.VOLCAR_VALIDACION ?? "";
+/** Zona en que se tomaron las huellas guardadas. */
+const ZONA_DE_LAS_HUELLAS = "America/Lima";
 const sha256 = (texto: string) => createHash("sha256").update(texto).digest("hex");
 
 let grupo = "";
@@ -476,6 +478,21 @@ function reiniciarStores() {
 /** Registra los ganchos del grupo. Se llama una vez, al inicio del archivo de prueba. */
 export function prepararGrupo(nombre: string) {
   grupo = nombre;
+
+  // La vista pinta horas en la zona de la máquina ("Al día, 4 mar 07:00"): la
+  // huella se toma siempre en la misma zona para que el runner de CI (UTC) y
+  // una máquina en Lima den el mismo marcado. Node relee process.env.TZ al
+  // asignarlo; se devuelve la zona previa para no contagiar a otro archivo
+  // que comparta el proceso.
+  let zonaPrevia: string | undefined;
+  beforeAll(() => {
+    zonaPrevia = process.env.TZ;
+    process.env.TZ = ZONA_DE_LAS_HUELLAS;
+  });
+  afterAll(() => {
+    if (zonaPrevia === undefined) delete process.env.TZ;
+    else process.env.TZ = zonaPrevia;
+  });
 
   afterAll(() => {
     // En CI no se escribe nada: la prueba de abajo ya falla y dice por qué.
