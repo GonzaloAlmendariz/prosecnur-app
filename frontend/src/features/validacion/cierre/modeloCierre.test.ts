@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { normalizarCierre, type CierreDeLimpieza } from "../../../api/validacionCierre";
 import type { AuditoriaEstado } from "../../../api/validacionAuditoria";
 import type { LimpiezaQueueItem, LimpiezaSummary } from "../types";
+import { decision } from "../caracterizacion/escenarios";
 import {
   avisoDeCifrasPorDecision,
   cabeceraDeCierre,
   causaDeNoCerrar,
+  filasDeRegistro,
   franjaDeCasos,
   gruposDeDecisiones,
   lineaDeArchivo,
@@ -208,6 +210,34 @@ describe("lista y archivos", () => {
     const cola = COLA.map((x, i) => ({ ...x, pending: i === 0 }));
     const p = puntosDeLista({ data: resumen({ decision_queue: cola }), auditoria: { ...AUDITORIA, estado: "desactualizada" }, casosAuditados: 72 });
     expect(p.map((x) => [x.titulo, x.irAHallazgos])).toEqual([["Auditoría desactualizada", true], ["1 hallazgo por decidir", true]]);
+  });
+
+  it("puntos: los casos para la ficha física llevan a su lista, y sin casos marcados no hay punto", () => {
+    const conFicha = (ficha: Parameters<typeof puntosDeLista>[0]["ficha"]) => puntosDeLista({ data: resumen(), auditoria: AUDITORIA, casosAuditados: 72, ficha }).find((x) => x.clave === "ficha");
+    expect(conFicha(null)).toBeUndefined();
+    expect(conFicha({ casos: 0, hallazgos: 0, fuera: 0 })).toBeUndefined();
+    expect(conFicha({ casos: 1, hallazgos: 1, fuera: 0 })).toMatchObject({ titulo: "1 caso para la ficha física", detalle: "En 1 hallazgo.", tono: "aviso", verFicha: true });
+    expect(conFicha({ casos: 12, hallazgos: 3, fuera: 0 })).toMatchObject({ titulo: "12 casos para la ficha física", detalle: "En 3 hallazgos." });
+  });
+
+  it("puntos: un caso marcado que la regla ya no marca se avisa y no se pierde en silencio", () => {
+    const p = puntosDeLista({ data: resumen(), auditoria: AUDITORIA, casosAuditados: 72, ficha: { casos: 4, hallazgos: 2, fuera: 1 } }).find((x) => x.clave === "ficha");
+    expect(p?.detalle).toBe("En 2 hallazgos. 1 caso marcado ya no aparece en la última auditoría y no entra en la lista.");
+    // Todos los marcados fuera: no hay lista que abrir, pero el aviso queda.
+    const solo = puntosDeLista({ data: resumen(), auditoria: AUDITORIA, casosAuditados: 72, ficha: { casos: 0, hallazgos: 1, fuera: 3 } }).find((x) => x.clave === "ficha");
+    expect(solo).toMatchObject({ titulo: "0 casos para la ficha física", verFicha: false });
+    expect(solo?.detalle).toBe("3 casos marcados ya no aparecen en la última auditoría y no entran en la lista.");
+  });
+
+  it("puntos: si la lista no se pudo leer lo dice, con la causa", () => {
+    const p = puntosDeLista({ data: resumen(), auditoria: AUDITORIA, casosAuditados: 72, ficha: { error: "El detalle no llegó" } }).find((x) => x.clave === "ficha");
+    expect(p).toMatchObject({ titulo: "No se pudo leer la lista para la ficha física", detalle: "El detalle no llegó", tono: "aviso" });
+  });
+
+  it("el registro de decisiones nombra la marca por lo que es", () => {
+    const data = resumen({ decision_draft: [decision("D_F", { source_id: COLA[0]!.source_id, status: "draft", action_params: { pendiente_ficha_fisica: true }, target_case_ids: ["a"] })] });
+    const fila = filasDeRegistro(data).find((f) => f.id === "D_F");
+    expect(fila).toMatchObject({ tratamiento: "Revisar con la ficha física", estado: "Pendiente" });
   });
 
   it("estado de cada archivo en una línea", () => {

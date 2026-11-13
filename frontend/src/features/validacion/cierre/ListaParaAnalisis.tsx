@@ -14,10 +14,12 @@ import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
 import type { PuntoDeLista, Sello } from "./modeloCierre";
 
-export function ListaParaAnalisis({ sello, puntos, onIrAHallazgos }: {
+export function ListaParaAnalisis({ sello, puntos, onIrAHallazgos, onVerFicha }: {
   sello: Sello;
   puntos: readonly PuntoDeLista[];
   onIrAHallazgos: () => void;
+  /** Abre la lista de los casos para la ficha física. */
+  onVerFicha: () => void;
 }) {
   const icono = sello.tono === "ok"
     ? <Check size={18} />
@@ -43,6 +45,9 @@ export function ListaParaAnalisis({ sello, puntos, onIrAHallazgos }: {
             </div>
             {p.irAHallazgos ? (
               <PulsoButton variant="link" size="sm" onClick={onIrAHallazgos}>Ir a Hallazgos</PulsoButton>
+            ) : null}
+            {p.verFicha ? (
+              <PulsoButton variant="link" size="sm" onClick={onVerFicha}>Ver la lista</PulsoButton>
             ) : null}
           </li>
         ))}

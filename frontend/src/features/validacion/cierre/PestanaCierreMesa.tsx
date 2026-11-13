@@ -23,10 +23,17 @@ import { ErrorBlock } from "../../../components/States";
 import { splitErrorDetail } from "../../../components/errorPresentation";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { formatoConteo } from "../../../lib/formatoNumero";
-import { PANEL_REGISTRO_VALIDACION } from "../panelesValidacion";
+import { PANEL_FICHA_VALIDACION, PANEL_REGISTRO_VALIDACION } from "../panelesValidacion";
 import { usePestanaValidacion } from "../pestanaDireccionable";
 import CabeceraDeTransicion from "../pestanas/CabeceraDeTransicion";
+import { archivoCsv } from "../../../components/entregables/archivoLocal";
+import { nombreConEstudio } from "../../../components/entregables/nombreConEstudio";
+import { useGeneracion } from "../../../components/entregables/useGeneracion";
+import { ROTULO_LISTA_DE_FICHA, csvDeFicha } from "../hallazgos/fichaFisica";
 import { elementosDeCola } from "../hallazgos/modeloHallazgos";
+import { MODULO_PROCESAMIENTO } from "../entregas/modeloEntrega";
+import { DialogoDeFicha } from "./DialogoDeFicha";
+import { useListaDeFicha } from "./useListaDeFicha";
 import { ArchivosDelCierre } from "./ArchivosDelCierre";
 import { DecisionesAplicadas } from "./DecisionesAplicadas";
 import { ListaParaAnalisis } from "./ListaParaAnalisis";
@@ -40,6 +47,7 @@ import {
   franjaDeCasos,
   gruposDeDecisiones,
   puntosDeLista,
+  type ResumenDeFicha,
   sePuedeReabrir,
   seOfreceCerrar,
   selloDeLaBase,
@@ -52,6 +60,17 @@ export function PestanaCierreMesa() {
   const c = useCierre();
   const { irAPestana } = usePestanaValidacion();
   const registro = usePanelDireccionable(PANEL_REGISTRO_VALIDACION);
+  const ficha = usePanelDireccionable(PANEL_FICHA_VALIDACION);
+  const listaDeFicha = useListaDeFicha(c.lectura.fase === "lista" ? c.lectura.data : null, c.baseNombre);
+  const descargaDeFicha = useGeneracion({ titulo: ROTULO_LISTA_DE_FICHA, modulo: MODULO_PROCESAMIENTO, articulo: "la", formato: "csv" });
+  const descargarFicha = () => {
+    if (listaDeFicha.fase !== "lista") return;
+    const filas = listaDeFicha.filas;
+    void descargaDeFicha.ejecutar(async () => archivoCsv(csvDeFicha(filas), await nombreConEstudio(ROTULO_LISTA_DE_FICHA, "csv")));
+  };
+  const resumenDeFicha: ResumenDeFicha = listaDeFicha.fase === "lista"
+    ? { casos: listaDeFicha.filas.length, hallazgos: listaDeFicha.nHallazgos, fuera: listaDeFicha.nFuera }
+    : listaDeFicha.fase === "error" ? { error: splitErrorDetail(listaDeFicha.mensaje).message } : null;
   const [confirmarReabrir, setConfirmarReabrir] = useState(false);
   const irAHallazgos = () => irAPestana("hallazgos");
   const abrirHallazgo = (sourceId: string) => irAPestana("hallazgos", undefined, { foco: sourceId });
@@ -218,8 +237,9 @@ export function PestanaCierreMesa() {
         <PilaDeMesa grupo={GRUPO}>
           <ListaParaAnalisis
             sello={selloDeLaBase(situacion)}
-            puntos={puntosDeLista({ data, auditoria: c.auditoria, casosAuditados: c.casosAuditados })}
+            puntos={puntosDeLista({ data, auditoria: c.auditoria, casosAuditados: c.casosAuditados, ficha: resumenDeFicha })}
             onIrAHallazgos={irAHallazgos}
+            onVerFicha={ficha.abrir}
           />
           <ArchivosDelCierre
             archivos={cierre?.archivos ?? []}
@@ -230,6 +250,7 @@ export function PestanaCierreMesa() {
           />
         </PilaDeMesa>
       </MesaDePestana>
+      <DialogoDeFicha filas={listaDeFicha.fase === "lista" ? listaDeFicha.filas : []} descarga={descargaDeFicha} onDescargar={descargarFicha} />
       <PanelRegistro filas={filasDeRegistro(data)} onAbrirHallazgo={abrirHallazgo} />
       <Dialog
         open={confirmarReabrir}

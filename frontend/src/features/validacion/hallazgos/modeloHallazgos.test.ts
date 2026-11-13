@@ -120,6 +120,19 @@ describe("la cola", () => {
     expect(d.grupos.map((g) => g.titulo)).toEqual(["Decididos hoy", "Decididos antes"]);
   });
 
+  it("una marca de la ficha física deja el hallazgo por decidir y cuenta sus casos, sin llamarla borrador", () => {
+    const conMarca = limpieza({
+      auditoria: true,
+      cola: [itemCola("RC_F", { source_type: "custom_rule", fuente: "custom", n_casos: 5, pending: true })] as never,
+      decisiones: [
+        decision("D_F1", { source_id: "RC_F", status: "draft", action_params: { pendiente_ficha_fisica: true }, target_case_ids: ["a", "b"] }),
+        decision("D_F2", { source_id: "RC_F", status: "draft", action_params: { pendiente_ficha_fisica: true }, target_case_ids: ["b", "c"] }),
+      ],
+    });
+    const e = elementosDeCola(conMarca, HOY).find((x) => x.id === "RC_F");
+    expect(e).toMatchObject({ pendiente: true, nFicha: 3, conBorrador: false, decision: null, tratamiento: null });
+  });
+
   it("el filtro por clase deja solo esa clase y cuenta las de la pestaña", () => {
     const v = vistaDeCola(elementos, "por-decidir", "caso_a_revisar");
     expect(v.inconsistencias).toBe(2);

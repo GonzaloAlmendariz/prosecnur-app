@@ -26,7 +26,7 @@ import { normalizarSeguimiento, type ClaseDeHallazgo } from "../../../api/valida
 import { PANEL_CASO_VALIDACION, PANEL_OPERATIVO_VALIDACION, PANEL_REGLA_VALIDACION } from "../panelesValidacion";
 import { searchDePestana, useSeleccionDeValidacion, usePestanaValidacion } from "../pestanaDireccionable";
 import CabeceraDeTransicion from "../pestanas/CabeceraDeTransicion";
-import { buildChoiceOptions, describirDecisionesPreservadas, getDecisionReadiness, humanizeAction, isSelectMultipleItem } from "../limpieza/modeloLimpieza";
+import { buildChoiceOptions, describirDecisionesPreservadas, esFilaSinId, getDecisionReadiness, humanizeAction, isSelectMultipleItem } from "../limpieza/modeloLimpieza";
 import { CabeceraDelHallazgo } from "./CabeceraDelHallazgo";
 import { CentroDelHallazgo, type ModoDelCentro } from "./CentroDelHallazgo";
 import { Cola } from "./Cola";
@@ -78,6 +78,7 @@ import {
   type OpcionDeTratamiento,
   type PestanaDeCola,
 } from "./modeloHallazgos";
+import { OPCION_FICHA_FISICA, causaDeFicha, esFichaFisica, lineaDeFicha } from "./fichaFisica";
 
 /** Carga › Respuestas: todavía no abre un caso por su dirección (pedido de Carga). */
 const RESPUESTAS = "/carga?pestana=respuestas";
@@ -231,19 +232,31 @@ export function PestanaHallazgosMesa() {
     if (vista !== "casi-iguales" && !base.some((o) => o.accion === accion)) {
       base.push({ clave: `guardada-${accion}`, accion, titulo: humanizeAction(accion), detalle: "La acción de la decisión guardada.", prevista: h.prevista === accion });
     }
-    return base.map((o) => {
+    const conSituacion = base.map((o) => {
       const situacion = situacionDeOpcion(pautas, o);
       return situacion ? { ...o, situacion } : o;
     });
+    // "Revisar con la ficha física" va tras "Dejar como está": cualquier hallazgo de casos puede volver al papel.
+    if (vista !== "casi-iguales") conSituacion.splice(1, 0, OPCION_FICHA_FISICA);
+    return conSituacion;
   }, [deSeccion, h.elegido, h.form.action_type, h.item, h.prevista, h.reglaDelCatalogo?.familia, pares, pautas, pregunta?.etiqueta, vista]);
   const opcionElegida = vista === "casi-iguales"
     ? (criterio === "todas" ? "todas" : criterio)
-    : opciones.find((o) => o.accion === h.form.action_type)?.clave ?? null;
+    : h.enFicha
+      ? OPCION_FICHA_FISICA.clave
+      : opciones.find((o) => o.accion === h.form.action_type && o.clave !== OPCION_FICHA_FISICA.clave)?.clave ?? null;
   const elegirOpcion = (o: OpcionDeTratamiento) => {
     if (vista === "casi-iguales") {
       setCriterio(o.conserva ?? "todas");
       return;
     }
+    if (o.clave === OPCION_FICHA_FISICA.clave) {
+      // La marca se guarda como decisión propia: si hay otra abierta (lista o de otro tratamiento) no se pisa.
+      h.setEnFicha(true);
+      h.setForm((f) => ({ ...f, id: esFichaFisica(h.decision) ? f.id : "", action_type: "ignore_rule", target_variable: "" }));
+      return;
+    }
+    if (h.enFicha) h.setEnFicha(false);
     h.setForm((f) => {
       const ignorar = o.accion === "ignore_rule";
       const conPregunta = ["replace_value", "set_value", "recode_map", "nullify_fields", "normalize_value", "impute_value", "complete_select_multiple_hierarchy", "adjust_select_multiple"].includes(o.accion);
@@ -270,7 +283,7 @@ export function PestanaHallazgosMesa() {
   const alcance: AlcanceDeDecision = {
     ...rotulos,
     todosElegido,
-    bloqueado: h.form.action_type === "ignore_rule",
+    bloqueado: h.form.action_type === "ignore_rule" && !h.enFicha,
     onCambiar: (todos) => {
       if (vista === "casi-iguales") {
         setParesTodos(todos);
@@ -283,7 +296,13 @@ export function PestanaHallazgosMesa() {
       nExcluidas: h.form.target_case_ids.length,
       nPares: paresTodos ? pares.length : pares.filter((p) => aMano[p.clave]).length,
       sinResolver: (paresTodos ? pares : pares.filter((p) => aMano[p.clave])).filter((p) => !conservados[p.clave]).length,
-    }) : lineaDeAlcance({
+    }) : h.enFicha ? (
+      todosElegido
+        ? `Los casos que la regla marca hoy: ${conteo(nCasos, "caso", "casos")}.`
+        : nMarcados > 0
+          ? `Solo ${nMarcados === 1 ? "el caso marcado" : `los ${conteo(nMarcados, "caso", "casos")} marcados`}.`
+          : "Marca los casos en la tabla."
+    ) : lineaDeAlcance({
       accion: h.form.action_type,
       todos: todosElegido,
       n: nCasos,
@@ -304,11 +323,17 @@ export function PestanaHallazgosMesa() {
   }));
 
   const readiness = getDecisionReadiness(h.form);
-  const causaNoGuardar = readiness.ready ? null : causaEnPantalla(readiness.issues[0] ?? "", rotulos.todos);
+  const nSinId = h.form.use_all_cases ? h.filasDeCasos.filter((f) => f.id === null).length : h.form.target_case_ids.filter(esFilaSinId).length;
+  const causaNoGuardar = h.enFicha
+    ? causaDeFicha({ todos: h.form.use_all_cases, marcados: nMarcados, sinId: nSinId, total: h.filasDeCasos.length })
+    : readiness.ready ? null : causaEnPantalla(readiness.issues[0] ?? "", rotulos.todos);
   const etiquetaDeLaPregunta = h.form.target_variable ? etiquetas[h.form.target_variable] ?? h.form.target_variable : pregunta?.etiqueta ?? null;
   let efecto: LineaDeEfecto;
   let efectoOcupado = false;
-  if (h.efecto.fase === "listo") {
+  if (h.enFicha) {
+    const nFicha = h.form.use_all_cases ? h.filasDeCasos.filter((f) => f.id !== null).length : nMarcados;
+    efecto = { texto: lineaDeFicha(nFicha) };
+  } else if (h.efecto.fase === "listo") {
     efecto = lineaDeEfecto(h.efecto.efecto, { etiquetaPregunta: etiquetaDeLaPregunta, valorAsignado: h.form.set_value || null });
   } else if (h.efecto.fase === "midiendo") {
     efectoOcupado = true;
@@ -330,6 +355,12 @@ export function PestanaHallazgosMesa() {
     casosNuevos: avisoDeCasosNuevos(seguimientoLista),
     yaNoMarca: lineaDeCasosQueYaNoMarca(seguimientoLista),
   };
+  const marcaDeFicha = h.decision && esFichaFisica(h.decision)
+    ? {
+        decision: h.decision,
+        texto: `${conteo(h.decision.target_case_ids?.length ?? 0, "caso pendiente", "casos pendientes")} de la ficha física desde el ${fechaCorta(h.decision.updated_at) ?? "día de su registro"}.`,
+      }
+    : null;
   const hayOtro = !!siguientePorDecidir(h.elementos, elegidoId);
   const choiceOptions = useMemo(() => buildChoiceOptions(h.drill, h.form.target_variable), [h.drill, h.form.target_variable]);
 
@@ -582,7 +613,7 @@ export function PestanaHallazgosMesa() {
                 onMarcarTodos={marcarTodos}
                 onAbrirCaso={(id) => abrirCaso(id)}
                 tono={tono}
-                marcable={h.form.action_type !== "ignore_rule"}
+                marcable={h.form.action_type !== "ignore_rule" || h.enFicha}
               />
             )}
           </CentroDelHallazgo>
@@ -616,6 +647,7 @@ export function PestanaHallazgosMesa() {
             decisiones={h.decisiones}
             decisionAbierta={h.decision}
             onAbrirDecision={h.abrirDecision}
+            marcaDeFicha={marcaDeFicha}
           />
         ) : (
           <DecisionVacia titulo="Sin hallazgo elegido" descripcion="Elige un hallazgo de la cola para decidir." />

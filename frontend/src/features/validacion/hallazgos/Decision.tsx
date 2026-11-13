@@ -21,6 +21,7 @@ import { teclaMod } from "../../../lib/teclado";
 import type { LimpiezaDecision } from "../types";
 import { renderActionSpecificFields } from "../limpieza/CamposDeAccion";
 import { actionNeedsVariable, formatDateTime, humanizeAction, type ChoiceOption, type EditorForm } from "../limpieza/modeloLimpieza";
+import { ROTULO_FICHA_FISICA, esFichaFisica } from "./fichaFisica";
 import type { LineaDeEfecto, OpcionDeTratamiento } from "./modeloHallazgos";
 
 /** La tecla de guardar según el sistema (lib/teclado): Cmd en macOS, Ctrl en Windows. */
@@ -75,6 +76,7 @@ export function Decision({
   decisiones,
   decisionAbierta,
   onAbrirDecision,
+  marcaDeFicha = null,
 }: {
   opciones: readonly OpcionDeTratamiento[];
   elegida: string | null;
@@ -104,6 +106,8 @@ export function Decision({
   decisiones: readonly LimpiezaDecision[];
   decisionAbierta: LimpiezaDecision | null;
   onAbrirDecision: (id: string) => void;
+  /** La decisión abierta es una marca de "Revisar con la ficha física": su línea y la decisión que se elimina. */
+  marcaDeFicha?: { texto: string; decision: LimpiezaDecision } | null;
 }) {
   const [confirmar, setConfirmar] = useState<LimpiezaDecision | null>(null);
   const necesitaPregunta = actionNeedsVariable(form.action_type) && variables.length > 1;
@@ -147,8 +151,16 @@ export function Decision({
       )}
     >
       <div className="pulso-hz-decision" data-qa-geometry-group="validacion/hallazgos-decision" data-qa-geometry-contract="intrinsic">
-        {avisos.decidida || avisos.noAplicable || avisos.casosNuevos || avisos.yaNoMarca ? (
+        {avisos.decidida || avisos.noAplicable || avisos.casosNuevos || avisos.yaNoMarca || marcaDeFicha ? (
           <div className="pulso-hz-avisos">
+            {marcaDeFicha ? (
+              <p className="pulso-hz-decidida">
+                <span>{marcaDeFicha.texto}</span>
+                <PulsoButton variant="link" size="sm" disabled={guardando} onClick={() => setConfirmar(marcaDeFicha.decision)}>
+                  Eliminar la decisión
+                </PulsoButton>
+              </p>
+            ) : null}
             {avisos.decidida && decisionLista ? (
               <p className="pulso-hz-decidida">
                 <span>{avisos.decidida}</span>
@@ -265,8 +277,8 @@ export function Decision({
                     aria-current={decisionAbierta?.id === d.id ? "true" : undefined}
                     onClick={() => onAbrirDecision(d.id)}
                   >
-                    <span>{humanizeAction(d.action_type)}</span>
-                    <small>{d.status === "ready" ? "Lista" : "Borrador"}, {formatDateTime(d.updated_at)}</small>
+                    <span>{esFichaFisica(d) ? ROTULO_FICHA_FISICA : humanizeAction(d.action_type)}</span>
+                    <small>{d.status === "ready" ? "Lista" : esFichaFisica(d) ? "Pendiente" : "Borrador"}, {formatDateTime(d.updated_at)}</small>
                   </button>
                 </li>
               ))}

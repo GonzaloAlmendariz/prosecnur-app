@@ -71,6 +71,13 @@ export const PANEL_SUGERENCIA_VALIDACION: PanelDeclarado = {
   clase: "dialogo",
 };
 
+/** Los casos que esperan su ficha física, para quien digita (ítem 18); desde Cierre. */
+export const PANEL_FICHA_VALIDACION: PanelDeclarado = {
+  id: "ficha",
+  label: "Lista para la ficha física",
+  clase: "dialogo",
+};
+
 export const PANELES_VALIDACION: readonly PanelDeclarado[] = [
   PANEL_REGLA_VALIDACION,
   PANEL_CASO_VALIDACION,
@@ -80,4 +87,5 @@ export const PANELES_VALIDACION: readonly PanelDeclarado[] = [
   PANEL_RESUMEN_VALIDACION,
   PANEL_REGISTRO_VALIDACION,
   PANEL_SUGERENCIA_VALIDACION,
+  PANEL_FICHA_VALIDACION,
 ];

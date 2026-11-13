@@ -186,6 +186,50 @@ describe("Validación, Hallazgos: cola y decisión (rebanada V3)", () => {
     fijar("hallazgos_incluir-casos-nuevos");
   });
 
+  escenario("hallazgos_ficha-fisica", "Revisar con la ficha física: guarda un borrador con los casos marcados y la marca, sin corregir ni excluir", async () => {
+    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutasHallazgos(CON_HALLAZGOS) });
+    await pulsar(OPCION, "Revisar con la ficha física");
+    // Sin casos marcados y con "Los marcados" no hay qué guardar.
+    await pulsar('button.pulso-hz-marca[aria-label="Marcar el caso c-001"]');
+    expect(hay(".pulso-pie-efecto-linea", "1 caso queda pendiente de la ficha física. La base no cambia.")).toBe(true);
+    await pulsar(".pulso-hz-guardar", "Guardar");
+    const guardada = cuerposEnviados().find((c) => c.startsWith("POST /api/validacion/v2/limpieza/decision "));
+    expect(JSON.parse(guardada?.split("\n")[1] ?? "{}")).toMatchObject({
+      status: "draft", action_type: "ignore_rule", scope: "case_subset", target_case_ids: ["c-001"],
+      action_params: { pendiente_ficha_fisica: true },
+    });
+    fijar("hallazgos_ficha-fisica");
+  });
+
+  escenario("hallazgos_ficha-fisica-todos", "Revisar con la ficha física sobre todos los casos nombra cada caso del hallazgo", async () => {
+    await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutasHallazgos(CON_HALLAZGOS) });
+    await pulsar(OPCION, "Revisar con la ficha física");
+    await pulsar(".pulso-hz-segmentado button", "Los 2");
+    await escribir("textarea.pulso-hz-motivo", "La hoja 3 se ve ilegible");
+    await pulsar(".pulso-hz-guardar", "Guardar");
+    const guardada = cuerposEnviados().find((c) => c.startsWith("POST /api/validacion/v2/limpieza/decision "));
+    expect(JSON.parse(guardada?.split("\n")[1] ?? "{}")).toMatchObject({
+      status: "draft", action_type: "ignore_rule", target_case_ids: ["c-001", "c-002"], rationale: "La hoja 3 se ve ilegible",
+    });
+    fijar("hallazgos_ficha-fisica-todos");
+  });
+
+  escenario("hallazgos_ficha-fisica-quitar", "una marca de la ficha física se abre con su opción, dice cuántos casos esperan y se elimina como cualquier decisión", async () => {
+    const marca = decision("D_FICHA", {
+      source_type: "instrument_rule", source_id: "R_REQ_EDAD", scope: "case_subset", status: "draft", rationale: "",
+      target_case_ids: ["c-001", "c-002"], action_params: { pendiente_ficha_fisica: true },
+    });
+    await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&foco=R_REQ_EDAD", rutas: rutasHallazgos(limpieza({ auditoria: true, cola: COLA_TRES_CLASES, decisiones: [marca] })) });
+    expect(hay(".pulso-hz-opcion.is-on", "Revisar con la ficha física")).toBe(true);
+    expect(hay(".pulso-hz-decidida", "2 casos pendientes de la ficha física desde el 3 mar.")).toBe(true);
+    expect(hay(".pulso-hz-fila", "2 casos a la ficha física")).toBe(true);
+    expect(hay(".pulso-hz-fila", "Con borrador")).toBe(false);
+    await pulsar(".pulso-hz-decidida button", "Eliminar la decisión");
+    await pulsar('[role="dialog"] button', "Eliminar");
+    expect(cuerposEnviados().some((c) => c.startsWith("DELETE ") && c.includes("D_FICHA"))).toBe(true);
+    fijar("hallazgos_ficha-fisica-quitar");
+  });
+
   escenario("hallazgos_alcance-dicho", "D-F2: la decisión sobre la regla entera dice a qué casos llega según la acción", async () => {
     await montar({ ...UNA_BASE, entrada: "/validacion?pestana=hallazgos&foco=R_REQ_EDAD", rutas: rutasHallazgos(CON_HALLAZGOS) });
     expect(hay(".pulso-hz-alcance", "Cubre los casos que la regla marque, también los de una auditoría nueva.")).toBe(true);

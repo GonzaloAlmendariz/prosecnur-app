@@ -37,6 +37,9 @@ function FilaDeCola({ e, elegida, onElegir }: { e: ElementoDeCola; elegida: bool
             </>
           )}
           {e.pendiente && e.conBorrador ? <span className="pulso-hz-fila-nota">Con borrador</span> : null}
+          {e.nFicha > 0 ? (
+            <span className="pulso-hz-fila-nota" data-tono="aviso">{conteo(e.nFicha, "caso a la ficha física", "casos a la ficha física")}</span>
+          ) : null}
           {e.nCasosNuevos > 0 ? (
             <span className="pulso-hz-fila-nota" data-tono="aviso">{conteo(e.nCasosNuevos, "caso nuevo", "casos nuevos")}</span>
           ) : null}

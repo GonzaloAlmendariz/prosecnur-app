@@ -48,6 +48,7 @@ import { conNivel } from "../../../lib/navegacion/direccion";
 import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
 import type { LimpiezaDecision, LimpiezaDecisionActionType, LimpiezaQueueItem, LimpiezaSummary } from "../types";
 import { PANEL_CASO_VALIDACION } from "../panelesValidacion";
+import { esFichaFisica, nCasosEnFicha } from "./fichaFisica";
 import { filtroFueraDeLista, traeValorFueraDeLista } from "./filtroFueraDeLista";
 import { CLAVE_RESPONDIDAS_DE_SECCION, esReglaDeSeccion } from "./seccionDelSalto";
 
@@ -150,6 +151,8 @@ export type ElementoDeCola = {
   decision: LimpiezaDecision | null;
   /** Hay un borrador guardado sin dejarlo listo. */
   conBorrador: boolean;
+  /** Casos que esperan su ficha física (marca "Revisar con la ficha física"). */
+  nFicha: number;
   /** La decisión más reciente es de hoy. */
   decididoHoy: boolean;
   /** "Se dejó como está"; `null` si no hay decisión lista. */
@@ -190,7 +193,8 @@ export function elementosDeCola(data: LimpiezaSummary | null, ahora: Date = new 
       origen: rotuloDeOrigen(narrativa, item),
       pendiente: !!item.pending,
       decision: lista,
-      conBorrador: decisiones.some((d) => d.status === "draft"),
+      conBorrador: decisiones.some((d) => d.status === "draft" && !esFichaFisica(d)),
+      nFicha: nCasosEnFicha(decisiones),
       decididoHoy: !!fecha && !Number.isNaN(fecha.getTime()) && mismoDia(fecha, ahora),
       tratamiento: lista ? tratamientoHecho(lista.action_type) : null,
       noAplicable: lista ? normalizarAplicabilidad(lista).aplicable === false : false,

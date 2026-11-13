@@ -46,7 +46,8 @@ import {
   uniqueStrings,
   type EditorForm,
 } from "../limpieza/modeloLimpieza";
-import { casosDelElegido, elementosDeCola, hallazgoElegido, siguientePorDecidir, type ElementoDeCola, type LecturaDeCasos } from "./modeloHallazgos";
+import { esFichaFisica, formDeFicha, payloadDeFicha } from "./fichaFisica";
+import { casosDelElegido, elementosDeCola, hallazgoElegido, siguientePorDecidir, tablaDeCasos, type ElementoDeCola, type LecturaDeCasos } from "./modeloHallazgos";
 
 export type LecturaDeLaCola =
   | { fase: "cargando" }
@@ -85,6 +86,8 @@ export function useHallazgos({ foco, onElegir }: {
   const [casos, setCasos] = useState<LecturaDeCasos>({ fase: "inactiva" });
   const [reintentoCasos, setReintentoCasos] = useState(0);
   const [form, setForm] = useState<EditorForm>(() => emptyEditorForm());
+  // "Revisar con la ficha física": no es una acción del formulario sino una marca (`fichaFisica.ts`).
+  const [enFicha, setEnFicha] = useState(false);
   const [decisionAbierta, setDecisionAbierta] = useState<string>(NEW_DECISION);
   const [efecto, setEfecto] = useState<EstadoDelEfecto>({ fase: "inactivo" });
   const [guardando, setGuardando] = useState(false);
@@ -178,6 +181,9 @@ export function useHallazgos({ foco, onElegir }: {
     ]);
   }, [drill, item]);
 
+  // Los ids de todos los casos del hallazgo, para la marca sobre "todos": la ficha nombra sus casos.
+  const filasDeCasos = useMemo(() => tablaDeCasos(drill, item).filas, [drill, item]);
+
   // El tratamiento previsto: el de la cola o, si la cola no lo trae, el del catálogo.
   const prevista = item?.planned_action_type || reglaDelCatalogo?.tratamiento.accion || null;
 
@@ -189,13 +195,19 @@ export function useHallazgos({ foco, onElegir }: {
     const conPrevista = item && !item.planned_action_type && prevista
       ? { ...item, planned_action_type: prevista as LimpiezaQueueItem["planned_action_type"] }
       : item;
-    setForm(buildEditorForm(elegidoId, conPrevista, decision, variables));
-  }, [decision, elegidoId, item, prevista, variables]);
+    const abierto = buildEditorForm(elegidoId, conPrevista, decision, variables);
+    setForm(esFichaFisica(decision) ? formDeFicha(abierto, filasDeCasos.map((f) => f.id).filter((x): x is string => x !== null)) : abierto);
+  }, [decision, elegidoId, filasDeCasos, item, prevista, variables]);
+
+  // Al abrir una decisión guardada, la opción elegida es la suya: la marca de la ficha física se reconoce.
+  useEffect(() => {
+    setEnFicha(esFichaFisica(decision));
+  }, [decision, elegidoId]);
 
   // El efecto previsto del borrador: se mide cuando deja de cambiar. El motivo
   // no cambia el efecto: escribirlo no vuelve a medir.
   const medible = useMemo((): { cuerpo: Record<string, unknown>; clave: string } | { causa: string } | null => {
-    if (!elegidoId || !data?.progreso.auditoria_corrida) return null;
+    if (!elegidoId || !data?.progreso.auditoria_corrida || enFicha) return null;
     try {
       const cuerpo = buildDecisionPayload({
         form: { ...form, rationale: "" },
@@ -207,7 +219,7 @@ export function useHallazgos({ foco, onElegir }: {
     } catch (e) {
       return { causa: (e as Error).message };
     }
-  }, [data?.progreso.auditoria_corrida, elegidoId, form, item?.source_type]);
+  }, [data?.progreso.auditoria_corrida, elegidoId, enFicha, form, item?.source_type]);
   const claveDelEfecto = medible === null ? "" : "clave" in medible ? medible.clave : `causa:${medible.causa}`;
   const medibleRef = useRef(medible);
   medibleRef.current = medible;
@@ -258,17 +270,28 @@ export function useHallazgos({ foco, onElegir }: {
       setError("");
       setAviso("");
       try {
-        const cuerpo = buildDecisionPayload({
-          form,
-          status: estado,
-          sourceId: elegidoId,
-          sourceType: item?.source_type ?? inferSourceType(elegidoId),
-        });
+        const sourceType = item?.source_type ?? inferSourceType(elegidoId);
+        // La marca de la ficha física siempre se guarda como borrador: no cubre al hallazgo.
+        const cuerpo = enFicha
+          ? payloadDeFicha({
+              id: form.id,
+              sourceId: elegidoId,
+              sourceType,
+              casos: form.use_all_cases
+                ? filasDeCasos.map((f) => f.id).filter((x): x is string => x !== null)
+                : form.target_case_ids,
+              motivo: form.rationale,
+            })
+          : buildDecisionPayload({ form, status: estado, sourceId: elegidoId, sourceType });
         const respuesta = await apiV2LimpiezaDecisionSave(cuerpo, baseNombre);
         setDecisionAbierta(respuesta.decision.id);
-        const siguiente = estado === "ready" && avanzar ? siguientePorDecidir(elementos, elegidoId) : null;
+        const siguiente = (estado === "ready" || enFicha) && avanzar ? siguientePorDecidir(elementos, elegidoId) : null;
         await recargar({ silenciosa: true });
-        if (estado === "draft") setAviso("Borrador guardado.");
+        if (enFicha) {
+          const n = cuerpo.target_case_ids.length;
+          setAviso(`${n} ${n === 1 ? "caso quedó pendiente" : "casos quedaron pendientes"} de la ficha física.`);
+          if (siguiente) onElegir(siguiente.id);
+        } else if (estado === "draft") setAviso("Borrador guardado.");
         else if (siguiente) onElegir(siguiente.id);
         else if (estado === "ready") setAviso("Decisión guardada. No quedan hallazgos por decidir.");
       } catch (e) {
@@ -277,7 +300,7 @@ export function useHallazgos({ foco, onElegir }: {
         setGuardando(false);
       }
     },
-    [baseNombre, elegidoId, elementos, form, item?.source_type, onElegir, recargar],
+    [baseNombre, elegidoId, elementos, enFicha, filasDeCasos, form, item?.source_type, onElegir, recargar],
   );
 
   /** Vuelve a guardar una decisión lista sumando los casos que la regla marca hoy (D-F2). */
@@ -401,6 +424,9 @@ export function useHallazgos({ foco, onElegir }: {
     abrirDecision: setDecisionAbierta,
     form,
     setForm,
+    enFicha,
+    setEnFicha,
+    filasDeCasos,
     // El efecto de otro hallazgo no se muestra ni un cuadro (ronda 2, H2).
     efecto: (efecto.fase === "listo" || efecto.fase === "midiendo") && efecto.id !== elegidoId
       ? ({ fase: "midiendo", anterior: null } as EstadoDelEfecto)

@@ -27,6 +27,7 @@ import type { EstadoDePestana } from "../../../components/procesamiento/Cabecera
 import type { AvisoDeFranja, CifraDeFranja, GrupoDeFranja } from "../../../components/procesamiento/FranjaRecorrido";
 import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
 import type { LimpiezaArtifactsBundle, LimpiezaSummary } from "../types";
+import { ROTULO_FICHA_FISICA, esFichaFisica } from "../hallazgos/fichaFisica";
 import { conteo, elementosDeCola, fechaCorta, type ElementoDeCola } from "../hallazgos/modeloHallazgos";
 
 // ---------------------------------------------------------------------------
@@ -420,14 +421,26 @@ export function selloDeLaBase(s: SituacionDeLaBase): Sello {
   }
 }
 
-export type PuntoDeLista = { clave: string; tono: "ok" | "aviso"; titulo: string; detalle: string | null; irAHallazgos: boolean };
+export type PuntoDeLista = {
+  clave: string;
+  tono: "ok" | "aviso";
+  titulo: string;
+  detalle: string | null;
+  irAHallazgos: boolean;
+  /** Abre la lista de los casos marcados para la ficha física (`panel=ficha`). */
+  verFicha?: boolean;
+};
+
+/** Lo que la lista para la ficha física tiene que decir en Cierre; `null` mientras se lee. */
+export type ResumenDeFicha = { casos: number; hallazgos: number; fuera: number } | { error: string } | null;
 
 export function puntosDeLista(opciones: {
   data: LimpiezaSummary;
   auditoria: AuditoriaEstado | null;
   casosAuditados: number | null;
+  ficha?: ResumenDeFicha;
 }): PuntoDeLista[] {
-  const { data, auditoria, casosAuditados } = opciones;
+  const { data, auditoria, casosAuditados, ficha } = opciones;
   const puntos: PuntoDeLista[] = [];
   if (!data.progreso?.auditoria_corrida) {
     puntos.push({ clave: "auditoria", tono: "aviso", titulo: "Sin auditar", detalle: "La auditoría se corre en Hallazgos.", irAHallazgos: true });
@@ -457,7 +470,30 @@ export function puntosDeLista(opciones: {
       irAHallazgos: true,
     });
   }
+  const punto = puntoDeFicha(ficha ?? null);
+  if (punto) puntos.push(punto);
   return puntos;
+}
+
+/** Los casos que esperan su ficha física: un punto con "Ver la lista"; sin casos marcados no hay punto. */
+function puntoDeFicha(ficha: ResumenDeFicha): PuntoDeLista | null {
+  if (ficha === null) return null;
+  if ("error" in ficha) {
+    return { clave: "ficha", tono: "aviso", titulo: "No se pudo leer la lista para la ficha física", detalle: ficha.error, irAHallazgos: false };
+  }
+  if (ficha.casos === 0 && ficha.fuera === 0) return null;
+  const fuera = ficha.fuera > 0
+    ? `${conteo(ficha.fuera, "caso marcado ya no aparece", "casos marcados ya no aparecen")} en la última auditoría y no ${ficha.fuera === 1 ? "entra" : "entran"} en la lista.`
+    : null;
+  const en = ficha.casos > 0 ? `En ${conteo(ficha.hallazgos, "hallazgo", "hallazgos")}.` : null;
+  return {
+    clave: "ficha",
+    tono: "aviso",
+    titulo: `${conteo(ficha.casos, "caso", "casos")} para la ficha física`,
+    detalle: [en, fuera].filter(Boolean).join(" "),
+    irAHallazgos: false,
+    verFicha: ficha.casos > 0,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -515,7 +551,7 @@ export type FilaDeRegistro = {
   sourceId: string;
   hallazgo: string;
   tratamiento: string;
-  estado: "Lista" | "Borrador";
+  estado: "Lista" | "Borrador" | "Pendiente";
   fecha: string | null;
   motivo: string | null;
 };
@@ -529,8 +565,8 @@ export function filasDeRegistro(data: LimpiezaSummary): FilaDeRegistro[] {
       id: d.id || `${d.source_id}-${i}`,
       sourceId: d.source_id,
       hallazgo: porId.get(d.source_id)?.nombre ?? d.source_id,
-      tratamiento: tratamientoDe(d.action_type),
-      estado: d.status === "ready" ? "Lista" : "Borrador",
+      tratamiento: esFichaFisica(d) ? ROTULO_FICHA_FISICA : tratamientoDe(d.action_type),
+      estado: d.status === "ready" ? "Lista" : esFichaFisica(d) ? "Pendiente" : "Borrador",
       fecha: fechaYHora(d.updated_at ?? null),
       motivo: textoOVacio(d.rationale),
     }));
