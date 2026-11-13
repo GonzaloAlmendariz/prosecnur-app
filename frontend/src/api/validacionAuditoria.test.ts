@@ -244,6 +244,32 @@ describe("estado de la auditoría, prueba de regla y caso", () => {
     expect(p.proporcion).toBeNull();
   });
 
+  it("el hallazgo de una regla de catálogo conserva candidatos, a investigar y roles", () => {
+    const c = normalizarCaso({
+      id_caso: "c01",
+      hallazgos: [{
+        id_regla: "RC_CAT",
+        roles: { departamento: "lugar_a", distrito: "qq9" },
+        esperado: {
+          subtipo: "combinacion_catalogo", hecho: "declaró distrito \"X\"", choque: "no existe", estado: "error",
+          a_investigar: false,
+          candidatos: { rol: "distrito", valor: "Comas", causa: "por el ubigeo",
+            entidad: { departamento: "Lima", provincia: "Lima", distrito: "Comas", ubigeo: "150110" } },
+        },
+      }, {
+        id_regla: "RC_X", esperado: { subtipo: "combinacion_catalogo", estado: "no_reconocido", a_investigar: true, candidatos: [] },
+      }, { id_regla: "RC_Y", esperado: { subtipo: "rango", hecho: "a" } }],
+    });
+    expect(c.hallazgos[0].roles).toEqual({ departamento: "lugar_a", distrito: "qq9" });
+    expect(c.hallazgos[0].esperado?.candidatos?.[0]).toEqual({
+      rol: "distrito", valor: "Comas", causa: "por el ubigeo",
+      entidad: { departamento: "Lima", provincia: "Lima", distrito: "Comas", ubigeo: "150110" },
+    });
+    expect(c.hallazgos[1].esperado).toMatchObject({ a_investigar: true, candidatos: [] });
+    expect(c.hallazgos[2].roles).toBeUndefined();
+    expect(c.hallazgos[2].esperado?.candidatos).toBeUndefined();
+  });
+
   it("el caso completo trae sus secciones y sus hallazgos", () => {
     const c = normalizarCaso({
       ok: true, base_nombre: "auditoria", id_caso: "AUD-009", tabla: "principal", fila: 9, n_filas_con_el_id: 1,

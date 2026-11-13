@@ -60,6 +60,15 @@
   )
 }
 
+# Columnas de la regla por papel. Con `como = "papeles"`, lista papel a columna
+# de los papeles usados (sin los vacíos); si no, las columnas sin repetir.
+.regla_catalogo_columnas <- function(params, como = "columnas") {
+  usados <- .regla_catalogo_params(params)$roles
+  usados <- usados[!is.na(usados)]
+  if (identical(como, "papeles")) return(as.list(usados))
+  unique(unname(usados))
+}
+
 # Las columnas que lee la regla, la revisada primero.
 .regla_catalogo_variables <- function(params) {
   p <- .regla_catalogo_params(params)

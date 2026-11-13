@@ -153,6 +153,7 @@
   if (!is.null(regla$bateria)) return("bateria")
   if (!is.null(regla$fechas)) return("fechas")
   if (!is.null(regla$formato)) return("formato")
+  if (!is.null(regla$catalogo)) return("combinacion_catalogo")
   a <- as.character(anomalia %||% NA_character_)[1]
   if (is.na(a) || !nzchar(a)) return(NA_character_)
   tipo <- as.character(regla$tipo_regla %||% "")[1]
@@ -317,9 +318,14 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
       hecho <- f$hecho
       f$choque
     },
+    combinacion_catalogo = {
+      catalogo <- .regla_catalogo_enunciado(regla$catalogo, valores, regla)
+      hecho <- catalogo$hecho
+      catalogo$choque
+    },
     ""
   )
-  if (!nzchar(target) && !(sub %in% c("procedencia"))) hecho <- ""
+  if (!nzchar(target) && !(sub %in% c("procedencia", "combinacion_catalogo"))) hecho <- ""
 
   acc <- as.character(accion %||% "")[1]
   if (is.na(acc) || !nzchar(acc)) {
@@ -334,7 +340,15 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
   cuerpo <- sub("\\.+$", "", cuerpo)
   if (!nzchar(sujeto)) cuerpo <- paste0(toupper(substr(cuerpo, 1, 1)), substring(cuerpo, 2))
   texto <- paste0(if (nzchar(sujeto)) paste0(sujeto, ": ") else "", cuerpo, ". ", acc)
-  list(subtipo = sub, sujeto = sujeto, hecho = hecho, choque = choque, accion = acc, texto = texto)
+  out <- list(subtipo = sub, sujeto = sujeto, hecho = hecho, choque = choque, accion = acc, texto = texto)
+  # Regla de catálogo: lo que la ficha necesita para corregir. Los candidatos
+  # nunca se aplican solos; `a_investigar` es el caso marcado sin candidato.
+  if (identical(sub, "combinacion_catalogo")) {
+    out$estado <- catalogo$estado %||% NA_character_
+    out$candidatos <- catalogo$candidatos %||% list()
+    out$a_investigar <- isTRUE(catalogo$a_investigar)
+  }
+  out
 }
 
 # --- Contexto de una regla para redactar --------------------------------------
@@ -363,7 +377,8 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
                 especiales = especiales, etiquetas = etiquetas,
                 bateria = .regla_bateria_contexto(propia),
                 fechas = .regla_fechas_contexto(propia),
-                formato = .regla_formato_contexto(propia)))
+                formato = .regla_formato_contexto(propia),
+                catalogo = .regla_catalogo_contexto(propia)))
   }
   origen <- .vrc_origen(rule, ids_propias)
   familia <- .vrc_familia(rule, origen, propia = propia)
@@ -396,6 +411,7 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
     etiquetas = etiquetas,
     bateria = .regla_bateria_contexto(propia),
     fechas = .regla_fechas_contexto(propia),
-    formato = .regla_formato_contexto(propia)
+    formato = .regla_formato_contexto(propia),
+    catalogo = .regla_catalogo_contexto(propia)
   )
 }

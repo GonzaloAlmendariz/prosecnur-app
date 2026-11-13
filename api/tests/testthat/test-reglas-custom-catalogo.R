@@ -232,3 +232,66 @@ test_that("buscar y cascada responden con la ruta completa y validan la entrada"
   expect_identical(.m1_http(pr, "x", "GET", "/api/catalogos/ubigeo/cascada", query = "provincia=Lima")$status, 400L)
   expect_identical(.m1_http(pr, "x", "GET", "/api/catalogos/ubigeo/cascada", query = "departamento=Narnia")$status, 404L)
 })
+
+# El detalle del caso de una regla de catálogo trae lo que la ficha necesita
+# para corregir con Ubigeos del Perú: candidatos, "a investigar" y la columna de
+# cada papel. Contrato HTTP de GET /api/validacion/v2/caso.
+
+test_that("GET /caso de una regla de catálogo trae candidatos, a_investigar y roles", {
+  dir <- withr::local_tempdir()
+  sid <- .cat_sesion(dir)
+  withr::defer(session_delete(sid))
+  validacion_scope_set(sid, "Lugares", "reglas_custom", list(.cat_nacimiento()))
+  .m2_auditar(sid, "Lugares")
+
+  hallazgo <- function(id) {
+    r <- .m1_http(.m1_router(), sid, "GET", "/api/validacion/v2/caso",
+                  query = sprintf("id=%s&base_nombre=Lugares", id))
+    expect_identical(r$status, 200L)
+    h <- Filter(function(x) identical(x$id_regla, "RC_CAT"), r$body$hallazgos)
+    expect_length(h, 1L)
+    h[[1]]
+  }
+
+  # Con candidato: Los Olivos no es de Sullana, y Lima se propone sin aplicarse.
+  h1 <- hallazgo("c01")
+  e1 <- h1$esperado
+  expect_identical(e1$subtipo, "combinacion_catalogo")
+  expect_match(e1$hecho, "declaró departamento \"PIURA\"", fixed = TRUE)
+  expect_identical(e1$choque, "Los Olivos no es un distrito de Sullana (Piura)")
+  expect_false(e1$a_investigar)
+  expect_identical(e1$estado, "error")
+  expect_gte(length(e1$candidatos), 1L)
+  expect_identical(e1$candidatos[[1]]$valor, "Lima")
+  expect_setequal(names(e1$candidatos[[1]]),  c("rol", "valor", "entidad", "causa"))
+  expect_setequal(names(e1$candidatos[[1]]$entidad), c("departamento", "provincia", "distrito", "ubigeo"))
+  expect_identical(h1$roles$departamento, "lugar_a")
+  expect_identical(h1$roles$provincia, "zz_prov")
+  expect_identical(h1$roles$distrito, "qq9")
+  expect_null(h1$roles$ubigeo)
+
+  # A investigar: AV COSTANERA no se reconoce y no hay candidato.
+  h3 <- hallazgo("c03")
+  expect_true(h3$esperado$a_investigar)
+  expect_length(h3$esperado$candidatos, 0L)
+  expect_identical(h3$esperado$estado, "no_reconocido")
+  expect_identical(h3$roles$distrito, "qq9")
+})
+
+test_that("una regla que no es de catálogo no publica roles ni candidatos", {
+  dir <- withr::local_tempdir()
+  sid <- .cat_sesion(dir)
+  withr::defer(session_delete(sid))
+  otra <- .m1_regla("RC_PIURA", "condiciones", list(), list(modo = "todas", condiciones = list(
+    list(variable = "lugar_a", op = "==", valor = "PIURA"))))
+  validacion_scope_set(sid, "Lugares", "reglas_custom", list(otra))
+  .m2_auditar(sid, "Lugares")
+  r <- .m1_http(.m1_router(), sid, "GET", "/api/validacion/v2/caso",
+                query = "id=c01&base_nombre=Lugares")
+  expect_identical(r$status, 200L)
+  expect_length(r$body$hallazgos, 1L)
+  h <- r$body$hallazgos[[1]]
+  expect_identical(h$id_regla, "RC_PIURA")
+  expect_null(h$roles)
+  expect_null(h$esperado$candidatos)
+})

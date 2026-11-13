@@ -46,7 +46,8 @@
   # Una batería tiene enunciado aunque no tenga tipo de anomalía.
   bateria <- (regla %||% list())$bateria
   fechas <- (regla %||% list())$fechas
-  if ((is.null(bateria) && is.null(fechas) && (is.na(anomalia) || !nzchar(anomalia))) || !is.data.frame(df)) {
+  catalogo <- (regla %||% list())$catalogo
+  if ((is.null(bateria) && is.null(fechas) && is.null(catalogo) && (is.na(anomalia) || !nzchar(anomalia))) || !is.data.frame(df)) {
     return(rep(list(NA), length(filas)))
   }
   roles <- roles %||% list()
@@ -56,6 +57,7 @@
                    as.character(bateria$vars %||% character(0)),
                    as.character(unlist(fechas$regla$variables %||% list(), use.names = FALSE)),
                    as.character((regla %||% list())$formato$var %||% character(0)),
+                   if (!is.null(catalogo)) .regla_catalogo_columnas(catalogo$params) else character(0),
                    as.character(unlist((regla %||% list())$seccion$variables %||% character(0)))))
   vars <- vars[!is.na(vars) & nzchar(vars) & vars %in% names(df)]
   lapply(seq_along(filas), function(k) {
@@ -215,7 +217,10 @@
     idx <- if ("_index" %in% names(df)) suppressWarnings(as.integer(df[["_index"]][filas[k]])) else NA_integer_
     list(fila = as.integer(filas[k]), indice = idx, esperado = esperado[[k]])
   })
-  list(esperado = if (length(esperado)) esperado[[1]] else NA, registros = registros)
+  out <- list(esperado = if (length(esperado)) esperado[[1]] else NA, registros = registros)
+  # Regla de catálogo: la columna de cada papel, para escribir la corrección.
+  if (!is.null(ctx$catalogo)) out$roles <- .regla_catalogo_columnas(ctx$catalogo$params, como = "papeles")
+  out
 }
 
 .validacion_nombre_regla <- function(nombre, id_regla) {

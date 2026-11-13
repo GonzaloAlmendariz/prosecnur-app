@@ -412,7 +412,38 @@ export type EnunciadoEsperado = {
   choque: string | null;
   accion: string | null;
   texto: string | null;
+  /** Solo en una regla de catálogo (`subtipo` "combinacion_catalogo"): `ok`, `incompleto`, `error` o `no_reconocido`. */
+  estado?: string | null;
+  /** Solo en una regla de catálogo: propuestas del catálogo, nunca aplicadas solas. */
+  candidatos?: CandidatoDeCatalogo[];
+  /** Solo en una regla de catálogo: marcado y sin candidato. */
+  a_investigar?: boolean;
 };
+
+/** Un lugar del catálogo propuesto para un papel; los niveles que no aplican vienen en `null`. */
+export type CandidatoDeCatalogo = {
+  rol: string | null;
+  valor: string | null;
+  entidad: { departamento: string | null; provincia: string | null; distrito: string | null; ubigeo: string | null };
+  causa: string | null;
+};
+
+function candidatosDeCatalogo(value: unknown): CandidatoDeCatalogo[] {
+  return lista(value).map((c) => {
+    const e = registro(c.entidad);
+    return {
+      rol: textoONulo(c.rol),
+      valor: textoONulo(c.valor),
+      entidad: {
+        departamento: textoONulo(e.departamento),
+        provincia: textoONulo(e.provincia),
+        distrito: textoONulo(e.distrito),
+        ubigeo: textoONulo(e.ubigeo),
+      },
+      causa: textoONulo(c.causa),
+    };
+  });
+}
 
 /** Mismo largo que `casos`; `null` por fila si la regla no tiene tipo de anomalía o la fila no se ubicó. */
 export function normalizarEsperado(value: unknown, nCasos: number): Array<EnunciadoEsperado | null> {
@@ -430,6 +461,11 @@ export function normalizarEsperado(value: unknown, nCasos: number): Array<Enunci
       accion: textoONulo(r.accion),
       texto: textoONulo(r.texto),
     };
+    if (enunciado.subtipo === "combinacion_catalogo") {
+      enunciado.estado = textoONulo(r.estado);
+      enunciado.candidatos = candidatosDeCatalogo(r.candidatos);
+      enunciado.a_investigar = booleano(r.a_investigar);
+    }
     return Object.values(enunciado).some((x) => x !== null) ? enunciado : null;
   });
 }
@@ -1132,6 +1168,8 @@ export type HallazgoDelCaso = NarrativaDeRegla & {
   variables: Array<{ variable: string; etiqueta: string | null }>;
   /** El enunciado del primer registro marcado. */
   esperado: EnunciadoEsperado | null;
+  /** Solo en una regla de catálogo: la columna de cada papel usado (departamento, provincia, distrito, ubigeo). */
+  roles?: Partial<Record<"departamento" | "provincia" | "distrito" | "ubigeo", string>>;
   /** `null` en la tabla principal; en un grupo repetido, un elemento por registro marcado del encuestado. */
   registros: RegistroDelHallazgo[] | null;
 };
@@ -1163,6 +1201,19 @@ export type CasoCompleto = {
 function enumerado<T extends string>(value: unknown, validos: readonly T[]): T | null {
   const t = texto(value);
   return (validos as readonly string[]).includes(t) ? (t as T) : null;
+}
+
+const PAPELES_DE_CATALOGO = ["departamento", "provincia", "distrito", "ubigeo"] as const;
+
+function rolesDeCatalogo(value: unknown): Pick<HallazgoDelCaso, "roles"> {
+  if (vacio(value)) return {};
+  const r = registro(escalar(value));
+  const roles: NonNullable<HallazgoDelCaso["roles"]> = {};
+  for (const papel of PAPELES_DE_CATALOGO) {
+    const columna = textoONulo(escalar(r[papel]));
+    if (columna) roles[papel] = columna;
+  }
+  return { roles };
 }
 
 function enunciadoSuelto(value: unknown): EnunciadoEsperado | null {
@@ -1240,6 +1291,7 @@ export function normalizarCaso(value: unknown): CasoCompleto {
             .map((v) => ({ variable: textoONulo(v.variable), etiqueta: textoONulo(v.etiqueta) }))
             .filter((v): v is { variable: string; etiqueta: string | null } => v.variable !== null),
           esperado: enunciadoSuelto(h.esperado),
+          ...rolesDeCatalogo(h.roles),
           registros,
         };
       })
