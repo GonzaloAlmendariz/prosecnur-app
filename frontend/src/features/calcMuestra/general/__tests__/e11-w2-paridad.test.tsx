@@ -145,9 +145,11 @@ describe("Acreditación › Meta", () => {
     expect(sinSaltos(html)).toBe(true);
   });
 
-  it("V15 · el resultado y la técnica tienen su clase de no partir", () => {
+  it("V15 · la técnica tiene su clase de no partir y Meta no repite el resultado", () => {
     const html = tabla([comp({ actor: "Docentes", actor_categoria: "docentes" })]);
-    expect(html).toMatch(/<td class="cmg-actor-resultado"><strong>Por calcular<\/strong><\/td>/);
+    // Meta no repite el resultado (meta y población ya están en la fila): queda la técnica.
+    expect(html).not.toContain("cmg-actor-resultado");
+    expect(html).toContain("cmg-actor-tecnica");
     const css = fs.readFileSync(path.join(__dirname, "..", "general.css"), "utf8");
     expect(css).toMatch(/\.cmg-tabla-actores \.cmg-actor-tecnica,\s*\.cmg-tabla-actores \.cmg-actor-resultado \{\s*white-space: nowrap;/);
   });

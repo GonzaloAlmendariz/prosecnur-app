@@ -24,7 +24,7 @@ export function Pastilla({ children, icono, tono }: { children: ReactNode; icono
 
 export function Formatos({ formatos }: { formatos: readonly string[] }) {
   return (
-    <span className="cmmp-formatos">
+    <span className="cmmp-formatos" data-qa-geometry-group="calc-muestra/marco-formatos" data-qa-geometry-contract="equal">
       {formatos.map((f) => <span key={f} className="cmmp-formato" data-formato={f}>{f}</span>)}
     </span>
   );

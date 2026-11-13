@@ -3,7 +3,7 @@ import { metaCuotaFijada, sugerenciaCuota } from "../criterioSalida";
 import { safeNumber, type ComponentePatch } from "../sharedCore";
 import { NumberCell } from "../universidad/aulas";
 import { tecnicaDelActor } from "./actores";
-import { actorVisual, primaryMetric } from "./catalogos";
+import { actorVisual } from "./catalogos";
 import { CampoMargen } from "./CampoMeta";
 import { margenReferencia, metaPorMargen } from "./modeloPropuesta";
 import { campoMetaDelActor, pieDeCuota } from "./modelo";
@@ -48,7 +48,7 @@ export function MetaAcreditacion({
             (medido en L14, 2026-09-27). Aquí sólo hay enteros (N, %), que no
             llevan separador decimal; un campo decimal usa EntradaDecimal. */}
         <table className="cmv2-table cmg-tabla-actores" lang="es-PE">
-          <caption className="cmg-sr-only">Población, meta, margen y técnica de cada actor</caption>
+          <caption className="cmg-sr-only">Población, respuesta esperada, meta, margen y técnica de cada actor</caption>
           <thead>
             <tr>
               <th scope="col">Actor</th>
@@ -58,7 +58,6 @@ export function MetaAcreditacion({
               <th scope="col" className="cmg-num">Margen <small className="cmg-th-nota">95 %</small></th>
               <th scope="col">Exige</th>
               <th scope="col">Técnica</th>
-              <th scope="col">Resultado</th>
             </tr>
           </thead>
           <tbody>
@@ -109,7 +108,6 @@ export function MetaAcreditacion({
                       <small title={origen.detalle || undefined}>{origen.etiqueta}</small>
                     </div>
                   </td>
-                  <td className="cmg-actor-resultado"><strong>{primaryMetric(comp)}</strong></td>
                 </tr>
               );
             })}

@@ -42,7 +42,7 @@ export function ActoresAcreditacion({
   const marcos = useMuestraGeneralStore((s) => s.marcos);
   const columnas: PulsoTableColumna<CalcMuestraComponente>[] = [
     {
-      id: "actor", encabezado: "Actor", ancho: 320, celda: (comp) => {
+      id: "actor", encabezado: "Actor", ancho: 280, celda: (comp) => {
         const meta = actorVisual(comp);
         return (
           <span className={`cmg-actor-nombre cmv2-actor-row--${meta.key}`}>
@@ -64,7 +64,7 @@ export function ActoresAcreditacion({
       },
     },
     {
-      id: "canal", encabezado: "Canal", ancho: 200, celda: (comp) => (
+      id: "canal", encabezado: "Canal", ancho: 180, celda: (comp) => (
         <select
           className="cmv2-channel-select"
           aria-label={`Canal de ${actorVisual(comp).label}`}
@@ -76,7 +76,7 @@ export function ActoresAcreditacion({
       ),
     },
     {
-      id: "marco", encabezado: "Marco", ancho: 220, celda: (comp) => {
+      id: "marco", encabezado: "Marco", ancho: 200, celda: (comp) => {
         const N = safeNumber(comp.marco?.marco_validado, 0);
         return (
           <Link className="cmg-actor-estado" to={hrefSeccionDeActor(location.pathname, location.search, "marco", comp.id)}>
@@ -89,7 +89,7 @@ export function ActoresAcreditacion({
       },
     },
     {
-      id: "meta", encabezado: "Meta", ancho: 200, celda: (comp) => {
+      id: "meta", encabezado: "Meta", ancho: 180, celda: (comp) => {
         const encuestas = safeNumber(comp.meta?.valor, 0) || safeNumber(comp.resultado?.n_objetivo, 0);
         return (
           <Link className="cmg-actor-estado" to={hrefSeccionDeActor(location.pathname, location.search, "meta", comp.id)}>

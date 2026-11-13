@@ -107,6 +107,7 @@ export function PasoArchivo({ estado, onCambio, poblacionManual, conteos }: {
         onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ""; if (f) void subir(f); }}
       />
       {/* Las fuentes del marco son filas iguales: qué es, qué admite y su acción a la derecha. */}
+      <div className="cmmp-fuentes" data-qa-geometry-group="calc-muestra/marco-fuentes" data-qa-geometry-contract="intrinsic">
       <div className="cmmp-fuente">
         <span className="cmmp-fuente-icono" aria-hidden="true"><Table size={16} /></span>
         <div className="cmmp-fuente-cuerpo">
@@ -172,6 +173,7 @@ export function PasoArchivo({ estado, onCambio, poblacionManual, conteos }: {
           </PulsoButton>
         </div>
       ) : null}
+      </div>
       {error ? <div className="cmmp-pad"><Alert kind="error">{error}</Alert></div> : null}
       {conteos && tablaConteos && !lectura ? (
         <FuenteConteos
