@@ -1,0 +1,16 @@
+{
+  "fuente": "INEI, Infraestructura de Datos Espaciales (ide.inei.gob.pe), WFS Interoperabilidad",
+  "fuente_capas": "V Censo Nacional Economico",
+  "urls": {
+    "distrito": "https://geoespacial.inei.gob.pe/geoserver/Interoperabilidad/ows?service=WFS&version=1.0.0&request=GetFeature&outputFormat=application%2Fjson&typeName=Interoperabilidad:ig_distrito&propertyName=ccdd,ccpp,ccdi,ubigeo,nombdist,fuente,fec_reg",
+    "provincia": "https://geoespacial.inei.gob.pe/geoserver/Interoperabilidad/ows?service=WFS&version=1.0.0&request=GetFeature&outputFormat=application%2Fjson&typeName=Interoperabilidad:ig_provincia&propertyName=ccdd,ccpp,nombprov,fuente,fec_reg",
+    "departamento": "https://geoespacial.inei.gob.pe/geoserver/Interoperabilidad/ows?service=WFS&version=1.0.0&request=GetFeature&outputFormat=application%2Fjson&typeName=Interoperabilidad:ig_departamento&propertyName=ccdd,nombdep,fuente,fec_reg"
+  },
+  "consultado": "2026-11-12",
+  "version": "Registro de las capas: 2022-07-13, 2022-07-15, 2022-07-22",
+  "columnas": ["ubigeo", "departamento", "provincia", "distrito"],
+  "n_distritos": 1890,
+  "n_provincias": 196,
+  "n_departamentos": 25,
+  "nombres": "Como los publica el INEI: mayúsculas, sin tildes, con Ñ."
+}

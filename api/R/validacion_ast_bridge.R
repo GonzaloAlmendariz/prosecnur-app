@@ -230,6 +230,9 @@ bridge_regla_custom <- function(r) {
     # "Formato de la respuesta" (validacion_regla_formato.R).
     "formato" = .regla_formato_rule(vars = vars, params = params, gate = gate_ast,
                                     nombre = nombre, objetivo = objetivo, severidad = sev),
+    # "Combinación fuera de catálogo" (reglas_custom_catalogo.R).
+    "combinacion_catalogo" = .regla_catalogo_rule(params = params, gate = gate_ast, nombre = nombre,
+                                                  objetivo = objetivo, severidad = sev),
     stop(sprintf("bridge_regla_custom(): tipo '%s' no soportado.", tipo))
   )
 

@@ -17,6 +17,8 @@
 import type { ReglaGateCondition } from "./types";
 import type { ReglaLike } from "./components/v2";
 import { descripcionDeFormato, modoDeFormato } from "./reglas/modeloFormato";
+import { papelesDeParams } from "./reglas/modeloCombinacion";
+import { PAPELES_DE_CATALOGO } from "../../api/catalogoUbigeo";
 import {
   ademasDeBateria,
   condicionesDeParams,
@@ -59,6 +61,7 @@ const CUSTOM_TIPO_TO_AST: Record<TipoReglaPropia, string> = {
   bateria: "pattern",
   comparar_fechas: "coherence",
   formato: "pattern",
+  combinacion_catalogo: "coherence",
 };
 
 // Label humano del tipo — se usa también como `categoria_ux` y en el chip
@@ -80,6 +83,7 @@ export const CUSTOM_TIPO_LABEL: Record<TipoReglaPropia, string> = {
   bateria: "Patrón en una batería",
   comparar_fechas: "Dos fechas u horas que deben cuadrar",
   formato: "Formato de la respuesta",
+  combinacion_catalogo: "Combinación fuera de catálogo",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
@@ -165,6 +169,10 @@ export function describeCustomParams(
     case "formato": {
       const piezas = fraseDeReglaPropia({ tipo, variables, params });
       return piezas ? fraseEnTexto(piezas) : "Se marca cuando la respuesta no está escrita como se pide.";
+    }
+    case "combinacion_catalogo": {
+      const piezas = fraseDeReglaPropia({ tipo, variables, params });
+      return piezas ? fraseEnTexto(piezas) : "Se marca cuando el lugar declarado no existe en el catálogo de ubigeos o sus partes no calzan.";
     }
     default:
       return "";
@@ -522,6 +530,21 @@ export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leer
       f.pregunta(v1).texto(` no es ${descripcionDeFormato(p)}.`);
       if (modo === "digitos" && p.sin_separadores === true) f.texto(" Antes se quitan espacios, guiones, puntos y paréntesis.");
       f.texto(" La respuesta se revisa como texto, así que un cero inicial cuenta como dígito.");
+      break;
+    }
+    case "combinacion_catalogo": {
+      // Las palabras de `.vrf_frase_catalogo()` en el motor.
+      const papeles = papelesDeParams(p);
+      const usados = PAPELES_DE_CATALOGO.filter((x) => papeles[x]);
+      if (usados.length < 2) return null;
+      f.texto("la combinación de ");
+      usados.forEach((papel, i) => {
+        if (i > 0) f.texto(i === usados.length - 1 ? " y " : ", ");
+        f.texto(`${papel} `).pregunta(papeles[papel] as string);
+      });
+      f.texto(" no existe en Ubigeos del Perú (INEI), o algún nombre no se reconoce.");
+      const omitir = paramList(p.omitir);
+      if (omitir.length) f.texto(` No se revisan los casos con ${omitir.map((x) => `"${x}"`).join(", ")}.`);
       break;
     }
     default:

@@ -154,6 +154,16 @@ export const TIPOS: TipoMeta[] = [
     grupo: "coherencia",
   },
   {
+    key: "combinacion_catalogo",
+    label: "Combinación fuera de catálogo",
+    rotulo: "Combinación fuera de catálogo",
+    ejemploCorto: "El distrito no pertenece a la provincia declarada",
+    descripcion: "Se marca cuando el lugar declarado en varias preguntas no existe en el catálogo de ubigeos o sus partes no calzan.",
+    // Dos a cuatro papeles: departamento, provincia, distrito y ubigeo.
+    nVars: [2, 4],
+    grupo: "coherencia",
+  },
+  {
     key: "select_multiple_hierarchy",
     label: "Completar opciones asumidas",
     rotulo: "Opciones que van juntas",
@@ -190,17 +200,6 @@ export const TIPOS: TipoMeta[] = [
     grupo: "seleccion",
   },
 ];
-
-/**
- * La tesela que el prototipo dibuja y el motor todavía no tiene (D-V2): se ve
- * deshabilitada, con su causa, en la columna de coherencia.
- */
-export const TIPO_PENDIENTE_CATALOGO = {
-  rotulo: "Combinación fuera de catálogo",
-  ejemploCorto: "El distrito no pertenece a la provincia declarada",
-  causa: "Todavía no disponible: necesita el catálogo de combinaciones",
-  grupo: "coherencia" as GrupoDeTipo,
-};
 
 export function metaDeTipo(tipo: TipoReglaPropia | null | undefined): TipoMeta | null {
   return TIPOS.find((t) => t.key === tipo) ?? null;

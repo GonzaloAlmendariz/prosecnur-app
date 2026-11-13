@@ -1,0 +1,46 @@
+/* "Combinación fuera de catálogo": un selector por papel (CamposDeCombinacion.tsx). */
+
+.pulso-regla-combinacion-papel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pulso-space-2) var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-regla-combinacion-papel > :first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pulso-regla-combinacion-parte {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  white-space: nowrap;
+}
+
+.pulso-regla-combinacion-grupos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-regla-combinacion-aviso {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  overflow-wrap: anywhere;
+}
+
+.pulso-regla-catalogo-causa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-regla-catalogo-causa small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}

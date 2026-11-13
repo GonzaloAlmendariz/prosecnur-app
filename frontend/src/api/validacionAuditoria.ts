@@ -30,6 +30,7 @@
 import { apiFetch, handle, headers } from "./core";
 import { booleano, enteroONulo, escalar, lista, numeroONulo, registro, texto } from "./normalizarR";
 import { normalizarCatalogoCompleto, type CatalogoCompleto, type OrigenDeRegla, type PiezaDelCatalogo } from "./validacionCatalogo";
+import { normalizarLecturaDeCatalogo, normalizarResumenDeCatalogo, type LecturaDeCatalogo, type ResumenDeCatalogo } from "./catalogoUbigeo";
 
 function encabezados(baseNombre?: string | null, extra: Record<string, string> = {}): Record<string, string> {
   const h = headers(extra);
@@ -797,6 +798,8 @@ export type EjemploDePrueba = {
   fechas?: ResumenDeFechas;
   /** Solo en una regla de formato. */
   formato?: ResumenDeFormato;
+  /** Solo en "Combinación fuera de catálogo": estado, causa y candidatos (catalogoUbigeo.ts). */
+  catalogo?: ResumenDeCatalogo;
 };
 
 /** Estado de lectura de una fecha u hora en un caso. */
@@ -981,6 +984,8 @@ export type PruebaDeRegla = {
   lectura?: LecturaDeFechas[];
   /** Solo en una regla de formato. */
   formato?: LecturaDeFormato;
+  /** Solo en "Combinación fuera de catálogo". */
+  catalogo?: LecturaDeCatalogo;
 };
 
 const PAPELES: readonly PapelEnLaPrueba[] = ["revisada", "comparada", "condicion", "filtro"];
@@ -1006,6 +1011,10 @@ export function normalizarPruebaDeRegla(value: unknown): PruebaDeRegla {
       const formato = normalizarLecturaDeFormato(r.formato);
       return formato ? { formato } : {};
     })(),
+    ...(() => {
+      const catalogo = normalizarLecturaDeCatalogo(r.catalogo);
+      return catalogo ? { catalogo } : {};
+    })(),
     ejemplos: lista(r.ejemplos).map((ej) => ({
       ...conResumenDeBateria(ej.bateria),
       ...(() => {
@@ -1015,6 +1024,10 @@ export function normalizarPruebaDeRegla(value: unknown): PruebaDeRegla {
       ...(() => {
         const formato = normalizarResumenDeFormato(ej.formato);
         return formato ? { formato } : {};
+      })(),
+      ...(() => {
+        const catalogo = normalizarResumenDeCatalogo(ej.catalogo);
+        return catalogo ? { catalogo } : {};
       })(),
       id_caso: textoONulo(ej.id_caso),
       valores: lista(ej.valores)

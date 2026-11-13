@@ -42,6 +42,7 @@ import {
 import { metaDeTipo, rangoDePreguntas } from "./tiposDeRegla";
 import { validarFechas, variablesDeComparar } from "./modeloFechas";
 import { validarFormato } from "./modeloFormato";
+import { CATALOGO_POR_DEFECTO, validarCombinacion, variablesDeCombinacion } from "./modeloCombinacion";
 import { esOperadorDeComparacion, type ReglaPropia, type ReglaPropiaAGuardar, type TipoReglaPropia } from "./tiposDelMotor";
 
 export type Borrador = {
@@ -77,6 +78,8 @@ function paramsDeArranque(tipo: TipoReglaPropia | null, primera: string): Record
   if (tipo === "select_multiple_selection") return { op: "contains_any" };
   if (tipo === "bateria") return { patron: "iguales" };
   if (tipo === "formato") return { modo: "digitos" };
+  // Los papeles llegan de la propuesta del motor (CamposDeCombinacion).
+  if (tipo === "combinacion_catalogo") return { catalogo: CATALOGO_POR_DEFECTO, roles: {} };
   if (tipo === "comparar_fechas") {
     return {
       unidad: "fecha",
@@ -190,6 +193,8 @@ export function variablesEfectivas(b: Borrador): string[] {
   if (b.tipo === "condiciones") return variablesDeCondiciones(condicionesDeParams(b.params));
   // Inicio y fin: sus preguntas, en ese orden (validacion_regla_fechas.R).
   if (b.tipo === "comparar_fechas") return variablesDeComparar(b.params).filter(Boolean);
+  // Los papeles de la combinación, la más específica primero (reglas_custom_catalogo.R).
+  if (b.tipo === "combinacion_catalogo") return variablesDeCombinacion(b.params);
   // Una fila de pregunta vacía no es una pregunta de la regla.
   return b.variables.every(Boolean) ? b.variables : b.variables.filter(Boolean);
 }
@@ -248,6 +253,9 @@ export function validarBorrador(b: Borrador): string {
     if (error) return error;
   } else if (tipo === "comparar_fechas") {
     const error = validarFechas(tipo, params, []);
+    if (error) return error;
+  } else if (tipo === "combinacion_catalogo") {
+    const error = validarCombinacion(params);
     if (error) return error;
   } else {
     const [needed] = rangoDePreguntas(meta);

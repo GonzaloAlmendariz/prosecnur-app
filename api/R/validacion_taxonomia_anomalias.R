@@ -90,6 +90,7 @@ validacion_anomalias_catalogo <- function() {
   rango_fecha      = "valor_invalido",
   comparar_fechas  = "contradiccion",
   formato          = "valor_invalido",
+  combinacion_catalogo = "valor_invalido",
   continuidad_secuencia = "procedencia"
 )
 

@@ -17,6 +17,7 @@ import type {
 import type { TipoMeta } from "./tiposDeRegla";
 import { paramsDeComparar } from "./modeloFechas";
 import { paramsDeFormato } from "./modeloFormato";
+import { paramsDeCombinacion } from "./modeloCombinacion";
 import {
   esOperadorDeComparacion,
   type CondicionCombinada,
@@ -165,6 +166,7 @@ export function normalizeParamsForSubmit(
   if (tipo === "bateria") return paramsDeBateria(params);
   if (tipo === "comparar_fechas") return paramsDeComparar(params);
   if (tipo === "formato") return paramsDeFormato(params);
+  if (tipo === "combinacion_catalogo") return paramsDeCombinacion(params);
   return params;
 }
 

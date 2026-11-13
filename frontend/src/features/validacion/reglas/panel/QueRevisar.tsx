@@ -3,7 +3,6 @@
  * propia en tres columnas, cada uno con su ícono, su nombre y un caso de
  * ejemplo, y debajo las sugeridas al mirar la base.
  *
- * - "Combinación fuera de catálogo" se ve deshabilitada con su causa (D-V2).
  * - Los valores extremos ya no se crean: solo aparecen si la regla que se
  *   edita es de ese tipo (D-F11).
  * - "Usar" en una sugerida abre la regla armada con ella.
@@ -35,7 +34,7 @@ import {
 } from "../../../../vendor/lucide-react";
 import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { ReglaSemilla } from "../../types";
-import { GRUPOS_DE_TIPOS, TIPO_PENDIENTE_CATALOGO, tiposDelGrupo } from "../tiposDeRegla";
+import { GRUPOS_DE_TIPOS, tiposDelGrupo } from "../tiposDeRegla";
 import type { TipoReglaPropia } from "../tiposDelMotor";
 
 /**
@@ -59,6 +58,7 @@ export const ICONO_DE_TIPO: Readonly<Record<TipoReglaPropia, LucideIcon>> = {
   condiciones: Split,
   bateria: Rows3,
   formato: Type,
+  combinacion_catalogo: Layers,
   select_multiple_hierarchy: ListChecks,
   select_multiple_exclusive: X,
   select_multiple_cardinality: ListOrdered,
@@ -143,7 +143,6 @@ export function QueRevisar({
       <div className="pulso-regla-tipos" data-qa-geometry-group="validacion/regla-tipos" data-qa-geometry-contract="intrinsic">
         {GRUPOS_DE_TIPOS.map((grupo) => {
           const tipos = tiposDelGrupo(grupo.key, tipoDeLaRegla);
-          const conPendiente = grupo.key === TIPO_PENDIENTE_CATALOGO.grupo;
           return (
             <section key={grupo.key} className="pulso-regla-tipos-grupo" aria-label={grupo.rotulo} data-qa-geometry-member="">
               <h4 className="pulso-regla-tipos-titulo">{grupo.rotulo}</h4>
@@ -160,14 +159,6 @@ export function QueRevisar({
                     onElegir={() => onElegir(t.key)}
                   />
                 ))}
-                {conPendiente ? (
-                  <Tesela
-                    icono={Layers}
-                    rotulo={TIPO_PENDIENTE_CATALOGO.rotulo}
-                    ejemplo={TIPO_PENDIENTE_CATALOGO.ejemploCorto}
-                    causa={TIPO_PENDIENTE_CATALOGO.causa}
-                  />
-                ) : null}
               </ul>
             </section>
           );

@@ -1,0 +1,76 @@
+/* Selector de un lugar del catálogo de ubigeos (SelectorDeUbigeo.tsx). */
+
+.pulso-selector-ubigeo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-selector-ubigeo-ruta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-2);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-selector-ubigeo-ruta button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.pulso-selector-ubigeo-ruta button + button::before {
+  content: "/";
+  margin-right: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-selector-ubigeo-ruta button[aria-current="true"] {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.pulso-selector-ubigeo-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.pulso-selector-ubigeo-lista button {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--pulso-space-3);
+  width: 100%;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: none;
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.pulso-selector-ubigeo-lista button:hover,
+.pulso-selector-ubigeo-lista button:focus-visible {
+  background: var(--pulso-muted-surface);
+}
+
+.pulso-selector-ubigeo-lista small,
+.pulso-selector-ubigeo-aviso {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+.pulso-selector-ubigeo-aviso {
+  margin: 0;
+}

@@ -27,6 +27,11 @@ export function OpcionesProvider({ baseNombre, children }: { baseNombre: string 
   );
 }
 
+/** La base del panel de regla (la que también cuenta y lista las opciones). */
+export function useBaseDelPanel(): string | null {
+  return useContext(ContextoDeOpciones)?.baseNombre ?? null;
+}
+
 function pedir(variable: string, baseNombre: string | null | undefined, cache: Cache | null): Promise<OpcionDeVariable[]> {
   const clave = `${baseNombre ?? ""}\u0000${variable}`;
   const guardada = cache?.get(clave);

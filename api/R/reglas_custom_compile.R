@@ -392,6 +392,7 @@
     "bateria"        = .regla_expr_bateria(vars, r$params),
     "formato"        = .regla_expr_formato(vars[1], r$params),
     "comparar_fechas" = .regla_expr_fechas(r),
+    "combinacion_catalogo" = .regla_expr_catalogo(r$params),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )
   expr <- .regla_apply_gate(expr, r)

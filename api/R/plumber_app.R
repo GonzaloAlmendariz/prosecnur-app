@@ -109,6 +109,7 @@ build_plumber_app <- function(static_dir = system.file("www", package = "prosecn
     pr <- mount_validacion(pr)
     pr <- mount_validacion_caso_valido_manual(pr)
     pr <- mount_validacion_detector(pr)   # ítem 31: sugerencias del detector de consistencia
+    pr <- mount_catalogo_ubigeo(pr)       # ítem 43: catálogo de ubigeos (búsqueda, cascada, papeles)
     pr <- mount_explorador_ficha(pr)          # E10/E11: ficha de la pregunta en Validación › Explorar
     pr <- mount_codificacion(pr)
     pr <- mount_codificacion_textos_en_otro(pr)

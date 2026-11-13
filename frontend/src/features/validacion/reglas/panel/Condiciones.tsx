@@ -37,6 +37,7 @@ import { esOperadorDeComparacion, type CondicionCombinada, type ModoCondiciones,
 import { CamposDeBateria } from "./CamposDeBateria";
 import { CamposDeFechas } from "./CamposDeFechas";
 import { CamposDeFormato } from "./CamposDeFormato";
+import { CamposDeCombinacion } from "./CamposDeCombinacion";
 import { Fila } from "./FilaDeRegla";
 import { Segmentado } from "./Segmentado";
 
@@ -361,6 +362,10 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
     }
     case "formato": {
       filas = <CamposDeFormato borrador={b} despachar={despachar} variables={preguntasDelTipo("formato", variables)} />;
+      break;
+    }
+    case "combinacion_catalogo": {
+      filas = <CamposDeCombinacion borrador={b} despachar={despachar} variables={variables} />;
       break;
     }
     case "rango_fecha":

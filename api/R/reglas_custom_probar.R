@@ -27,6 +27,10 @@
 #   formato    (solo reglas de formato) cuántas respuestas pasan y no pasan
 #              sobre las n_filas, si la columna llegó como número y las
 #              respuestas más frecuentes de cada lado (`.regla_formato_lectura()`).
+#   catalogo   (solo "Combinación fuera de catálogo") encuestas por estado sobre
+#              las n_filas: calzan, incompletas, con error, con un nombre no
+#              reconocido, omitidas, sin datos y a investigar; y los textos no
+#              reconocidos más frecuentes por papel (`.regla_catalogo_lectura()`).
 
 .probar_id <- "RC_PRUEBA"
 .probar_limite_ejemplos <- 20L
@@ -60,6 +64,7 @@
     bateria = stats::setNames(rep("revisada", length(vars)), vars),
     rango_fecha = , comparar_fechas = stats::setNames(rep("revisada", length(vars)), vars),
     cruce_identidad = stats::setNames(rep("revisada", length(vars)), vars),
+    combinacion_catalogo = stats::setNames(rep("revisada", length(vars)), vars),
     stats::setNames("revisada", vars[1])
   )
   extra <- setdiff(filtro, names(papel))
@@ -96,7 +101,7 @@
 .probar_respuesta <- function(base_nombre, regla, n_filas = 0L, n_base = 0L, n_casos = 0L,
                               evaluada = FALSE, estado = "sin_datos", motivo = NULL,
                               base_vacia = FALSE, ejemplos = list(), tiene_filtro = FALSE,
-                              lectura = NULL, formato = NULL) {
+                              lectura = NULL, formato = NULL, catalogo = NULL) {
   entero <- function(x) if (is.null(x)) NA_integer_ else as.integer(x)
   out <- list(
     ok = TRUE,
@@ -117,6 +122,7 @@
   )
   if (!is.null(lectura)) out$lectura <- lectura
   if (!is.null(formato)) out$formato <- formato
+  if (!is.null(catalogo)) out$catalogo <- catalogo
   out
 }
 
@@ -237,11 +243,13 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   ejemplos <- .probar_ejemplos(ev, mapa, regla, gate_ast, res, ids_cond)
   lectura <- if (.regla_fechas_es(regla)) .regla_fechas_lectura(ev$datos %||% principal, regla) else NULL
   formato <- if (.regla_formato_es(regla)) .regla_formato_lectura(ev$datos %||% principal, regla) else NULL
+  catalogo <- if (.regla_catalogo_es(regla)) .regla_catalogo_lectura(ev$datos %||% principal, regla) else NULL
 
   .probar_respuesta(
     base_eff, regla, evaluada = TRUE, estado = "evaluada",
     n_filas = n_filas, n_base = n_base, n_casos = length(mapa$row_idx),
-    ejemplos = ejemplos, tiene_filtro = tiene_filtro, lectura = lectura, formato = formato
+    ejemplos = ejemplos, tiene_filtro = tiene_filtro, lectura = lectura, formato = formato,
+    catalogo = catalogo
   )
 }
 
@@ -263,6 +271,7 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   es_bateria <- identical(as.character(regla$tipo), "bateria")
   es_fechas <- .regla_fechas_es(regla)
   es_formato <- .regla_formato_es(regla)
+  es_catalogo <- .regla_catalogo_es(regla)
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
     valores <- lapply(names(papeles), function(v) {
@@ -287,6 +296,8 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
     if (es_fechas) ejemplo <- .regla_fechas_ejemplo(ejemplo, df, i, regla)
     # En formato, la respuesta como texto y por qué no pasa (validacion_regla_formato.R).
     if (es_formato) ejemplo <- .regla_formato_ejemplo(ejemplo, df, i, regla)
+    # En catálogo, el estado, la causa y los candidatos (reglas_custom_catalogo.R).
+    if (es_catalogo) ejemplo <- .regla_catalogo_ejemplo(ejemplo, df, i, regla)
     ejemplo
   })
 }

@@ -32,8 +32,11 @@ import type {
 } from "../../../../api/validacionAuditoria";
 import { textoDeFechas, textoDeLectura } from "../modeloFechas";
 import { motivoEnTexto, textoDeFormato, textoDeLecturaDeFormato } from "../modeloFormato";
+import { candidatosEnTexto, causaEnTexto, textoDeLecturaDeCatalogo } from "../modeloCombinacion";
+import type { LecturaDeCatalogo, ResumenDeCatalogo } from "../../../../api/catalogoUbigeo";
 import "./camposDeFechas.css";
 import "./camposDeFormato.css";
+import "./camposDeCombinacion.css";
 import type { ExploradorVariable } from "../../types";
 import { etiquetaDeOpcion, useOpcionesDeVariables } from "../campos/opcionesDeVariable";
 import { tieneOpciones } from "../campos/tipoDeFicha";
@@ -113,7 +116,9 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
   const fechas = prueba.ejemplos.some((ej) => ej.fechas);
   // En formato, la respuesta como texto con su motivo reemplaza a la columna de la pregunta.
   const formato = prueba.ejemplos.some((ej) => ej.formato);
-  const columnas = bateria || fechas || formato ? [] : columnasDeEjemplos(prueba.ejemplos);
+  // En una combinación de catálogo, la causa (que nombra lo declarado) y la propuesta.
+  const catalogo = prueba.ejemplos.some((ej) => ej.catalogo);
+  const columnas = bateria || fechas || formato || catalogo ? [] : columnasDeEjemplos(prueba.ejemplos);
   const primeraDeLaBateria = bateria ? prueba.ejemplos.find((ej) => ej.bateria)?.valores[0]?.variable ?? null : null;
   const opcionesDeLaBateria = useOpcionesDeVariables(
     primeraDeLaBateria && tieneOpciones(porNombre.get(primeraDeLaBateria)?.tipo) ? [primeraDeLaBateria] : [],
@@ -193,6 +198,16 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       valor: (ej: EjemploDePrueba) => (ej.formato ? textoDeFormato(ej.formato) : "Sin dato"),
     });
   }
+  if (catalogo) {
+    definicion.push({
+      id: "catalogo",
+      encabezado: "Causa",
+      ancho: ANCHO_TABLA - ANCHO_CASO,
+      tipo: "texto" as const,
+      celda: (ej: EjemploDePrueba) => (ej.catalogo ? <CausaDeCatalogo resumen={ej.catalogo} /> : "Sin dato"),
+      valor: (ej: EjemploDePrueba) => (ej.catalogo ? textoDeCausaDeCatalogo(ej.catalogo) : "Sin dato"),
+    });
+  }
   return (
     <PulsoTable
       columnas={definicion}
@@ -202,6 +217,35 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       densidad="comoda"
       altoMaximo={MAX_FILAS_DE_EJEMPLO * 60 + 64}
     />
+  );
+}
+
+/** "Error: Los Olivos no es un distrito de Sullana (Piura). Propuesta: Provincia Lima (Los Olivos está en ese lugar)". */
+export function textoDeCausaDeCatalogo(r: ResumenDeCatalogo): string {
+  const causa = causaEnTexto(r);
+  const propuesta = candidatosEnTexto(r);
+  return propuesta ? `${causa}. ${propuesta}` : causa;
+}
+
+function CausaDeCatalogo({ resumen }: { resumen: ResumenDeCatalogo }) {
+  const propuesta = candidatosEnTexto(resumen);
+  return (
+    <span className="pulso-regla-catalogo-causa">
+      <b className="pulso-regla-falla">{causaEnTexto(resumen)}</b>
+      {propuesta ? <small>{propuesta}</small> : null}
+    </span>
+  );
+}
+
+/** Encuestas por estado en una combinación de catálogo, sobre las filas que evalúa la auditoría. */
+export function LecturaDeCatalogoDeLaRegla({ lectura }: { lectura: LecturaDeCatalogo | undefined }) {
+  if (!lectura) return null;
+  return (
+    <ul className="pulso-regla-formato-lectura" aria-label="Encuestas revisadas contra el catálogo">
+      {textoDeLecturaDeCatalogo(lectura).map((l) => (
+        <li key={l}>{l}</li>
+      ))}
+    </ul>
   );
 }
 
@@ -328,6 +372,7 @@ export function CasosQueMarca({
         />
         <LecturaDeLaRegla lectura={prueba.lectura ?? []} />
         <LecturaDeFormatoDeLaRegla lectura={prueba.formato} />
+        <LecturaDeCatalogoDeLaRegla lectura={prueba.catalogo} />
         {nCasos > 0 && prueba.ejemplos.length > 0 ? (
           <TablaDeEjemplos prueba={prueba} variables={variables} />
         ) : (

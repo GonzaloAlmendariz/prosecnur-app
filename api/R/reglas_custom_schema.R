@@ -35,6 +35,10 @@
 #   - comparar_fechas      — orden o duración entre dos fechas u horas, con su
 #                            formato o repartidas en varias preguntas;
 #                            validacion_regla_fechas.R (también lee rango_fecha).
+#   - combinacion_catalogo — un lugar declarado en varias columnas (departamento,
+#                            provincia, distrito, ubigeo) que no existe o no
+#                            calza en un catálogo territorial;
+#                            reglas_custom_catalogo.R.
 
 .regla_tipos_soportados <- c(
   "no_nulo", "rango_num", "rango_fecha",
@@ -43,7 +47,8 @@
   "select_multiple_hierarchy", "select_multiple_exclusive",
   "select_multiple_cardinality", "select_multiple_selection",
   "continuidad_secuencia", "cruce_identidad",
-  "condiciones", "bateria", "comparar_fechas", "formato"
+  "condiciones", "bateria", "comparar_fechas", "formato",
+  "combinacion_catalogo"
 )
 
 # Comparar con otra pregunta solo admite operadores de comparación: "está
@@ -79,7 +84,9 @@
   # validan primero para que una regla sin condiciones diga eso y no "faltan
   # variables".
   if (identical(tipo, "condiciones")) .regla_validar_condiciones(r$params %||% list())
-  vars <- if (identical(tipo, "condiciones")) .regla_variables_efectivas(r)
+  # En "Combinación fuera de catálogo" las variables salen de los papeles.
+  if (identical(tipo, "combinacion_catalogo")) .regla_catalogo_validar(r)
+  vars <- if (tipo %in% c("condiciones", "combinacion_catalogo")) .regla_variables_efectivas(r)
           else unlist(r$variables %||% list())
   if (!length(vars) || any(!nzchar(vars))) {
     stop_api(400, "E_REGLA_SIN_VARS",
@@ -370,6 +377,9 @@
     vars <- c(vars, extra)
   } else if (identical(tipo, "coherencia_2v")) {
     vars <- c(vars, trimws(calc_str(params$valor_y_variable)))
+  } else if (identical(tipo, "combinacion_catalogo")) {
+    # Los papeles mandan: la revisada (la más específica) primero.
+    vars <- .regla_catalogo_variables(params)
   }
   vars <- vars[!is.na(vars) & nzchar(vars)]
   unique(vars)
