@@ -242,20 +242,7 @@ mount_calc_muestra_marco_publico <- function(pr) {
       s <- session_get(sid)
       estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
       marcos <- .cm_general_estado(s$calc_muestra_general)$marcos
-      publicos <- list(); fuera <- list()
-      for (comp in estudio$componentes %||% list()) {
-        marco <- marcos[[comp$id %||% ""]]
-        if (is.null(marco) || is.null(marco$receta)) next
-        nombre <- calc_str(comp$actor, calc_str(comp$id, ""))
-        correos <- if (identical(calc_str(marco$receta$tipo, ""), "conteos")) NULL else
-          .cm_cruce_correos_del_actor(.cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% ""), marco$receta)
-        if (is.null(correos)) {
-          fuera[[length(fuera) + 1L]] <- list(id = comp$id, nombre = nombre)
-        } else {
-          publicos[[length(publicos) + 1L]] <- list(id = comp$id, nombre = nombre, correos = correos)
-        }
-      }
-      out <- calc_muestra_cruce_entre_publicos(publicos, body$metas %||% list(), body$tasas %||% list())
-      list(ok = TRUE, publicos = out$publicos, hay_cruce = out$hay_cruce, sin_correo = fuera)
+      out <- .cm_cruce_publicos_de_sesion(sid, estudio, marcos, body$metas %||% list(), body$tasas %||% list())
+      list(ok = TRUE, publicos = out$publicos, hay_cruce = out$hay_cruce, sin_correo = out$sin_correo)
     }))
 }

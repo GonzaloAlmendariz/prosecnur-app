@@ -157,3 +157,24 @@ test_that("el Excel de escenarios trae las mismas cifras que el PPT, como númer
   out2 <- tempfile(fileext = ".xlsx"); calc_muestra_propuesta_xlsx(p, out2)
   expect_identical(openxlsx::read.xlsx(out2, sheet = "Docentes", colNames = FALSE, rows = 1)[[1]], "Metas por cuota de control: Docentes")
 })
+
+test_that("D9: quien figura en dos públicos se muestra en la población sin descontarlo", {
+  p <- .prop_dci()
+  ids <- c("doc", "adm", "egr")
+  p$escenarios <- lapply(p$escenarios, function(e) {
+    e$componentes <- Map(function(c, id) { c$id <- id; c }, e$componentes, ids)
+    e
+  })
+  # Sin cruce no hay columna.
+  expect_false("También en otro público" %in% names(calc_muestra_propuesta_tablas(p)$poblacion))
+  p$compartidos <- list(doc = 159L, adm = 159L)
+  t <- calc_muestra_propuesta_tablas(p)
+  expect_identical(t$poblacion[["También en otro público"]], c("159 (6.0 %)", "159 (7.2 %)", "", ""))
+  # La población no se descuenta.
+  expect_identical(t$poblacion[["Población"]][1:2], c("2,665", "2,194"))
+  expect_identical(t$datos$compartidos, c(159L, 159L, NA_integer_))
+  r <- calc_muestra_propuesta_ppt(p, tempfile(fileext = ".pptx"))
+  # pptx_summary avisa coerciones propias de officer al leer los marcadores de posición.
+  textos <- suppressWarnings(officer::pptx_summary(officer::read_pptx(r$path)))$text
+  expect_true(any(grepl("se cuenta en ambos", textos, fixed = TRUE)))
+})

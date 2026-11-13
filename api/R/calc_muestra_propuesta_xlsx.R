@@ -74,6 +74,7 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
     "El margen de error es referencial, por tratarse de una muestra no probabilística.")
   res <- data.frame(`Público` = c(d$publicos, "Total"), `Segmento de cruce` = c(d$segmentacion, ""),
                     `Población` = c(d$N, sum(d$N)), check.names = FALSE)
+  if (any(d$compartidos > 0L, na.rm = TRUE)) res[["También en otro público"]] <- c(d$compartidos, NA_integer_)
   for (k in esc) {
     m <- d$metas[[k]]
     res[[paste0(k, ": meta")]] <- c(m, sum(m))

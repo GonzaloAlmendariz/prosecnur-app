@@ -72,3 +72,31 @@ calc_muestra_cruce_entre_publicos <- function(publicos, metas = list(), tasas = 
   if (!col %in% names(ap$datos)) return(NULL)
   as.character(ap$datos[[col]])
 }
+
+#' Cruce entre los públicos de la sesión: lee el marco guardado de cada actor con base por persona y correo.
+#' @return list(publicos, hay_cruce, sin_correo = [{id, nombre}]) como `calc_muestra_cruce_entre_publicos`.
+.cm_cruce_publicos_de_sesion <- function(sid, estudio, marcos, metas = list(), tasas = list()) {
+  publicos <- list(); fuera <- list()
+  for (comp in estudio$componentes %||% list()) {
+    marco <- marcos[[comp$id %||% ""]]
+    if (is.null(marco) || is.null(marco$receta)) next
+    nombre <- calc_str(comp$actor, calc_str(comp$id, ""))
+    correos <- if (identical(calc_str(marco$receta$tipo, ""), "conteos")) NULL else
+      .cm_cruce_correos_del_actor(.cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% ""), marco$receta)
+    if (is.null(correos)) {
+      fuera[[length(fuera) + 1L]] <- list(id = comp$id, nombre = nombre)
+    } else {
+      publicos[[length(publicos) + 1L]] <- list(id = comp$id, nombre = nombre, correos = correos)
+    }
+  }
+  out <- calc_muestra_cruce_entre_publicos(publicos, metas, tasas)
+  out$sin_correo <- fuera
+  out
+}
+
+#' Personas compartidas por actor (id -> n), para la propuesta; vacío si no hay dos públicos que cruzar.
+.cm_cruce_compartidos <- function(cruce) {
+  if (length(cruce$publicos) < 2L) return(list())
+  stats::setNames(lapply(cruce$publicos, function(p) as.integer(p$compartidos)),
+                  vapply(cruce$publicos, function(p) p$id, ""))
+}

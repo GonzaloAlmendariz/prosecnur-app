@@ -92,6 +92,16 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
   poblacion <- data.frame(`Público` = c(publicos, "Total"),
                           `Segmento de cruce` = c(segs, ""),
                           `Población` = .cmp_fmt_n(c(N, sum(N))), check.names = FALSE)
+  # D9: las personas que figuran en dos públicos se cuentan en ambos; la columna lo dice sin descontarlas.
+  comp_ids <- vapply(base, function(c) as.character(c$id %||% "")[1], "")
+  compartidos <- vapply(comp_ids, function(id) {
+    v <- (propuesta$compartidos %||% list())[[id]]
+    if (is.null(v) || !nzchar(id)) NA_integer_ else as.integer(v)
+  }, 1L, USE.NAMES = FALSE)
+  if (any(compartidos > 0L, na.rm = TRUE)) {
+    poblacion[["También en otro público"]] <- c(ifelse(is.na(compartidos), "", ifelse(compartidos == 0L, "0",
+      sprintf("%s (%s)", .cmp_fmt_n(compartidos), .cmp_fmt_pct(compartidos / N)))), "")
+  }
 
   # Dos bloques con su fila de sección: encuestas (con total) y margen de referencia.
   # "Margen de error" (revisión 2026-11-11); la nota al pie dice que es referencial.
@@ -179,7 +189,8 @@ calc_muestra_propuesta_tablas <- function(propuesta) {
 
   # Las mismas cifras sin formato, para el Excel (una sola fuente para PPT y XLSX).
   datos <- list(publicos = publicos, segmentacion = segs, N = N, metas = stats::setNames(metas, nombres), referencia = ref,
-                referencia_rotulo = as.character(propuesta$referencia_rotulo %||% "")[1], segmentos = segmentos_num)
+                referencia_rotulo = as.character(propuesta$referencia_rotulo %||% "")[1], segmentos = segmentos_num,
+                compartidos = compartidos)
   datos$usos <- usos
   list(datos = datos, publicos = publicos, escenarios = nombres, poblacion = poblacion, comparacion = comparacion,
        segmentos = segmentos, viabilidad = viabilidad, avisos = avisos %||% character(), agregados = agregados %||% character())
@@ -338,8 +349,13 @@ calc_muestra_propuesta_ppt <- function(propuesta, path_ppt) {
   if (!isFALSE(propuesta$incluir_diseno)) {
     doc <- .cmp_lamina_tabla(doc, "Diseño muestral", proc, primera = 0.20, texto_largo = TRUE); orden <- c(orden, "diseno")
   }
+  con_cruce <- "También en otro público" %in% names(tablas$poblacion)
+  nota_pob <- paste(c(propuesta$nota_marco %||% NULL,
+    if (con_cruce) "Quien figura en dos públicos se cuenta en ambos. A cuál se le envía la encuesta se acuerda en el listado de envío."),
+    collapse = " ")
   doc <- .cmp_lamina_tabla(doc, "Población y segmentos de cruce", tablas$poblacion, primera = 0.22, total = TRUE,
-                           nota = propuesta$nota_marco %||% NULL, llenar = TRUE, anchos = c(0.22, 0.60, 0.18), izquierda = 2L)
+                           nota = if (nzchar(nota_pob)) nota_pob else NULL, llenar = TRUE,
+                           anchos = if (con_cruce) c(0.20, 0.47, 0.14, 0.19) else c(0.22, 0.60, 0.18), izquierda = 2L)
   orden <- c(orden, "poblacion")
   nota_esc <- "El margen de error es referencial, por tratarse de una muestra no probabilística."
   if (length(tablas$agregados)) nota_esc <- paste0(
