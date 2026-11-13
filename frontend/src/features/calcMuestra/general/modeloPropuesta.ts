@@ -81,6 +81,7 @@ export function propuestaVigente(
     }),
     solicitante: guardada?.solicitante ?? "",
     redondeo: guardada?.redondeo ?? 1,
+    reparto: guardada?.reparto ?? {},
     incluir_portada: guardada?.incluir_portada ?? true,
     incluir_diseno: guardada?.incluir_diseno ?? true,
   };
@@ -193,6 +194,7 @@ export function payloadPropuesta(
     escenarios: estado.escenarios.map((e) => ({ nombre: e.nombre, metas: solo(e.metas) })),
     incluir_portada: estado.incluir_portada,
     incluir_diseno: estado.incluir_diseno,
+    reparto: estado.reparto ?? {},
     ...(solicitante ? { solicitante: solicitante.startsWith("Solicitante") ? solicitante : `Solicitante: ${solicitante}` } : {}),
   };
 }

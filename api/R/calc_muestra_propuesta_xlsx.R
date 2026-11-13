@@ -153,6 +153,16 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
   openxlsx::setColWidths(wb, "Viabilidad", cols = seq_len(ncol(v)), widths = c(26, rep(18, ncol(v) - 2L), 40))
   }
 
+  # --- Cuotas en la forma elegida en Meta › Reparto (D8): una fila por público, propuesta y celda.
+  cuotas <- propuesta$cuotas
+  if (is.data.frame(cuotas) && nrow(cuotas)) {
+    .cmx_hoja(wb, "Cuotas", "Cuotas por segmento", "")
+    cq <- cuotas
+    if (!any(nzchar(cq$Columna))) cq$Columna <- NULL else names(cq)[names(cq) == "Columna"] <- "Segunda variable"
+    .cmx_tabla(wb, "Cuotas", cq, 3, enteros = which(names(cq) %in% c("Población", "Cuota")))
+    openxlsx::setColWidths(wb, "Cuotas", cols = seq_len(ncol(cq)), widths = "auto")
+  }
+
   # --- Diseño (el mismo procedimiento que la lámina del PPT).
   .cmx_hoja(wb, "Diseño", "Diseño muestral", "")
   proc <- propuesta$procedimiento %||% .cmp_procedimiento_barrido(as.integer(propuesta$minimo_segmento %||% 30L))
@@ -162,5 +172,6 @@ calc_muestra_propuesta_xlsx <- function(propuesta, path_xlsx) {
   # Impresión: horizontal y una página de ancho.
   for (h in names(wb)) openxlsx::pageSetup(wb, h, orientation = "landscape", fitToWidth = 1, fitToHeight = 0)
   openxlsx::saveWorkbook(wb, path_xlsx, overwrite = TRUE)
-  invisible(list(path = path_xlsx, hojas = c("Resumen", hojas_pub, if (isTRUE(propuesta$incluir_viabilidad)) "Viabilidad", "Diseño"), tablas = t))
+  invisible(list(path = path_xlsx, hojas = c("Resumen", hojas_pub, if (isTRUE(propuesta$incluir_viabilidad)) "Viabilidad",
+                                       if (is.data.frame(cuotas) && nrow(cuotas)) "Cuotas", "Diseño"), tablas = t))
 }

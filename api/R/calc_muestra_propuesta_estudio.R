@@ -82,10 +82,58 @@ calc_muestra_propuesta_desde_estudio <- function(estudio, marcos, body) {
     solicitante = calc_str(p$solicitante, ""),
     incluir_portada = !isFALSE(p$incluir_portada),
     incluir_diseno = !isFALSE(p$incluir_diseno),
+    # Cómo se reparte la meta de cada actor con base por persona o tabla de conteos (D8), elegido en Meta › Reparto.
+    reparto = .cm_normalize_reparto(p$reparto),
     # Múltiplo al que se redondea una meta calculada desde un margen.
     redondeo = {
       r <- calc_int(p$redondeo, 1L, min = 1L)
       if (r %in% c(1L, 10L, 50L, 100L)) r else 1L
     }
   )
+}
+
+# Reparto por actor: list(<componente_id> = list(modo = celda|control|minimo, columna = "")).
+.cm_normalize_reparto <- function(r) {
+  if (!is.list(r) || is.null(names(r))) return(structure(list(), names = character(0)))
+  r <- r[nzchar(names(r))]
+  lapply(r, function(x) {
+    x <- if (is.list(x)) x else list()
+    list(modo = calc_enum(x$modo, c("celda", "control", "minimo"), "celda"), columna = calc_str(x$columna, ""))
+  })
+}
+
+#' Cuotas de cada actor con marco y receta, por escenario, en la forma elegida en Meta (D8), como tabla larga.
+#'
+#' @param leer function(marco) -> data.frame del archivo del marco (el router lo lee de la sesión).
+#' @return data.frame(Público, Propuesta, Segmento, Columna, Población, Cuota, Forma) o NULL si ningún actor aplica.
+calc_muestra_propuesta_cuotas <- function(estudio, marcos, escenarios, reparto, leer) {
+  reparto <- .cm_normalize_reparto(reparto)
+  filas <- list()
+  for (comp in estudio$componentes %||% list()) {
+    marco <- marcos[[comp$id %||% ""]]
+    if (is.null(marco) || is.null(marco$receta)) next
+    r <- reparto[[comp$id]] %||% list(modo = "celda", columna = "")
+    datos <- leer(marco)
+    conteos <- identical(calc_str(marco$receta$tipo, ""), "conteos")
+    for (e in escenarios %||% list()) {
+      meta <- calc_int((e$metas %||% list())[[comp$id]], 0L, min = 0L)
+      if (meta <= 0L) next
+      out <- if (conteos) calc_muestra_marco_cuotas_conteos(datos, marco$receta, meta, r$modo, 10L, r$columna) else
+        calc_muestra_marco_cuotas(datos, marco$receta, meta, r$modo, 10L, r$columna)
+      cr <- out$cruce; cu <- out$cuotas
+      control <- identical(cu$modo, "control")
+      m <- if (control) round(cu$esperadas) else cu$cuotas
+      cols <- if (length(cr$columnas)) cr$columnas else "Total"
+      for (i in seq_along(cr$filas)) for (j in seq_along(cols)) {
+        filas[[length(filas) + 1L]] <- data.frame(
+          `Público` = calc_str(comp$actor, comp$id), Propuesta = calc_str(e$nombre, "Propuesta"),
+          Segmento = cr$filas[i], Columna = if (nzchar(calc_str(cr$columna_variable, ""))) cols[j] else "",
+          `Población` = as.integer(cr$conteos[i, j]), Cuota = as.integer(m[i, j]),
+          Forma = switch(cu$modo, celda = "Por celda", control = "Esperadas, con control", minimo = "Por celda, mínimo 10"),
+          check.names = FALSE)
+      }
+    }
+  }
+  if (!length(filas)) return(NULL)
+  do.call(rbind, filas)
 }

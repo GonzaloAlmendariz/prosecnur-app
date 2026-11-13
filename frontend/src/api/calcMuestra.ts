@@ -1160,6 +1160,8 @@ export type CalcMuestraWorkspacePropuesta = {
   incluir_diseno: boolean;
   /** Múltiplo al que se redondea una meta calculada desde un margen (1, 10, 50 o 100). */
   redondeo?: number;
+  /** Cómo se reparte la meta de cada actor con marco (D8), elegido en Meta › Reparto; viaja a la propuesta. */
+  reparto?: Record<string, { modo: "celda" | "control" | "minimo"; columna: string }>;
 };
 
 export type CalcMuestraEstudio = {
@@ -5189,6 +5191,7 @@ export type CalcMuestraPropuestaPayload = {
   incluir_portada: boolean;
   incluir_diseno: boolean;
   solicitante?: string;
+  reparto?: CalcMuestraWorkspacePropuesta["reparto"];
 };
 
 /**

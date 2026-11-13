@@ -32,7 +32,12 @@ const MODOS: ReadonlyArray<{ id: ModoDeCuota; rotulo: string }> = [
 
 type FilaReparto = { fila: string; i: number };
 
-export function RepartoAcreditacion({ componentes, workspace }: { componentes: CalcMuestraComponente[]; workspace: CalcMuestraWorkspace }) {
+export function RepartoAcreditacion({ componentes, workspace, onWorkspace }: {
+  componentes: CalcMuestraComponente[];
+  workspace: CalcMuestraWorkspace;
+  /** La forma de reparto elegida se guarda en la propuesta del estudio y viaja al PPT y al Excel (D8). */
+  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
+}) {
   const marcos = useMuestraGeneralStore((s) => s.marcos);
   // Solo los actores con base cargada y segmentos: sin ellos la meta no se reparte.
   const conBase = componentes.filter((c) => marcos[c.id] && (c.marco.estratos ?? []).length > 0);
@@ -40,10 +45,17 @@ export function RepartoAcreditacion({ componentes, workspace }: { componentes: C
   const [elegido, setElegido] = useState<string>("");
   const actor = conBase.find((c) => c.id === elegido) ?? conBase.find((c) => c.id === activo?.id) ?? conBase[0] ?? null;
 
-  const propuestas = useMemo(() => propuestaVigente(workspace.propuesta ?? null, componentes).escenarios, [workspace.propuesta, componentes]);
+  const vigente = useMemo(() => propuestaVigente(workspace.propuesta ?? null, componentes), [workspace.propuesta, componentes]);
+  const propuestas = vigente.escenarios;
   const [fuente, setFuente] = useState<number>(-1);
-  const [modo, setModo] = useState<ModoDeCuota>("celda");
-  const [columna, setColumna] = useState<string>("");
+  const guardado = actor ? vigente.reparto?.[actor.id] : undefined;
+  const modo: ModoDeCuota = guardado?.modo ?? "celda";
+  const columna = guardado?.columna ?? "";
+  const fijarReparto = (cambio: { modo?: ModoDeCuota; columna?: string }) => {
+    if (!actor) return;
+    const reparto = { ...(vigente.reparto ?? {}), [actor.id]: { modo, columna, ...cambio } };
+    onWorkspace({ ...workspace, propuesta: { ...vigente, reparto } });
+  };
 
   // Una propuesta que ya no existe vuelve a la meta del actor (y el selector también).
   const fuenteValida = fuente >= 0 && fuente < propuestas.length ? fuente : -1;
@@ -116,7 +128,7 @@ export function RepartoAcreditacion({ componentes, workspace }: { componentes: C
         {conBase.length > 1 ? (
           <label className="cmmp-ctl">
             <small>Actor</small>
-            <PulsoSelect size="sm" value={actor?.id ?? ""} ariaLabel="Actor del reparto" options={conBase.map((c) => ({ value: c.id, label: actorVisual(c).label }))} onValueChange={(id) => { setElegido(id); setColumna(""); }} />
+            <PulsoSelect size="sm" value={actor?.id ?? ""} ariaLabel="Actor del reparto" options={conBase.map((c) => ({ value: c.id, label: actorVisual(c).label }))} onValueChange={(id) => setElegido(id)} />
           </label>
         ) : null}
         <label className="cmmp-ctl">
@@ -136,12 +148,12 @@ export function RepartoAcreditacion({ componentes, workspace }: { componentes: C
             value={columna || SIN_CRUCE}
             ariaLabel="Segunda variable del reparto"
             options={[{ value: SIN_CRUCE, label: "Sin cruce" }, ...columnasCuota.map((c) => ({ value: c, label: c }))]}
-            onValueChange={(v) => setColumna(v === SIN_CRUCE ? "" : v)}
+            onValueChange={(v) => fijarReparto({ columna: v === SIN_CRUCE ? "" : v })}
           />
         </label>
         <div className="cmmp-ctl">
           <small>Cómo se reparte</small>
-          <GlidingRadioGroup value={modo} options={MODOS} getOptionValue={(o) => o.id} onValueChange={setModo} className="cmg-segmentado" aria-label="Cómo se reparte la meta">
+          <GlidingRadioGroup value={modo} options={MODOS} getOptionValue={(o) => o.id} onValueChange={(m) => fijarReparto({ modo: m })} className="cmg-segmentado" aria-label="Cómo se reparte la meta">
             {(o) => <span>{o.rotulo}</span>}
           </GlidingRadioGroup>
         </div>

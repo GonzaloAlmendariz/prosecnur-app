@@ -217,3 +217,29 @@ test_that("los rótulos de una tabla de conteos renombran filas y columnas y sum
   expect_identical(cu$cruce$columnas, c("M", "H"))
   expect_equal(cu$cruce$conteos["Educación", "M"], 15)
 })
+
+test_that("D8 en la propuesta: las cuotas salen en la forma elegida para cada propuesta y van al Excel", {
+  datos <- data.frame(ID = as.character(1:60), SEG = rep(c("A", "B", "C"), c(30, 20, 10)), SEXO = rep(c("M", "H"), 30),
+                      stringsAsFactors = FALSE)
+  receta <- list(columnas = list(id = "ID"), usos = list(SEXO = "cuota"), reglas = list(), segmento = list(fila = "SEG"))
+  estudio <- list(componentes = list(list(id = "c1", actor = "Docentes")))
+  marcos <- list(c1 = list(file_id = "f", receta = .cm_receta_normalizar(receta)))
+  esc <- list(list(nombre = "Propuesta A", metas = list(c1 = 30)), list(nombre = "Propuesta B", metas = list(c1 = 12)))
+  leer <- function(m) datos
+  sin <- calc_muestra_propuesta_cuotas(estudio, marcos, esc, list(), leer)
+  expect_identical(unique(sin$Forma), "Por celda")
+  expect_equal(sum(sin$Cuota[sin$Propuesta == "Propuesta A"]), 30)
+  con <- calc_muestra_propuesta_cuotas(estudio, marcos, esc, list(c1 = list(modo = "minimo", columna = "SEXO")), leer)
+  b <- con[con$Propuesta == "Propuesta B", ]
+  expect_setequal(unique(b$Columna), c("M", "H"))
+  # Mínimo 10 por celda (o toda la celda si es menor): C tiene 5 por sexo, así que lleva 5.
+  expect_true(all(b$Cuota >= pmin(10, b$`Población`)))
+  expect_null(calc_muestra_propuesta_cuotas(estudio, list(), esc, list(), leer))
+  p <- list(titulo = "x", escenarios = list(list(nombre = "Propuesta A", componentes = list(list(
+    actor = "Docentes", actor_categoria = "docentes", canal_recojo = "online_email", meta = list(valor = 30, origen = "usuario"),
+    parametros = list(n_minimo_estrato = 0, tasa_respuesta = 0.3), marco = list(universo_bruto = 60, marco_validado = 60, marco_contactable = 60))))))
+  p$cuotas <- con
+  r <- calc_muestra_propuesta_xlsx(p, tempfile(fileext = ".xlsx"))
+  expect_true("Cuotas" %in% r$hojas)
+  expect_true("Segunda variable" %in% names(openxlsx::read.xlsx(r$path, "Cuotas", startRow = 3, sep.names = " ")))
+})

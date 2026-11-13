@@ -159,6 +159,11 @@ mount_calc_muestra_general <- function(pr) {
       propuesta <- calc_muestra_propuesta_desde_estudio(estudio, estado$marcos, body)
       # D9: quien figura en dos públicos se cuenta en ambos y se dice en la lámina de población.
       propuesta$compartidos <- .cm_cruce_compartidos(.cm_cruce_publicos_de_sesion(sid, estudio, estado$marcos))
+      # D8: las cuotas por segmento en la forma elegida en Meta › Reparto.
+      propuesta$cuotas <- calc_muestra_propuesta_cuotas(estudio, estado$marcos, body$escenarios, body$reparto, function(marco) {
+        if (identical(calc_str(marco$receta$tipo, ""), "conteos")) .cm_mp_leer(.cm_mp_archivo(sid, marco$file_id), marco$hoja %||% "")
+        else .cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% "")
+      })
       out_path <- tempfile("calc_muestra_propuesta_", fileext = paste0(".", formato))
       if (identical(formato, "pptx")) calc_muestra_propuesta_ppt(propuesta, out_path) else calc_muestra_propuesta_xlsx(propuesta, out_path)
       out_name <- .export_filename(sid, if (identical(formato, "pptx")) "propuesta_diseno_muestral" else "escenarios_de_muestra", formato)

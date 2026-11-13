@@ -121,7 +121,7 @@ export function MesaAcreditacion({
             />
             <PropuestaEscenarios componentes={estudio.componentes} workspace={workspace} onWorkspace={onWorkspace} />
             <CruceEntrePublicos componentes={estudio.componentes} />
-            <RepartoAcreditacion componentes={estudio.componentes} workspace={workspace} />
+            <RepartoAcreditacion componentes={estudio.componentes} workspace={workspace} onWorkspace={onWorkspace} />
           </section>
         )}
         {selectedSection === "contexto" && (
