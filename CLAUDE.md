@@ -194,6 +194,13 @@ Es la corrección que más se repite en el repo: el 15 % de los fix son de texto
 - Sin punto medio "·" como separador, sin raya "—" en títulos, rótulos ni nombres de archivo, sin "…" en rótulos. Se separa con coma, dos puntos, paréntesis o una frase con conector.
 - Cifras: en el texto, conteo y porcentaje juntos, "421 (52.6 %)"; en la barra de un gráfico, solo el porcentaje. Decimal con punto (es-PE).
 
+**Formato de documentos** (Docs, Word, hojas, láminas)
+
+- Un documento que reproduce otro (cuestionario, propuesta, acta) es ese texto con mejor estructura: mismas palabras, mismo orden. No se le añaden recuadros de colores, notas, avisos de "por confirmar", resúmenes ni guías de lectura que el original no tenía. Lo pendiente o por consultar va en el documento de agenda o en el chat, nunca dentro del documento fuente.
+- La estructura es la que haría una persona a mano: títulos, listas y tablas donde los datos son tabulares. Sin cabeceras de color de marca, bandas, bloques destacados ni jerarquías decorativas. Una tabla que se explica sola no lleva nota.
+- Un título y, si hace falta, una línea de versión y fecha. Sin subtítulos que describan el documento ni "cómo leer" propio.
+- Antes de entregar, cada recuadro, nota o línea de ayuda se pregunta si lo habría escrito alguien del equipo sin que se lo pidieran. Si no, se quita. La sobreanotación es la señal más clara de texto hecho por una máquina.
+
 **Textos para terceros** (cliente, autoridades, equipo de campo)
 
 - Registro formal sin exagerar, amable, en prosa corrida. Sin emojis ni jerga.
