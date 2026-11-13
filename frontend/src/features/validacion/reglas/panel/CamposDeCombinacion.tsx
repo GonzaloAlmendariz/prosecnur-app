@@ -32,13 +32,13 @@ const NIVEL_EN_PLURAL: Readonly<Record<PapelDeCatalogo, string>> = {
   ubigeo: "ubigeos",
 };
 
-/** "92 % casa con distritos": la parte de los valores de la columna que el catálogo reconoce en ese nivel. */
+/** "92 % son distritos del catálogo": la parte de los valores de la columna que el catálogo reconoce en ese nivel. */
 export function parteDeLaColumna(propuesta: PropuestaDePapeles | null, columna: string | null, papel: PapelDeCatalogo): string {
   if (!propuesta || !columna) return "";
   const medida = propuesta.columnas.find((c) => c.columna === columna);
   const parte = medida?.parte[papel];
   if (parte === null || parte === undefined) return "";
-  return `${(parte * 100).toFixed(0)} % casa con ${NIVEL_EN_PLURAL[papel]}`;
+  return `${(parte * 100).toFixed(0)} % son ${NIVEL_EN_PLURAL[papel]} del catálogo`;
 }
 
 /** "p1_1, p1_2 y p1_3": las columnas de un grupo propuesto, en el orden de los papeles. */
@@ -139,7 +139,7 @@ export function CamposDeCombinacion({
         size="sm"
         checked={b.params.marcar_incompletos === true}
         onCheckedChange={(v) => despachar({ tipo: "param", clave: "marcar_incompletos", valor: v })}
-        label="Marcar también las encuestas que calzan con alguna pregunta de lugar vacía"
+        label="Marcar también las encuestas con una pregunta de lugar vacía"
       />
     </Fila>,
   );

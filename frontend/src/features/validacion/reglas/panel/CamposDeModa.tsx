@@ -1,7 +1,7 @@
 /**
- * Las filas de "Valor distinto del más frecuente en su grupo" en la caja
- * "Condiciones" del panel de regla: la pregunta que define el grupo, la
- * pregunta cuyo valor se compara y los dos umbrales (apoyo mínimo y encuestas
+ * Las filas de "Valor distinto al habitual en su grupo" en la caja
+ * "Condiciones" del panel de regla: la variable que forma el grupo, la
+ * variable a revisar y los dos umbrales (porcentaje del valor más común y casos
  * por grupo) con los valores por defecto del motor ya escritos. Lo que se
  * guarda lo arma `paramsDeModa`; el motor es `api/R/reglas_custom_moda_grupo.R`.
  * Los grupos sin referencia y los casos marcados los muestra "Casos que marca
@@ -32,25 +32,25 @@ export function CamposDeModa({
   const setParam = (clave: string, v: unknown) => despachar({ tipo: "param", clave, valor: v });
   return (
     <>
-      <Fila variante="campo" rotulo="Agrupar por">
+      <Fila variante="campo" rotulo="Variable que forma el grupo">
         <CampoPregunta
           variables={variables}
           valor={grupo}
           onCambio={(v) => setParam("grupo", v)}
-          ariaLabel="Pregunta que define el grupo"
+          ariaLabel="Variable que forma el grupo"
           placeholder="Por ejemplo, el distrito"
         />
       </Fila>
-      <Fila variante="campo" rotulo="Valor a comparar">
+      <Fila variante="campo" rotulo="Variable a revisar">
         <CampoPregunta
           variables={variables}
           valor={valor}
           onCambio={(v) => setParam("valor", v)}
-          ariaLabel="Pregunta cuyo valor se compara con el más frecuente del grupo"
+          ariaLabel="Variable a revisar"
           placeholder="Por ejemplo, el ubigeo"
         />
       </Fila>
-      <Fila variante="campo" rotulo="Apoyo mínimo">
+      <Fila variante="campo" rotulo="El valor más común debe reunir al menos">
         <span className="pulso-regla-moda-umbral">
           <PulsoInput
             type="number"
@@ -59,12 +59,12 @@ export function CamposDeModa({
             step={1}
             value={texto(b.params.apoyo_min ?? APOYO_MIN_POR_DEFECTO)}
             onChange={(e) => setParam("apoyo_min", e.target.value)}
-            aria-label="Porcentaje mínimo del grupo que debe reunir el valor más frecuente"
+            aria-label="Porcentaje mínimo del grupo que debe reunir el valor más común"
           />
           <span>% del grupo</span>
         </span>
       </Fila>
-      <Fila variante="campo" rotulo="Tamaño del grupo">
+      <Fila variante="campo" rotulo="Solo grupos de al menos">
         <span className="pulso-regla-moda-umbral">
           <PulsoInput
             type="number"
@@ -72,9 +72,9 @@ export function CamposDeModa({
             step={1}
             value={texto(b.params.n_min ?? N_MIN_POR_DEFECTO)}
             onChange={(e) => setParam("n_min", e.target.value)}
-            aria-label="Mínimo de encuestas con respuesta que debe tener el grupo"
+            aria-label="Mínimo de casos que debe tener el grupo"
           />
-          <span>encuestas o más</span>
+          <span>casos</span>
         </span>
       </Fila>
     </>

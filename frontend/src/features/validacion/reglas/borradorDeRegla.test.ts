@@ -266,12 +266,12 @@ describe("ítem 45.4: nombres automáticos", () => {
     expect(nombreDelBorrador(b)).toBe("Combinación fuera de catálogo: p1_1, p1_2 y p1_3");
   });
 
-  it("el valor distinto del más frecuente nombra primero el grupo y luego el valor", () => {
+  it("el valor distinto al habitual nombra primero el grupo y luego el valor", () => {
     const b = aplicar(borradorInicial({ inicial: null, tipo: "moda_en_grupo" }), {
       tipo: "params",
       valor: { grupo: "ubigeo", valor: "distrito", apoyo_min: 60, n_min: 5 },
     });
-    expect(nombreDelBorrador(b, LUGAR)).toBe("Valor distinto del más frecuente en su grupo: Ubigeo del distrito y distrito");
+    expect(nombreDelBorrador(b, LUGAR)).toBe("Valor distinto al habitual en su grupo: Ubigeo del distrito y distrito");
   });
 
   it("una etiqueta que se lee igual que el código de otra pregunta de la regla va por su código", () => {
@@ -279,7 +279,7 @@ describe("ítem 45.4: nombres automáticos", () => {
       tipo: "params",
       valor: { grupo: "p1_3", valor: "distrito", apoyo_min: 60, n_min: 5 },
     });
-    expect(nombreDelBorrador(b, LUGAR)).toBe("Valor distinto del más frecuente en su grupo: p1_3 y distrito");
+    expect(nombreDelBorrador(b, LUGAR)).toBe("Valor distinto al habitual en su grupo: p1_3 y distrito");
   });
 
   it("dos preguntas con la misma etiqueta corta van por su código", () => {

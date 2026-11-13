@@ -87,7 +87,7 @@ export const CUSTOM_TIPO_LABEL: Record<TipoReglaPropia, string> = {
   comparar_fechas: "Dos fechas u horas que deben cuadrar",
   formato: "Formato de la respuesta",
   combinacion_catalogo: "Combinación fuera de catálogo",
-  moda_en_grupo: "Valor distinto del más frecuente en su grupo",
+  moda_en_grupo: "Valor distinto al habitual en su grupo",
 };
 
 // Construye una descripción corta a partir de los parámetros — útil cuando
@@ -180,7 +180,7 @@ export function describeCustomParams(
     }
     case "moda_en_grupo": {
       const piezas = fraseDeReglaPropia({ tipo, variables, params });
-      return piezas ? fraseEnTexto(piezas) : "Se marca cuando el valor de una pregunta difiere del más frecuente entre las encuestas de su grupo.";
+      return piezas ? fraseEnTexto(piezas) : "Se marca el caso cuya respuesta no coincide con el valor más común entre los casos de su grupo.";
     }
     default:
       return "";
@@ -561,8 +561,9 @@ export function fraseDeReglaPropia(regla: ReglaParaFrase, leer: LeerValor = leer
       if (!valor || !grupo) return null;
       const apoyo = nullableNumber(p.apoyo_min) ?? APOYO_MIN_POR_DEFECTO;
       const minimo = nullableNumber(p.n_min) ?? N_MIN_POR_DEFECTO;
-      f.pregunta(valor).texto(" es distinto del valor más frecuente entre las encuestas con la misma respuesta en ").pregunta(grupo);
-      f.texto(`, si ese valor reúne al menos ${apoyo} % del grupo y el grupo tiene al menos ${minimo} encuestas con respuesta.`);
+      f.piezas.length = 0; // esta frase no empieza con "Se marca cuando "
+      f.texto("Se marca el caso cuyo ").pregunta(valor).texto(" no coincide con el valor más común entre los casos con el mismo ").pregunta(grupo);
+      f.texto(`. Solo se revisan los grupos de ${minimo} casos o más donde ese valor reúne al menos el ${apoyo} %.`);
       break;
     }
     default:

@@ -89,7 +89,7 @@
   if (identical(tipo, "condiciones")) .regla_validar_condiciones(r$params %||% list())
   # En "Combinación fuera de catálogo" las variables salen de los papeles.
   if (identical(tipo, "combinacion_catalogo")) .regla_catalogo_validar(r)
-  # En "Valor distinto del más frecuente en su grupo" salen de grupo y valor.
+  # En "Valor distinto al habitual en su grupo" salen de grupo y valor.
   if (identical(tipo, "moda_en_grupo")) .regla_moda_validar(r)
   vars <- if (tipo %in% c("condiciones", "combinacion_catalogo", "moda_en_grupo")) .regla_variables_efectivas(r)
           else unlist(r$variables %||% list())

@@ -165,10 +165,10 @@ export const TIPOS: TipoMeta[] = [
   },
   {
     key: "moda_en_grupo",
-    label: "Valor distinto del más frecuente en su grupo",
-    rotulo: "Valor distinto del más frecuente en su grupo",
-    ejemploCorto: "Un ubigeo distinto del que tienen casi todas las encuestas de su distrito",
-    descripcion: "Se marca cuando el valor de una pregunta difiere del más frecuente entre las encuestas del mismo grupo, si ese valor reúne el apoyo mínimo y el grupo es lo bastante grande.",
+    label: "Valor distinto al habitual en su grupo",
+    rotulo: "Valor distinto al habitual en su grupo",
+    ejemploCorto: "Un ubigeo distinto del que tienen casi todos los casos de su distrito",
+    descripcion: "Se marca el caso cuya respuesta no coincide con el valor más común entre los casos del mismo grupo, en los grupos con casos suficientes donde ese valor domina.",
     // El valor que se compara y la pregunta que define el grupo.
     nVars: 2,
     grupo: "coherencia",

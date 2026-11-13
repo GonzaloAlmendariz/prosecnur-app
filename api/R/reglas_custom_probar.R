@@ -247,7 +247,7 @@ reglas_custom_probar <- function(sid, base = NULL, regla) {
   lectura <- if (.regla_fechas_es(regla)) .regla_fechas_lectura(ev$datos %||% principal, regla) else NULL
   formato <- if (.regla_formato_es(regla)) .regla_formato_lectura(ev$datos %||% principal, regla) else NULL
   catalogo <- if (.regla_catalogo_es(regla)) .regla_catalogo_lectura(ev$datos %||% principal, regla) else NULL
-  moda <- if (.regla_moda_es(regla)) .regla_moda_lectura(ev$datos %||% principal, regla) else NULL
+  moda <- if (.regla_moda_es(regla)) .regla_moda_lectura(ev$datos %||% principal, regla, etiquetas = as.list(.vrf_contexto(inst)$etiquetas)) else NULL
 
   .probar_respuesta(
     base_eff, regla, evaluada = TRUE, estado = "evaluada",

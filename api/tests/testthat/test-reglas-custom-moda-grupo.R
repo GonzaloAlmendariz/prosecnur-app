@@ -1,4 +1,4 @@
-# Regla propia "Valor distinto del más frecuente en su grupo" (tipo
+# Regla propia "Valor distinto al habitual en su grupo" (tipo
 # `moda_en_grupo`, reglas_custom_moda_grupo.R).
 #
 # Grano: fila de la tabla principal (la encuesta). Base de cada grupo: las
@@ -51,7 +51,7 @@
   sort(datos$respondent_id[eval(parse(text = expr), envir = env)])
 }
 
-test_that("marca el valor distinto del más frecuente y no marca grupos chicos, empates ni sin apoyo", {
+test_that("marca el valor distinto al habitual y no marca grupos chicos, empates ni sin apoyo", {
   datos <- .moda_datos()
   esperado <- sort(datos$respondent_id[c(10, 16)])
   expect_identical(esperado, c("c10", "c16"))
@@ -94,6 +94,24 @@ test_that("la medida cuenta cada estado por encuesta y por grupo, y la suma cier
   expect_equal(l$n_min, 5)
 })
 
+test_that("la lectura trae el ejemplo del grupo con más casos marcados", {
+  datos <- .moda_datos()
+  # Un grupo más con 2 marcados: el ejemplo es ese, no el primero.
+  datos <- rbind(datos, data.frame(respondent_id = sprintf("x%02d", 1:8), zz_dist = "ZZNUEVO",
+                                   cod_x = c(rep("150103", 6), "150101", "150102"), stringsAsFactors = FALSE))
+  l <- .regla_moda_lectura(datos, .moda_regla(), etiquetas = list(cod_x = "Ubigeo"))
+  expect_identical(l$ejemplo$grupo, "ZZNUEVO")
+  expect_identical(l$ejemplo$n_grupo, 8L)
+  expect_identical(l$ejemplo$n_moda, 6L)
+  expect_identical(l$ejemplo$moda, "150103")
+  expect_identical(l$ejemplo$n_marcadas, 2L)
+  expect_identical(l$ejemplo$valor_rotulo, "ubigeo")
+  # Sin etiqueta no se inventa un rótulo.
+  expect_true(is.na(.regla_moda_lectura(datos, .moda_regla())$ejemplo$valor_rotulo))
+  # Si nadie se marca, no hay ejemplo.
+  expect_null(.regla_moda_lectura(.moda_datos(), .moda_regla(params_extra = list(apoyo_min = 100)))$ejemplo)
+})
+
 test_that("un código sin su cero inicial es el mismo valor, no uno distinto", {
   grupo <- rep("SAN SEBASTIAN", 8)
   valor <- c(rep("080105", 5), rep("80105", 2), "081203")
@@ -107,10 +125,10 @@ test_that("la causa nombra el valor, el grupo, la moda y su peso", {
   datos <- .moda_datos()
   med <- .regla_moda_revisar_df(datos, .moda_regla()$params)
   expect_identical(.regla_moda_causa(med, 10L, .moda_regla()$params, list(cod_x = "Ubigeo", zz_dist = "Distrito")),
-                   "Ubigeo 150133 en COMAS; en ese distrito 9 de 10 encuestas tienen 150110")
+                   "Ubigeo 150133 en COMAS; en ese grupo el valor más común es 150110 (9 de 10 casos).")
   # Sin etiquetas se usa el nombre de la columna, sin tocarlo.
   expect_identical(.regla_moda_causa(med, 16L, .moda_regla()$params),
-                   "cod_x 150110 en RIMAC; en ese zz_dist 5 de 6 encuestas tienen 150128")
+                   "cod_x 150110 en RIMAC; en ese grupo el valor más común es 150128 (5 de 6 casos).")
   # COMAs y COMAS son el mismo grupo: la forma más escrita da el nombre.
   expect_identical(med$n_grupo[9], 10L)
   expect_identical(med$grupo_forma[9], "COMAS")
@@ -139,9 +157,9 @@ test_that("la frase dice los umbrales", {
   ctx <- .vrf_contexto(NULL)
   frase <- function(r) .vrf_texto_plano(.vrf_frase_moda(list(propia = r), ctx))
   expect_identical(frase(.moda_regla()),
-                   paste0("Se marca cuando cod_x es distinto del valor más frecuente entre las encuestas con la misma ",
-                          "respuesta en zz_dist, si ese valor reúne al menos 60 % del grupo y el grupo tiene al menos 5 encuestas con respuesta."))
-  expect_match(frase(.moda_regla(params_extra = list(apoyo_min = 75, n_min = 10))), "al menos 75 % del grupo y el grupo tiene al menos 10 encuestas")
+                   paste0("Se marca el caso cuyo cod_x no coincide con el valor más común entre los casos con el mismo zz_dist. ",
+                          "Solo se revisan los grupos de 5 casos o más donde ese valor reúne al menos el 60 %."))
+  expect_match(frase(.moda_regla(params_extra = list(apoyo_min = 75, n_min = 10))), "grupos de 10 casos o más donde ese valor reúne al menos el 75 %")
 })
 
 test_that("el enunciado del caso sale del grupo entero, fila por fila", {
@@ -151,9 +169,9 @@ test_that("el enunciado del caso sale del grupo entero, fila por fila", {
   esp <- .validacion_esperado_por_fila("contradiccion", list(target = "cod_x"), datos, c(10L, 16L, 1L), c("c10", "c16", "c01"),
                                        regla = ctx)
   expect_identical(esp[[1]]$subtipo, "moda_en_grupo")
-  expect_identical(esp[[1]]$choque, "Ubigeo 150133 en COMAS; en ese distrito 9 de 10 encuestas tienen 150110")
-  expect_match(esp[[1]]$texto, "^c10: Ubigeo 150133 en COMAS; en ese distrito 9 de 10 encuestas tienen 150110\\. ")
-  expect_match(esp[[2]]$choque, "^Ubigeo 150110 en RIMAC; en ese distrito 5 de 6 encuestas tienen 150128$")
+  expect_identical(esp[[1]]$choque, "Ubigeo 150133 en COMAS; en ese grupo el valor más común es 150110 (9 de 10 casos).")
+  expect_match(esp[[1]]$texto, "^c10: Ubigeo 150133 en COMAS; en ese grupo el valor más común es 150110 \\(9 de 10 casos\\)\\. ")
+  expect_match(esp[[2]]$choque, "^Ubigeo 150110 en RIMAC; en ese grupo el valor más común es 150128 \\(5 de 6 casos\\)\\.$")
   # Una encuesta que coincide con la moda no tiene causa.
   expect_identical(esp[[3]]$choque, "")
 })
@@ -214,7 +232,7 @@ test_that("el conteo previo cuenta sobre la base pedida, por id, con la causa y 
   expect_setequal(ids, c("c10", "c16"))
   c10 <- b$ejemplos[[match("c10", ids)]]
   expect_identical(c10$moda$estado, "marca")
-  expect_identical(c10$moda$causa, "Ubigeo 150133 en COMAS; en ese distrito 9 de 10 encuestas tienen 150110")
+  expect_identical(c10$moda$causa, "Ubigeo 150133 en COMAS; en ese grupo el valor más común es 150110 (9 de 10 casos).")
   expect_identical(c10$moda$n_moda, 9L)
   papeles <- stats::setNames(vapply(c10$valores, `[[`, "", "papel"), vapply(c10$valores, `[[`, "", "variable"))
   expect_identical(papeles[["cod_x"]], "revisada")

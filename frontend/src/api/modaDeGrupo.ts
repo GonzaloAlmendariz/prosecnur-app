@@ -1,4 +1,4 @@
-// modaDeGrupo.ts: lo que "Valor distinto del más frecuente en su grupo" agrega al
+// modaDeGrupo.ts: lo que "Valor distinto al habitual en su grupo" agrega al
 // conteo previo (`api/R/reglas_custom_moda_grupo.R`). Todo es lectura: nada
 // guarda. Una cifra ausente queda `null`, nunca 0.
 
@@ -31,6 +31,16 @@ export type ResumenDeModa = {
  * Cómo se leyó la regla sobre las filas que evalúa la auditoría (`nFilas`, sin
  * el filtro). Las encuestas por estado suman `nFilas`; los grupos, `nGrupos`.
  */
+export type EjemploDeModa = {
+  grupo: string;
+  nGrupo: number;
+  nModa: number;
+  moda: string;
+  nMarcadas: number;
+  /** Etiqueta corta de la variable a revisar; `null` si solo tiene nombre. */
+  valorRotulo: string | null;
+};
+
 export type LecturaDeModa = {
   nFilas: number | null;
   nOk: number | null;
@@ -46,6 +56,8 @@ export type LecturaDeModa = {
   nGruposSinApoyo: number | null;
   apoyoMin: number | null;
   nMin: number | null;
+  /** El grupo con más casos marcados; `null` si ninguno marca. */
+  ejemplo: EjemploDeModa | null;
 };
 
 export function normalizarResumenDeModa(value: unknown): ResumenDeModa | null {
@@ -60,6 +72,18 @@ export function normalizarResumenDeModa(value: unknown): ResumenDeModa | null {
     nModa: enteroONulo(r.n_moda),
     nGrupo: enteroONulo(r.n_grupo),
   };
+}
+
+function normalizarEjemploDeModa(value: unknown): EjemploDeModa | null {
+  if (value === null || value === undefined) return null;
+  const r = registro(value);
+  const grupo = textoONulo(r.grupo);
+  const moda = textoONulo(r.moda);
+  const nGrupo = enteroONulo(r.n_grupo);
+  const nModa = enteroONulo(r.n_moda);
+  const nMarcadas = enteroONulo(r.n_marcadas);
+  if (grupo === null || moda === null || nGrupo === null || nModa === null || nMarcadas === null || nMarcadas < 1) return null;
+  return { grupo, nGrupo, nModa, moda, nMarcadas, valorRotulo: textoONulo(r.valor_rotulo) };
 }
 
 export function normalizarLecturaDeModa(value: unknown): LecturaDeModa | null {
@@ -81,5 +105,6 @@ export function normalizarLecturaDeModa(value: unknown): LecturaDeModa | null {
     nGruposSinApoyo: enteroONulo(r.n_grupos_sin_apoyo),
     apoyoMin: numeroONulo(r.apoyo_min),
     nMin: enteroONulo(r.n_min),
+    ejemplo: normalizarEjemploDeModa(r.ejemplo),
   };
 }

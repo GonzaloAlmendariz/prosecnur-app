@@ -94,9 +94,9 @@ describe("conteo previo y propuesta", () => {
     expect(candidatosEnTexto(c03.catalogo!)).toBe("A investigar");
     expect(textoDeLecturaDeCatalogo(p.catalogo!)).toEqual([
       "3 encuestas calzan, 2 con error, 3 con un nombre no reconocido, 1 sin datos.",
-      "1 encuesta calza con alguna pregunta de lugar vacía.",
+      "1 encuesta tiene una pregunta de lugar vacía y el resto coincide con el catálogo.",
       "1 ubigeo viene sin el cero inicial y se lee con él.",
-      'No reconocidos más frecuentes: "AV COSTANERA" (1).',
+      'Nombres no reconocidos más frecuentes: "AV COSTANERA" (1).',
     ]);
   });
 
@@ -115,7 +115,7 @@ describe("conteo previo y propuesta", () => {
       columnas: [{ columna: "p1_3", n_valores: 999, parte: { departamento: 0.1, provincia: 0.15, distrito: 0.9149, ubigeo: 0 } }],
     });
     expect(columnasDelGrupo(pr.propuestas[1].papeles)).toBe("distrito y ubigeo");
-    expect(parteDeLaColumna(pr, "p1_3", "distrito")).toBe("91 % casa con distritos");
+    expect(parteDeLaColumna(pr, "p1_3", "distrito")).toBe("91 % son distritos del catálogo");
     expect(parteDeLaColumna(pr, "otra", "distrito")).toBe("");
   });
 });

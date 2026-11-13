@@ -1,5 +1,5 @@
 # =============================================================================
-# Regla propia "Valor distinto del más frecuente en su grupo" (tipo `moda_en_grupo`)
+# Regla propia "Valor distinto al habitual en su grupo" (tipo `moda_en_grupo`)
 # =============================================================================
 # Marca las encuestas cuyo valor en una pregunta difiere del valor más
 # frecuente (la moda) entre las encuestas de su mismo grupo: el ubigeo que no
@@ -70,23 +70,23 @@
   p <- .regla_moda_params(raw)
   if (!nzchar(p$grupo) || !nzchar(p$valor)) {
     stop_api(400, "E_REGLA_SIN_VARS",
-             "Elige la pregunta que define el grupo y la pregunta cuyo valor se compara.",
+             "Elige la variable que forma el grupo y la variable a revisar.",
              details = list(grupo = p$grupo, valor = p$valor))
   }
   if (identical(p$grupo, p$valor)) {
     stop_api(400, "E_REGLA_INVALIDA",
-             sprintf("La pregunta %s está elegida como grupo y como valor: deben ser dos preguntas distintas.", p$valor),
+             sprintf("La variable %s está elegida como grupo y como variable a revisar: deben ser dos distintas.", p$valor),
              details = list(pregunta = p$valor))
   }
   num <- function(x) if (is.null(x) || !length(x) || identical(trimws(as.character(x[[1]])), "")) NA_real_ else suppressWarnings(as.numeric(x[[1]]))
   apoyo <- num(raw$apoyo_min)
   if (!is.null(raw$apoyo_min) && nzchar(trimws(as.character(raw$apoyo_min[[1]]))) && (is.na(apoyo) || apoyo < 1 || apoyo > 100)) {
-    stop_api(400, "E_REGLA_INVALIDA", "El apoyo mínimo es un porcentaje entre 1 y 100.",
+    stop_api(400, "E_REGLA_INVALIDA", "El valor más común debe reunir entre 1 y 100 % del grupo.",
              details = list(apoyo_min = raw$apoyo_min))
   }
   n <- num(raw$n_min)
   if (!is.null(raw$n_min) && nzchar(trimws(as.character(raw$n_min[[1]]))) && (is.na(n) || n < 2 || n != round(n))) {
-    stop_api(400, "E_REGLA_INVALIDA", "El mínimo de encuestas por grupo es un número entero desde 2.",
+    stop_api(400, "E_REGLA_INVALIDA", "El mínimo de casos por grupo es un número entero desde 2.",
              details = list(n_min = raw$n_min))
   }
   invisible(TRUE)
@@ -199,7 +199,7 @@ moda_grupo_revisar <- function(grupo, valor, apoyo_min = .REGLA_MODA_APOYO_DEFEC
 }
 
 # El texto R del plan llama a esta función: devuelve un lógico por fila.
-#' Marca de la regla "Valor distinto del más frecuente en su grupo" para una tabla
+#' Marca de la regla "Valor distinto al habitual en su grupo" para una tabla
 #' @param grupo,valor columnas.
 #' @param apoyo_min,n_min umbrales.
 #' @return logical, una por fila.
@@ -248,14 +248,13 @@ moda_grupo_revisar <- function(grupo, valor, apoyo_min = .REGLA_MODA_APOYO_DEFEC
   paste0(if (mayuscula) toupper(substr(lab, 1L, 1L)) else tolower(substr(lab, 1L, 1L)), substring(lab, 2L))
 }
 
-# La causa de una encuesta marcada, con la moda y su peso en el grupo:
-# "Ubigeo 150133 en Comas; en ese distrito 41 de 45 encuestas tienen 150110".
+# La causa de un caso marcado, con el valor más común de su grupo y su peso:
+# "Ubigeo 150133 en Comas; en ese grupo el valor más común es 150110 (9 de 10 casos)."
 .regla_moda_causa <- function(med, i, params, etiquetas = NULL) {
   p <- .regla_moda_params(params)
   rv <- .regla_moda_rotulo(p$valor, etiquetas, mayuscula = TRUE)
-  rg <- .regla_moda_rotulo(p$grupo, etiquetas)
-  sprintf("%s %s en %s; en ese %s %d de %d encuestas tienen %s",
-          rv, med$valor[i], med$grupo_forma[i], rg, med$n_moda[i], med$n_grupo[i], med$moda[i])
+  sprintf("%s %s en %s; en ese grupo el valor más común es %s (%d de %d casos).",
+          rv, med$valor[i], med$grupo_forma[i], med$moda[i], med$n_moda[i], med$n_grupo[i])
 }
 
 .regla_moda_resumen <- function(med, i, params, etiquetas = NULL) {
@@ -282,7 +281,7 @@ moda_grupo_revisar <- function(grupo, valor, apoyo_min = .REGLA_MODA_APOYO_DEFEC
 #'   `n_grupos`, `n_grupos_evaluables`, `n_grupos_chicos`, `n_grupos_empate`,
 #'   `n_grupos_sin_apoyo` y los umbrales `apoyo_min` y `n_min`.
 #' @keywords internal
-.regla_moda_lectura <- function(df, regla) {
+.regla_moda_lectura <- function(df, regla, etiquetas = NULL) {
   med <- .regla_moda_revisar_df(df, regla$params)
   cuenta <- function(e) sum(med$estado == e)
   gr <- med$grupos
@@ -295,17 +294,34 @@ moda_grupo_revisar <- function(grupo, valor, apoyo_min = .REGLA_MODA_APOYO_DEFEC
     n_grupos_chicos = sum(gr$estado == "grupo_chico"),
     n_grupos_empate = sum(gr$estado == "empate"),
     n_grupos_sin_apoyo = sum(gr$estado == "sin_apoyo"),
+    ejemplo = .regla_moda_lectura_ejemplo(gr, regla$params, etiquetas),
     apoyo_min = med$apoyo_min, n_min = med$n_min
   )
+}
+
+# El grupo con más casos marcados, para el ejemplo con datos del panel: su
+# nombre, cuántos casos tiene, cuántos llevan el valor más común y cuántos se
+# marcan. NULL si ningún grupo revisado tiene casos marcados. `valor_rotulo` es
+# la etiqueta corta de la variable a revisar, o NA si solo hay su nombre.
+.regla_moda_lectura_ejemplo <- function(gr, params, etiquetas = NULL) {
+  if (!NROW(gr)) return(NULL)
+  marcadas <- ifelse(gr$estado == "evaluable", gr$n - gr$n_moda, 0L)
+  if (!any(marcadas > 0L)) return(NULL)
+  k <- which.max(marcadas)
+  p <- .regla_moda_params(params)
+  rot <- .regla_moda_rotulo(p$valor, etiquetas)
+  list(grupo = gr$nombre[k], n_grupo = as.integer(gr$n[k]), n_moda = as.integer(gr$n_moda[k]),
+       moda = gr$moda[k], n_marcadas = as.integer(marcadas[k]),
+       valor_rotulo = if (identical(rot, p$valor)) NA_character_ else rot)
 }
 
 # --- Frase --------------------------------------------------------------------
 
 #' Frase de una regla de valor más frecuente por grupo
 #'
-#' "Se marca cuando ubigeo (p1_4) es distinto del valor más frecuente entre las
-#' encuestas del mismo distrito (p1_3), si ese valor reúne al menos 60 % del
-#' grupo y el grupo tiene al menos 5 encuestas."
+#' "Se marca el caso cuyo ubigeo (p1_4) no coincide con el valor más común entre
+#' los casos con el mismo distrito (p1_3). Solo se revisan los grupos de 5 casos
+#' o más donde ese valor reúne al menos el 60 %."
 #' @param info lo que arma el catálogo de reglas (`propia` es la regla guardada).
 #' @param ctx contexto de redacción.
 #' @return fichas de la frase (sin el filtro).
@@ -317,11 +333,11 @@ moda_grupo_revisar <- function(grupo, valor, apoyo_min = .REGLA_MODA_APOYO_DEFEC
     .vrf_marcar_incompleta(ctx)
     return(.vrf_t(.VRF_TEXTO_ILEGIBLE))
   }
-  c(.vrf_t("Se marca cuando "), .vrf_q(p$valor, ctx),
-    .vrf_t(" es distinto del valor más frecuente entre las encuestas con la misma respuesta en "),
+  c(.vrf_t("Se marca el caso cuyo "), .vrf_q(p$valor, ctx),
+    .vrf_t(" no coincide con el valor más común entre los casos con el mismo "),
     .vrf_q(p$grupo, ctx),
-    .vrf_t(sprintf(", si ese valor reúne al menos %s %% del grupo y el grupo tiene al menos %d encuestas con respuesta.",
-                   format(p$apoyo_min, scientific = FALSE, trim = TRUE), p$n_min)))
+    .vrf_t(sprintf(". Solo se revisan los grupos de %d casos o más donde ese valor reúne al menos el %s %%.",
+                   p$n_min, format(p$apoyo_min, scientific = FALSE, trim = TRUE))))
 }
 
 # --- Enunciado del hallazgo ---------------------------------------------------

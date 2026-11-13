@@ -123,7 +123,7 @@ export function textoDeLecturaDeCatalogo(l: LecturaDeCatalogo): string[] {
   if (n(l.nSinDatos)) partes.push(`${formatoConteo(n(l.nSinDatos))} sin datos`);
   lineas.push(`${partes.join(", ")}.`);
   if (n(l.nIncompletas)) {
-    lineas.push(`${encuestas(n(l.nIncompletas))} ${n(l.nIncompletas) === 1 ? "calza" : "calzan"} con alguna pregunta de lugar vacía.`);
+    lineas.push(`${encuestas(n(l.nIncompletas))} ${n(l.nIncompletas) === 1 ? "tiene" : "tienen"} una pregunta de lugar vacía y el resto coincide con el catálogo.`);
   }
   if (n(l.nUbigeoSinCero)) {
     const uno = n(l.nUbigeoSinCero) === 1;
@@ -131,7 +131,7 @@ export function textoDeLecturaDeCatalogo(l: LecturaDeCatalogo): string[] {
   }
   if (l.noReconocidos.length) {
     const lista = l.noReconocidos.slice(0, 5).map((x) => `"${x.valor}" (${formatoConteo(x.n)})`);
-    lineas.push(`No reconocidos más frecuentes: ${lista.join(", ")}.`);
+    lineas.push(`Nombres no reconocidos más frecuentes: ${lista.join(", ")}.`);
   }
   return lineas;
 }

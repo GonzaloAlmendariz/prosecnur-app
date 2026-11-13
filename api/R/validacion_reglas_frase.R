@@ -508,7 +508,7 @@
              bateria = "Patrón en una batería",
              formato = "Formato de la respuesta",
              combinacion_catalogo = "Combinación fuera de catálogo",
-             moda_en_grupo = "Valor distinto del más frecuente en su grupo",
+             moda_en_grupo = "Valor distinto al habitual en su grupo",
              comparar_fechas = "Dos fechas u horas que deben cuadrar")
 )
 

@@ -276,7 +276,7 @@ export function LecturaDeCatalogoDeLaRegla({ lectura }: { lectura: LecturaDeCata
 export function LecturaDeModaDeLaRegla({ lectura }: { lectura: LecturaDeModa | undefined }) {
   if (!lectura) return null;
   return (
-    <ul className="pulso-regla-formato-lectura" aria-label="Encuestas comparadas con el valor más frecuente de su grupo">
+    <ul className="pulso-regla-formato-lectura" aria-label="Casos comparados con el valor más común de su grupo">
       {textoDeLecturaDeModa(lectura).map((l) => (
         <li key={l}>{l}</li>
       ))}
