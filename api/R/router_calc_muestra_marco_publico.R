@@ -169,5 +169,29 @@ mount_calc_muestra_marco_publico <- function(pr) {
       session_set(sid, "calc_muestra_estudio", out$estudio)
       session_set(sid, "calc_muestra_general", out$estado)
       list(ok = TRUE, marco = out$marco, componente = out$componente, estudio = out$estudio)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/cuotas
+    # Body: { componente_id, meta, modo: celda|control|minimo, minimo?, columna? }
+    # Reparte la meta del actor por sus segmentos (y una segunda variable si se
+    # pide) sobre su marco guardado con receta.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/cuotas",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      componente_id <- calc_str(body$componente_id, "")
+      marco <- .cm_general_estado(session_get(sid)$calc_muestra_general)$marcos[[componente_id]]
+      if (is.null(marco) || is.null(marco$receta)) {
+        stop_api(400, "E_BAD_REQUEST", "Este actor no tiene una base cargada en Marco.")
+      }
+      datos <- .cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% "")
+      out <- calc_muestra_marco_cuotas(datos, marco$receta, body$meta, calc_str(body$modo, "celda"),
+                                       body$minimo %||% 10L, calc_str(body$columna, ""))
+      cu <- out$cuotas
+      cu$cuotas <- .cm_seg_matriz_json(cu$cuotas, out$cruce$filas)
+      cu$esperadas <- .cm_seg_matriz_json(cu$esperadas, out$cruce$filas)
+      list(ok = TRUE, cruce = calc_muestra_cruce_json(out$cruce), cuotas = cu, columnas_cuota = out$columnas_cuota)
     }))
 }

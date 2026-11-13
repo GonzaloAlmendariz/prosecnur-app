@@ -94,3 +94,29 @@ calc_muestra_marco_publico_declarar <- function(estudio, estado, componente_id, 
   out$marco <- out$estado$marcos[[componente_id]]
   out
 }
+
+#' Cuotas de un actor sobre su marco guardado: las filas son sus segmentos (la
+#' columna que agregó la receta) y, si se pide, las columnas son otra variable
+#' de la base marcada "Para cuotas" (por ejemplo SEXO). La meta se reparte con
+#' `calc_muestra_cuotas_cruce` (por celda, con control o con mínimo).
+#'
+#' @param datos la base del actor, leída como en la declaración del marco.
+#' @param receta la receta guardada con el marco.
+#' @param columna segunda variable; vacía para repartir solo por segmento.
+#' @return list(cruce, cuotas, columnas_cuota).
+calc_muestra_marco_cuotas <- function(datos, receta, meta, modo = "celda", minimo = 10L, columna = "") {
+  ap <- calc_muestra_marco_aplicar_receta(datos, receta)
+  if (!nzchar(ap$columna_segmento)) {
+    stop_api(400, "E_BAD_REQUEST", "Este actor no tiene segmentos: la meta no se reparte.")
+  }
+  usos <- ap$receta$usos
+  disponibles <- names(usos)[vapply(usos, function(u) identical(u, "cuota"), logical(1))]
+  disponibles <- setdiff(disponibles, c(ap$receta$segmento$fila, ap$receta$segmento$columna))
+  columna <- calc_str(columna, "")
+  if (nzchar(columna) && !columna %in% disponibles) {
+    stop_api(400, "E_BAD_REQUEST", sprintf("\"%s\" no es una columna para cuotas de este actor.", columna))
+  }
+  cruce <- calc_muestra_segmento_cruce(ap$datos, ap$columna_segmento, columna)
+  cuotas <- calc_muestra_cuotas_cruce(cruce, meta, modo, minimo)
+  list(cruce = cruce, cuotas = cuotas, columnas_cuota = as.list(disponibles))
+}

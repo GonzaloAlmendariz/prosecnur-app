@@ -4,7 +4,6 @@ import { Check, FileUp, Pencil, Table, X } from "lucide-react";
 import { apiUpload } from "../../../../api/estudio";
 import { apiMarcoPublicoLeer, type HojaDelMarco } from "../../../../api/calcMuestraMarcoPublico";
 import { Alert } from "../../../../components/Alert";
-import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { PanelDeMesa } from "../../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoTable, type PulsoTableColumna } from "../../../../components/PulsoTable";
@@ -77,11 +76,6 @@ export function PasoArchivo({ estado, onCambio, poblacionManual }: {
       titulo="De dónde sale el marco"
       icono={<FileUp size={15} aria-hidden="true" />}
       ocupado={leyendo}
-      acciones={lectura ? (
-        <PulsoButton variant="secondary" size="sm" onClick={() => input.current?.click()} disabled={leyendo}>
-          <FileUp size={14} aria-hidden="true" /> Cambiar archivo
-        </PulsoButton>
-      ) : undefined}
     >
       <input
         ref={input}
@@ -90,26 +84,37 @@ export function PasoArchivo({ estado, onCambio, poblacionManual }: {
         accept=".xlsx,.xls,.csv,.txt"
         onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ""; if (f) void subir(f); }}
       />
+      {/* Las fuentes del marco son filas iguales: qué es, qué admite y su acción a la derecha. */}
       <div className="cmmp-fuente">
-        <b><Table size={15} aria-hidden="true" /> Base con una fila por persona</b>
-        <Formatos formatos={["XLSX", "XLS", "CSV"]} />
-        <ul className="cmmp-capac">
-          <li><Check size={12} aria-hidden="true" />Cuotas por cualquier columna</li>
-          <li><Check size={12} aria-hidden="true" />Listado de envío</li>
-        </ul>
+        <span className="cmmp-fuente-icono" aria-hidden="true"><Table size={16} /></span>
+        <div className="cmmp-fuente-cuerpo">
+          <b>Base con una fila por persona</b>
+          <span className="cmmp-fuente-detalle">
+            <Formatos formatos={["XLSX", "XLS", "CSV"]} />
+            <ul className="cmmp-capac">
+              <li><Check size={12} aria-hidden="true" />Cuotas por cualquier columna</li>
+              <li><Check size={12} aria-hidden="true" />Listado de envío</li>
+            </ul>
+          </span>
+        </div>
+        <PulsoButton variant={lectura ? "secondary" : "primary"} size="sm" onClick={() => input.current?.click()} disabled={leyendo}>
+          <FileUp size={14} aria-hidden="true" /> {leyendo ? "Leyendo el archivo" : lectura ? "Cambiar archivo" : "Elegir archivo"}
+        </PulsoButton>
       </div>
-      {error ? <div className="cmmp-pad"><Alert kind="error">{error}</Alert></div> : null}
       {!lectura && poblacionManual ? (
-        <div className="cmmp-fuente cmmp-fuente--manual">
-          <b><Pencil size={15} aria-hidden="true" /> Todavía no hay base</b>
-          <label className="cmmp-manual">
-            <small>Población</small>
-            <NumberCell
-              value={manual ?? poblacionManual.valor}
-              ariaLabel="Población escrita a mano"
-              onChange={(n) => setManual(Math.max(0, Math.round(n)))}
-            />
-          </label>
+        <div className="cmmp-fuente">
+          <span className="cmmp-fuente-icono" aria-hidden="true"><Pencil size={16} /></span>
+          <div className="cmmp-fuente-cuerpo">
+            <b>Todavía no hay base</b>
+            <label className="cmmp-manual">
+              <span>Población</span>
+              <NumberCell
+                value={manual ?? poblacionManual.valor}
+                ariaLabel="Población escrita a mano"
+                onChange={(n) => setManual(Math.max(0, Math.round(n)))}
+              />
+            </label>
+          </div>
           <PulsoButton
             variant="secondary"
             size="sm"
@@ -120,17 +125,8 @@ export function PasoArchivo({ estado, onCambio, poblacionManual }: {
           </PulsoButton>
         </div>
       ) : null}
-      {!lectura ? (
-        <EstadoVacio
-          icono={<FileUp size={22} aria-hidden="true" />}
-          titulo={leyendo ? "Leyendo el archivo" : "Sube la base del público"}
-          accion={(
-            <PulsoButton variant="primary" size="sm" onClick={() => input.current?.click()} disabled={leyendo}>
-              <FileUp size={14} aria-hidden="true" /> Elegir archivo
-            </PulsoButton>
-          )}
-        />
-      ) : (
+      {error ? <div className="cmmp-pad"><Alert kind="error">{error}</Alert></div> : null}
+      {!lectura ? null : (
         <>
           <div className="cmmp-leido">
             <Pastilla icono={<Table size={12} aria-hidden="true" />}>{estado.nombreArchivo}</Pastilla>

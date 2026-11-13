@@ -92,3 +92,47 @@ test_that("declarar con receta escribe N y estratos en el actor, guarda la recet
   expect_true(sel$ok)
   expect_identical(nrow(as.data.frame(do.call(rbind, lapply(sel$unidades, as.data.frame)))) > 0, TRUE)
 })
+
+test_that("las cuotas del marco guardado reparten la meta por segmento y por una segunda variable", {
+  base <- .rc_base(); base$sexo <- rep(c("F", "M"), length.out = nrow(base))
+  r <- .rc_receta(); r$usos$sexo <- "cuota"
+  solo <- calc_muestra_marco_cuotas(base, r, 50, "celda")
+  expect_identical(solo$cuotas$total, 50L)
+  expect_identical(solo$cruce$columnas, "Total")
+  expect_identical(unlist(solo$columnas_cuota), "sexo")
+  cruz <- calc_muestra_marco_cuotas(base, r, 50, "minimo", 10L, "sexo")
+  expect_identical(cruz$cruce$columnas, c("F", "M"))
+  expect_true(all(cruz$cuotas$cuotas >= pmin(10, cruz$cruce$conteos)))
+  expect_error(calc_muestra_marco_cuotas(base, r, 50, "celda", 10L, "depto"), class = "api_error")
+  sin <- r; sin$segmento <- list(nombre = "", fila = "", columna = "", grupos = list())
+  expect_error(calc_muestra_marco_cuotas(base, sin, 50), class = "api_error")
+})
+
+test_that("la ruta de cuotas lee el marco guardado del actor", {
+  testthat::skip_if_not_installed("openxlsx")
+  base <- .rc_base(); base$sexo <- rep(c("F", "M"), length.out = nrow(base))
+  path <- tempfile("rc-c-", fileext = ".xlsx"); withr::defer(unlink(path))
+  openxlsx::write.xlsx(base, path, sheetName = "datos")
+  sid <- session_create(); withr::defer(session_delete(sid))
+  meta <- save_upload(sid, "data", basename(path), readBin(path, "raw", file.size(path)))
+  session_set(sid, "calc_muestra_estudio", .rc_estudio())
+  r <- .rc_receta(); r$usos$sexo <- "cuota"
+  .bv_call(mount_calc_muestra_marco_publico, "POST", "/api/calc-muestra/marco-publico/declarar", sid,
+           list(componente_id = "cmp-doc", file_id = meta$file_id, hoja = "datos", receta = r))
+  out <- .bv_call(mount_calc_muestra_marco_publico, "POST", "/api/calc-muestra/marco-publico/cuotas", sid,
+                  list(componente_id = "cmp-doc", meta = 60, modo = "control", columna = "sexo"))
+  expect_true(out$ok)
+  expect_identical(out$cuotas$total, 60L)
+  expect_length(out$cruce$filas, 5L)
+  expect_identical(unlist(out$cuotas$esperadas[[1]]$valores) > 0, c(TRUE, TRUE))
+})
+
+test_that("la ruta de cuotas responde 400 con su causa si el actor no tiene base cargada", {
+  sid <- session_create(); withr::defer(session_delete(sid))
+  session_set(sid, "calc_muestra_estudio", .rc_estudio())
+  res <- plumber:::PlumberResponse$new()
+  ep <- .bv_endpoint(mount_calc_muestra_marco_publico, "POST", "/api/calc-muestra/marco-publico/cuotas")
+  out <- ep$getFunc()(req = .bv_req(sid, list(componente_id = "cmp-doc", meta = 50, modo = "celda")), res = res)
+  expect_equal(res$status, 400)
+  expect_match(paste(unlist(out), collapse = " "), "no tiene una base cargada")
+})

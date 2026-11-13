@@ -204,3 +204,64 @@ export async function apiMarcoPublicoDeclarar(input: {
     estudio: est && Array.isArray(est.componentes) ? (est as unknown as CalcMuestraEstudio) : null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Cuotas sobre el marco guardado
+// ---------------------------------------------------------------------------
+
+export type ModoDeCuota = "celda" | "control" | "minimo";
+export type FilaDeCuota = { categoria: string; N: number; n: number; margen: number | null };
+export type CeldaChica = { fila: string; columna: string; N: number; n: number };
+export type CuotasDelActor = {
+  cruce: CruceDelMarco;
+  modo: ModoDeCuota;
+  meta: number;
+  total: number;
+  /** Lo que suma el mínimo sobre la meta. */
+  extra: number;
+  /** filas x columnas en el orden del cruce; `null` en modo control. */
+  cuotas: number[][] | null;
+  /** Lo esperado por celda (con decimales) en modo control. */
+  esperadas: number[][] | null;
+  porFila: FilaDeCuota[];
+  chicas: CeldaChica[];
+  umbral: number;
+  celdas: number;
+  columnasCuota: string[];
+};
+
+function matriz(raw: unknown, filas: readonly string[], ncol: number): number[][] | null {
+  if (raw == null) return null;
+  const porFila = new Map(lista(raw).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => [texto(x.categoria), lista(x.valores).map(numero)]));
+  return filas.map((f) => { const v = porFila.get(f) ?? []; return Array.from({ length: ncol }, (_, j) => v[j] ?? 0); });
+}
+
+export async function apiMarcoPublicoCuotas(input: {
+  componenteId: string; meta: number; modo: ModoDeCuota; minimo?: number; columna: string;
+}): Promise<CuotasDelActor> {
+  const r = await post("cuotas", {
+    componente_id: input.componenteId, meta: input.meta, modo: input.modo, minimo: input.minimo ?? 10, columna: input.columna,
+  });
+  const cruce = normalizarCruce(r.cruce);
+  const cu = rec(r.cuotas);
+  if (!cruce || !cu) throw sinForma("/marco-publico/cuotas");
+  const modo = uno(cu.modo, ["celda", "control", "minimo"] as const, "celda");
+  return {
+    cruce,
+    modo,
+    meta: numero(cu.meta),
+    total: numero(cu.total),
+    extra: numero(cu.extra),
+    cuotas: matriz(cu.cuotas, cruce.filas, cruce.columnas.length),
+    esperadas: matriz(cu.esperadas, cruce.filas, cruce.columnas.length),
+    porFila: lista(cu.por_fila).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => ({
+      categoria: texto(x.categoria), N: numero(x.N), n: numero(x.n), margen: x.margen == null ? null : numero(x.margen),
+    })),
+    chicas: lista(cu.chicas).map(rec).filter((x): x is Record<string, unknown> => x != null).map((x) => ({
+      fila: texto(x.fila), columna: texto(x.columna), N: numero(x.N), n: numero(x.n),
+    })),
+    umbral: numero(cu.umbral) || 10,
+    celdas: numero(cu.celdas),
+    columnasCuota: lista(r.columnas_cuota).map(texto).filter(Boolean),
+  };
+}

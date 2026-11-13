@@ -4,6 +4,7 @@ import { AccionCalcular } from "./AccionCalcular";
 import { ActoresAcreditacion } from "./ActoresAcreditacion";
 import { MarcoAcreditacion } from "./MarcoAcreditacion";
 import { MetaAcreditacion } from "./MetaAcreditacion";
+import { RepartoAcreditacion } from "./RepartoAcreditacion";
 import { SECCIONES_ACREDITACION } from "./railAcreditacion";
 import { estadoMesaAcreditacion } from "./bandaDisenoModelo";
 import { ContextoReporte } from "./ContextoReporte";
@@ -118,6 +119,7 @@ export function MesaAcreditacion({
               motivo={estudio.componentes.some((c) => safeNumber(c.marco?.marco_validado, 0) > 0) ? null : "Carga el marco de al menos un actor."}
             />
             <PropuestaEscenarios componentes={estudio.componentes} workspace={workspace} onWorkspace={onWorkspace} />
+            <RepartoAcreditacion componentes={estudio.componentes} workspace={workspace} />
           </section>
         )}
         {selectedSection === "contexto" && (
