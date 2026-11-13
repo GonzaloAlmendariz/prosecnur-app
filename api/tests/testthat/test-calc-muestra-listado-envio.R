@@ -74,3 +74,32 @@ test_that("las decisiones se limpian y el Excel lleva una hoja por público solo
   expect_identical(openxlsx::read.xlsx(f, "Docentes")$MAIL, "x@p.pe")
   expect_identical(openxlsx::read.xlsx(f, "Administrativos")$MAIL, "y@p.pe")
 })
+
+test_that("las tandas reparten cada segmento por igual, con tamaños parejos y la misma semilla da lo mismo", {
+  seg <- c(rep("A", 10), rep("B", 5), rep("C", 2))
+  t <- calc_muestra_listado_tandas(seg, 3, 7)
+  expect_setequal(unique(t), 1:3)
+  expect_lte(diff(range(table(t))), 1)
+  # Cada segmento se reparte entre las tandas: ninguna lleva más de un caso de diferencia en A.
+  expect_lte(diff(range(table(factor(t[seg == "A"], levels = 1:3)))), 1)
+  expect_identical(calc_muestra_listado_tandas(seg, 3, 7), t)
+  expect_false(identical(calc_muestra_listado_tandas(seg, 3, 8), t))
+  expect_identical(calc_muestra_listado_tandas(seg, 1, 7), rep(1L, 17))
+  # No hay más tandas que personas, y el RNG global queda como estaba.
+  set.seed(1); antes <- .Random.seed
+  expect_identical(sort(unique(calc_muestra_listado_tandas(c("A", "A"), 5, 3))), 1:2)
+  expect_identical(.Random.seed, antes)
+})
+
+test_that("con tandas, cada hoja del Excel lleva la columna Tanda y sale ordenada por ella", {
+  pubs <- list(list(id = "a", nombre = "Docentes",
+                    datos = data.frame(ID = as.character(1:6), MAIL = sprintf("p%d@p.pe", 1:6), SEG = rep(c("X", "Y"), 3)),
+                    col_id = "ID", col_correo = "MAIL", col_segmento = "SEG", correos = sprintf("p%d@p.pe", 1:6)))
+  f <- tempfile(fileext = ".xlsx")
+  calc_muestra_listado_xlsx(pubs, calc_muestra_listado_asignar(pubs), f, list(n = 2, semilla = 5))
+  d <- openxlsx::read.xlsx(f, "Docentes")
+  expect_identical(names(d), c("ID", "MAIL", "SEG", "Tanda"))
+  expect_false(is.unsorted(d$Tanda))
+  expect_equal(as.vector(table(d$Tanda)), c(3, 3))
+  expect_identical(calc_muestra_listado_tandas_config(list(n = 99))$n, 20L)
+})

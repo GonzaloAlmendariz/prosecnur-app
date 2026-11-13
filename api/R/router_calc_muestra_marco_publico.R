@@ -248,7 +248,7 @@ mount_calc_muestra_marco_publico <- function(pr) {
 
     # -----------------------------------------------------------------------
     # POST /api/calc-muestra/marco-publico/listado
-    # Body: { decisiones?: [{ a, b, va }] }
+    # Body: { decisiones?: [{ a, b, va }], tandas?: { n, semilla } }
     # Listado de envío (D9): con `decisiones` las guarda en el estudio; devuelve, por público, cuántos quedan y
     # cuántos se ceden, y los pares con personas en común con su decisión.
     # -----------------------------------------------------------------------
@@ -260,14 +260,15 @@ mount_calc_muestra_marco_publico <- function(pr) {
       s <- session_get(sid)
       estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
       estado <- .cm_general_estado(s$calc_muestra_general)
-      if (!is.null(body$decisiones)) {
-        estado$envio$decisiones <- calc_muestra_listado_decisiones(body$decisiones)
+      if (!is.null(body$decisiones) || !is.null(body$tandas)) {
+        if (!is.null(body$decisiones)) estado$envio$decisiones <- calc_muestra_listado_decisiones(body$decisiones)
+        if (!is.null(body$tandas)) estado$envio$tandas <- calc_muestra_listado_tandas_config(body$tandas)
         session_set(sid, "calc_muestra_general", estado)
       }
       leidos <- .cm_publicos_con_correo(sid, estudio, estado$marcos)
       out <- calc_muestra_listado_asignar(leidos$publicos, estado$envio$decisiones %||% list())
       out$destino <- NULL
-      c(list(ok = TRUE, sin_correo = leidos$fuera), out)
+      c(list(ok = TRUE, sin_correo = leidos$fuera, tandas = calc_muestra_listado_tandas_config(estado$envio$tandas)), out)
     })) |>
 
     # -----------------------------------------------------------------------
@@ -283,7 +284,7 @@ mount_calc_muestra_marco_publico <- function(pr) {
       leidos <- .cm_publicos_con_correo(sid, estudio, estado$marcos)
       asignacion <- calc_muestra_listado_asignar(leidos$publicos, estado$envio$decisiones %||% list())
       out_path <- tempfile("listado_envio_", fileext = ".xlsx")
-      calc_muestra_listado_xlsx(leidos$publicos, asignacion, out_path)
+      calc_muestra_listado_xlsx(leidos$publicos, asignacion, out_path, estado$envio$tandas %||% list())
       out_name <- .export_filename(sid, "listado_de_envio", "xlsx")
       meta <- .register_output_file(sid, "calc_muestra_listado_envio", out_path, original_name = out_name)
       list(ok = TRUE, export = entregable_respuesta(list(file_id = meta$file_id, filename = meta$original_name,

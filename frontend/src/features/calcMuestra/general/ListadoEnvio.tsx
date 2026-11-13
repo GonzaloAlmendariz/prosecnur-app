@@ -15,6 +15,7 @@ import { useGeneracion } from "../../../components/entregables/useGeneracion";
 import { GlidingRadioGroup } from "../../../components/GlidingRadioGroup";
 import { PanelDeMesa } from "../../../components/procesamiento/PanelDeMesa";
 import { PulsoButton } from "../../../components/PulsoButton";
+import { PulsoSelect } from "../../../components/PulsoSelect";
 import { PulsoTable, type PulsoTableColumna } from "../../../components/PulsoTable";
 import { MODULO_CALC_MUESTRA } from "../entregas/modeloEntrega";
 import { fmtInt } from "../sharedCore";
@@ -45,14 +46,10 @@ export function ListadoEnvio() {
   const datos = res.clave === clave ? res.datos : null;
   if (datos && datos.publicos.length === 0) return null;
 
-  async function decidir(par: Par, va: string) {
-    if (!datos) return;
-    const decisiones: DecisionDePar[] = datos.pares
-      .map((p) => (p.a === par.a && p.b === par.b ? { a: p.a, b: p.b, va } : { a: p.a, b: p.b, va: p.va }))
-      .filter((d) => d.va);
+  async function guardar(cambio: { decisiones?: DecisionDePar[]; tandas?: { n: number; semilla: number } }) {
     setGuardando(true);
     try {
-      const nuevo = await apiMarcoPublicoListado({ decisiones });
+      const nuevo = await apiMarcoPublicoListado(cambio);
       setRes({ clave, datos: nuevo, error: null });
     } catch (e) {
       setRes({ clave, datos, error: errorLegible(e) });
@@ -60,6 +57,15 @@ export function ListadoEnvio() {
       setGuardando(false);
     }
   }
+
+  function decidir(par: Par, va: string) {
+    if (!datos) return;
+    const decisiones: DecisionDePar[] = datos.pares
+      .map((p) => (p.a === par.a && p.b === par.b ? { a: p.a, b: p.b, va } : { a: p.a, b: p.b, va: p.va }))
+      .filter((d) => d.va);
+    void guardar({ decisiones });
+  }
+  const nTandas = datos?.tandas.n ?? 1;
 
   const colPares: PulsoTableColumna<Par>[] = [
     { id: "par", encabezado: "Públicos", ancho: 280, celda: (p) => <strong>{p.nombreA} y {p.nombreB}</strong> },
@@ -70,7 +76,7 @@ export function ListadoEnvio() {
           value={p.va}
           options={[{ id: p.a, rotulo: p.nombreA }, { id: p.b, rotulo: p.nombreB }]}
           getOptionValue={(o) => o.id}
-          onValueChange={(va) => { void decidir(p, va); }}
+          onValueChange={(va) => decidir(p, va)}
           className="cmg-segmentado"
           aria-label={`A qué público van las personas de ${p.nombreA} y ${p.nombreB}`}
         >
@@ -85,6 +91,15 @@ export function ListadoEnvio() {
     { id: "cedidas", encabezado: "Van a otro público", ancho: 150, tipo: "cifra", celda: (p) => (p.cedidas ? fmtInt(p.cedidas) : <span className="cmmp-suave">0</span>) },
     { id: "pordecidir", encabezado: "Por decidir", ancho: 120, tipo: "cifra", celda: (p) => (p.porDecidir ? fmtInt(p.porDecidir) : <span className="cmmp-suave">0</span>) },
     { id: "quedan", encabezado: "Reciben la encuesta", ancho: 160, tipo: "cifra", celda: (p) => <strong>{fmtInt(p.quedan)}</strong> },
+    ...(nTandas > 1 ? [{
+      id: "tanda", encabezado: "Por tanda", ancho: 130, tipo: "cifra" as const,
+      // El reparto en rueda deja tandas que difieren a lo más en una persona.
+      celda: (p: Publico) => {
+        const menor = Math.floor(p.quedan / nTandas);
+        const mayor = Math.ceil(p.quedan / nTandas);
+        return menor === mayor ? fmtInt(menor) : `${fmtInt(menor)} a ${fmtInt(mayor)}`;
+      },
+    }] : []),
   ];
 
   const decididos = datos ? datos.pares.length - datos.pendientes : 0;
@@ -108,6 +123,18 @@ export function ListadoEnvio() {
       {res.error ? <div className="cmmp-pad"><Alert kind="error">{res.error}</Alert></div> : null}
       {datos ? (
         <>
+          <div className="cmmp-formula">
+            <label className="cmmp-ctl">
+              <small>Tandas</small>
+              <PulsoSelect
+                size="sm"
+                value={String(nTandas)}
+                ariaLabel="En cuántas tandas se envía"
+                options={Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: i === 0 ? "Un solo envío" : `${i + 1} tandas` }))}
+                onValueChange={(v) => { void guardar({ tandas: { n: Number(v), semilla: datos.tandas.semilla } }); }}
+              />
+            </label>
+          </div>
           <div className="cmmp-cifras cmmp-cifras--4">
             <div><strong>{fmtInt(datos.publicos.reduce((s, p) => s + p.quedan, 0))}</strong><small>personas reciben la encuesta</small></div>
             <div data-tono={datos.pendientes ? "aviso" : undefined}><strong>{fmtInt(decididos)}<span className="cmmp-de">/{fmtInt(datos.pares.length)}</span></strong><small>pares decididos</small></div>

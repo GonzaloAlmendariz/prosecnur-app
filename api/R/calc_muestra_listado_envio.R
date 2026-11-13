@@ -103,7 +103,15 @@ calc_muestra_listado_decisiones <- function(decisiones) {
 #' Excel del listado de envío: una hoja por público con las personas a las que se les envía como ese público.
 #' @param publicos los de `.cm_publicos_con_correo()$publicos` (con datos y columnas).
 #' @param asignacion el resultado de `calc_muestra_listado_asignar()` sobre esos públicos.
-calc_muestra_listado_xlsx <- function(publicos, asignacion, path) {
+#' @param tandas list(n, semilla): con n > 1 cada hoja lleva la columna Tanda y sale ordenada por ella.
+#' Tandas del envío limpias: list(n = 1..20, semilla entera).
+calc_muestra_listado_tandas_config <- function(t) {
+  t <- if (is.list(t)) t else list()
+  list(n = min(20L, calc_int(t$n, 1L, min = 1L)), semilla = calc_int(t$semilla, .CM_GENERAL_SEMILLA_DEFAULT))
+}
+
+calc_muestra_listado_xlsx <- function(publicos, asignacion, path, tandas = list()) {
+  tandas <- calc_muestra_listado_tandas_config(tandas)
   if (!isTRUE(asignacion$listo)) {
     stop_api(400, "E_BAD_REQUEST", "Decide a qué público van las personas compartidas antes de descargar el listado.")
   }
@@ -114,6 +122,11 @@ calc_muestra_listado_xlsx <- function(publicos, asignacion, path) {
     cols <- unique(c(p$col_id, p$col_correo, if (nzchar(p$col_segmento)) p$col_segmento))
     cols <- cols[nzchar(cols) & cols %in% names(d)]
     d <- d[, cols, drop = FALSE]
+    if (tandas$n > 1L) {
+      seg <- if (nzchar(p$col_segmento) && p$col_segmento %in% names(d)) d[[p$col_segmento]] else rep("", nrow(d))
+      d$Tanda <- calc_muestra_listado_tandas(seg, tandas$n, tandas$semilla)
+      d <- d[order(d$Tanda), , drop = FALSE]
+    }
     # Nombre de hoja válido para Excel: sin caracteres reservados, 31 como máximo y sin repetir.
     hoja <- substr(gsub("[][*?/\\\\:]", " ", p$nombre), 1, 31)
     if (!nzchar(trimws(hoja))) hoja <- "Público"
@@ -127,4 +140,25 @@ calc_muestra_listado_xlsx <- function(publicos, asignacion, path) {
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   invisible(path)
+}
+
+#' Tanda de envío de cada persona: orden aleatorio reproducible dentro de cada segmento y reparto en rueda, así cada
+#' tanda lleva la misma composición por segmento y los tamaños difieren a lo más en uno.
+#' @param segmento vector con el segmento de cada persona (o NULL: un solo grupo).
+#' @param n_tandas número de tandas (1 = todo en una).
+#' @param semilla entero; la misma semilla y el mismo listado dan las mismas tandas.
+#' @return entero por persona, de 1 a n_tandas.
+calc_muestra_listado_tandas <- function(segmento, n_tandas = 1L, semilla = 1L) {
+  n <- length(segmento)
+  n_tandas <- max(1L, min(calc_int(n_tandas, 1L, min = 1L), max(1L, n)))
+  if (!n) return(integer())
+  if (n_tandas == 1L) return(rep(1L, n))
+  seg <- as.character(segmento); seg[is.na(seg)] <- ""
+  semilla <- calc_int(semilla, 1L)
+  orden <- .cm_general_con_semilla(semilla, {
+    unlist(lapply(split(seq_len(n), factor(seg, levels = unique(seg))), function(i) i[sample.int(length(i))]), use.names = FALSE)
+  })
+  tanda <- integer(n)
+  tanda[orden] <- ((seq_len(n) - 1L) %% n_tandas) + 1L
+  tanda
 }

@@ -376,11 +376,14 @@ export type ListadoDeEnvio = {
   sinAsignar: number;
   listo: boolean;
   sinCorreo: { id: string; nombre: string }[];
+  /** En cuántas tandas se parte el envío; la semilla hace reproducible el reparto. */
+  tandas: { n: number; semilla: number };
 };
 
 /** Resumen del listado de envío; con `decisiones` las guarda en el estudio antes de calcularlo. */
-export async function apiMarcoPublicoListado(input: { decisiones?: DecisionDePar[] } = {}): Promise<ListadoDeEnvio> {
-  const r = await post("listado", input.decisiones ? { decisiones: input.decisiones } : {});
+export async function apiMarcoPublicoListado(input: { decisiones?: DecisionDePar[]; tandas?: { n: number; semilla: number } } = {}): Promise<ListadoDeEnvio> {
+  const r = await post("listado", { ...(input.decisiones ? { decisiones: input.decisiones } : {}), ...(input.tandas ? { tandas: input.tandas } : {}) });
+  const t = rec(r.tandas);
   const filas = (v: unknown) => lista(v).map(rec).filter((x): x is Record<string, unknown> => x != null);
   return {
     publicos: filas(r.publicos).map((p) => ({
@@ -394,6 +397,7 @@ export async function apiMarcoPublicoListado(input: { decisiones?: DecisionDePar
     sinAsignar: numero(r.sin_asignar),
     listo: r.listo === true,
     sinCorreo: filas(r.sin_correo).map((x) => ({ id: texto(x.id), nombre: texto(x.nombre) })),
+    tandas: { n: Math.max(1, numero(t?.n) || 1), semilla: numero(t?.semilla) },
   };
 }
 
