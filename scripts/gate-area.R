@@ -39,7 +39,8 @@ TRANSVERSALES <- c(
   "test-jobs-secretos-limpieza.R",              # un job que guarda un secreto sin limpiarlo al terminar
   "test-sin-rutas-personales.R",                # una ruta de usuario (/Users/<nombre>/) en código de producto
   "test-descargas-entrega.R",                   # un Content-Disposition a mano o un entregable escrito relativo al cwd
-  "test-entregables-catalogo.R"                 # un kind registrado en cualquier módulo sin entrada en el catálogo (ADR 0133)
+  "test-entregables-catalogo.R",                # un kind registrado en cualquier módulo sin entrada en el catálogo (ADR 0133)
+  "test-ceros-izq-portable.R"                   # un sprintf("%0Ns") que en Linux y Windows rellena con espacios
 )
 
 # Recorren todo api/R pero lo que vigilan es de UN área, y su área ya los corre: no son transversales.
