@@ -73,7 +73,10 @@ test_that("Validación › paquete metodológico: el job registra el ZIP con fil
   expect_false(is.null(get_file(fx$sid, resp$file_id)))
   expect_identical(length(list.files(file.path(fx$carpeta, "Entregables", "Procesamiento"))), 1L)
   fuente <- paste(deparse(body(mount_validacion)), collapse = "\n")
-  expect_match(fuente, "on_complete = .validacion_metodologia_bundle_on_complete", fixed = TRUE)
+  # d31e2f65d: el on_complete lleva la base y la firma del cierre, vía la fábrica que envuelve al del bundle.
+  expect_match(fuente, "on_complete = .validacion_metodologia_on_complete_para", fixed = TRUE)
+  expect_match(paste(deparse(body(.validacion_metodologia_on_complete_para)), collapse = "\n"),
+               ".validacion_metodologia_bundle_on_complete", fixed = TRUE)
   cat <- entregables_catalogo()
   expect_true(cat$guardar[cat$kind == "metodologia_validacion"])
 })

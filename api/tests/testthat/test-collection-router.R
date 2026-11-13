@@ -141,7 +141,7 @@ test_that("router parsea JSON y exige body explícito en PUT", {
 test_that("plumber_app monta Recopiladores solo en runtime privado", {
   source_path <- test_path("..", "..", "R", "plumber_app.R")
   lines <- readLines(source_path, warn = FALSE)
-  mount_line <- grep("mount_recopiladores", lines)
+  mount_line <- grep("mount_recopiladores(", lines, fixed = TRUE)
   public_branch <- grep("if (is_public_mode())", lines, fixed = TRUE)
   private_else <- grep("} else {", lines, fixed = TRUE)
   expect_length(mount_line, 1L)

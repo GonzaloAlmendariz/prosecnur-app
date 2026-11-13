@@ -185,10 +185,11 @@ test_that("normalización legacy conserva shape v2 para 0, 1 y N units", {
       # `origin` entra al contrato con el elenco declarable: distingue el actor
       # que el estudio DECLARO del que Fuentes dedujo. Ver
       # `monitoreo_actor_roster.R`; sin ese campo la normalizacion no puede
-      # saber cual conservar y los pisaba todos.
+      # saber cual conservar y los pisaba todos. `canales` es el canal de cada
+      # ronda del publico (ADR 0125 §5, c36597d3d).
       setequal(
         names(unit),
-        c("id", "type", "actor", "label", "segment", "group", "origin", "phone")
+        c("id", "type", "actor", "label", "segment", "group", "origin", "phone", "canales")
       ) && identical(
         isTRUE(unit$phone$enabled),
         identical(unit$phone$role, "target")
