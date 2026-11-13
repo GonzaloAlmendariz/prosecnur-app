@@ -41,9 +41,11 @@ import {
 import { metaDeTipo, rangoDePreguntas } from "./tiposDeRegla";
 import { validarFechas, variablesDeComparar } from "./modeloFechas";
 import { validarFormato } from "./modeloFormato";
-import { APOYO_MIN_POR_DEFECTO, N_MIN_POR_DEFECTO, validarModa, variablesDeModa } from "./modeloModa";
-import { CATALOGO_POR_DEFECTO, validarCombinacion, variablesDeCombinacion } from "./modeloCombinacion";
+import { APOYO_MIN_POR_DEFECTO, N_MIN_POR_DEFECTO, preguntasDeModa, validarModa, variablesDeModa } from "./modeloModa";
+import { CATALOGO_POR_DEFECTO, papelesDeParams, validarCombinacion, variablesDeCombinacion } from "./modeloCombinacion";
+import { PAPELES_DE_CATALOGO } from "../../../api/catalogoUbigeo";
 import { conservarAlCambiarDeTipo } from "./cambioDeTipo";
+import { listaEnTexto, nombresDeLasPreguntas } from "./nombreDeRegla";
 import { ORIGEN_COPIA } from "./duplicarRegla";
 import { esOperadorDeComparacion, type ReglaPropia, type ReglaPropiaAGuardar, type TipoReglaPropia } from "./tiposDelMotor";
 
@@ -72,6 +74,12 @@ export type Borrador = {
    * guardar sin tocar nada no altera lo guardado.
    */
   filtroOriginal: { condiciones: string; expr: string } | null;
+  /**
+   * Lo que el borrador tenía en cada tipo que se dejó, mientras el panel sigue
+   * abierto: volver a un tipo recupera sus preguntas y sus parámetros. No se
+   * guarda con la regla.
+   */
+  porTipo: Partial<Record<TipoReglaPropia, { variables: string[]; params: Record<string, unknown> }>>;
 };
 
 /** Los parámetros con que arranca un tipo: lo que se ve tiene que estar en el borrador desde el primer render. */
@@ -133,6 +141,7 @@ export function borradorInicial({ inicial, tipo = null, pregunta = null, semilla
       inicial && typeof inicial.gate_expr === "string"
         ? { condiciones: JSON.stringify(inicial.gate_conditions ?? []), expr: inicial.gate_expr }
         : null,
+    porTipo: {},
   };
 }
 
@@ -155,19 +164,24 @@ export function reducirBorrador(b: Borrador, accion: AccionDeBorrador): Borrador
       const defaults = b.treatmentTouched ? null : treatmentDefaultFor(nuevo);
       const base = defaults ? { ...b, plannedAction: defaults.action, recommendedScope: defaults.scope } : b;
       if (nuevo === b.tipo) return { ...base, tipo: nuevo };
+      // Lo del tipo que se deja queda guardado mientras el panel siga abierto:
+      // volver a él lo recupera, con sus condiciones o sus preguntas.
+      const porTipo = b.tipo ? { ...b.porTipo, [b.tipo]: { variables: b.variables, params: b.params } } : b.porTipo;
       // Otro tipo: sus parámetros no sirven al nuevo y se guardarían de sobra.
       // Se conserva la primera pregunta, que casi siempre es la misma.
       // Entre "Dos respuestas que deben cuadrar" y "Condiciones combinadas" las
       // condiciones pasan de uno al otro (`cambioDeTipo.ts`).
       const traspasado = conservarAlCambiarDeTipo({ tipo: b.tipo, variables: b.variables, params: b.params }, nuevo);
-      if (traspasado) return { ...base, tipo: nuevo, variables: traspasado.variables, params: traspasado.params };
+      if (traspasado) return { ...base, tipo: nuevo, variables: traspasado.variables, params: traspasado.params, porTipo };
+      const recordado = b.porTipo[nuevo];
+      if (recordado) return { ...base, tipo: nuevo, variables: recordado.variables, params: recordado.params, porTipo };
       const meta = metaDeTipo(nuevo);
       const [, max] = meta ? rangoDePreguntas(meta) : [1, 1];
       const aparte = nuevo === "condiciones" || nuevo === "comparar_fechas" || nuevo === "combinacion_catalogo" || nuevo === "moda_en_grupo";
       // Las preguntas que el tipo nuevo admite se conservan, en su orden.
       const variables = nuevo === "condiciones" ? [] : b.variables.filter(Boolean).slice(0, aparte ? 1 : max);
       const params = paramsDeArranque(nuevo, nuevo === "condiciones" || nuevo === "comparar_fechas" ? b.variables[0] ?? "" : "");
-      return { ...base, tipo: nuevo, variables, params };
+      return { ...base, tipo: nuevo, variables, params, porTipo };
     }
     case "variables":
       return { ...b, variables: accion.valor };
@@ -220,24 +234,46 @@ export function variablesEfectivas(b: Borrador): string[] {
  * La que se edita conserva el nombre de siempre (código de la columna),
  * para que guardarla sin tocarla no cambie lo guardado.
  */
-export function nombreDelBorrador(b: Borrador, _variables: readonly ExploradorVariable[] = []): string {
+export function nombreDelBorrador(b: Borrador, variables: readonly ExploradorVariable[] = []): string {
   const escrito = b.nombre.trim();
   if (escrito) return escrito;
   const meta = metaDeTipo(b.tipo);
   const preguntas = variablesEfectivas(b);
   if (!b.nueva) return nombreSugerido(meta, preguntas);
   const base = meta?.rotulo ?? "Regla";
-  // Una batería se nombra por el código de su primera y su última pregunta, no por todas.
-  if (b.tipo === "bateria" && preguntas.length > 2) return `${base}: ${preguntas[0]} a ${preguntas[preguntas.length - 1]}`;
+  // Una batería se nombra por su primera y su última pregunta, no por todas.
+  if (b.tipo === "bateria" && preguntas.length > 2) {
+    const [primera, ultima] = nombresDeLasPreguntas([preguntas[0], preguntas[preguntas.length - 1]], variables);
+    return `${base}: ${primera} a ${ultima}`;
+  }
   // Dos fechas u horas: la primera pregunta del inicio y la primera del fin.
   if (b.tipo === "comparar_fechas") {
     const [ini, fin] = [b.params.inicio, b.params.fin].map((m) => {
       const v = (m as { variables?: unknown[] } | undefined)?.variables?.[0];
       return typeof v === "string" ? v : "";
     });
-    if (ini && fin) return `${base}: ${ini} y ${fin}`;
+    if (ini && fin) return `${base}: ${listaEnTexto(nombresDeLasPreguntas([ini, fin], variables))}`;
   }
-  return preguntas.length ? `${base}: ${preguntas.join(" y ")}` : base;
+  const enOrden = preguntasEnElOrdenDelNombre(b, preguntas);
+  return enOrden.length ? `${base}: ${listaEnTexto(nombresDeLasPreguntas(enOrden, variables))}` : base;
+}
+
+/**
+ * Las preguntas como se leen en el nombre: en el orden de sus papeles
+ * (departamento, provincia, distrito y ubigeo; el grupo y luego el valor), no
+ * en el que el motor las lee.
+ */
+function preguntasEnElOrdenDelNombre(b: Borrador, preguntas: string[]): string[] {
+  if (b.tipo === "combinacion_catalogo") {
+    const papeles = papelesDeParams(b.params);
+    const ordenadas = PAPELES_DE_CATALOGO.map((p) => papeles[p]).filter((v): v is string => !!v);
+    return Array.from(new Set(ordenadas));
+  }
+  if (b.tipo === "moda_en_grupo") {
+    const { grupo, valor } = preguntasDeModa(b.params);
+    return Array.from(new Set([grupo, valor].filter(Boolean)));
+  }
+  return preguntas;
 }
 
 /**

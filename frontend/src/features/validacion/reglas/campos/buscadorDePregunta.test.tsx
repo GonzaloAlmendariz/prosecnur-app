@@ -130,4 +130,32 @@ describe("selector", () => {
     escribir("zzz");
     expect(host.textContent).toContain("Ninguna pregunta coincide con \"zzz\"");
   });
+
+  test("ítem 45.3: dos preguntas con el mismo texto, o una sin texto, se distinguen por su código en el disparador", () => {
+    const lugar = [
+      v("p1_2", "P1. Lugar de nacimiento - Provincia", "texto"),
+      v("p1_3", "P1. Lugar de nacimiento - Distrito", "texto"),
+      v("distrito", "Distrito", "texto"),
+      v("columna_sin_etiqueta", "", "texto"),
+    ];
+    const montarCon = (valor: string) => {
+      act(() => root.render(<CampoPregunta variables={lugar} valor={valor} onCambio={vi.fn()} ariaLabel="Pregunta 1" />));
+      return disparador();
+    };
+    const codigoVisible = (b: HTMLElement) => b.querySelector("code")?.classList.contains("is-a-la-vista");
+    const repetida = montarCon("p1_3");
+    expect(codigoVisible(repetida)).toBe(true);
+    expect(repetida.textContent).toContain("p1_3");
+    expect(repetida.textContent).toContain("Distrito (P1. Lugar de nacimiento)");
+    const sinTexto = montarCon("columna_sin_etiqueta");
+    expect(codigoVisible(sinTexto)).toBe(true);
+    expect(sinTexto.textContent).toContain("columna_sin_etiqueta");
+    // Una etiqueta que se lee igual que el código de una columna sin etiqueta también lleva su código.
+    const sinEtiqueta = [v("p1_2", "P1. Lugar de nacimiento - Provincia", "texto"), v("p1_3", "P1. Lugar de nacimiento - Distrito", "texto"), v("distrito", "", "texto")];
+    act(() => root.render(<CampoPregunta variables={sinEtiqueta} valor="p1_3" onCambio={vi.fn()} ariaLabel="Pregunta 1" />));
+    expect(codigoVisible(disparador())).toBe(true);
+    // Una pregunta con texto propio y único no repite su código.
+    act(() => root.render(<CampoPregunta variables={lugar} valor="p1_2" onCambio={vi.fn()} ariaLabel="Pregunta 1" />));
+    expect(codigoVisible(montarCon("p1_2"))).toBeFalsy();
+  });
 });

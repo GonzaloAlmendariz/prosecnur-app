@@ -124,6 +124,13 @@ export function familiaAbierta(
   foco: string | null,
 ): string {
   if (pedida && entradaDeFamilia(grupos, pedida)) return pedida;
+  // "propias" es la entrada vacía: al guardar la primera regla propia la familia
+  // pasa a llamarse por su tipo, y la dirección que quedó escrita sigue pidiendo
+  // las propias, no la primera del formulario.
+  if (pedida === FAMILIA_PROPIAS_VACIA) {
+    const propia = grupos.find((g) => g.id === "propia")?.entradas.find((e) => e.n > 0);
+    if (propia) return propia.clave;
+  }
   if (!catalogo.plan_construido && !foco) return FAMILIA_PLAN_SIN_LEER;
   if (foco) {
     const regla = catalogo.reglas.find((r) => r.id === foco || r.id_motor === foco);

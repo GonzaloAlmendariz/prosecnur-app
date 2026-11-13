@@ -18,6 +18,7 @@ import type { TipoDePregunta } from "../../../../components/procesamiento/FichaP
 import type { PreguntaDeSugerencia, SugerenciaParaRevisar } from "../../../../api/validacionDetector";
 import type { ExploradorVariablesList, ReglaSemilla } from "../../types";
 import { tipoDeFicha } from "../campos/tipoDeFicha";
+import { etiquetaCortaDe } from "../nombreDeRegla";
 
 export type PreguntaDelRecomendador = {
   codigo: string;
@@ -29,6 +30,8 @@ export type PreguntaDelRecomendador = {
 export type PiezaDeFrase =
   | { tipo: "texto"; texto: string }
   | { tipo: "codigo"; texto: string }
+  /** La etiqueta corta de una pregunta, en el lugar de su código (el título de una sugerencia). */
+  | { tipo: "etiqueta"; texto: string }
   | { tipo: "valores"; valores: string[] };
 
 export type IndiceDePreguntas = ReadonlyMap<string, { etiqueta: string | null; tipo: TipoDePregunta }>;
@@ -135,6 +138,27 @@ export function piezasDeFrase(
   return agrupar(piezas);
 }
 
+/**
+ * En un título, la pregunta se nombra por su etiqueta corta si la tiene: el
+ * código es un nombre interno de la base. Sin etiqueta corta queda el código.
+ */
+export function conEtiquetaCorta(piezas: PiezaDeFrase[], indice: IndiceDePreguntas): PiezaDeFrase[] {
+  return piezas.map((p) => {
+    if (p.tipo !== "codigo") return p;
+    const corta = etiquetaCortaDe({ name: p.texto, label: indice.get(p.texto)?.etiqueta ?? "" });
+    return corta ? { tipo: "etiqueta", texto: corta } : p;
+  });
+}
+
+/** Una frase como texto plano, para el nombre accesible de sus botones. */
+export function textoDeFrase(piezas: readonly PiezaDeFrase[]): string {
+  return piezas
+    .map((p) => (p.tipo === "valores" ? p.valores.map((v) => `"${v}"`).join(", ") : p.texto))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export type SugeridaPresentada = {
   titulo: PiezaDeFrase[];
   /** La pregunta que mira, con su enunciado una sola vez; `null` si no hay enunciado. */
@@ -168,7 +192,7 @@ export function presentarSugerida(s: ReglaSemilla, indice: IndiceDePreguntas = n
   const nombrada = codigo ? [...titulo, ...porque].some((p) => p.tipo === "codigo" && p.texto === codigo) : false;
   const ficha = codigo && nombrada ? pregunta(codigo, indice, etiquetas.get(codigo)) : null;
   return {
-    titulo: ficha?.etiqueta ? sinCodigoAlFinal(titulo, ficha.codigo) : titulo,
+    titulo: conEtiquetaCorta(ficha?.etiqueta ? sinCodigoAlFinal(titulo, ficha.codigo) : titulo, indice),
     // Sin enunciado, la ficha repetiría el código que ya está en la frase.
     pregunta: ficha?.etiqueta ? ficha : null,
     porque,
@@ -186,7 +210,7 @@ export type SugerenciaPresentada = {
 export function presentarSugerencia(s: SugerenciaParaRevisar, indice: IndiceDePreguntas = new Map()): SugerenciaPresentada {
   const codigos = s.variables.map((v) => v.variable);
   return {
-    titulo: piezasDeFrase(s.titulo, codigos, indice),
+    titulo: conEtiquetaCorta(piezasDeFrase(s.titulo, codigos, indice), indice),
     // Solo las que traen enunciado: sin él, la ficha repetiría el código del título.
     preguntas: s.variables.map((v) => pregunta(v.variable, indice, v.rotulo)).filter((p) => p.etiqueta),
     frase: piezasDeFrase(s.texto, codigos, indice),

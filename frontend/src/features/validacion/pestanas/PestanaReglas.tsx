@@ -104,6 +104,7 @@ export default function PestanaReglas() {
         variables={variables}
         baseNombre={mesa.baseNombre}
         semillas={semillas ?? []}
+        nombresEnUso={propias.map((r) => r.nombre)}
         onGuardar={guardar}
         semillaInicial={sugeridaDelPanel}
         onEliminar={enEdicion ? async () => {

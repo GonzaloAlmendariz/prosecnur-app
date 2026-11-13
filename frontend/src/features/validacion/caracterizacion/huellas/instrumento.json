@@ -15,28 +15,28 @@
     ]
   },
   "instrumento_con-auditoria_despliega-sin-casos": {
-    "marcado": "9103b97f64cce2842c92ac7bde17e6f9d441340b4d21668254d452a43e5b17a4",
+    "marcado": "54afc19744a318ce5e0e4f4899f88f3bba198635c0ba1dc4a59504323f14c824",
     "pedidos": "e2848a6022e225958ddaefc64163d416cfb4ed328007c8891e542d20c1422ffe",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "instrumento_construir-plan": {
-    "marcado": "fdeea5c0f22a26a5e10701629dc20f58de9a57d2aa2f27594c21657fe4e8a6fa",
+    "marcado": "399bb680c5653171099a339e93ad517eb16db942099f6ca04bae2cff80edfe69",
     "pedidos": "b6f6179da43ac84d664a9129828693ac9856fbf4d514bfbe3de4abe51bda8fb5",
     "guardado": [
       "POST /api/validacion/v2/instrumento/plan [base=default]\n{\"operational_config\":{\"version\":2,\"field_period\":{\"enabled\":false,\"variable\":\"\",\"start_date\":\"\",\"end_date\":\"\",\"timezone\":\"America/Lima\"},\"duplicates\":{\"enabled\":false,\"variables\":[],\"matching_method\":\"response_similarity\",\"similarity_threshold\":0.9,\"minimum_coverage\":0.8},\"identity\":{\"enabled\":false,\"variables\":[],\"agent_variable\":\"\",\"survey_number_variable\":\"\",\"typist_variable\":\"\"},\"caso_valido\":{\"enabled\":false,\"condiciones\":[]},\"abiertas\":{\"enabled\":false,\"variables\":[]}}}"
     ]
   },
   "instrumento_controles-sin-aplicar-entre-pestanas": {
-    "marcado": "a1a70cfdd80e0074d63b1c91fe5d1a44e1cbbf359ca4ccf4c53100d1c513ff46",
+    "marcado": "e7940210acf4571d939bfc6538e14806092894d276450860c7951e33e1643b20",
     "pedidos": "45e55a221a033885acab60e136ad180609bafe11e51f9223113ecfd0d6d83905",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "instrumento_controles-sin-aplicar-por-base": {
-    "marcado": "9a3f526481ef7ba5ff588c0731d06448dfde1901392e4a4f82377cec56378a8a",
+    "marcado": "f1169dd43e962e7d92d2a892edb557fdf90f12e0ef62e03114a7a46e1fedd17a",
     "pedidos": "ddbbd87cd6fd28015789e805bae6b20389e4c1a6fbeab2b45695eac18fb8c17b"
   },
   "instrumento_dos-bases": {
@@ -54,11 +54,11 @@
     ]
   },
   "instrumento_error-de-estado": {
-    "marcado": "1d8ea8e9757e556ae2c91af09fceb440a11c8f5ba0009f011d0fe746e9ae048c",
+    "marcado": "713e8dffd56a0fb7d9d2d27eae1f2c3ec357ba734e4e705d2eaf61a2b75109b2",
     "pedidos": "dddc35067cce8019ac184d90402c620c37d15d2ed0dbe1611c6dee80fb37065e"
   },
   "instrumento_excluir-variable": {
-    "marcado": "0e372646b71b11caa8fc5906da450a49b923768e9d1e285ef88c309cc57f93c1",
+    "marcado": "ce07a29598bbb6294ff8c4d2b30decb7939143066b7aed5b7d01f1fd8183ab85",
     "pedidos": "4443b77483bf1756d2e098660116a297866ca70dda4b6c826dd6785b163f1988",
     "guardado": [
       "POST /api/validacion/v2/instrumento/variables-excluidas [base=default]\n{\"variables\":[\"obs_campo\",\"edad\"],\"motivos\":{\"edad\":\"La edad se valida en otra base\"}}"
@@ -72,7 +72,7 @@
     ]
   },
   "instrumento_panel-alias-cierra-en-hallazgos": {
-    "marcado": "a96e6d9c1ecb6526d9ddfe6e40c9331658f97ca477e6788aa44d2b38e2723786",
+    "marcado": "9b0c4b7f12d95600ad139e800db4cb40ed0d003f93eafee1a59111e4814d7431",
     "pedidos": "dddc35067cce8019ac184d90402c620c37d15d2ed0dbe1611c6dee80fb37065e"
   },
   "instrumento_panel-por-clic": {
@@ -111,7 +111,7 @@
     "pedidos": "e6eedc8ef728d0d2b51a6fc776bf5d8018b122f4d79f3b341d0a47b9e3f13e86"
   },
   "instrumento_reponer-variable": {
-    "marcado": "0e372646b71b11caa8fc5906da450a49b923768e9d1e285ef88c309cc57f93c1",
+    "marcado": "ce07a29598bbb6294ff8c4d2b30decb7939143066b7aed5b7d01f1fd8183ab85",
     "pedidos": "4443b77483bf1756d2e098660116a297866ca70dda4b6c826dd6785b163f1988",
     "guardado": [
       "POST /api/validacion/v2/instrumento/variables-excluidas [base=default]\n{\"variables\":[]}"
@@ -122,36 +122,36 @@
     "pedidos": "e94eac00b50f09637c877475483097230c10775f57a8c2115f520092f51a1c19"
   },
   "instrumento_sin-plan": {
-    "marcado": "fdeea5c0f22a26a5e10701629dc20f58de9a57d2aa2f27594c21657fe4e8a6fa",
+    "marcado": "399bb680c5653171099a339e93ad517eb16db942099f6ca04bae2cff80edfe69",
     "pedidos": "dddc35067cce8019ac184d90402c620c37d15d2ed0dbe1611c6dee80fb37065e"
   },
   "reglas_audita": {
-    "marcado": "ca2d063facb226adb101bd3fb5e4789e96221691adb623d372cd16f7d247567d",
+    "marcado": "ff35a585507edcad24ac576d6801c5b75ceb7d94e99d1793d40ca45aa44e98bb",
     "pedidos": "c241646ccbd85c26d8cfcdfdbde8bad163d25d23ac2fc126d536a0510b6d2a45",
     "guardado": [
       "POST /api/validacion/v2/auditoria [base=default]\n"
     ]
   },
   "reglas_desactiva-con-motivo": {
-    "marcado": "888449de936f27ff724086d37bdc17fe98d4b167db796ddd2e98bbd8741a5236",
+    "marcado": "82b3372ec873fa3dd66e1721c3e7c1b3f652243f0e9582d775902d20cb4f8319",
     "pedidos": "127714d44c7a4ec5dacb90fd3fcd7218e07684312f2b7a8504175f1525af45c2",
     "guardado": [
       "PATCH /api/validacion/v2/instrumento/regla/R_REQ_EDAD/activa [base=default]\n{\"activa\":false,\"motivo\":\"Se revisa en el consolidado\"}"
     ]
   },
   "reglas_excluye-pregunta": {
-    "marcado": "0e372646b71b11caa8fc5906da450a49b923768e9d1e285ef88c309cc57f93c1",
+    "marcado": "ce07a29598bbb6294ff8c4d2b30decb7939143066b7aed5b7d01f1fd8183ab85",
     "pedidos": "4443b77483bf1756d2e098660116a297866ca70dda4b6c826dd6785b163f1988",
     "guardado": [
       "POST /api/validacion/v2/instrumento/variables-excluidas [base=default]\n{\"variables\":[\"obs_campo\",\"edad\"],\"motivos\":{\"edad\":\"La edad se valida en otra base\"}}"
     ]
   },
   "reglas_familia-saltos": {
-    "marcado": "665abd8d250e5c377d646d7fd9b9f20d2311bfa2056da121c5ad9ae6220e8412",
+    "marcado": "eb8dcda834363805372fe1a8413643458b415e60d035842101aa699a02823750",
     "pedidos": "dddc35067cce8019ac184d90402c620c37d15d2ed0dbe1611c6dee80fb37065e"
   },
   "reglas_sin-evaluar-convierte": {
-    "marcado": "0dcf3a53cf62d63f962a15069b2e5ce5a037a98b57a0f6346095357b7aac3f08",
+    "marcado": "87f9278c1baa308a0de2e3d477df560813601ee1b5ea52eecef0fa5b5ae51d6c",
     "pedidos": "3c5cb4ba856fdcb23166adc487581d64464343321c655484c3bcaa815351f1b3"
   }
 }

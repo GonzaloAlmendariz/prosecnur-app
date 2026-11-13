@@ -59,7 +59,7 @@
   gap: var(--pulso-space-2);
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 420px;
+  max-width: 520px;
   color: var(--pulso-text-soft);
   font-size: var(--pulso-type-caption-size);
   font-weight: var(--pulso-weight-semibold);
@@ -74,6 +74,16 @@
   flex: 1 1 auto;
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-regular, 400);
+}
+
+/* Dos líneas: el nombre largo se lee entero. */
+.pulso-panel-regla-nombre-pie .pulso-panel-regla-nombre-campo {
+  height: auto;
+  min-height: 0;
+  padding: 6px 11px;
+  line-height: 1.3;
+  resize: none;
+  overflow: hidden;
 }
 
 /* La frase reserva su alto: elegir una pregunta o activar una opción no empuja
@@ -687,6 +697,22 @@
   color: var(--pulso-danger-fg);
 }
 
+/* La causa de un caso es una frase, no un valor: va como texto alineado a la izquierda, sin píldora
+   (centrada y en una caja de 3 a 5 líneas, no se leía). */
+.pulso-regla-falla--texto {
+  display: block;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.35;
+}
+
+.pulso-regla-casos[data-tono="inconsistencia"] .pulso-regla-falla--texto {
+  background: none;
+}
+
 .pulso-regla-nota {
   margin: 0;
   padding: 0 var(--pulso-space-5);
@@ -935,7 +961,7 @@
     grid-column: 1 / -1;
   }
 
-  .pulso-select-trigger.pulso-regla-pregunta .pulso-regla-pregunta-opcion > code {
+  .pulso-select-trigger.pulso-regla-pregunta .pulso-regla-pregunta-opcion > code:not(.is-a-la-vista) {
     display: none;
   }
 

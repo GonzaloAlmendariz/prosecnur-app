@@ -94,7 +94,7 @@ describe("lo que se guarda y lo que falta", () => {
     expect(variablesEfectivas(b)).toEqual(["f_entrev", "superv"]);
     expect(cuerpoParaProbar(b)?.variables).toEqual(["f_entrev", "superv"]);
     expect(nombreDelBorrador(b, [{ name: "f_entrev", label: "Fecha de entrevista", tipo: "texto", n_validos: 1, n_nulos: 0 }])).toBe(
-      "Dos fechas u horas que deben cuadrar: f_entrev y superv",
+      "Dos fechas u horas que deben cuadrar: Fecha de entrevista y superv",
     );
   });
 

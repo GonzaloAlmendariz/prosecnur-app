@@ -227,7 +227,7 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
       encabezado: "Causa",
       ancho: ANCHO_TABLA - ANCHO_CASO,
       tipo: "texto" as const,
-      celda: (ej: EjemploDePrueba) => (ej.moda ? <b className="pulso-regla-falla">{causaDeModa(ej.moda)}</b> : "Sin dato"),
+      celda: (ej: EjemploDePrueba) => (ej.moda ? <b className="pulso-regla-falla pulso-regla-falla--texto">{causaDeModa(ej.moda)}</b> : "Sin dato"),
       valor: (ej: EjemploDePrueba) => (ej.moda ? causaDeModa(ej.moda) : "Sin dato"),
     });
   }
@@ -254,7 +254,7 @@ function CausaDeCatalogo({ resumen }: { resumen: ResumenDeCatalogo }) {
   const propuesta = candidatosEnTexto(resumen);
   return (
     <span className="pulso-regla-catalogo-causa">
-      <b className="pulso-regla-falla">{causaEnTexto(resumen)}</b>
+      <b className="pulso-regla-falla pulso-regla-falla--texto">{causaEnTexto(resumen)}</b>
       {propuesta ? <small>{propuesta}</small> : null}
     </span>
   );

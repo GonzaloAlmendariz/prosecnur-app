@@ -1,78 +1,78 @@
 {
   "regla_coherencia-2v": {
-    "marcado": "8d653fe42ece0d611d9df034dc4a77d19875f1ae58802c791e0eb0d938fdcd45",
+    "marcado": "e07dc1f1cb70d1f227118e61cddaf7078e4a984b26ee1b0de825026111c61afe",
     "guardado": [
       "{\n  \"id\": \"RC_108\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"coherencia_2v\",\n  \"variables\": [\n    \"sexo\",\n    \"edad\"\n  ],\n  \"params\": {\n    \"op_x\": \"==\",\n    \"valor_x\": \"1\",\n    \"op_y\": \"not_in\",\n    \"valor_y\": [\n      \"4\",\n      \"5\"\n    ]\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"advertencia\",\n  \"hallazgo_kind\": \"caso_validar\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"selected(${q7}, \\\"1\\\") or selected(${q7}, \\\"2\\\")\",\n  \"gate_conditions\": [\n    {\n      \"variable\": \"q7\",\n      \"op\": \"contains_any\",\n      \"value\": [\n        \"1\",\n        \"2\"\n      ]\n    }\n  ]\n}"
     ]
   },
   "regla_duplicados": {
-    "marcado": "770b9cd0e3d898c4991f0ef99873c598ca03874aeafb7c018ae82131425f6665",
+    "marcado": "69914a30e193ddd3ef84914e6384f471dd9b22c902eaf7770165dd835ab19544",
     "guardado": [
       "{\n  \"id\": \"RC_106\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"duplicados\",\n  \"variables\": [\n    \"sexo\",\n    \"edad\"\n  ],\n  \"params\": {\n    \"missing_key_policy\": \"ignore_missing\"\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"exclude_cases\",\n  \"recommended_scope\": \"selected\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_fuera-catalogo": {
-    "marcado": "8eec266e3d4630349490fd702b667629496a5ac949b0119f10f6d55c22b0cac9",
+    "marcado": "b26cda8159df23b02fd516f1315afdbfa7efcb43e55fa0283f24a3d9c31c0760",
     "guardado": [
       "{\n  \"id\": \"RC_107\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"fuera_catalogo\",\n  \"variables\": [\n    \"sexo\"\n  ],\n  \"params\": {\n    \"valores\": [\n      \"1\",\n      \"2\"\n    ]\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_inactiva-sin-nombre": {
-    "marcado": "187249d22440e10f8dd84a53db270fc40a188c10702dd4a8fcc24165795c059f",
+    "marcado": "8ae378b77d1239a890e5a26cc4f0d794805eea932b7e0b75d2ed0f2a8a0fb664",
     "guardado": [
       "{\n  \"id\": \"RC_113\",\n  \"activa\": false,\n  \"nombre\": \"Valor fuera de rango: edad\",\n  \"tipo\": \"rango_num\",\n  \"variables\": [\n    \"edad\"\n  ],\n  \"params\": {\n    \"min\": \"16\",\n    \"max\": \"25\"\n  },\n  \"mensaje\": \"Valor fuera de rango: edad\",\n  \"severidad\": \"info\",\n  \"hallazgo_kind\": \"caso_validar\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_no-nulo": {
-    "marcado": "24cba7f2d7e1091805c1e5f9352248f37a030cacf5d2b69376c2e97bcce2856f",
+    "marcado": "591658124b75e437996c2014df8805fa7cfe4afbc76af2235681b3ae1b000ed3",
     "guardado": [
       "{\n  \"id\": \"RC_101\",\n  \"activa\": true,\n  \"nombre\": \"Respuesta obligatoria: edad\",\n  \"tipo\": \"no_nulo\",\n  \"variables\": [\n    \"edad\"\n  ],\n  \"params\": {},\n  \"mensaje\": \"Respuesta obligatoria: edad\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"set_value\",\n  \"recommended_scope\": \"selected\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_outliers-iqr": {
-    "marcado": "ed36126a62369acb7dc7e978b1d0854a91df05841d097b48cf3196bb8781e017",
+    "marcado": "802a45e51b9f503e73e97b5d65aa3cb86657e547d99f59e5b6425119b79ebc15",
     "guardado": [
       "{\n  \"id\": \"RC_104\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"outliers_iqr\",\n  \"variables\": [\n    \"edad\"\n  ],\n  \"params\": {\n    \"k\": 1.5\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_outliers-z": {
-    "marcado": "2a150e2fea9f29ab4d5469f3f86a939e36c27d13f7466e09aa15d86cc9eb993a",
+    "marcado": "70474efcb62d32b74eccf49b4c4402aaff181409eee2442d0e9510e2d05e2b82",
     "guardado": [
       "{\n  \"id\": \"RC_105\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"outliers_z\",\n  \"variables\": [\n    \"edad\"\n  ],\n  \"params\": {\n    \"k\": \"3\"\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_rango-fecha": {
-    "marcado": "6953c4b8e2879edc465d96a869e85913831c6af70a8ecc16b9ace8aaded3b4fa",
+    "marcado": "6627cfd1011567a967a0e72710278ff164a284f5f2a6efe4d882880498040139",
     "guardado": [
       "{\n  \"id\": \"RC_103\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"rango_fecha\",\n  \"variables\": [\n    \"fecha\"\n  ],\n  \"params\": {\n    \"min\": \"2026-01-05\",\n    \"max\": \"2026-03-31\",\n    \"timezone\": \"America/Lima\"\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_rango-num": {
-    "marcado": "10b012ebaf00b378c822f00d3735f72ae572300e88f599dda40ba4be00707651",
+    "marcado": "2297aa23684eb7afaca2760e0994c6498a3d7347696ef7f1a0b34d3217356ccb",
     "guardado": [
       "{\n  \"id\": \"RC_102\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"rango_num\",\n  \"variables\": [\n    \"edad\"\n  ],\n  \"params\": {\n    \"min\": \"16\",\n    \"max\": \"25\"\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_sm-cantidad": {
-    "marcado": "e706269e424370ea74d42da71c707f5eb63f0dc8bd0975143289217e0b5907a9",
+    "marcado": "e0bc6d2da28baf0fabc9f03fd917d7f876c8ff8f4caeefa5b63562a1daf15526",
     "guardado": [
       "{\n  \"id\": \"RC_111\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"select_multiple_cardinality\",\n  \"variables\": [\n    \"q7\"\n  ],\n  \"params\": {\n    \"min\": 1,\n    \"max\": 3\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_sm-exclusiva": {
-    "marcado": "3d99c9b21c389c641fce9897e4bc614d21f98eee63ab6216036133d82ddfa431",
+    "marcado": "f8b2e0912c9c79f92d3809e205f4782e0d138b7dab1b157b8a5e3e1e6be284e2",
     "guardado": [
       "{\n  \"id\": \"RC_110\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"select_multiple_exclusive\",\n  \"variables\": [\n    \"q7\"\n  ],\n  \"params\": {\n    \"exclusive_codes\": [\n      \"9\",\n      \"8\"\n    ]\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_sm-jerarquia": {
-    "marcado": "2a6e4f2feba4af51b32cae9179ac82162cdd60c092e69df66d17333efa137542",
+    "marcado": "aa48cc6f3377727198809cad212d6bc92b3eea3fae4fc806c012c23525a78dab",
     "guardado": [
       "{\n  \"id\": \"RC_109\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"select_multiple_hierarchy\",\n  \"variables\": [\n    \"q7\"\n  ],\n  \"params\": {\n    \"hierarchy_rows\": [\n      {\n        \"trigger\": \"3\",\n        \"required\": [\n          \"1\",\n          \"2\",\n          \"3\"\n        ]\n      }\n    ],\n    \"hierarchy_map\": {\n      \"3\": [\n        \"1\",\n        \"2\"\n      ]\n    }\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"complete_select_multiple_hierarchy\",\n  \"recommended_scope\": \"all\",\n  \"gate_expr\": \"\",\n  \"gate_conditions\": []\n}"
     ]
   },
   "regla_sm-seleccion": {
-    "marcado": "7db8e9c579a1c73bb48add5ebecb1a2769504f45352e093a72093e75e73491be",
+    "marcado": "68aca1d41ac2dddf8a8949a521d45dfdc348f1bdaffa73c51cdd053a8d9a7afe",
     "guardado": [
       "{\n  \"id\": \"RC_112\",\n  \"activa\": true,\n  \"nombre\": \"Edad entre 16 y 25\",\n  \"tipo\": \"select_multiple_selection\",\n  \"variables\": [\n    \"q7\"\n  ],\n  \"params\": {\n    \"op\": \"contains_all\",\n    \"codes\": [\n      \"1\",\n      \"2\"\n    ]\n  },\n  \"mensaje\": \"Edad fuera del rango del estudio\",\n  \"severidad\": \"error\",\n  \"hallazgo_kind\": \"inconsistencia_usuario\",\n  \"planned_action_type\": \"ignore_rule\",\n  \"recommended_scope\": \"single\",\n  \"gate_expr\": \"${edad} >= \\\"18\\\" and in(${sexo}, \\\"1\\\")\",\n  \"gate_conditions\": [\n    {\n      \"variable\": \"edad\",\n      \"op\": \">=\",\n      \"value\": \"18\"\n    },\n    {\n      \"variable\": \"sexo\",\n      \"op\": \"in\",\n      \"value\": [\n        \"1\"\n      ]\n    }\n  ]\n}"
     ]

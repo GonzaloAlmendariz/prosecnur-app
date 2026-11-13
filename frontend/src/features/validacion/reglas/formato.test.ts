@@ -86,7 +86,7 @@ describe("lo que se guarda y lo que falta", () => {
     b = reducirBorrador(b, { tipo: "params", valor: { modo: "digitos", cantidad: "exacta", largo_min: "9", largo_max: "9", empieza_con: "9" } });
     expect(validarBorrador(b)).toBe("");
     expect(nombreDelBorrador(b, [{ name: "telefono", label: "Teléfono", tipo: "texto", n_validos: 1, n_nulos: 0 }])).toBe(
-      "Formato de la respuesta: telefono",
+      "Formato de la respuesta: Teléfono",
     );
     const cuerpo = cuerpoAGuardar(b, null);
     expect(cuerpo?.tipo).toBe("formato");

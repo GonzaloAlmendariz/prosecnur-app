@@ -132,6 +132,15 @@ describe("columna de familias", () => {
     expect(familiaAbierta(c, grupos, "no-existe", "RC_1")).toBe("rango_num");
     expect(familiaAbierta(c, grupos, null, null)).toBe("obligatoria");
   });
+
+  it("la dirección con familia=propias, escrita cuando no había propias, abre la primera propia que aparece al guardar (ítem 45.2)", () => {
+    const c = catalogo();
+    const grupos = columnaDeFamilias(c, 0);
+    expect(familiaAbierta(c, grupos, FAMILIA_PROPIAS_VACIA, null)).toBe("rango_num");
+    // Sin propias, "propias" sigue siendo la entrada vacía.
+    const sinPropias = catalogo({ familias: [{ origen: "formulario", familia: "salto", nombre: "Saltos", n: 2 }] });
+    expect(familiaAbierta(sinPropias, columnaDeFamilias(sinPropias, 0), FAMILIA_PROPIAS_VACIA, null)).toBe(FAMILIA_PROPIAS_VACIA);
+  });
 });
 
 describe("lista y regla elegida", () => {

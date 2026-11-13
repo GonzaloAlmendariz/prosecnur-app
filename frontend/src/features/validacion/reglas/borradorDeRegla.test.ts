@@ -189,9 +189,9 @@ describe("revisión dentro de la app (QA del panel de regla)", () => {
     expect(borradorInicial({ inicial: null, tipo: "condiciones" }).params.condiciones).toEqual([{ variable: "", op: "", valor: "" }]);
   });
 
-  it("una regla nueva se nombra con el código de sus preguntas, no con su enunciado", () => {
+  it("una regla nueva se nombra con la etiqueta corta de sus preguntas o su código, no con su enunciado", () => {
     const b = aplicar(borradorInicial({ inicial: null, tipo: "rango_num", pregunta: "p4" }), { tipo: "param", clave: "min", valor: "1" });
-    expect(nombreDelBorrador(b, VARIABLES)).toBe("Valor fuera de rango: p4");
+    expect(nombreDelBorrador(b, VARIABLES)).toBe("Valor fuera de rango: Año de egreso");
     const sinEtiqueta = aplicar(borradorInicial({ inicial: null, tipo: "rango_num", pregunta: "x9" }), { tipo: "param", clave: "min", valor: "1" });
     expect(nombreDelBorrador(sinEtiqueta, VARIABLES)).toBe("Valor fuera de rango: x9");
   });
@@ -242,5 +242,74 @@ describe("segunda revisión: abrir y guardar no altera lo guardado", () => {
     expect(cuerpoAGuardar(borradorInicial({ inicial }), inicial)?.gate_expr).toBe("");
     const tocado = aplicar(borradorInicial({ inicial }), { tipo: "filtro", valor: [{ variable: "E2_sex", op: "==", value: "2" }] });
     expect(cuerpoAGuardar(tocado, inicial)?.gate_expr).toBe('${E2_sex} = "2"');
+  });
+});
+
+
+describe("ítem 45.4: nombres automáticos", () => {
+  const LUGAR: ExploradorVariable[] = [
+    { name: "p1_1", label: "P1. Lugar de nacimiento: región", tipo: "texto", n_validos: 10, n_nulos: 0 },
+    { name: "p1_2", label: "P1. Lugar de nacimiento: provincia", tipo: "texto", n_validos: 10, n_nulos: 0 },
+    { name: "p1_3", label: "P1. Lugar de nacimiento: distrito", tipo: "texto", n_validos: 10, n_nulos: 0 },
+    { name: "distrito", label: "", tipo: "texto", n_validos: 10, n_nulos: 0 },
+    { name: "ubigeo", label: "Ubigeo del distrito", tipo: "texto", n_validos: 10, n_nulos: 0 },
+  ];
+
+  it("la combinación fuera de catálogo se nombra en el orden de sus papeles, con etiquetas", () => {
+    const b = aplicar(borradorInicial({ inicial: null, tipo: "combinacion_catalogo" }), {
+      tipo: "param",
+      clave: "roles",
+      valor: { distrito: "p1_3", departamento: "p1_1", provincia: "p1_2" },
+    });
+    expect(nombreDelBorrador(b, LUGAR)).toBe("Combinación fuera de catálogo: región, provincia y distrito");
+    // Sin inventario, los códigos, en el mismo orden.
+    expect(nombreDelBorrador(b)).toBe("Combinación fuera de catálogo: p1_1, p1_2 y p1_3");
+  });
+
+  it("el valor distinto del más frecuente nombra primero el grupo y luego el valor", () => {
+    const b = aplicar(borradorInicial({ inicial: null, tipo: "moda_en_grupo" }), {
+      tipo: "params",
+      valor: { grupo: "ubigeo", valor: "distrito", apoyo_min: 60, n_min: 5 },
+    });
+    expect(nombreDelBorrador(b, LUGAR)).toBe("Valor distinto del más frecuente en su grupo: Ubigeo del distrito y distrito");
+  });
+
+  it("una etiqueta que se lee igual que el código de otra pregunta de la regla va por su código", () => {
+    const b = aplicar(borradorInicial({ inicial: null, tipo: "moda_en_grupo" }), {
+      tipo: "params",
+      valor: { grupo: "p1_3", valor: "distrito", apoyo_min: 60, n_min: 5 },
+    });
+    expect(nombreDelBorrador(b, LUGAR)).toBe("Valor distinto del más frecuente en su grupo: p1_3 y distrito");
+  });
+
+  it("dos preguntas con la misma etiqueta corta van por su código", () => {
+    const b = aplicar(borradorInicial({ inicial: null, tipo: "duplicados" }), { tipo: "variables", valor: ["p1_3", "distrito"] });
+    const otras: ExploradorVariable[] = [...LUGAR.slice(0, 3), { name: "distrito", label: "Distrito", tipo: "texto", n_validos: 1, n_nulos: 0 }];
+    expect(nombreDelBorrador(b, otras)).toBe("Respuestas repetidas: p1_3 y distrito");
+  });
+});
+
+describe("ítem 45.10: cambiar de tipo y volver conserva lo del tipo anterior", () => {
+  const CONDICIONES = [
+    { variable: "p21", op: "in", valor: ["1", "2"] },
+    { variable: "p4", op: "==", valor: "3" },
+  ];
+
+  it("Condiciones combinadas a Respuestas repetidas y de vuelta recupera las condiciones", () => {
+    let b = aplicar(borradorInicial({ inicial: null, tipo: "condiciones" }), { tipo: "param", clave: "condiciones", valor: CONDICIONES });
+    b = aplicar(b, { tipo: "elegir-tipo", valor: "duplicados" });
+    expect(b.params).toEqual({});
+    b = aplicar(b, { tipo: "variables", valor: ["dni"] });
+    b = aplicar(b, { tipo: "elegir-tipo", valor: "condiciones" });
+    expect(b.params.condiciones).toEqual(CONDICIONES);
+    // Y Respuestas repetidas también recupera su pregunta.
+    b = aplicar(b, { tipo: "elegir-tipo", valor: "duplicados" });
+    expect(b.variables).toEqual(["dni"]);
+  });
+
+  it("lo recordado no viaja al cuerpo que se guarda", () => {
+    let b = aplicar(borradorInicial({ inicial: null, tipo: "condiciones" }), { tipo: "param", clave: "condiciones", valor: CONDICIONES });
+    b = aplicar(b, { tipo: "elegir-tipo", valor: "duplicados" }, { tipo: "variables", valor: ["dni"] });
+    expect(JSON.stringify(cuerpoAGuardar(b, null))).not.toContain("p21");
   });
 });

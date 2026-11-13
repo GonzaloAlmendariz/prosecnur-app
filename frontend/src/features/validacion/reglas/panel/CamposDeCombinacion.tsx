@@ -19,7 +19,7 @@ import type { ExploradorVariable } from "../../types";
 import type { AccionDeBorrador, Borrador } from "../borradorDeRegla";
 import { CampoPregunta } from "../campos/CampoPregunta";
 import { useBaseDelPanel } from "../campos/opcionesDeVariable";
-import { ROTULO_DE_PAPEL, papelesDeParams } from "../modeloCombinacion";
+import { ROTULO_DE_PAPEL, ariaDeLaPregunta, papelesDeParams } from "../modeloCombinacion";
 import { paramList } from "../modeloRegla";
 import { Fila } from "./FilaDeRegla";
 import { usePropuestaDePapeles } from "./usePropuestaDePapeles";
@@ -96,7 +96,7 @@ export function CamposDeCombinacion({
             variables={variables}
             valor={columna ?? ""}
             onCambio={(v) => setPapeles({ ...papeles, [papel]: v || null })}
-            ariaLabel={`Pregunta con el ${ROTULO_DE_PAPEL[papel].toLowerCase()}`}
+            ariaLabel={ariaDeLaPregunta(papel)}
             placeholder="Sin pregunta"
           />
           {parte ? <span className="pulso-regla-combinacion-parte">{parte}</span> : null}

@@ -1407,6 +1407,21 @@
     display: none;
   }
 }
+/* Con el ícono, el título "Preguntas" se parte dentro de la palabra: hasta 1500 px de mesa va sin ícono,
+   y el título no se parte nunca (si no cabe, termina en puntos suspensivos). */
+@container mesa-pestana (max-width: 1499px) {
+  .pulso-panel-de-mesa--preguntas .pulso-panel-de-mesa-tesela {
+    display: none;
+  }
+}
+.pulso-panel-de-mesa--preguntas .pulso-panel-de-mesa-titulo {
+  display: block;
+  overflow: hidden;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .vx-lupa.is-activa {
   background: var(--module-accent-soft, var(--pulso-primary-soft));
   color: var(--module-accent, var(--pulso-primary));
@@ -1418,6 +1433,18 @@
 }
 .vx-chip .vx-tp {
   margin-inline-end: 2px;
+}
+/* En poca altura (1024x600) tres filas de chips dejan la lista sin una pregunta a la vista:
+   los chips van en una fila que se desplaza de lado, con la barra a la vista. */
+@media (max-height: 700px) {
+  .vx-preguntas .vx-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-block-end: var(--pulso-space-1);
+  }
+  .vx-preguntas .vx-chips .vx-chip {
+    flex: none;
+  }
 }
 .vx-preguntas-lista {
   display: flex;
@@ -1851,7 +1878,9 @@
 .vx-preguntas-grupo-nombre {
   flex: 1 1 auto;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   line-height: 1.3;
 }
 .vx-preguntas-grupo-nombre.is-id {

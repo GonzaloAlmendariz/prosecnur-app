@@ -5,14 +5,13 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { ExploradorSeccion, ExploradorVariable } from "../../types";
 import { ID_BUSCADOR_DE_PREGUNTAS, ID_LUPA_DE_PREGUNTAS } from "./AccionesDeLaLista";
 import ChipsTipo from "./ChipsTipo";
-import { rotuloDeSeccion, seccionDe, seccionesVisibles } from "./listaDePreguntasModelo";
+import { conteoDeLasCoincidencias, rotuloDeSeccion, seccionDe, seccionesVisibles } from "./listaDePreguntasModelo";
 import { useEstadoDeLaLista, useListaDePreguntasStore } from "./listaDePreguntasStore";
 import {
   TIPO_ETIQUETA,
   TIPO_TONO,
   UMBRAL_COMPLETITUD,
   completitud,
-  conteoPorFamilia,
   type FamiliaTipo,
 } from "./tiposVariable";
 
@@ -53,9 +52,9 @@ export default function ListaDePreguntas({
   const listaRef = useRef<HTMLDivElement>(null);
   const campoRef = useRef<HTMLInputElement>(null);
 
-  const todas = useMemo(() => secciones.flatMap((s) => s.variables), [secciones]);
-  const conteo = useMemo(() => conteoPorFamilia(todas), [todas]);
   const consultaActiva = buscando ? consulta : "";
+  // Con la búsqueda escrita, cada chip cuenta las coincidencias de su tipo, no las de toda la base.
+  const conteo = useMemo(() => conteoDeLasCoincidencias(secciones, consultaActiva), [secciones, consultaActiva]);
   const visibles = useMemo(() => seccionesVisibles(secciones, consultaActiva, familia), [secciones, consultaActiva, familia]);
   const nVisibles = visibles.reduce((t, s) => t + s.variables.length, 0);
   const cerradas = useMemo(() => new Set(plegadas), [plegadas]);
@@ -183,7 +182,7 @@ function SeccionDePreguntas({
   return (
     <section className="vx-preguntas-seccion" data-abierta={abierta ? "true" : "false"} aria-labelledby={`${id}-cab`}>
       <h5 className="vx-preguntas-grupo">
-        <button type="button" id={`${id}-cab`} aria-expanded={abierta} aria-controls={`${id}-lista`} onClick={onAlternar}>
+        <button type="button" id={`${id}-cab`} aria-expanded={abierta} aria-controls={`${id}-lista`} onClick={onAlternar} title={rotulo.texto}>
           <ChevronRight size={14} className="vx-preguntas-grupo-chevron" aria-hidden />
           {rotulo.esIdentificador ? (
             <code className="vx-preguntas-grupo-nombre is-id">{rotulo.texto}</code>

@@ -35,6 +35,7 @@ import {
   datosPersonales,
   esDatoPersonal,
   presentarSugerencia,
+  textoDeFrase,
   ROTULO_DATO_PERSONAL,
   type ColumnaPersonal,
   type IndiceDePreguntas,
@@ -222,10 +223,12 @@ function TarjetaDeSugerencia({
   onConvertir: (regla: ReglaSemilla) => void;
 }) {
   const linea = lineaDeConcentracion(s);
+  // El nombre accesible de los botones usa el título como se ve, con la etiqueta de la pregunta.
+  const nombre = textoDeFrase(presentarSugerencia(s, indice).titulo);
   const acciones = s.casos.length || s.regla ? (
     <>
       {s.casos.length ? (
-        <PulsoButton variant="secondary" size="sm" aria-label={`Ver los casos de ${s.titulo}`} onClick={onVerCasos}>
+        <PulsoButton variant="secondary" size="sm" aria-label={`Ver los casos de ${nombre}`} onClick={onVerCasos}>
           Ver casos
         </PulsoButton>
       ) : null}
@@ -234,7 +237,7 @@ function TarjetaDeSugerencia({
           variant="secondary"
           size="sm"
           disabled={ocupada}
-          aria-label={`Convertir en regla ${s.titulo}`}
+          aria-label={`Convertir en regla ${nombre}`}
           onClick={() => s.regla && onConvertir(s.regla)}
         >
           Convertir en regla

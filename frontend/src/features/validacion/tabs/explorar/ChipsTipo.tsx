@@ -24,7 +24,7 @@ export default function ChipsTipo({
           type="button"
           className="vx-chip"
           aria-pressed={valor === f.id}
-          disabled={f.id !== "todas" && conteo[f.id] === 0}
+          disabled={f.id !== "todas" && conteo[f.id] === 0 && valor !== f.id}
           onClick={() => onCambio(f.id)}
         >
           {f.id !== "todas" && <i className="vx-tp" data-tono={TIPO_TONO[f.id]} aria-hidden />}

@@ -9,6 +9,7 @@ import AccionesDeLaLista from "../AccionesDeLaLista";
 import ListaDePreguntas from "../ListaDePreguntas";
 import {
   calzaConLaBusqueda,
+  conteoDeLasCoincidencias,
   plegadasAlComprimir,
   rotuloDeSeccion,
   seccionesVisibles,
@@ -42,6 +43,12 @@ describe("modelo de la lista", () => {
     expect(calzaConLaBusqueda({ name: "p7_region", label: "Región de nacimiento" }, "region hogar")).toBe(false);
     expect(seccionesVisibles(SECCIONES, "edad", "todas").map((s) => s.nombre)).toEqual(["seccion_D_7"]);
     expect(seccionesVisibles(SECCIONES, "", "num").map((s) => s.variables.length)).toEqual([1, 1]);
+  });
+
+  test("los chips cuentan las coincidencias de la búsqueda, no las de toda la base (ítem 45.11)", () => {
+    expect(conteoDeLasCoincidencias(SECCIONES, "")).toMatchObject({ todas: 4, so: 2, num: 2 });
+    expect(conteoDeLasCoincidencias(SECCIONES, "edad")).toMatchObject({ todas: 1, so: 0, num: 1 });
+    expect(conteoDeLasCoincidencias(SECCIONES, "zzz")).toMatchObject({ todas: 0, num: 0 });
   });
 
   test("el rótulo usa el del formulario; sin él, el identificador discreto", () => {

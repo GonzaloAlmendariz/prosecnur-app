@@ -133,7 +133,7 @@ describe("Validación, panel de regla", () => {
     await pulsar('.pulso-panel-regla button[aria-label="Cerrar la regla"]');
     expect(direccionActual()).toBe("/validacion?pestana=reglas");
     await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&panel=regla&foco=nueva&tipo=rango_num&pregunta=edad", rutas: rutas() });
-    expect(hay(".pulso-panel-regla .pulso-cabecera-panel__titulo", "Valor fuera de rango: edad")).toBe(true);
+    expect(hay(".pulso-panel-regla .pulso-cabecera-panel__titulo", "Valor fuera de rango: Edad")).toBe(true);
     fijar("reglas-panel_por-direccion");
   });
 

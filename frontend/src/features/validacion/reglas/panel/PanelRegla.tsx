@@ -19,7 +19,6 @@ import { Dialog } from "../../../../components/Dialog";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { PulsoButton } from "../../../../components/PulsoButton";
-import { PulsoInput } from "../../../../components/PulsoInput";
 import { Sideover } from "../../../../components/Sideover";
 import { AlertTriangle, Copy, Play, Trash2 } from "../../../../vendor/lucide-react";
 import type { ExploradorVariable, ReglaSemilla } from "../../types";
@@ -37,6 +36,7 @@ import {
 } from "../borradorDeRegla";
 import { etiquetaDeOpcion, OpcionesProvider, useOpcionesDeVariables } from "../campos/opcionesDeVariable";
 import { ordenarValoresPorEscala } from "../escalaDeOpciones";
+import { conNombreUnico, nombreSinRepetir } from "../nombreDeRegla";
 import { tieneOpciones, tipoDeFicha } from "../campos/tipoDeFicha";
 import { metaDeTipo } from "../tiposDeRegla";
 import type { ReglaPropia, ReglaPropiaAGuardar, TipoReglaPropia } from "../tiposDelMotor";
@@ -85,6 +85,8 @@ export type PanelReglaProps = {
    * sugeridas de Reglas), igual que "Usar" dentro del panel.
    */
   semillaInicial?: ReglaSemilla | null;
+  /** Los nombres de las reglas propias que ya hay: una regla nueva no repite ninguno. */
+  nombresEnUso?: readonly string[];
   /** Borra la regla propia que se edita; sin esta función el pie no ofrece "Eliminar la regla". */
   onEliminar?: () => Promise<void>;
 };
@@ -158,6 +160,7 @@ function EditorDelPanel({
   cargandoPreguntas = false,
   onVerSinEvaluar,
   onEliminar,
+  nombresEnUso = [],
   semilla,
   onUsarSemilla,
 }: PanelReglaProps & { semilla: ReglaSemilla | null; onUsarSemilla: (s: ReglaSemilla | null) => void }) {
@@ -243,7 +246,8 @@ function EditorDelPanel({
     if (!cuerpo) return;
     setEnvio({ guardando: true, error: "" });
     try {
-      await onGuardar(cuerpo, { auditar });
+      // Una regla nueva (también la copia de otra) no repite el nombre de una que ya hay.
+      await onGuardar(cuerpo.id ? cuerpo : conNombreUnico(cuerpo, nombresEnUso), { auditar });
       setEnvio({ guardando: false, error: "" });
     } catch (e) {
       setEnvio({ guardando: false, error: e instanceof Error ? e.message : String(e) });
@@ -257,7 +261,9 @@ function EditorDelPanel({
   const revisada = variablesDeLaRegla[0] ?? null;
 
   // Sin escribir, el nombre es el que la regla se pone sola y sigue a sus preguntas.
-  const nombre = nombreDelBorrador(borrador, variables);
+  const nombreAutomatico = nombreDelBorrador(borrador, variables);
+  // Solo el nombre automático se corrige: lo que alguien escribe no salta mientras escribe.
+  const nombre = nueva && !borrador.nombre.trim() ? nombreSinRepetir(nombreAutomatico, nombresEnUso) : nombreAutomatico;
   let titulo;
   let cuerpo;
   let pie;
@@ -382,10 +388,17 @@ function EditorDelPanel({
   const pista = enElEditor ? (
     <label className="pulso-panel-regla-nombre-pie">
       <span>Nombre</span>
-      <PulsoInput
+      {/* Un nombre largo baja a la segunda línea: el campo no lo corta. */}
+      <textarea
+        className="pulso-input pulso-panel-regla-nombre-campo"
+        rows={2}
         value={nombre}
         aria-label="Nombre de la regla"
-        onChange={(e) => despachar({ tipo: "nombre", valor: e.target.value })}
+        title={nombre}
+        onChange={(e) => despachar({ tipo: "nombre", valor: e.target.value.replace(/\s*\n+\s*/g, " ") })}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.preventDefault();
+        }}
       />
     </label>
   ) : vistaTipo && !cargandoPreguntas && !focoInexistente ? (

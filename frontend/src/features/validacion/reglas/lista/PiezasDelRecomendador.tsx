@@ -14,6 +14,7 @@ export function FraseDelRecomendador({ piezas }: { piezas: readonly PiezaDeFrase
     <>
       {piezas.map((p, i) => {
         if (p.tipo === "codigo") return <code key={i} className="pulso-rl-rec-codigo">{p.texto}</code>;
+        if (p.tipo === "etiqueta") return <b key={i} className="pulso-rl-rec-etiqueta">{p.texto}</b>;
         if (p.tipo === "valores") {
           return (
             <span key={i} className="pulso-rl-rec-valores">

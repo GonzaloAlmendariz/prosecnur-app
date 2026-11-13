@@ -9,7 +9,7 @@
  *     sugerencias para revisar del detector de consistencia.
  *   - "Fuera de la auditoría": las preguntas con su interruptor (D-F7c).
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ListChecks, ListTree, Plus } from "../../../../vendor/lucide-react";
 import { EstadoVacio } from "../../../../components/EstadoVacio";
 import { PanelDeMesa } from "../../../../components/procesamiento/PanelDeMesa";
@@ -91,6 +91,12 @@ export function ListaDeLaFamilia({
   onExcluir: (variable: string, excluir: boolean) => void;
 }) {
   const [todas, setTodas] = useState<string | null>(null);
+  // Otra familia empieza arriba: el desplazamiento de la anterior no se hereda.
+  const marca = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const cuerpo = marca.current?.closest<HTMLElement>(".pulso-panel-de-mesa-cuerpo");
+    if (cuerpo) cuerpo.scrollTop = 0;
+  }, [familia.clave]);
   const verTodas = todas === familia.clave;
   const propias = familia.clave === FAMILIA_PROPIAS_VACIA || (reglas.length > 0 && reglas.every((r) => r.origen === "propia"));
   const recortada = !verTodas && reglas.length > FILAS_A_LA_VISTA;
@@ -183,6 +189,7 @@ export function ListaDeLaFamilia({
         </div>
       ) : undefined}
     >
+      <div ref={marca} className="pulso-rl-marca-de-familia" hidden />
       {cuerpo}
       {propias ? <SugeridasDeLaBase semillas={semillas} indice={indice} ocupada={ocupada} onAnadir={onAnadirSugerida} /> : null}
       {propias ? <SugerenciasParaRevisar ocupada={ocupada} indice={indice} onConvertir={onAnadirSugerida} /> : null}

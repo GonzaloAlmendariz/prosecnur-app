@@ -4,7 +4,7 @@
 
 import type { ExploradorSeccion, ExploradorVariable } from "../../types";
 import { normalizarBusqueda } from "../../reglas/campos/modeloPregunta";
-import { enFamilia, type FamiliaTipo } from "./tiposVariable";
+import { conteoPorFamilia, enFamilia, type FamiliaTipo } from "./tiposVariable";
 
 /** Nombre con que el motor agrupa las preguntas que no están dentro de ningún grupo del formulario. */
 const SECCION_SUELTA = "General";
@@ -29,6 +29,17 @@ export function seccionesVisibles(
   return secciones
     .map((s) => ({ ...s, variables: s.variables.filter((v) => enFamilia(v, familia) && calzaConLaBusqueda(v, consulta)) }))
     .filter((s) => s.variables.length > 0);
+}
+
+/**
+ * Cuántas preguntas hay de cada tipo entre las que calzan con la búsqueda. Sin
+ * nada escrito son todas: los chips cuentan lo mismo que la lista muestra.
+ */
+export function conteoDeLasCoincidencias(
+  secciones: readonly ExploradorSeccion[],
+  consulta: string,
+): ReturnType<typeof conteoPorFamilia> {
+  return conteoPorFamilia(secciones.flatMap((s) => s.variables).filter((v) => calzaConLaBusqueda(v, consulta)));
 }
 
 export type RotuloDeSeccion = {

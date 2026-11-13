@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiEstudioGet, type EstudioPayload } from "../../../../api/estudio";
 import { Dialog } from "../../../../components/Dialog";
 import { ErrorBlock } from "../../../../components/States";
+import { mensajeSinCodigo } from "../mensajeSinCodigo";
 import { StageStepper } from "../../../../components/StageStepper";
 import { usePanelDireccionable } from "../../../../lib/navegacion/paneles";
 import { Plus } from "../../../../vendor/lucide-react";
@@ -138,7 +139,7 @@ function Recorrido({
           currentStage={opcion ? "datos" : "origen"}
           onStageChange={(paso) => { if (paso === "origen") ir(null); }}
       />
-      {errorDeCarga ? <ErrorBlock label="No se pudo completar la carga" detail={errorDeCarga} /> : null}
+      {errorDeCarga ? <ErrorBlock label="No se pudo completar la carga" detail={mensajeSinCodigo(errorDeCarga)} /> : null}
       {errorDeCarga ? <OfertaEmparejamientoPorTexto /> : null}
       {cambiaFuente ? (
         <p className="pulso-bases-dato">Lo que traigas reemplaza el formulario o las respuestas que tiene la base.</p>

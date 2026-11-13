@@ -24,6 +24,12 @@ export const ROTULO_DE_PAPEL: Readonly<Record<PapelDeCatalogo, string>> = {
   ubigeo: "Ubigeo",
 };
 
+/** El nombre accesible del selector de cada papel: "Pregunta de la provincia", no "con el provincia". */
+export function ariaDeLaPregunta(papel: PapelDeCatalogo): string {
+  const articulo = papel === "provincia" ? "de la" : "del";
+  return `Pregunta ${articulo} ${ROTULO_DE_PAPEL[papel].toLowerCase()}`;
+}
+
 /** La pregunta revisada es la más específica de las que se usan. */
 const ORDEN_DE_REVISADA: readonly PapelDeCatalogo[] = ["distrito", "provincia", "departamento", "ubigeo"];
 

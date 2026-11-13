@@ -22,7 +22,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import type { CSSProperties, KeyboardEvent } from "react";
 import { ChevronDown, Search } from "../../../../vendor/lucide-react";
 import type { ExploradorVariable } from "../../types";
-import { filtrarPreguntas, partesDePreguntas, type PartesDePregunta } from "./modeloPregunta";
+import { filtrarPreguntas, normalizarBusqueda, partesDePreguntas, type PartesDePregunta } from "./modeloPregunta";
 import { tipoDeFicha } from "./tipoDeFicha";
 import "./buscadorDePregunta.css";
 
@@ -209,6 +209,11 @@ export function BuscadorDePregunta({
   };
 
   const textoElegida = partesElegida?.texto || (elegida ? "" : valor ? "No está en esta base" : "");
+  // Sin texto, o con el mismo texto que otra pregunta, el código es lo único que la distingue: no se esconde
+  // aunque el panel sea angosto, y el texto repetido lleva el enunciado de su batería o grupo.
+  const repetida = !!textoElegida && textoRepetido(partes, valor, textoElegida);
+  const codigoALaVista = !textoElegida || repetida;
+  const textoDelDisparador = repetida && partesElegida?.enunciado ? `${textoElegida} (${partesElegida.enunciado})` : textoElegida;
   const titulo = elegida ? [elegida.name, elegida.label && elegida.label !== elegida.name ? elegida.label : ""].filter(Boolean).join(" ") : valor || undefined;
 
   return (
@@ -229,8 +234,8 @@ export function BuscadorDePregunta({
         {valor ? (
           <span className="pulso-regla-pregunta-opcion">
             <i className="pulso-regla-punto" data-tipo={elegida ? tipoDeFicha(elegida.tipo) : undefined} aria-hidden="true" />
-            <code>{valor}</code>
-            <span>{textoElegida}</span>
+            <code className={codigoALaVista ? "is-a-la-vista" : undefined}>{valor}</code>
+            {textoDelDisparador ? <span>{textoDelDisparador}</span> : null}
           </span>
         ) : (
           <span>{placeholder}</span>
@@ -304,4 +309,15 @@ export function BuscadorDePregunta({
 function opcionesSinConsulta(variables: readonly ExploradorVariable[], valor: string, elegida: ExploradorVariable | undefined): string[] {
   const nombres = variables.map((v) => v.name);
   return valor && !elegida ? [valor, ...nombres] : nombres;
+}
+
+/** `true` si otra pregunta de la base se ve con el mismo texto (dos "distrito"). */
+function textoRepetido(partes: ReadonlyMap<string, PartesDePregunta>, codigo: string, texto: string): boolean {
+  const clave = normalizarBusqueda(texto.trim());
+  for (const [otra, p] of partes) {
+    // El texto de una pregunta sin etiqueta es su código: "distrito" se parece a la columna "distrito".
+    const otroTexto = normalizarBusqueda((p.texto || otra).trim());
+    if (otra !== codigo && otroTexto === clave) return true;
+  }
+  return false;
 }

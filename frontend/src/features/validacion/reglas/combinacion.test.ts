@@ -6,7 +6,7 @@ import { normalizarPruebaDeRegla } from "../../../api/validacionAuditoria";
 import { normalizarPropuesta } from "../../../api/catalogoUbigeo";
 import { fraseDeReglaPropia, fraseEnTexto } from "../customRuleNarrative";
 import { borradorInicial, cuerpoAGuardar, reducirBorrador, validarBorrador, variablesEfectivas } from "./borradorDeRegla";
-import { candidatosEnTexto, paramsDeCombinacion, textoDeLecturaDeCatalogo, validarCombinacion, variablesDeCombinacion } from "./modeloCombinacion";
+import { ariaDeLaPregunta, candidatosEnTexto, paramsDeCombinacion, textoDeLecturaDeCatalogo, validarCombinacion, variablesDeCombinacion } from "./modeloCombinacion";
 import { columnasDelGrupo, parteDeLaColumna } from "./panel/CamposDeCombinacion";
 import { textoDeCausaDeCatalogo } from "./panel/CasosQueMarca";
 import { metaDeTipo, tiposDelGrupo } from "./tiposDeRegla";
@@ -117,5 +117,14 @@ describe("conteo previo y propuesta", () => {
     expect(columnasDelGrupo(pr.propuestas[1].papeles)).toBe("distrito y ubigeo");
     expect(parteDeLaColumna(pr, "p1_3", "distrito")).toBe("91 % casa con distritos");
     expect(parteDeLaColumna(pr, "otra", "distrito")).toBe("");
+  });
+});
+
+describe("ítem 45.8: nombre accesible de cada papel", () => {
+  it("concuerda con el género del nivel", () => {
+    expect(ariaDeLaPregunta("departamento")).toBe("Pregunta del departamento");
+    expect(ariaDeLaPregunta("provincia")).toBe("Pregunta de la provincia");
+    expect(ariaDeLaPregunta("distrito")).toBe("Pregunta del distrito");
+    expect(ariaDeLaPregunta("ubigeo")).toBe("Pregunta del ubigeo");
   });
 });
