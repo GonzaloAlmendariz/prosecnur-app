@@ -262,18 +262,10 @@ summarize_instrumento <- function(inst) {
 .carga_assert_data_xlsform_compatible <- function(df, instrumento) {
   compat <- validate_data_xlsform_compatibility(df, instrumento)
   if (!isTRUE(compat$ok)) {
-    sample_missing <- utils::head(compat$missing_columns, 20L)
-    suffix <- if (length(sample_missing)) {
-      paste0(" Faltantes: ", paste(sample_missing, collapse = ", "),
-             if (length(compat$missing_columns) > length(sample_missing)) ", ..." else "")
-    } else {
-      ""
-    }
-    stop_api(
-      400,
-      "E_DATA_XLSFORM_INCOMPATIBLE",
-      paste0(compat$message, suffix)
-    )
+    # Mismo aviso que la carga de un archivo (carga_aviso_no_calza.R).
+    aviso <- .carga_aviso_no_calza(compat, instrumento,
+                                   columnas_base = if (is.data.frame(df)) names(df) else character(0))
+    stop_api(400, "E_DATA_XLSFORM_INCOMPATIBLE", aviso$message, details = aviso$details)
   }
   compat
 }
@@ -1810,20 +1802,14 @@ mount_carga <- function(pr) {
       if (!(meta$kind %in% c("xlsform"))) {
         stop_api(400, "E_WRONG_KIND", "file must have kind='xlsform'")
       }
-      # Un formulario que no se puede leer no queda como el último subido.
-      inst <- .carga_sin_rastro_si_falla(sid, file_id, leer_instrumento_xlsform(meta$path))
-      session_set(sid, "instrumento", inst)
-      session_set(sid, "inst_limpieza", NULL)
-      # Si ya hay data subida, esto auto-crea/refresca la base "default"
-      # del estudio para que las features v2 (Validación, Codificación)
-      # encuentren el par xlsform+data sin requerir flujo multi-base
-      # explícito. No-op si todavía falta la data.
-      tryCatch(estudio_init_default_base(sid),
-               error = function(e) {
-                 message("[carga] estudio_init_default_base falló: ", conditionMessage(e))
-               })
-      resumen <- summarize_instrumento(inst)
-      list(ok = TRUE, resumen = resumen)
+      .carga_procesar_instrumento(sid, meta)
+    })) |>
+    # El formulario hecho en el editor del mismo proyecto, sin exportarlo y
+    # volver a subirlo (carga_formulario_del_editor.R). Body: { form_id }.
+    plumber::pr_post("/api/carga/instrumento/desde-editor", wrap_endpoint(function(req, res, form_id = NULL, ...) {
+      sid <- session_header(req)
+      meta <- .carga_subir_formulario_del_editor(sid, form_id)
+      c(.carga_procesar_instrumento(sid, meta), list(file_id = meta$file_id, original_name = meta$original_name))
     })) |>
     plumber::pr_get("/api/carga/instrumento/estructura",
                     wrap_endpoint(.carga_estructura_instrumento_endpoint)) |>

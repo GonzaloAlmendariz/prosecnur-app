@@ -1204,6 +1204,17 @@ export async function apiCargaInstrumento(file_id: string) {
   );
 }
 
+/** Usa en Carga el formulario del editor del mismo proyecto, sin exportarlo y volver a subirlo. */
+export async function apiCargaInstrumentoDelEditor(form_id: string) {
+  return handle<Awaited<ReturnType<typeof apiCargaInstrumento>> & { file_id: string; original_name: string }>(
+    await apiFetch("/api/carga/instrumento/desde-editor", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ form_id }),
+    })
+  );
+}
+
 export type Seccion = {
   name: string;
   label: string;

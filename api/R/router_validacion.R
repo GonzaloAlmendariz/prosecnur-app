@@ -1340,7 +1340,10 @@ mount_validacion <- function(pr) {
     #                 seccion, categoria, variables:[], variable_roles,
     #                 procesamiento, activa, n_inconsistencias, porcentaje},
     #     casos: [{uuid, ...campos}], uuid_col: string }
-    plumber::pr_post("/api/validacion/v2/instrumento/regla", wrap_endpoint(function(req, res, id_regla = NULL, ...) {
+    # Por páginas: `desde` (0 por defecto) y `limite` (500, hasta 2000); la
+    # respuesta trae `n_casos_total` (validacion_detalle_paginas.R).
+    plumber::pr_post("/api/validacion/v2/instrumento/regla", wrap_endpoint(function(req, res, id_regla = NULL,
+                                                                                    desde = NULL, limite = NULL, ...) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
@@ -1473,8 +1476,11 @@ mount_validacion <- function(pr) {
       # Extraer casos del primer elemento de aud$casos. El id de cada caso sale
       # de la misma función que la cola y GET /caso (validacion_caso_completo.R).
       casos_df <- if (length(aud$casos) > 0L) aud$casos[[1]] else NULL
+      pagina <- .validacion_pagina_de_casos(if (is.data.frame(casos_df)) nrow(casos_df) else 0L,
+                                            desde, limite)
       detalle_casos <- .validacion_drill_detalle_casos(scope, id_regla, casos_df,
-                                                       variable_roles, inst, sid = sid, base = base)
+                                                       variable_roles, inst, sid = sid, base = base,
+                                                       pagina = pagina$indices)
       case_ids <- detalle_casos$case_ids
       uuid_col <- detalle_casos$uuid_col
       value_label_vars <- unique(c(
@@ -1515,9 +1521,13 @@ mount_validacion <- function(pr) {
         uuid_col = uuid_col %||% NA_character_,
         case_ids = as.list(case_ids),
         casos = if (!is.null(casos_df)) {
-          .plan_rows_preview(utils::head(casos_df, 500L), n = 500L)
+          .plan_rows_preview(casos_df[pagina$indices, , drop = FALSE], n = length(pagina$indices))
         } else list(),
-        # Mismo orden y largo que `casos` (hasta 500). NA (null) por fila si la
+        n_casos_total = pagina$n_total,
+        desde = pagina$desde,
+        limite = pagina$limite,
+        hay_mas = pagina$hay_mas,
+        # Mismo orden y largo que `casos` (la página). NA (null) por fila si la
         # regla no tiene enunciado o no se pudo alinear con la auditoría.
         esperado = detalle_casos$esperado,
         # Solo en la regla de respuestas casi iguales: con quién coincide cada

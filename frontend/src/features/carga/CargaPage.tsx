@@ -62,7 +62,7 @@ import {
   type InstrumentoResumen,
   type SourceMode,
 } from "./pestanas/cargaPaginaModelo";
-import { quitarInsumo, subirInsumo } from "./pestanas/accionesDeInsumos";
+import { quitarInsumo, subirInsumo, usarFormularioDelEditor } from "./pestanas/accionesDeInsumos";
 import { AvisosDeCarga } from "./pestanas/AvisosDeCarga";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import { PANEL_AGREGAR_BASE } from "./panelesCarga";
@@ -717,6 +717,7 @@ export default function CargaPage() {
         onRevisarMapeo: setChoiceMappingReview,
         onSubir: onPick,
         onQuitar,
+        onUsarDelEditor: (f) => usarFormularioDelEditor(f, efectosDeInsumos),
         enlaceConRevision: state?.instrument_revision_binding,
       }}
     />

@@ -1,0 +1,36 @@
+/* "Usar el formulario del editor" dentro de la tarjeta del formulario (Carga, una base). */
+.pulso-carga-editor {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pulso-carga-editor-titulo {
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.pulso-carga-editor-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-carga-editor-fila > :first-child {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.pulso-carga-editor-nombre {
+  font-size: var(--pulso-type-body-size);
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.pulso-carga-editor-nota {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}

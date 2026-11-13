@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { CheckCircle2, Trash2, Upload, type LucideIcon } from "../../../vendor/lucide-react";
 
 export function UploadCard({
-  kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, busy, disabled, disabledHint, resumen, onPick, onRemove,
+  kind, icon: Icon, title, hint, whatIs, accept, acceptLabel, done, busy, disabled, disabledHint, resumen, alternativa, onPick, onRemove,
 }: {
   kind: "xlsform" | "data";
   icon: LucideIcon;
@@ -19,6 +19,8 @@ export function UploadCard({
   disabled?: boolean;
   disabledHint?: string;
   resumen: ReactNode | null;
+  /** Otra forma de obtener el insumo sin subir un archivo (el formulario del editor). */
+  alternativa?: ReactNode;
   onPick: (file?: File) => void;
   onRemove: () => void;
 }) {
@@ -99,6 +101,8 @@ export function UploadCard({
           style={{ display: "none" }}
         />
       </label>
+
+      {alternativa}
 
       {resumen && (
         <div className="pulso-upload-summary">

@@ -514,6 +514,8 @@ export type RolesSugerencias = {
   identidad: {
     llaves: Array<{ variable: string; distintos: number; porque: string }>;
     agentes: Array<{ variable: string; distintos: number; porque: string }>;
+    /** Columnas que se leen como fecha (misma lectura que "Fecha fuera del operativo"). */
+    fechas?: Array<{ variable: string; distintos: number; porque: string }>;
   };
   periodo: {
     columna: string;

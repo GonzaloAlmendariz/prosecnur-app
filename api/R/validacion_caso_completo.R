@@ -315,9 +315,11 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
 # los que la regla marca; si no, NA (null): una decisión armada con él se
 # rechaza al guardarla en vez de caer en otra fila.
 .validacion_drill_detalle_casos <- function(scope, id_regla, casos_df, variable_roles, inst,
-                                            sid = NULL, base = NULL) {
+                                            sid = NULL, base = NULL, pagina = NULL) {
   n_casos <- if (is.data.frame(casos_df)) nrow(casos_df) else 0L
-  n <- min(n_casos, 500L)
+  # Posiciones de `casos_df` que publica esta página (validacion_detalle_paginas.R).
+  if (is.null(pagina)) pagina <- seq_len(min(n_casos, 500L))
+  n <- length(pagina)
   ev <- scope$evaluacion
   identidad <- .limpieza_identidad_caso(scope)$variables
   mapa <- .limpieza_rule_case_map(ev, id_regla, identidad)
@@ -357,9 +359,13 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
   # `case_ids`.
   out$uuid_col <- if (!is.na(col) && col %in% names(casos_df) &&
                       identical(as.character(casos_df[[col]]), out$case_ids)) col else "_pulso_case_id"
+  # Desde aquí todo es de la página: `case_ids`, `esperado`, `contexto_por_caso`
+  # y `coincide_con` van paralelos a `casos`.
+  out$case_ids <- out$case_ids[pagina]
+  filas <- filas[pagina]
   if (all(is.na(filas))) return(out)
-  ids <- ids_tabla[utils::head(filas, n)]
-  if (is.list(columnas)) out$contexto_por_caso <- validacion_contexto_por_fila(df, utils::head(filas, n), columnas, inst)
+  ids <- ids_tabla[filas]
+  if (is.list(columnas)) out$contexto_por_caso <- validacion_contexto_por_fila(df, filas, columnas, inst)
   res <- ev$resumen
   fila <- as.list(res[which(as.character(res$id_regla) == id_regla)[1], , drop = FALSE])
   anomalia <- .validacion_anomalia_de_regla(scope, id_regla, fila)
@@ -367,7 +373,7 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
   vars_roles <- unique(c(as.character(unlist(roles$target %||% character(0))),
                          as.character(unlist(roles$drivers %||% character(0)))))
   out$esperado <- .validacion_esperado_por_fila(
-    anomalia, roles, df, utils::head(filas, n), ids,
+    anomalia, roles, df, filas, ids,
     etiquetas_valor = .drill_choice_value_labels(inst, vars_roles),
     regla = .validacion_contexto_enunciado(scope, id_regla, inst, especiales)
   )

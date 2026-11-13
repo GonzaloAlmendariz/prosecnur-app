@@ -331,6 +331,12 @@ export type InstrumentoDrillResult = {
   // no se le inventa uno. Normalizador: `normalizarCaseIds` (validacionAuditoria.ts).
   case_ids?: Array<string | null>;
   casos: Array<Record<string, unknown>>;
+  // El detalle va por páginas (`desde`, `limite`): `casos` es la página y
+  // `n_casos_total`, los casos que la regla marca en la auditoría.
+  n_casos_total?: number;
+  desde?: number;
+  limite?: number;
+  hay_mas?: boolean;
 };
 
 export async function apiV2InstrumentoBuildPlan(
@@ -397,12 +403,13 @@ export async function apiV2InstrumentoResultado(baseNombre?: string | null) {
 export async function apiV2InstrumentoDrill(
   id_regla: string,
   baseNombre?: string | null,
+  pagina?: { desde: number; limite: number },
 ) {
   return handle<InstrumentoDrillResult>(
     await apiFetch("/api/validacion/v2/instrumento/regla", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ id_regla }),
+      body: JSON.stringify(pagina ? { id_regla, desde: pagina.desde, limite: pagina.limite } : { id_regla }),
     }),
   );
 }

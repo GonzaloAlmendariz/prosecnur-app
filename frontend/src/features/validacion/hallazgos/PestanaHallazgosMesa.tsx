@@ -32,6 +32,7 @@ import { CentroDelHallazgo, type ModoDelCentro } from "./CentroDelHallazgo";
 import { Cola } from "./Cola";
 import { Decision, type AlcanceDeDecision, type AvisosDeDecision } from "./Decision";
 import { DecisionVacia, EsqueletoDeHallazgos, RevisionPorFamilia } from "./EstadosDeHallazgos";
+import { totalDeCasos } from "./detalleCompleto";
 import { PanelCaso } from "./PanelCaso";
 import { notaDelResultadoAnterior } from "./modeloFranjaDeAuditoria";
 import { PautasDeRevision } from "./PautasDeRevision";
@@ -249,7 +250,8 @@ export function PestanaHallazgosMesa() {
   };
 
   const marcados = useMemo(() => new Set(h.form.target_case_ids), [h.form.target_case_ids]);
-  const nCasos = vista === "casi-iguales" ? pares.length : tabla.filas.length || h.elegido?.n || 0;
+  // Los casos que la regla marca (`n_casos_total` del detalle), no los que trae una página.
+  const nCasos = vista === "casi-iguales" ? pares.length : totalDeCasos(h.drill) ?? (tabla.filas.length || h.elegido?.n || 0);
   const nMarcados = vista === "casi-iguales" ? pares.filter((p) => aMano[p.clave]).length : tabla.filas.filter((f) => f.id && marcados.has(f.id)).length;
   const rotulos = rotulosDeAlcance(nCasos, nMarcados, vista);
   const efectoListo = h.efecto.fase === "listo" ? h.efecto.efecto : h.efecto.fase === "midiendo" ? h.efecto.anterior : null;

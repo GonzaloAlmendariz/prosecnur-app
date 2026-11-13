@@ -45,7 +45,7 @@
     instrumento = preview_inst,
     choice_code_maps = .carga_editor_choice_code_maps(sid)
   )
-  .carga_exigir_base_que_calza(preview$compatibilidad, meta)
+  .carga_exigir_base_que_calza(preview$compatibilidad, meta, preview_inst)
   .carga_store_choice_code_maps(
     sid,
     preview$normalizacion$choice_code_maps %||% list(),
@@ -69,7 +69,7 @@
 #' nada y con lo que el usuario puede corregir: de un libro de Excel se lee la
 #' primera hoja, y la base digitada suele traer antes la hoja de códigos.
 #' @keywords internal
-.carga_exigir_base_que_calza <- function(compat, meta) {
+.carga_exigir_base_que_calza <- function(compat, meta, instrumento = NULL) {
   esperadas <- as.integer((compat %||% list())$expected_columns %||% 0L)
   faltan <- as.integer((compat %||% list())$n_missing %||% 0L)
   if (!isTRUE(compat$applied) || esperadas < 1L || faltan <= 0.5 * esperadas) {
@@ -81,17 +81,8 @@
   } else {
     character(0)
   }
-  causa <- if (length(hojas) > 1L) {
-    sprintf(" Se leyó la hoja \"%s\", la primera del libro; el libro trae también %s.",
-            hojas[[1]], paste0("\"", hojas[-1], "\"", collapse = ", "))
-  } else {
-    ""
-  }
-  stop_api(
-    400,
-    "E_DATA_XLSFORM_INCOMPATIBLE",
-    sprintf("Las respuestas no calzan con el formulario: de %d %s, %d no %s como columnas de la base.%s",
-            esperadas, if (esperadas == 1L) "pregunta" else "preguntas",
-            faltan, if (faltan == 1L) "aparece" else "aparecen", causa)
-  )
+  # El aviso dice qué trae la base, qué espera el formulario y qué hacer
+  # (carga_aviso_no_calza.R).
+  aviso <- .carga_aviso_no_calza(compat, instrumento, hojas = hojas)
+  stop_api(400, "E_DATA_XLSFORM_INCOMPATIBLE", aviso$message, details = aviso$details)
 }

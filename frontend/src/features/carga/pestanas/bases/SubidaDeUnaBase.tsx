@@ -10,6 +10,9 @@ import { RespuestasResumen, type DataPreview } from "../../RespuestasResumen";
 import { choiceMappingReviewFromPreview, type InstrumentoResumen } from "../cargaPaginaModelo";
 import { ResumenStat } from "../ResumenStat";
 import { UploadCard } from "../TarjetaSubida";
+import { FormularioDelEditor } from "./FormularioDelEditor";
+import type { FormularioDelEditor as FormularioEditable } from "./formularioDelEditorModelo";
+import { useFormulariosDelEditor } from "./useFormulariosDelEditor";
 
 export type SubidaDeUnaBaseProps = {
   ocupado: boolean;
@@ -24,6 +27,8 @@ export type SubidaDeUnaBaseProps = {
   onRevisarMapeo: (mapeo: ChoiceCodeMapReview | null) => void;
   onSubir: (tipo: "xlsform" | "data", archivo?: File) => void | Promise<void>;
   onQuitar: (tipo: "xlsform" | "data") => void | Promise<void>;
+  /** Usa el formulario hecho en el editor del proyecto; sin él, la opción no aparece. */
+  onUsarDelEditor?: (formulario: FormularioEditable) => void | Promise<void>;
 };
 
 export function SubidaDeUnaBase({
@@ -39,7 +44,9 @@ export function SubidaDeUnaBase({
   onRevisarMapeo,
   onSubir,
   onQuitar,
+  onUsarDelEditor,
 }: SubidaDeUnaBaseProps) {
+  const delEditor = useFormulariosDelEditor();
   return (
     <div className="pulso-upload-grid">
       <UploadCard
@@ -69,6 +76,9 @@ export function SubidaDeUnaBase({
             <ResumenStat label="Listas de opciones" value={formulario.n_listas_opciones} />
           </>
         )}
+        alternativa={onUsarDelEditor ? (
+          <FormularioDelEditor formularios={delEditor} ocupado={ocupado} onUsar={(f) => void onUsarDelEditor(f)} />
+        ) : null}
         onPick={(file) => onSubir("xlsform", file)}
         onRemove={() => onQuitar("xlsform")}
       />

@@ -10,6 +10,7 @@ import {
   type Seccion,
 } from "../../../api/client";
 import type { CambiosDeRespuestas } from "../../../api/estudio";
+import { apiCargaInstrumentoDelEditor } from "../../../api/xlsformEditor";
 import type { DataPreview } from "../RespuestasResumen";
 import { choiceMappingReviewFromPreview, type InstrumentoResumen } from "./cargaPaginaModelo";
 
@@ -102,6 +103,26 @@ export async function subirInsumo(
     // Tras subir data manualmente, revisa si trae variables ajenas al
     // formulario y abre la reconciliación si las hay.
     if (kind === "data") await loadReconciliacion(true);
+  } catch (e: unknown) {
+    setError((e as Error).message);
+  } finally {
+    setBusy("");
+  }
+}
+
+/** El formulario hecho en el editor del proyecto pasa a ser el formulario de la base. */
+export async function usarFormularioDelEditor(
+  formulario: { id: string; nombre: string },
+  efectos: Pick<EfectosDeInsumos, "setError" | "setBusy" | "setInstrumento" | "setEstructura" | "refresh">,
+) {
+  const { setError, setBusy, setInstrumento, setEstructura, refresh } = efectos;
+  setError("");
+  setBusy(`Usando el formulario "${formulario.nombre}" del editor`);
+  try {
+    const r = await apiCargaInstrumentoDelEditor(formulario.id);
+    setInstrumento(r.resumen);
+    setEstructura(null);
+    await refresh();
   } catch (e: unknown) {
     setError((e as Error).message);
   } finally {

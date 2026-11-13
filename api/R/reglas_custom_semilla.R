@@ -537,10 +537,11 @@ reglas_semilla_continuidad <- function(data, reglas_existentes = list()) {
 # más que esto deja de ser "quitar la cola" y empieza a ser recortar el campo.
 .semilla_periodo_cobertura <- 0.99
 
+# Con la lectura de las reglas de fechas (validacion_regla_fechas.R): entiende
+# "2026-08-03T10:00:00", "08.10.2026" y "08/10/26", no solo aaaa-mm-dd.
 .semilla_como_fecha <- function(x) {
-  v <- trimws(as.character(x))
-  v <- substr(v, 1, 10)                       # tolera "2026-08-03T10:00:00"
-  suppressWarnings(as.Date(v, format = "%Y-%m-%d"))
+  if (!length(x)) return(as.Date(character(0)))
+  .roles_leer_fecha(x)$fecha
 }
 
 # Columnas que parecen una fecha de trabajo de campo: parsean como fecha en casi
@@ -650,87 +651,20 @@ reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list
 #'
 #' El analista declara los roles una vez, pero elegir entre 190 columnas a mano
 #' es hostil. Esto perfila la base y propone candidatos para confirmar. No
-#' decide nada: es material para un selector.
+#' decide nada: es material para un selector. Cada rol se propone por el
+#' contenido de la columna, no por su nombre (validacion_roles_por_contenido.R).
 #'
-#' Llave de caso = casi todos sus valores distintos y cobertura alta.
-#' Agente = pocos valores distintos frente al total de casos, cobertura alta.
+#' Llave de caso = un valor distinto en casi cada fila; no es fecha ni dato personal.
+#' Agente = texto con pocos valores distintos que se repiten; no es fecha.
+#' Fecha = se lee como fecha con la lectura de las reglas de fechas.
 #'
 #' @param data data.frame de la base cargada.
 #' @param max_por_rol cuántos candidatos devolver por rol.
-#' @return lista con `llaves` y `agentes`, cada uno con nombre y por qué.
+#' @return lista con `llaves`, `agentes` y `fechas`, cada uno con nombre y por qué.
 #' @family validacion
 #' @export
 identidad_candidatas <- function(data, max_por_rol = 3L) {
-  vacio <- list(llaves = list(), agentes = list())
-  if (!is.data.frame(data) || !nrow(data) || !ncol(data)) return(vacio)
-  n <- nrow(data)
-
-  # Proporción de valores que parecen un nombre de persona: letras y espacio,
-  # sin dígitos. Es la señal que separa la columna del equipo de una pregunta
-  # abierta con pocas respuestas repetidas — la cardinalidad sola no las
-  # distingue, y ordenar solo por ella deja al encuestador fuera del top.
-  .parece_nombre <- function(v) {
-    if (!length(v)) return(0)
-    mean(grepl("^[[:alpha:]][[:alpha:][:space:].'-]+[[:space:]][[:alpha:].'-]+$", v))
-  }
-
-  # Una columna de sólo números o fechas (edad, año, códigos de respuesta,
-  # `date`) no es quien recolectó: en una encuesta autoadministrada eran todas
-  # las candidatas (HSyVbG 2026: P1 edad, date, P5…). Se admite si su nombre
-  # dice que es el equipo de campo, que también se identifica con códigos.
-  .solo_numeros_o_fechas <- function(v) {
-    if (!length(v)) return(TRUE)
-    all(grepl("^-?[0-9]+([.,][0-9]+)?$|^[0-9]{4}-[0-9]{2}-[0-9]{2}", v))
-  }
-  .nombre_de_agente <- function(nm) {
-    grepl("encuest|entrevist|enumer|agente|operador|interviewer|username|submitted_by|supervis|aplicador",
-          tolower(nm))
-  }
-
-  perfil <- lapply(names(data), function(nm) {
-    v <- .semilla_valores_utiles(data[[nm]])
-    u <- unique(v)
-    list(nombre = nm, cobertura = length(v) / n,
-         distintos = length(u), ratio = length(u) / max(n, 1L),
-         nominal = .parece_nombre(u),
-         por_nombre = .nombre_de_agente(nm),
-         numerica = .solo_numeros_o_fechas(as.character(u)))
-  })
-  perfil <- Filter(function(p) p$cobertura >= 0.8 && p$distintos > 1L, perfil)
-
-  llaves <- Filter(function(p) p$ratio >= 0.9, perfil)
-  llaves <- llaves[order(-vapply(llaves, function(p) p$ratio, numeric(1)))]
-  # Ordenar por "menos distintos" pone primero toda dicotómica de respuesta y
-  # entierra la columna del equipo. Un equipo de campo tiene varias personas, no
-  # dos, así que se prefieren las de más valores dentro del rango plausible.
-  agentes <- Filter(function(p) p$distintos >= 2L && p$distintos <= 50L &&
-                                p$ratio < 0.5 && (isTRUE(p$por_nombre) || !isTRUE(p$numerica)), perfil)
-  # Primero las que parecen nombres de persona; entre iguales, las de más
-  # valores: un equipo de campo tiene varias personas, no dos.
-  agentes <- agentes[order(
-    -vapply(agentes, function(p) as.numeric(p$por_nombre), numeric(1)),
-    -vapply(agentes, function(p) p$nominal, numeric(1)),
-    -vapply(agentes, function(p) p$distintos, numeric(1))
-  )]
-
-  fmt <- function(p, rol) list(
-    variable = p$nombre,
-    distintos = as.integer(p$distintos),
-    cobertura = round(p$cobertura, 3),
-    porque = if (identical(rol, "llave")) {
-      sprintf("%d valores distintos en %d casos: identifica casi uno a uno.", p$distintos, n)
-    } else if (isTRUE(p$por_nombre)) {
-      sprintf("El nombre de la columna lo indica; %d personas o códigos distintos.", p$distintos)
-    } else if (p$nominal >= 0.5) {
-      sprintf("Sus %d valores parecen nombres de personas.", p$distintos)
-    } else {
-      sprintf("%d valores de texto que se repiten entre casos.", p$distintos)
-    }
-  )
-  list(
-    llaves = lapply(utils::head(llaves, max_por_rol), fmt, rol = "llave"),
-    agentes = lapply(utils::head(agentes, max_por_rol), fmt, rol = "agente")
-  )
+  .roles_candidatas_por_contenido(data, max_por_rol = max_por_rol)
 }
 
 # --- Lo que el instrumento no acotó -------------------------------------------

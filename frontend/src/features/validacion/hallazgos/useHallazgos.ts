@@ -16,6 +16,7 @@
  * cola: lo que se ve es lo que el motor tiene.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cargarDetalleCompleto } from "./detalleCompleto";
 import {
   apiV2InstrumentoDrill,
   apiV2Limpieza,
@@ -155,7 +156,8 @@ export function useHallazgos({ foco, onElegir }: {
     }
     let vigente = true;
     setCasos({ fase: "cargando" });
-    apiV2InstrumentoDrill(elegidoId, baseNombre).then(
+    // Todas las páginas del detalle: la tabla, el caso y la Decisión cuentan los casos que la regla marca.
+    cargarDetalleCompleto((pagina) => apiV2InstrumentoDrill(elegidoId, baseNombre, pagina)).then(
       (drill) => { if (vigente) setCasos({ fase: "lista", id: elegidoId, drill }); },
       (e) => { if (vigente) setCasos({ fase: "error", id: elegidoId, mensaje: (e as Error).message }); },
     );
