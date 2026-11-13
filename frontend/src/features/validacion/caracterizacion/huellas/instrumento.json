@@ -1,6 +1,6 @@
 {
   "instrumento_auditoria-refresca-la-cola": {
-    "marcado": "7b8cc813b015249c4bb0a7bfe341777473a46ac7c1e5561cd573f48916399b5a",
+    "marcado": "7f23698169559cf027f5a9254563fd1af189bddfe5a0431dfffe2fda5159672c",
     "pedidos": "e8c90ed3e5ec810d513f1f356f81d4d484f8f5819e139b5d0844f87d8ff4c062",
     "guardado": [
       "POST /api/validacion/v2/auditoria [base=default]\n",
@@ -8,7 +8,7 @@
     ]
   },
   "instrumento_con-auditoria": {
-    "marcado": "7b8cc813b015249c4bb0a7bfe341777473a46ac7c1e5561cd573f48916399b5a",
+    "marcado": "7f23698169559cf027f5a9254563fd1af189bddfe5a0431dfffe2fda5159672c",
     "pedidos": "d0d9f8d183f6abacbfbdd40ecc433b760c440029ccba8a91dbf9c1948fcca79d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
@@ -40,14 +40,14 @@
     "pedidos": "ddbbd87cd6fd28015789e805bae6b20389e4c1a6fbeab2b45695eac18fb8c17b"
   },
   "instrumento_dos-bases": {
-    "marcado": "7b8cc813b015249c4bb0a7bfe341777473a46ac7c1e5561cd573f48916399b5a",
+    "marcado": "7f23698169559cf027f5a9254563fd1af189bddfe5a0431dfffe2fda5159672c",
     "pedidos": "259c3489d73cf4b8f3bff69b9b66b8e0ba32a1e474d5915a20cdf750d5f0f6e3",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=estudiantes]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "instrumento_ejecutar-auditoria": {
-    "marcado": "d5822b0cf268bd106c7af50fd9e5adde80e3c69366be2ebaae3be6cabee04f48",
+    "marcado": "a5210bdb6ac5b3a2f5d49b4cacb8ffa7e938e967b0625fa90e42fe55aeb7ecb2",
     "pedidos": "bb0b8c6645ee921e32c44a6a9daaf4ede9031d9f6e682375804d653aab61c00c",
     "guardado": [
       "POST /api/validacion/v2/auditoria [base=default]\n"
@@ -65,7 +65,7 @@
     ]
   },
   "instrumento_madre-e-hija": {
-    "marcado": "7b8cc813b015249c4bb0a7bfe341777473a46ac7c1e5561cd573f48916399b5a",
+    "marcado": "7f23698169559cf027f5a9254563fd1af189bddfe5a0431dfffe2fda5159672c",
     "pedidos": "379567a83a834e38f7e17925508cfa9f37a1f64958b6bcca3ba3ce73c0704672",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=miembros]\n{\"id_regla\":\"RC_001\"}"
@@ -76,7 +76,7 @@
     "pedidos": "dddc35067cce8019ac184d90402c620c37d15d2ed0dbe1611c6dee80fb37065e"
   },
   "instrumento_panel-por-clic": {
-    "marcado": "ecf2301db219fcae8559eaec21023a4aac2bc839b2cd10363d6d04e6a33e3ddf",
+    "marcado": "887d1fc8b88548b8ae68a59abe0a7519ec2157ba7be1c469a9d6b283b4197c8f",
     "pedidos": "a5c33710df7472f51679e5dde9f860ee9d9986fabf80015bc872a3b987f5a8e0",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -85,7 +85,7 @@
     ]
   },
   "instrumento_panel-por-direccion_con-casos": {
-    "marcado": "e59238bb70f3cd6dbc157fd7cc8c9c82a65d299f43dafc20e6a77388ef509dac",
+    "marcado": "ed6444bef0481f14662253f96a90fab362e3c109a4f92a83996da74974562a1e",
     "pedidos": "e0863cf872e3105e046fea81ad3bd4ae79c5bd08bbd011f2adba3d09ce5a23be",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"R_REQ_EDAD\"}",
@@ -93,21 +93,21 @@
     ]
   },
   "instrumento_panel-por-direccion_inexistente": {
-    "marcado": "69c3353eef36c03d2dd0504d921d3041ac918bc7a1fd091f8d69d84600fd1530",
+    "marcado": "1ecf7d974eabf4cac9614fc247ca8d1b23344b398f1774d805ee2073a961c036",
     "pedidos": "d0d9f8d183f6abacbfbdd40ecc433b760c440029ccba8a91dbf9c1948fcca79d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "instrumento_panel-por-direccion_sin-casos": {
-    "marcado": "05b7a63d6036065e5502d2f7dd66f2bb4dff2cfc73b3ff0d01f3833cb4c7db07",
+    "marcado": "ac3305dfeb717ef86cc165518fa30b96d1ccb9e09ef7f5745b14adce07a208dd",
     "pedidos": "d0d9f8d183f6abacbfbdd40ecc433b760c440029ccba8a91dbf9c1948fcca79d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "instrumento_plan-sin-auditoria": {
-    "marcado": "19ee951cd2fd9256687fcc2f4b3e4b9c18d8264794f758685c79d1ed3e671b62",
+    "marcado": "d6f0d30b59ddd5a14a6e254efb5726e93c79ed2302eac7b0ba08f74ce46343e8",
     "pedidos": "e6eedc8ef728d0d2b51a6fc776bf5d8018b122f4d79f3b341d0a47b9e3f13e86"
   },
   "instrumento_reponer-variable": {

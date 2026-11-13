@@ -4,8 +4,8 @@
  *
  *  - `EsqueletoDeHallazgos`: las tres columnas con su silueta mientras se lee
  *    la cola; la carga de bloque retiene la marca de la pestaña.
- *  - `RevisionPorFamilia`: "Qué se va a revisar" (sin auditar: reglas y
- *    activas por familia) o "Qué se revisó" (sin hallazgos: reglas y casos),
+ *  - `RevisionPorFamilia`: "Reglas por auditar" (sin auditar: reglas y
+ *    activas por familia) o "Reglas auditadas" (sin hallazgos: reglas y casos),
  *    con su total y "Ver las reglas".
  *  - `DecisionVacia`: la columna "Decisión" sin hallazgo elegido, sin nada que
  *    decidir o sin casos a la vista.
@@ -73,7 +73,7 @@ export function RevisionPorFamilia({
   aplicadas?: number | null;
   onVerReglas: () => void;
 }) {
-  const titulo = auditada ? "Qué se revisó" : "Qué se va a revisar";
+  const titulo = auditada ? "Reglas auditadas" : "Reglas por auditar";
   const acciones = (
     <PulsoButton variant="secondary" size="sm" onClick={onVerReglas}>
       <ListChecks size={14} aria-hidden="true" />

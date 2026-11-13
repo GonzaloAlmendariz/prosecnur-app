@@ -522,6 +522,11 @@
     justify-content: flex-start;
   }
 
+  /* El encabezado de lo que falla se apoya abajo, como los demás. */
+  .pulso-hz-tabla--casos .pulso-hz-tabla-cabecera > [data-tipo="falla"] {
+    justify-content: flex-end;
+  }
+
   .pulso-hz-tabla--casos[data-desborde="derecha"] .pulso-hz-tabla-fila > [data-tipo="falla"],
   .pulso-hz-tabla--casos[data-desborde="ambos"] .pulso-hz-tabla-fila > [data-tipo="falla"] {
     box-shadow:
@@ -587,6 +592,10 @@
     var(--pulso-space-3) 0 0 0 var(--pulso-hz-fondo-fila);
 }
 
+.pulso-hz-tabla--casos .pulso-hz-tabla-cabecera > :nth-child(-n + 2) {
+  align-items: flex-end;
+}
+
 .pulso-hz-tabla--casos .pulso-hz-tabla-vacia > :nth-child(1) {
   position: static;
   box-shadow: none;
@@ -612,12 +621,6 @@
 .pulso-hz-tabla-fila > .pulso-hz-tabla-respuestas {
   grid-row: 2;
   grid-column: 3 / -1;
-}
-
-/* El rótulo nombra preguntas por su código: sin versalitas. */
-.pulso-hz-tabla-cabecera > .pulso-hz-tabla-respuestas {
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .pulso-hz-respuestas-fila {
@@ -657,26 +660,104 @@
   text-align: end;
 }
 
-/* Una frase del motor (lo medido en una batería, lo leído de una fecha) se lee
-   desde el inicio, no alineada a la derecha como una cifra. */
+/* Un texto (una fecha, una respuesta, lo medido en una batería) se lee desde
+   el inicio, no alineado a la derecha como una cifra. */
 .pulso-hz-tabla-fila > [data-frase] {
   text-align: start;
 }
 
-.pulso-hz-tabla-fila > [data-frase] > .pulso-hz-falla {
-  text-align: start;
-}
-
+/* Encabezados en castellano normal, sin versalitas (ítem 37). Bajo el rótulo,
+   lo que es igual en todas las filas de la columna ("Cierre del operativo:
+   31/10/2026"): se dice una vez aquí y no en cada fila. */
 .pulso-hz-tabla-cabecera {
   --pulso-hz-fondo-fila: var(--pulso-surface-2);
+  align-items: end;
   min-height: 38px;
+  padding-block: var(--pulso-space-2);
   border-top: 0;
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-faint);
-  font-size: var(--pulso-type-micro-size);
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.3;
+}
+
+.pulso-hz-cabecera-rotulo,
+.pulso-hz-cabecera-detalle {
+  display: block;
+}
+
+.pulso-hz-cabecera-detalle {
+  margin-block-start: 2px;
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La columna que falla se reconoce por su encabezado, no por una pastilla en cada fila. */
+.pulso-hz-tabla-cabecera > [data-falla="inconsistencia"] .pulso-hz-cabecera-rotulo {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-hz-tabla-cabecera > [data-falla="revisar"] .pulso-hz-cabecera-rotulo {
+  color: var(--pulso-warn-fg);
+}
+
+/* Una celda: el valor y, en gris en la misma línea, el original registrado o lo que cambia por fila. */
+.pulso-hz-celda {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--pulso-space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-hz-celda-valor[data-falla] {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-hz-celda-gris {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+}
+
+/* Lo que es igual en todos los casos, dicho una vez encima de la tabla. */
+.pulso-hz-comunes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  padding: 0 var(--pulso-space-5) var(--pulso-space-3);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-hz-comunes-titulo {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-hz-comunes dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  margin: 0;
+}
+
+.pulso-hz-comunes dl > div {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-hz-comunes dt {
+  color: var(--pulso-text-muted);
+}
+
+.pulso-hz-comunes dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .pulso-hz-tabla-fila[data-marcada] {
@@ -785,19 +866,6 @@
 .pulso-hz-falla[data-tono="revisar"] {
   background: color-mix(in srgb, var(--pulso-warn-accent) 12%, var(--pulso-surface));
   color: var(--pulso-warn-fg);
-}
-
-/* Lo leído en una regla de fechas: una línea ("08.11.2026 → 08/11/2026") y el motivo debajo. */
-.pulso-hz-falla--linea {
-  white-space: nowrap;
-}
-
-.pulso-hz-falla-motivo {
-  display: block;
-  margin-block-start: var(--pulso-space-1);
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-  line-height: 1.35;
 }
 
 /* ---------- Salto: los dos sentidos ---------- */

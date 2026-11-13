@@ -62,7 +62,7 @@ describe("Validación, Cierre de base: estados", () => {
   escenario("limpieza_sin-auditoria", "sin auditoría: cola vacía con Auditar, qué se va a revisar y la decisión vacía", async () => {
     await montar({ ...UNA_BASE, pestana: "hallazgos", rutas: rutasHallazgos(limpieza({ auditoria: false })) });
     expect(hay(".pulso-panel-de-mesa--cola", "La base no se ha auditado")).toBe(true);
-    expect(hay(".pulso-panel-de-mesa--hallazgo", "Qué se va a revisar")).toBe(true);
+    expect(hay(".pulso-panel-de-mesa--hallazgo", "Reglas por auditar")).toBe(true);
     expect(hay(".pulso-cabecera-pestana-estado", "Sin auditar")).toBe(true);
     fijar("limpieza_sin-auditoria");
   });

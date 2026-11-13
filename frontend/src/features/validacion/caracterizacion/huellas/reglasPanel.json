@@ -22,7 +22,7 @@
     "pedidos": "3eb6856892696adb1306fec44e72a586c8842aa8ed1f7ce51ac91bb930da4ec8"
   },
   "reglas-panel_guardar-y-auditar": {
-    "marcado": "2a500062f0b47102299ad242293eb4eac3134dfb81dcc1121dbcfc4803dc0487",
+    "marcado": "cdf7bec66613f3281400e68d8b4150259435f24e51ca649d95b1058ebaae8421",
     "pedidos": "bcfac7df010cfa663235d4c3a5c0995938ca47cba279a326e5ae85c62467b85c",
     "guardado": [
       "PUT /api/validacion/v2/reglas_custom/RC_001 [base=default]\n{\"id\":\"RC_001\",\"activa\":true,\"nombre\":\"Edad entre 16 y 25\",\"tipo\":\"rango_num\",\"variables\":[\"edad\"],\"params\":{\"min\":\"16\",\"max\":\"25\"},\"mensaje\":\"Edad fuera del rango del estudio\",\"severidad\":\"error\",\"hallazgo_kind\":\"inconsistencia_usuario\",\"planned_action_type\":\"ignore_rule\",\"recommended_scope\":\"single\",\"gate_expr\":\"\",\"gate_conditions\":[]}",

@@ -1,9 +1,14 @@
 /**
  * Los casos del hallazgo (prototipo `selHall` y `pp-v-casos`, `vistas.js:162`):
  * "3 marcados de 7", "Marcar los 7", "Buscar un caso" y la tabla con la marca
- * de cada fila, el caso (que abre el caso completo), las columnas de contexto
- * que el estudio declaró, las preguntas que deciden la regla y, al final, la
- * que falla, resaltada.
+ * de cada fila, el caso (el N.º de encuesta si el estudio lo declaró, que abre
+ * el caso completo), las columnas de contexto, las preguntas que deciden la
+ * regla y, al final, la que falla.
+ *
+ * Cada cosa se dice una vez (`compactarTabla`, ítem 37): el motivo común de lo
+ * que falla va bajo su encabezado y una columna igual en todos los casos sale
+ * de la tabla y se dice encima. La fila lleva solo lo que cambia, sin pastilla
+ * de color: el estado del caso lo dice la marca.
  *
  * Es una rejilla con roles de tabla a ancho completo. El scroll vertical es
  * del cuerpo del contenedor; cada columna tiene un ancho mínimo legible y, si
@@ -22,13 +27,14 @@ import { formatoConteo } from "../../../../lib/formatoNumero";
 import type { ColumnaDeCaso, FilaDeCaso } from "../modeloHallazgos";
 import { rotuloDeCaso } from "../../rotuloDeCaso";
 import {
-  CLAVE_LECTURA_DE_FECHAS,
+  compactarTabla,
   disposicionDeTabla,
   esFrase,
-  lecturaEnUnaLinea,
   rotuloDeRespuestas,
   tituloDeRespuesta,
   valorCorto,
+  type CeldaDeCaso,
+  type ColumnaDeTabla,
 } from "./modeloTablaDeCasos";
 import { useDesbordeHorizontal } from "./useDesbordeHorizontal";
 
@@ -68,7 +74,9 @@ export function TablaDeCasos({
   const marcablesN = filas.filter((f) => f.id !== null).length;
   const nMarcados = filas.filter((f) => f.id !== null && marcados.has(f.id)).length;
   const todos = marcablesN > 0 && nMarcados === marcablesN;
-  const disposicion = useMemo(() => disposicionDeTabla(columnas), [columnas]);
+  const tabla = useMemo(() => compactarTabla(columnas, filas), [columnas, filas]);
+  const disposicion = useMemo(() => disposicionDeTabla(tabla.columnas), [tabla.columnas]);
+  const detalleDe = (c: ColumnaDeCaso) => tabla.columnas.find((x) => x.clave === c.clave)?.detalle ?? null;
   const tablaRef = useRef<HTMLDivElement>(null);
   const desborde = useDesbordeHorizontal(tablaRef);
   const conFila = disposicion.enFila.length > 0;
@@ -85,7 +93,7 @@ export function TablaDeCasos({
         </span>
         {marcable && marcablesN > 0 ? (
           <PulsoButton variant="link" size="sm" onClick={() => onMarcarTodos(!todos)}>
-            {todos ? "Quitar las marcas" : `Marcar los ${formatoConteo(marcablesN)}`}
+            {todos ? (marcablesN === 1 ? "Quitar la marca" : "Quitar las marcas") : marcablesN === 1 ? "Marcar el caso" : `Marcar los ${formatoConteo(marcablesN)}`}
           </PulsoButton>
         ) : null}
         <span className="pulso-hz-seleccion-hueco" />
@@ -101,6 +109,19 @@ export function TablaDeCasos({
           />
         </label>
       </div>
+      {tabla.comunes.length > 0 ? (
+        <div className="pulso-hz-comunes">
+          <span className="pulso-hz-comunes-titulo">Común a los {formatoConteo(filas.length)} casos</span>
+          <dl>
+            {tabla.comunes.map((c) => (
+              <div key={c.clave}>
+                <dt>{c.rotulo}</dt>
+                <dd data-falla={c.falla ? tono : undefined}><Celda celda={c.celda} /></dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
       <div
         className="pulso-hz-tabla pulso-hz-tabla--casos"
         role="table"
@@ -116,9 +137,9 @@ export function TablaDeCasos({
       >
         <div className="pulso-hz-tabla-fila pulso-hz-tabla-cabecera" role="row">
           <span role="columnheader"><span className="pulso-sr-only">Marca</span></span>
-          <span role="columnheader">Caso</span>
+          <span role="columnheader">{tabla.columnaDelCaso?.rotulo ?? "Caso"}</span>
           {disposicion.columnas.map((c) => (
-            <span key={c.clave} role="columnheader" data-tipo={c.tipo} data-frase={esFrase(c) ? "" : undefined} title={c.rotulo}>{c.rotulo}</span>
+            <Encabezado key={c.clave} columna={c} detalle={detalleDe(c)} tono={tono} />
           ))}
           {conFila ? (
             <span role="columnheader" className="pulso-hz-tabla-respuestas">{rotuloDeRespuestas(disposicion.enFila)}</span>
@@ -130,6 +151,9 @@ export function TablaDeCasos({
           </div>
         ) : visibles.map((f) => {
           const marcado = f.id !== null && marcados.has(f.id);
+          const celdas = tabla.celdas.get(f.clave) ?? {};
+          const numero = tabla.columnaDelCaso ? f.valores[tabla.columnaDelCaso.clave] : undefined;
+          const nombre = f.id ? (numero && numero !== "Sin dato" ? numero : rotuloDeCaso(f.id).texto) : null;
           return (
             <div key={f.clave} className="pulso-hz-tabla-fila" role="row" data-marcada={marcado ? "" : undefined}>
               <span role="cell">
@@ -137,7 +161,7 @@ export function TablaDeCasos({
                   type="button"
                   className="pulso-hz-marca"
                   aria-pressed={marcado}
-                  aria-label={f.id ? `Marcar el caso ${rotuloDeCaso(f.id).texto}` : "Caso sin identificador"}
+                  aria-label={nombre ? `Marcar el caso ${nombre}` : "Caso sin identificador"}
                   disabled={!marcable || f.id === null}
                   onClick={() => f.id && onMarcar(f.id)}
                 />
@@ -150,7 +174,7 @@ export function TablaDeCasos({
                     title={rotuloDeCaso(f.id).texto === f.id ? "Ver el caso completo" : `Ver el caso completo. ${rotuloDeCaso(f.id).titulo}`}
                     onClick={() => onAbrirCaso(f.id as string)}
                   >
-                    {rotuloDeCaso(f.id).texto}
+                    {nombre}
                   </button>
                 ) : (
                   <span className="pulso-hz-sin-id">Sin identificador</span>
@@ -158,7 +182,7 @@ export function TablaDeCasos({
               </span>
               {disposicion.columnas.map((c) => (
                 <span key={c.clave} role="cell" data-tipo={c.tipo} data-frase={esFrase(c) ? "" : undefined}>
-                  {c.tipo === "falla" ? <Falla columna={c} fila={f} tono={tono} /> : f.valores[c.clave]}
+                  <Celda celda={celdas[c.clave]} falla={c.tipo === "falla"} />
                 </span>
               ))}
               {conFila ? (
@@ -185,19 +209,29 @@ export function TablaDeCasos({
   );
 }
 
-/**
- * El valor que falla. En una regla de fechas, lo leído en una línea
- * ("08.11.2026 → 08/11/2026") y el motivo debajo; el enunciado entero, en el título.
- */
-function Falla({ columna, fila, tono }: { columna: ColumnaDeCaso; fila: FilaDeCaso; tono: "inconsistencia" | "revisar" }) {
-  const lectura = columna.clave === CLAVE_LECTURA_DE_FECHAS ? lecturaEnUnaLinea(fila.esperado) : null;
-  if (lectura) {
-    return (
-      <>
-        <b className="pulso-hz-falla pulso-hz-falla--linea" data-tono={tono} title={fila.valores[columna.clave]}>{lectura.lectura}</b>
-        {lectura.motivo ? <small className="pulso-hz-falla-motivo">{lectura.motivo}</small> : null}
-      </>
-    );
-  }
-  return <b className="pulso-hz-falla" data-tono={tono} title={fila.esperado?.hecho ?? undefined}>{fila.valores[columna.clave]}</b>;
+function Encabezado({ columna, detalle, tono }: { columna: ColumnaDeTabla | ColumnaDeCaso; detalle: string | null; tono: "inconsistencia" | "revisar" }) {
+  return (
+    <span
+      role="columnheader"
+      data-tipo={columna.tipo}
+      data-frase={esFrase(columna) ? "" : undefined}
+      data-falla={columna.tipo === "falla" ? tono : undefined}
+      title={detalle ? `${columna.rotulo}. ${detalle}` : columna.rotulo}
+    >
+      <span className="pulso-hz-cabecera-rotulo">{columna.rotulo}</span>
+      {detalle ? <span className="pulso-hz-cabecera-detalle">{detalle}</span> : null}
+    </span>
+  );
+}
+
+/** Una celda: el valor y, en gris en la misma línea, el original registrado y lo que cambia por fila. */
+function Celda({ celda, falla = false }: { celda: CeldaDeCaso | undefined; falla?: boolean }) {
+  if (!celda) return null;
+  return (
+    <span className="pulso-hz-celda" title={celda.titulo ?? undefined}>
+      <span className="pulso-hz-celda-valor" data-falla={falla ? "" : undefined}>{celda.valor}</span>
+      {celda.original ? <span className="pulso-hz-celda-gris">{celda.original}</span> : null}
+      {celda.nota ? <span className="pulso-hz-celda-gris">{celda.nota}</span> : null}
+    </span>
+  );
 }

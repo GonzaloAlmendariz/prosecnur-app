@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { InstrumentoDrillResult } from "../../../../api/validacion";
-import { tablaDeCasos, type ColumnaDeCaso } from "../modeloHallazgos";
+import { tablaDeCasos, type ColumnaDeCaso, type FilaDeCaso } from "../modeloHallazgos";
 import {
   CLAVE_LECTURA_DE_FECHAS,
   CLAVE_PATRON_DE_BATERIA,
+  compactarTabla,
+  detalleDeFormato,
   disposicionDeTabla,
+  formatoEsperado,
   ladoDelDesborde,
-  lecturaEnUnaLinea,
+  lecturaDeFecha,
+  motivoDeFecha,
   rotuloDeRespuestas,
   tituloDeRespuesta,
   valorCorto,
@@ -65,19 +69,26 @@ describe("respuestas en código corto", () => {
   });
 });
 
-describe("lo leído de una fecha en una línea", () => {
-  const esperado = (hecho: string, choque: string | null) => ({ anomalia_tipo: null, subtipo: "fechas", sujeto: null, hecho, choque, accion: null, texto: null });
-  it("con lo registrado distinto de lo leído: original → leído, y el motivo aparte", () => {
-    expect(lecturaEnUnaLinea(esperado("registró \"08.11.2026\" (08/11/2026) en fecha", "posterior al cierre del operativo (31/10/2026)"))).toEqual({
-      lectura: "08.11.2026 → 08/11/2026",
-      motivo: "posterior al cierre del operativo (31/10/2026)",
-    });
+const esperado = (hecho: string, choque: string | null) => ({ anomalia_tipo: null, subtipo: null, sujeto: null, hecho, choque, accion: null, texto: null });
+
+describe("lo leído de una fecha", () => {
+  it("separa lo leído del texto original y reconoce la pregunta, con o sin ella en el enunciado", () => {
+    expect(lecturaDeFecha("registró \"08.11.2026\" (08/11/2026) en Fecha de la entrevista")).toEqual({ valor: "08/11/2026", original: "08.11.2026", rotulo: "Fecha de la entrevista", diferencia: false });
+    expect(lecturaDeFecha("registró \"01.11.2026\" (01/11/2026)")).toEqual({ valor: "01/11/2026", original: "01.11.2026", rotulo: null, diferencia: false });
+    expect(lecturaDeFecha("registró 10:15 en la hora armada con h, mi y ampm")?.valor).toBe("10:15");
+    expect(lecturaDeFecha("registró \"32.13.2026\" en fecha")).toEqual({ valor: "32.13.2026", original: null, rotulo: "fecha", diferencia: false });
+    expect(lecturaDeFecha("pasaron 3 horas entre Inicio (10:00) y Fin (13:00)")).toEqual({ valor: "3 horas", original: null, rotulo: null, diferencia: true });
+    expect(lecturaDeFecha("otra cosa")).toBeNull();
+    expect(lecturaDeFecha(null)).toBeNull();
   });
-  it("con lo registrado igual a lo leído o sin poder leerlo, el valor; otro enunciado, entero", () => {
-    expect(lecturaEnUnaLinea(esperado("registró 10:15 en la hora armada con h, mi y ampm", "anterior a \"10.3\" (10:30) en Hora de inicio"))?.lectura).toBe("10:15");
-    expect(lecturaEnUnaLinea(esperado("registró \"32.13.2026\" en fecha", "que no se puede leer como dd.mm.aaaa"))?.lectura).toBe("32.13.2026");
-    expect(lecturaEnUnaLinea(esperado("pasaron 3 horas entre Inicio (10:00) y Fin (13:00)", "más que el máximo de 90 minutos"))).toBeNull();
-    expect(lecturaEnUnaLinea(null)).toBeNull();
+
+  it("el motivo se nombra como lo dice el operativo, para decirlo una vez", () => {
+    expect(motivoDeFecha("posterior al cierre del operativo (31/10/2026)")).toEqual({ encabezado: "Cierre del operativo: 31/10/2026", corto: "después del cierre" });
+    expect(motivoDeFecha("anterior al inicio del operativo (08/10/2026)")?.encabezado).toBe("Inicio del operativo: 08/10/2026");
+    expect(motivoDeFecha("que no se puede leer como dd.mm.aaaa")?.encabezado).toBe("Formato esperado: dd.mm.aaaa");
+    expect(motivoDeFecha("anterior a \"10.3\" (10:30) en Hora de inicio")?.encabezado).toBe("Anterior a Hora de inicio");
+    expect(motivoDeFecha("más que el máximo de 90 minutos")?.encabezado).toBe("Máximo: 90 minutos");
+    expect(motivoDeFecha("")).toBeNull();
   });
 
   it("la columna de lo leído es la que arma tablaDeCasos para una regla de fechas", () => {
@@ -88,6 +99,85 @@ describe("lo leído de una fecha en una línea", () => {
       esperado: [{ subtipo: "fechas", hecho: "registró \"08.11.2026\" (08/11/2026) en fecha", choque: "posterior al cierre del operativo (31/10/2026)" }],
     } as unknown as InstrumentoDrillResult;
     expect(tablaDeCasos(drill, null).columnas.map((c) => c.clave)).toContain(CLAVE_LECTURA_DE_FECHAS);
+  });
+});
+
+describe("la tabla de casos dice cada cosa una vez (ítem 37)", () => {
+  const nEnc = ctx("ctx:numero_encuesta", "N.º de encuesta");
+  const reco = ctx("ctx:recopilador", "Recopilador");
+  const fila = (i: number, valores: Record<string, string>, e: ReturnType<typeof esperado> | null = null): FilaDeCaso => ({
+    id: `principal::idx::${40 + i}`, clave: `f${i}`, valores: { "ctx:numero_encuesta": String(40 + i), "ctx:recopilador": ["Ana", "Luis"][i % 2], ...valores }, contexto: null, esperado: e,
+  });
+
+  // La captura de Gonzalo (2026-11-12): 37 filas con 'registró "01.11.2026" (01/11/2026), posterior al
+  // cierre del operativo (31/10/2026)' en negrita sobre naranja, al lado de "Fecha de la entrevista".
+  it("fechas: el motivo común sube al encabezado y la celda es la fecha leída con el original en gris", () => {
+    const columnas: ColumnaDeCaso[] = [nEnc, reco, pregunta("fecha", "Fecha de la entrevista"), { clave: CLAVE_LECTURA_DE_FECHAS, rotulo: "Leído", tipo: "falla", numerica: false }];
+    const filas = [1, 2, 3].map((d, i) => fila(i, { fecha: `0${d}.11.2026` }, esperado(`registró "0${d}.11.2026" (0${d}/11/2026)`, "posterior al cierre del operativo (31/10/2026)")));
+    const t = compactarTabla(columnas, filas);
+    expect(t.columnaDelCaso?.clave).toBe("ctx:numero_encuesta");
+    expect(t.columnas.map((c) => [c.rotulo, c.detalle])).toEqual([
+      ["Recopilador", null],
+      ["Fecha de la entrevista", "Cierre del operativo: 31/10/2026"],
+    ]);
+    expect(t.celdas.get("f0")?.[CLAVE_LECTURA_DE_FECHAS]).toEqual({
+      valor: "01/11/2026", original: "01.11.2026", nota: null,
+      titulo: "registró \"01.11.2026\" (01/11/2026), posterior al cierre del operativo (31/10/2026)",
+    });
+    expect(t.comunes).toEqual([]);
+  });
+
+  it("fechas: con casos a ambos lados del operativo, el lado va en la fila", () => {
+    const columnas: ColumnaDeCaso[] = [nEnc, pregunta("fecha", "Fecha"), { clave: CLAVE_LECTURA_DE_FECHAS, rotulo: "Leído", tipo: "falla", numerica: false }];
+    const filas = [
+      fila(0, { fecha: "01/11/2026" }, esperado("registró 01/11/2026 en Fecha", "posterior al cierre del operativo (31/10/2026)")),
+      fila(1, { fecha: "01/10/2026" }, esperado("registró 01/10/2026 en Fecha", "anterior al inicio del operativo (08/10/2026)")),
+    ];
+    const t = compactarTabla(columnas, filas);
+    expect(t.columnas.find((c) => c.clave === CLAVE_LECTURA_DE_FECHAS)?.detalle).toBeNull();
+    expect(t.celdas.get("f1")?.[CLAVE_LECTURA_DE_FECHAS]).toMatchObject({ valor: "01/10/2026", original: null, nota: "antes del inicio" });
+  });
+
+  it("fechas: un enunciado que no se reconoce va entero y la pregunta se queda", () => {
+    const columnas: ColumnaDeCaso[] = [pregunta("fecha", "Fecha"), { clave: CLAVE_LECTURA_DE_FECHAS, rotulo: "Leído", tipo: "falla", numerica: false }];
+    const t = compactarTabla(columnas, [fila(0, { fecha: "x", [CLAVE_LECTURA_DE_FECHAS]: "algo distinto" }, esperado("algo distinto", null))]);
+    expect(t.columnas.map((c) => c.rotulo)).toEqual(["Fecha", "Leído"]);
+    expect(t.celdas.get("f0")?.[CLAVE_LECTURA_DE_FECHAS].valor).toBe("algo distinto");
+  });
+
+  it("formato: la respuesta es lo que falla, con su largo en gris y lo esperado una vez", () => {
+    expect(detalleDeFormato("respondió \"80105\" en Ubigeo (5 dígitos)")).toBe("5 dígitos");
+    expect(formatoEsperado("que no es un número de 6 dígitos")).toBe("Formato esperado: un número de 6 dígitos");
+    const columnas: ColumnaDeCaso[] = [nEnc, pregunta("formato:ubigeo", "Ubigeo"), { clave: "formato:motivo", rotulo: "Formato", tipo: "falla", numerica: false }];
+    const filas = ["80105", "0801"].map((u, i) => fila(i, { "formato:ubigeo": u }, esperado(`respondió "${u}" en Ubigeo (${u.length} dígitos)`, "que no es un número de 6 dígitos")));
+    const t = compactarTabla(columnas, filas);
+    expect(t.columnas).toEqual([{ clave: "formato:ubigeo", rotulo: "Ubigeo", tipo: "falla", numerica: false, detalle: "Formato esperado: un número de 6 dígitos" }]);
+    expect(t.celdas.get("f1")?.["formato:ubigeo"]).toMatchObject({ valor: "0801", nota: "4 dígitos" });
+  });
+
+  it("batería: la respuesta repetida en la fila y el alcance arriba", () => {
+    const columnas: ColumnaDeCaso[] = [nEnc, ...items.slice(0, 2), patron];
+    const filas = ["\"Mucho\" (4)", "\"Poco\" (2)"].map((v, i) => fila(i, {}, esperado(`respondió ${v} en las 14 preguntas de la batería`, "")));
+    const t = compactarTabla(columnas, filas);
+    const col = t.columnas.find((c) => c.clave === CLAVE_PATRON_DE_BATERIA);
+    expect([col?.rotulo, col?.detalle]).toEqual(["Respuesta repetida", "En las 14 preguntas"]);
+    expect(t.celdas.get("f0")?.[CLAVE_PATRON_DE_BATERIA]).toMatchObject({ valor: "Mucho (4)", nota: null });
+    const parcial = compactarTabla(columnas, [fila(0, {}, esperado("respondió \"Mucho\" (4) en 12 de las 14 preguntas de la batería", ""))]);
+    expect(parcial.celdas.get("f0")?.[CLAVE_PATRON_DE_BATERIA]).toMatchObject({ valor: "Mucho (4)", nota: "12 de 14" });
+    expect(parcial.columnas.find((c) => c.clave === CLAVE_PATRON_DE_BATERIA)?.detalle).toBeNull();
+  });
+
+  it("una columna igual en todos los casos sale de la tabla y se dice una vez; con un caso, no", () => {
+    const columnas: ColumnaDeCaso[] = [nEnc, reco, pregunta("p8", "¿Trabaja actualmente?"), { clave: "p10", rotulo: "Sector", tipo: "falla", numerica: false }];
+    const filas = [0, 1, 2].map((i) => fila(i, { p8: "Sí", p10: "Vacía" }));
+    const t = compactarTabla(columnas, filas);
+    expect(t.columnas.map((c) => c.clave)).toEqual(["ctx:recopilador"]);
+    expect(t.comunes.map((c) => [c.rotulo, c.celda.valor, c.falla])).toEqual([["¿Trabaja actualmente?", "Sí", false], ["Sector", "Vacía", true]]);
+    expect(compactarTabla(columnas, filas.slice(0, 1)).comunes).toEqual([]);
+  });
+
+  it("sin N.º de encuesta declarado, el caso conserva su columna propia", () => {
+    expect(compactarTabla([reco, { clave: "p2", rotulo: "Edad", tipo: "falla", numerica: true }], [fila(0, { p2: "99" })]).columnaDelCaso).toBeNull();
   });
 });
 

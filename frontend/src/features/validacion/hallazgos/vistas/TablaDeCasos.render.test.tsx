@@ -89,18 +89,24 @@ describe("TablaDeCasos", () => {
     expect(respuestas[0].getAttribute("title")).toBe("p29_1 Ítem 1: Fuertemente en desacuerdo (1)");
   });
 
-  test("lo leído de una fecha va en una línea con el motivo debajo", () => {
+  test("fechas: el motivo una vez en el encabezado, la fecha leída con el original en gris y el N.º de encuesta como caso", () => {
+    // Ítem 37 (Gonzalo, 2026-11-12): la columna "Leído" repetía el motivo en las 37 filas y "Fila 40" duplicaba el N.º.
+    const fila = (d: string, n: string): FilaDeCaso => ({
+      id: `principal::idx::${n}`,
+      clave: n,
+      valores: { "ctx:numero_encuesta": n, fecha: `${d}.11.2026` },
+      contexto: null,
+      esperado: { anomalia_tipo: null, subtipo: "fechas", sujeto: null, hecho: `registró "${d}.11.2026" (${d}/11/2026)`, choque: "posterior al cierre del operativo (31/10/2026)", accion: null, texto: null },
+    });
     act(() => {
       root.render(
         <TablaDeCasos
-          columnas={[{ clave: "fechas:lectura", rotulo: "Leído", tipo: "falla", numerica: false }]}
-          filas={[{
-            id: "c1",
-            clave: "c1",
-            valores: { "fechas:lectura": "registró \"08.11.2026\" (08/11/2026) en fecha, posterior al cierre del operativo (31/10/2026)" },
-            contexto: null,
-            esperado: { anomalia_tipo: null, subtipo: "fechas", sujeto: null, hecho: "registró \"08.11.2026\" (08/11/2026) en fecha", choque: "posterior al cierre del operativo (31/10/2026)", accion: null, texto: null },
-          }]}
+          columnas={[
+            { clave: "ctx:numero_encuesta", rotulo: "N.º de encuesta", tipo: "contexto", numerica: false },
+            { clave: "fecha", rotulo: "Fecha de la entrevista", tipo: "pregunta", numerica: false },
+            { clave: "fechas:lectura", rotulo: "Leído", tipo: "falla", numerica: false },
+          ]}
+          filas={[fila("01", "40"), fila("02", "47")]}
           marcados={new Set()}
           onMarcar={() => undefined}
           onMarcarTodos={() => undefined}
@@ -110,7 +116,38 @@ describe("TablaDeCasos", () => {
         />,
       );
     });
-    expect(host.querySelector(".pulso-hz-falla--linea")?.textContent).toBe("08.11.2026 → 08/11/2026");
-    expect(host.querySelector(".pulso-hz-falla-motivo")?.textContent).toBe("posterior al cierre del operativo (31/10/2026)");
+    const cabeceras = [...host.querySelectorAll('[role="columnheader"]')].map((c) => c.textContent);
+    expect(cabeceras).toEqual(["Marca", "N.º de encuesta", "Fecha de la entrevistaCierre del operativo: 31/10/2026"]);
+    expect([...host.querySelectorAll(".pulso-hz-casoid")].map((b) => b.textContent)).toEqual(["40", "47"]);
+    const celda = host.querySelectorAll('[role="row"]')[1].querySelectorAll('[role="cell"]')[2];
+    expect(celda.textContent).toBe("01/11/202601.11.2026");
+    expect(celda.querySelector(".pulso-hz-celda-gris")?.textContent).toBe("01.11.2026");
+    expect(host.textContent).not.toContain("posterior al cierre");
+    expect(host.textContent).not.toContain("Fila 40");
+  });
+
+  test("una columna igual en todos los casos se dice una vez, encima de la tabla", () => {
+    const fila = (n: string): FilaDeCaso => ({ id: n, clave: n, valores: { p8: "Sí", p10: "Vacía", r: n === "a" ? "Ana" : "Luis" }, contexto: null, esperado: null });
+    act(() => {
+      root.render(
+        <TablaDeCasos
+          columnas={[
+            { clave: "r", rotulo: "Recopilador", tipo: "contexto", numerica: false },
+            { clave: "p8", rotulo: "¿Trabaja actualmente?", tipo: "pregunta", numerica: false },
+            { clave: "p10", rotulo: "Sector", tipo: "falla", numerica: false },
+          ]}
+          filas={[fila("a"), fila("b")]}
+          marcados={new Set()}
+          onMarcar={() => undefined}
+          onMarcarTodos={() => undefined}
+          onAbrirCaso={() => undefined}
+          tono="inconsistencia"
+          marcable
+        />,
+      );
+    });
+    expect(host.querySelector(".pulso-hz-comunes-titulo")?.textContent).toBe("Común a los 2 casos");
+    expect([...host.querySelectorAll(".pulso-hz-comunes dt")].map((d) => d.textContent)).toEqual(["¿Trabaja actualmente?", "Sector"]);
+    expect([...host.querySelectorAll('[role="columnheader"]')].map((c) => c.textContent)).toEqual(["Marca", "Caso", "Recopilador"]);
   });
 });
