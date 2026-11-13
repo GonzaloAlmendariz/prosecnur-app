@@ -95,7 +95,7 @@ export function CruceEntrePublicos({ componentes }: { componentes: CalcMuestraCo
         <>
           <div className="cmmp-cifras">
             <div><strong>{fmtInt(conCruce)}<span className="cmmp-de">/{fmtInt(publicos.length)}</span></strong><small>públicos con personas en otro</small></div>
-            <div data-tono={sinAlcance.length ? "aviso" : undefined}><strong>{fmtInt(sinAlcance.length)}<span className="cmmp-de">/{fmtInt(publicos.length)}</span></strong><small>metas que dependen de quién se queda con las compartidas</small></div>
+            <div data-tono={sinAlcance.length ? "aviso" : undefined}><strong>{fmtInt(sinAlcance.length)}<span className="cmmp-de">/{fmtInt(publicos.length)}</span></strong><small>metas que no alcanzan sin las compartidas</small></div>
           </div>
           {sinAlcance.map((p) => (
             <div key={p.id} className="cmmp-pad">
