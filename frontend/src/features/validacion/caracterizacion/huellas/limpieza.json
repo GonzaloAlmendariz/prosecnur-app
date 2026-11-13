@@ -1,6 +1,6 @@
 {
   "hallazgos_alcance-dicho": {
-    "marcado": "c5ba8555a86f323dec23eadf3ecc2018623ddf2f06ad97ea3f406e103576d9ed",
+    "marcado": "98204ad7fba8d2719fc18b78a1ec759c82623ddfeb38b96bf0df8337e8bc6831",
     "pedidos": "28dac02c910323c4a45b25cde3a831e316851d0e81cf9cbc2c022a693d17a162",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"R_REQ_EDAD\"}",
@@ -9,7 +9,7 @@
     ]
   },
   "hallazgos_caso-por-direccion": {
-    "marcado": "ed6444bef0481f14662253f96a90fab362e3c109a4f92a83996da74974562a1e",
+    "marcado": "7b4126ee82be617ae1bc8593cb630a5ec108f84d078332bcd0eb2fef28162e0b",
     "pedidos": "1aef7cde697bf94e4ed3a27f09ebb0f5665dd6fa97eea93ec40516cb20e76323",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"R_REQ_EDAD\"}",
@@ -17,7 +17,7 @@
     ]
   },
   "hallazgos_decision-no-aplicable": {
-    "marcado": "2ccc7e886464db46f92a0a9c393f552c863bd203491156ff4db9c614d849911d",
+    "marcado": "545f30f3d99f41d5f29faa7c560474ba9adcddf6d0b0d6ee5290daf507159a69",
     "pedidos": "e0863cf872e3105e046fea81ad3bd4ae79c5bd08bbd011f2adba3d09ce5a23be",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_002\"}",
@@ -25,14 +25,14 @@
     ]
   },
   "hallazgos_filtra-por-clase": {
-    "marcado": "85b524e01f90a11c22fdde642fc347deb14d88862df573d0924094c6ca2c983a",
+    "marcado": "a33aaa2962669f5e2e94358a18e0e7523b791ffc7df437e7e015098093307033",
     "pedidos": "d0d9f8d183f6abacbfbdd40ecc433b760c440029ccba8a91dbf9c1948fcca79d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "hallazgos_incluir-casos-nuevos": {
-    "marcado": "5c5580f9c96d91909561b7ade7488cef496767e08c4a3b1fbc5f0a3ce01c1fd9",
+    "marcado": "54bf458380b653968525b7f786907af5561f47896791c61fbf05475577f6c4bd",
     "pedidos": "1a6871e3862803a2528d0717612dd05e49266ec7f9f686df9a5b792af796fc57",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"R_REQ_EDAD\"}",
@@ -41,7 +41,7 @@
     ]
   },
   "hallazgos_omitir": {
-    "marcado": "887d1fc8b88548b8ae68a59abe0a7519ec2157ba7be1c469a9d6b283b4197c8f",
+    "marcado": "5a6e4f6e970a0250b447813b789773e826a45198a421fb23a5e7417a140a1f56",
     "pedidos": "a5c33710df7472f51679e5dde9f860ee9d9986fabf80015bc872a3b987f5a8e0",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -50,7 +50,7 @@
     ]
   },
   "limpieza_asigna-valor": {
-    "marcado": "14fb2c0fac659ae5b2535c2cf82475fb3652e687689392011f1b1f740edc8396",
+    "marcado": "a4b010d1494212170950d9de7061b12a9099d8e7e8d5f81e57bd3fdf008bef8c",
     "pedidos": "19d54df412e031607376bb394790904e4fc2637ded394d23984a7e1c7c1bcefa",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -66,7 +66,7 @@
     "pedidos": "f70650f5c1b30337581d109a88e0964c4b9f2b28b3afa3c033b2661dc4c99a63"
   },
   "limpieza_borrador-sin-casos": {
-    "marcado": "d89bb46b0ac85ab74b3a92f8ceec211a0b4eb1a42cd966afcd16db8c9b019959",
+    "marcado": "5bf3dd344b21d0325b4e0c63b894fb3ff771662330f706f352f9331be5a9e7b6",
     "pedidos": "d0d9f8d183f6abacbfbdd40ecc433b760c440029ccba8a91dbf9c1948fcca79d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
@@ -89,21 +89,21 @@
     "pedidos": "e6eedc8ef728d0d2b51a6fc776bf5d8018b122f4d79f3b341d0a47b9e3f13e86"
   },
   "limpieza_decisiones-listas-y-borrador": {
-    "marcado": "da6b5fec203bb2fa2839c4bd1cb870350a07d6babbe3ca93b61f41bff8180b8f",
+    "marcado": "9914018bdea9c1f089333bced70c8c70b9775baf9111dc8b074bfc25d80f28f6",
     "pedidos": "d0d9f8d183f6abacbfbdd40ecc433b760c440029ccba8a91dbf9c1948fcca79d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "limpieza_dos-bases": {
-    "marcado": "da6b5fec203bb2fa2839c4bd1cb870350a07d6babbe3ca93b61f41bff8180b8f",
+    "marcado": "9914018bdea9c1f089333bced70c8c70b9775baf9111dc8b074bfc25d80f28f6",
     "pedidos": "259c3489d73cf4b8f3bff69b9b66b8e0ba32a1e474d5915a20cdf750d5f0f6e3",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=estudiantes]\n{\"id_regla\":\"RC_001\"}"
     ]
   },
   "limpieza_elige-decidido-con-historial": {
-    "marcado": "a94addb0db2e925a37bdbe1c2959e2a6fe1d5535c24f62b96ec340c574b036d3",
+    "marcado": "d1c7f5b55c1f5d5d764bde4d5d5aae43a67e65245b0ea31deb528d5d1649a484",
     "pedidos": "a5c33710df7472f51679e5dde9f860ee9d9986fabf80015bc872a3b987f5a8e0",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -112,7 +112,7 @@
     ]
   },
   "limpieza_elimina-decision": {
-    "marcado": "abe0271c8d9768c3fb9369ffda699aeae05d7083647636202ccc35d03c20d0ed",
+    "marcado": "f87b27a0a68133b0326b4d96e056d2c73b8f53a292fd71b7e51ce50a67da245e",
     "pedidos": "53d5134763e9f968b65ea2c28b2ab10e59e7b2c70fdc76f0c1b6ab638f120f89",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -127,7 +127,7 @@
     "pedidos": "04288dabe0b78ff6c99fa2cc721eeb9b674936bd400a56e34adee30dd09fad7b"
   },
   "limpieza_guarda-borrador": {
-    "marcado": "8991998a5c5c37d51e8d8c77dfbcb441b6a43aea0b02ccaa4df4c89c616a0692",
+    "marcado": "5e8e8b13de1ed1f4288b60466c9e5741be17a71d8502071987542aa7d08db84d",
     "pedidos": "57d2b47235e5d80ebca6095bdc01adcd29d1b6c9c210fc01346bc1eecc044d57",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -137,7 +137,7 @@
     ]
   },
   "limpieza_guarda-casos-elegidos": {
-    "marcado": "15ac7a49e44c69f0294e999a78b7ec40532cd46391b81f08cd14961bd4efc955",
+    "marcado": "69adc0a3b203032f2a7011615366670ca82884fb7da56af4886c499afb11d54a",
     "pedidos": "76051c44cb662e22dd4423e2ee047eee5c8a82d556a130d81dc1845a280df32c",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -148,7 +148,7 @@
     ]
   },
   "limpieza_guarda-y-siguiente": {
-    "marcado": "610591d2b575eea65441e9f97193820c51392a2492ae6faca1cb5f93a36c8e9a",
+    "marcado": "2021eb5ba485f0a34fe4b4e4b3db773a93c40aa471660dca5277b496bf342153",
     "pedidos": "4b66dbb95c788ea5aec65ae17e38be99c9054085a665e60cfcd59ca7eb242ea5",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}",
@@ -166,7 +166,7 @@
     ]
   },
   "limpieza_madre-e-hija": {
-    "marcado": "7f23698169559cf027f5a9254563fd1af189bddfe5a0431dfffe2fda5159672c",
+    "marcado": "0e9f0f0e635386aff0e5c41e9e93140cb8ab69a8182eac887ad5831130c3df55",
     "pedidos": "379567a83a834e38f7e17925508cfa9f37a1f64958b6bcca3ba3ce73c0704672",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=miembros]\n{\"id_regla\":\"RC_001\"}"
@@ -188,7 +188,7 @@
     "pedidos": "e94eac00b50f09637c877475483097230c10775f57a8c2115f520092f51a1c19"
   },
   "limpieza_tres-clases": {
-    "marcado": "7f23698169559cf027f5a9254563fd1af189bddfe5a0431dfffe2fda5159672c",
+    "marcado": "0e9f0f0e635386aff0e5c41e9e93140cb8ab69a8182eac887ad5831130c3df55",
     "pedidos": "d0d9f8d183f6abacbfbdd40ecc433b760c440029ccba8a91dbf9c1948fcca79d",
     "guardado": [
       "POST /api/validacion/v2/instrumento/regla [base=default]\n{\"id_regla\":\"RC_001\"}"

@@ -186,8 +186,8 @@ const OPERADOR_LEGIBLE: Record<string, string> = {
   ">=": "es mayor o igual que",
   "<": "es menor que",
   "<=": "es menor o igual que",
-  in: "está entre",
-  not_in: "no está entre",
+  in: "es una de",
+  not_in: "no es ninguna de",
   contains: "incluye",
   contains_any: "incluye alguna de",
   contains_all: "incluye todas",
@@ -195,7 +195,7 @@ const OPERADOR_LEGIBLE: Record<string, string> = {
   contains_none: "no incluye ninguna de",
 };
 
-// "es 1", "está entre 4, 5, 6": la condición de un lado del cruce en palabras.
+// "es 1", "es una de 4, 5, 6": la condición de un lado del cruce en palabras.
 // Vacío si falta operador o valor (borrador a medio llenar).
 function condicionLegible(op: unknown, valor: unknown): string {
   if (typeof op !== "string" || !op) return "";

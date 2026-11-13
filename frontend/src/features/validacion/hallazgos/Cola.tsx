@@ -98,7 +98,7 @@ export function Cola({
       disabled={n === 0 && clase !== c}
       onClick={() => onClase(clase === c ? null : c)}
     >
-      {c === "inconsistencia" ? conteo(n, "inconsistencia", "inconsistencias") : conteo(n, "caso a revisar", "casos a revisar")}
+      {`${conteo(n, "regla", "reglas")} con ${c === "inconsistencia" ? "inconsistencias" : "casos a revisar"}`}
     </button>
   );
 

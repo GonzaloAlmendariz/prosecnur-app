@@ -9,7 +9,7 @@ describe("narrativa del cruce entre dos respuestas", () => {
       { op_x: "==", valor_x: "1", op_y: "not_in", valor_y: ["4", "5", "6", "8"] },
       ["p4", "p21"],
     );
-    expect(texto).toBe("Se marca cuando p4 es 1 y p21 no cumple \"no está entre 4, 5, 6, 8\".");
+    expect(texto).toBe("Se marca cuando p4 es 1 y p21 no cumple \"no es ninguna de 4, 5, 6, 8\".");
   });
 
   it("con la condición a medio llenar cae en la explicación genérica", () => {
