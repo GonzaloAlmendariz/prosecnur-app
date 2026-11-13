@@ -40,20 +40,22 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
   # la geometría, y con ella el hash. En otra plataforma el rojo es falso; el CI sigue vigilándolas.
   skip_if_not(identical(Sys.info()[["sysname"]], "Linux"), "huellas del XML medidas con las fuentes de Linux (CI)")
   # Huellas del XML medidas con el código anterior al ADR 0097 (commit 4330de9): un cambio aquí es un cambio visible.
+  # 2026-11-13 (corte 0.10.0): las cuatro huellas se rehicieron en el CI (Linux, run 43484847544) tras el medidor de
+  # tinta real (3279a5fb4), cambio deliberado de la geometría de los rótulos; los colores no cambian (el test siguiente pasa).
   e3 <- preparar_categorica(c("Quinto", "Sexto", "Séptimo"), c(.32, .28, .40), c("32%", "28%", "40%"), c(32, 28, 40), resaltar = TRUE)   # golden con realce
   e2 <- preparar_categorica(c("Sí", "No"), c(.62, .38), c("62%", "38%"), c(62, 38))
   pie3 <- attr(suppressWarnings(graficar_pie(data.frame(c = c("Sí", "No", "NS"), p = c(.6, .33, .07), n = c(60, 33, 7)), "c", "p", var_n = "n", tipo_pie = "pie")), "pulso_espec")
   dona2 <- attr(suppressWarnings(graficar_pie(data.frame(c = c("Sí", "No"), p = c(133, 39) / 172, n = c(133, 39)), "c", "p", var_n = "n", tipo_pie = "donut")), "pulso_espec")
   expect_null(e3$colores); expect_null(pie3$colores)
   expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3, "Nivel", base = "Base: 100", folio = 68, unidad_n = "estudiantes")),
-                   "c2057c23e6f8219cc1b0be9eed3b5cd11a3c146fdb82309d6ff86d4eb35d7848")
+                   "6a43ee7b854876dfcc2e103f8b591a2aad7bf7669cb6d9bfb08d0d0677c0de1a")
   # 2026-10-25 (CCSS-8, lamina_barras_ancho.R): cambio deliberado de geometría, sin tocar colores, cifras ni orden. Las barras
   # escalan al máximo × 1.15 y, con tres categorías, el bloque mide el 75 % del ancho útil y se centra. Arte: 0 distintas.
   # Revisión v7.23, ítem 8: la pista gris va en toda barra de una serie (tiene sus propios tests en
   # test-lamina-revision-v723-ccss.R); aquí se apaga para que la huella siga midiendo sólo la paleta.
   e3b <- e3; e3b$pista <- "nunca"
   expect_identical(.pll_hash(.lam_laminas_categorica(.pll_doc(), e3b, "Nivel", base = "Base: 100", folio = 68, forma = "barras")),
-                   "c371afccd1e75ba1007eae0e439557b7fc0585e82ab5635993aa7eaf2f49eae3")
+                   "f5b2989a0cd989d38783b9be4bb9b3caa470a11229fe155d010406c8732af7ad")
   # 2026-10-24 (loop motor PPT ↔ CCSS), cambios deliberados de geometría sin tocar colores: las barras usan el alto del área
   # (98e6690db), la dicotomía partida deja el mismo margen a ambos lados (7e10765b8) y la torta saca sus cifras chicas con
   # guía (9947637ce). Los hashes se rehicieron con esos tres; Arte salió idéntico en las tres oleadas.
@@ -65,9 +67,9 @@ test_that("sin colores en la espec, las láminas categóricas y circulares salen
   d2 <- withr::with_options(list(prosecnur.casos_junto = list(cuando = "siempre")), .lam_laminas_dicotomia(.pll_doc(), e2, "Dico", base = "Base: 100", folio = 74))
   expect_identical(.pll_fill(.pll_xml(d2), "segmento"), .pll_hex(.std_paleta("dicotomica")[1:2]))
   expect_identical(.pll_hash(.lam_laminas_torta(.pll_doc(), pie3, "Torta", folio = 69, unidad_n = "egresados")),
-                   "1aca84665e354a72cdc3fc04319262a6c3706b6921f246b6a3cfe4c25b79adba")
+                   "a084ddc7714be9d3b2b879aa246c4457fea5015b79dfb190a881e2d38165a90a")
   expect_identical(.pll_hash(.lam_laminas_dona(.pll_doc(), dona2, "Dona", folio = 70, unidad_n = "estudiantes", rotulo_centro = "conoce")),
-                   "7f898712d77a9f50a5e562fd8e6de3999a8b0ddbcde2242735cc9d2086a79b1a")
+                   "7086d71f4e00b8600a8ddb36312272a22864a987d9517b551b1bf753016fbee1")
 })
 
 test_that("en la ruta real, una paleta de perfil o ajena deja categórica, dicotomía y torta idénticas a sin paleta", {
