@@ -1,7 +1,7 @@
 # Propuesta: script de limpieza replicable en Quarto (.qmd)
 
 Tipo: Propuesta de diseño (investigación, sin implementar)
-Estado: Para lectura de Gonzalo
+Estado: En curso
 Fecha: 2026-11-11
 Autoridad: Lectura del código en `main` al 2026-11-11; no reemplaza ADR aceptados
 

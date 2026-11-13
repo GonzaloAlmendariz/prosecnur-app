@@ -1,5 +1,10 @@
 # Checklist: motor del marco de un público (fase 5 del rediseño de Cálculo de muestra)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-11-12
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 Fase 5 del expediente "Rediseño de Cálculo de muestra" (artefacto WZgqJJfGT7ASrDSigXFgVw): motor del marco
 para estudios por correo o teléfono (barrido, ADR 0143). Se aprobó empezar por el motor el 2026-11-12.
 Esta tanda deja el motor y sus rutas sin estado; guardar la receta del marco en el estudio entra con D6 y D7.

@@ -1,9 +1,14 @@
 # Checklist: pestaña Plantillas en Procesamiento > Gráficos (2026-11-11)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-11-11
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 Pedido de Gonzalo: el plan del informe deja de ser un popover ("Armar desde") y pasa a ser una pestaña propia de
 Gráficos, presentada como un menú de plantillas. El analista elige la plantilla y controla qué entra: secciones
 completas y preguntas al mismo nivel, como en los informes de Kobo, con el gráfico de cada pregunta. Prototipo aprobado
-el 2026-11-11 (`tmp/prototipo-plantillas/index.html`, con los datos del RMS 2026). Sólo Gonzalo da por terminado cada
+el 2026-11-11 (prototipo local no versionado, con los datos del RMS 2026). Sólo Gonzalo da por terminado cada
 ítem.
 
 Estados: **pendiente**, **en curso**, **resuelto** (test y vista revisada), **bloqueado** (necesita decisión).

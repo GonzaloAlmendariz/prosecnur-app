@@ -1,6 +1,11 @@
 # Destino de las pestañas de Procesamiento sin pantalla propia en el prototipo (2026-11-12)
 
-Pedido de Gonzalo: revisar una por una las pestañas que el prototipo aprobado no dibuja y terminar su diseño según el artefacto. Decisión: ADR 0144, que implementa el 0142 para Analítica y Codificación. Prototipo: `tmp/revamp-procesamiento/vistas.js` (`RAIL_ANA`, `analitica-entrega`, `RAIL_COD`) y el plan `docs/qa/plan-revamp-procesamiento-2026-11-10.md` (secciones 5.3 y 5.4, decisiones D5, D6 y D14).
+Tipo: Decisión de diseño fechada
+Estado: En curso
+Fecha: 2026-11-12
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+Pedido de Gonzalo: revisar una por una las pestañas que el prototipo aprobado no dibuja y terminar su diseño según el artefacto. Decisión: ADR 0144, que implementa el 0142 para Analítica y Codificación. Prototipo: el del revamp de Procesamiento, local y no versionado (`RAIL_ANA`, `analitica-entrega`, `RAIL_COD`) y el plan `docs/qa/plan-revamp-procesamiento-2026-11-10.md` (secciones 5.3 y 5.4, decisiones D5, D6 y D14).
 
 ## Pestañas y su destino
 

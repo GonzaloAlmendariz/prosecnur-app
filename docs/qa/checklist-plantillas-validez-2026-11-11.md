@@ -1,5 +1,10 @@
 # Checklist: Plantillas sobria, última pestaña y con validez (2026-11-11)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-11-11
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 Pedido de Gonzalo tras la revisión en vivo con el RMS ACNUR. Sólo Gonzalo da por terminado cada ítem.
 
 Estados: **pendiente**, **en curso**, **resuelto** (test y vista revisada), **bloqueado** (necesita decisión).

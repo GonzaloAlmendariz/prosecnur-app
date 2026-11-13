@@ -397,3 +397,11 @@ una reparación esté implementada.
 - [Láminas de población nativas y filtro con subpregunta](checklist-poblacion-y-filtro-2026-10-14.md): las láminas de población con piezas del recetario y las mejoras de la pregunta filtro (F1–F5).
 - [Checklist: puesta al día del agentic OS](checklist-agentic-os-2026-11-10.md): mejoras de claridad y de calidad del agentic OS y lo que el historial, las sesiones y las memorias piden llevar a reglas.
 - [Diagnóstico del ciclo de release](diagnostico-ciclo-release-2026-11-10.md): tiempos por job y paso, causas de fallo de Quality y Release, repeticiones por corte y cambios propuestos.
+- [Checklist: informe de resultados ACNUR en PowerPoint](checklist-informe-acnur-2026-11-11.md): defectos del mazo ACNUR y reglas automáticas de la muestra.
+- [Checklist: motor del marco de un público](checklist-marco-publico-2026-11-12.md): fase 5 del rediseño de Cálculo de muestra, marco para estudios por correo o teléfono.
+- [Checklist: Material de campo, correo, archivado y prueba de horarios](checklist-material-campo-correos-ab-2026-11-11.md): scripts sueltos del correo que pasan a la app.
+- [Checklist: pestaña Plantillas en Gráficos](checklist-pestana-plantillas-2026-11-11.md): el plan del informe como pestaña propia con menú de plantillas.
+- [Checklist: Plantillas sobria, última pestaña y con validez](checklist-plantillas-validez-2026-11-11.md): revisión en vivo con el RMS ACNUR.
+- [Checklist: Validación usada por un practicante](checklist-validacion-practicante-2026-11-12.md): prueba con la base digitada de Ser Adolescente, cobertura frente a las 552 observaciones de referencia.
+- [Destino de las pestañas de Procesamiento sin pantalla en el prototipo](destino-pestanas-procesamiento-2026-11-12.md): decisión por pestaña, ADR 0144.
+- [Propuesta: script de limpieza replicable en Quarto](propuesta-script-limpieza-qmd-2026-11-11.md): diseño previo al ADR 0145.

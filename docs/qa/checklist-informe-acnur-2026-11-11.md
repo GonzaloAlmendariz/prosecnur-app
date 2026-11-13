@@ -1,5 +1,10 @@
 # Checklist: informe de resultados ACNUR en PowerPoint (2026-11-11)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-11-11
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 Pedido de Gonzalo: mejorar el informe estándar ACNUR sin cambiar su esencia (una pregunta por lámina, separadores por
 bloque, decimales). Es un informe Pulso-ACNUR: la plantilla ACNUR manda sobre la identidad del recetario Pulso. Primero
 se corrigen los defectos con los que sale hoy el mazo y después se aplican las reglas automáticas que funcionaron en la
@@ -8,7 +13,7 @@ muestra. Sólo Gonzalo da por terminado cada ítem.
 Banco de prueba: RMS 2026 con la base real (`Data_Kobo_Limpia.xlsx` + XLSForm etiquetado, 486 hogares, grupos
 repetibles `rpt_hhmnames` y `S1` con 1,478 miembros). Referencia del cliente: `5. RMS_PPT.pptx` (RMS 2025, 155
 láminas): título negro, barras azul ACNUR, cifra blanca dentro de la barra, eje con porcentajes, dos decimales, pie con
-tasa de respuesta, sólo las categorías con casos. Renders en `tmp/informe_acnur/` (no versionado).
+tasa de respuesta, sólo las categorías con casos. Renders en `informe_acnur/ (carpeta local no versionada) ` (no versionado).
 
 Estados: **pendiente**, **resuelto** (test en verde y visto en el render), **bloqueado** (necesita decisión).
 

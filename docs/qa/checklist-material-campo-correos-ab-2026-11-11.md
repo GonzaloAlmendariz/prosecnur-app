@@ -1,5 +1,10 @@
 # Checklist: Material de campo › Correo, archivado, prueba de horarios y correo personal (2026-11-11)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-11-11
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
 Pedido de Gonzalo, relevado desde la sesión de Acreditación Institucional PUCP 2026. Rama 1 (Construir) con UI.
 Lo que hoy se hace con scripts sueltos (`actualizar_respondio.R`, `preparar_correos_personales.R`,
 `cargar_correos_personales.R` y el protocolo de la prueba de horario) pasa a la app. Sólo Gonzalo da este
