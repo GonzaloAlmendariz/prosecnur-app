@@ -196,6 +196,17 @@ describe("revisión dentro de la app (QA del panel de regla)", () => {
     expect(nombreDelBorrador(sinEtiqueta, VARIABLES)).toBe("Valor fuera de rango: x9");
   });
 
+  it("una pregunta de batería se nombra por su código y su ítem, sin el enunciado común", () => {
+    const enunciado = "P29. Indica qué tan de acuerdo estás con las siguientes frases sobre tu colegio:";
+    const bateria: ExploradorVariable[] = [
+      { name: "p29_2", label: `${enunciado} Mis profesores me escuchan`, tipo: "so", n_validos: 10, n_nulos: 0 },
+      { name: "p29_3", label: `${enunciado} Me siento seguro en mi colegio`, tipo: "so", n_validos: 10, n_nulos: 0 },
+      { name: "p29_4", label: `${enunciado} Tengo amigos en mi salón`, tipo: "so", n_validos: 10, n_nulos: 0 },
+    ];
+    const b = borradorInicial({ inicial: null, tipo: "no_nulo", pregunta: "p29_3" });
+    expect(nombreDelBorrador(b, bateria)).toBe("Respuesta obligatoria: p29_3, Me siento seguro en mi colegio");
+  });
+
   it("una regla existente sin nombre conserva el nombre de siempre (lo guardado no cambia)", () => {
     const inicial = regla({ nombre: "", mensaje: "" });
     expect(cuerpoAGuardar(borradorInicial({ inicial }), inicial, tipos, VARIABLES)?.nombre).toBe("Valor fuera de rango: edad");

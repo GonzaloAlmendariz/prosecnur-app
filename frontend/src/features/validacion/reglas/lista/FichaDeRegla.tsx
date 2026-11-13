@@ -4,7 +4,7 @@
  * el alcance y la última auditoría con su base ("7 de 142 a quienes les
  * correspondía responder"). Según la regla:
  *
- *   - Un salto muestra sus dos sentidos ("Qué marca") y su condición en el formulario.
+ *   - Un salto muestra sus dos sentidos ("Casos que marca") y su condición en el formulario.
  *   - Una regla sin evaluar dice por qué y ofrece convertirla en regla propia.
  *   - Una propia se edita en su panel; una del formulario se activa o desactiva aquí.
  *
@@ -86,7 +86,7 @@ function QueMarca({ regla, pareja, onElegir }: { regla: ReglaDelCatalogo; pareja
     { direccion: "nodebe", regla: regla.direccion === "nodebe" ? regla : pareja },
   ];
   return (
-    <Seccion titulo="Qué marca">
+    <Seccion titulo="Casos que marca">
       <ul className="pulso-rl-sentidos" data-qa-geometry-group="validacion/reglas-sentidos" data-qa-geometry-contract="equal">
         {sentidos.map(({ direccion, regla: r }) => {
           const n = r?.ultima_auditoria?.n_casos;
@@ -253,13 +253,13 @@ export function FichaDeRegla({
               <p className="pulso-rl-ficha-texto">{regla.causa ?? "La regla no se pudo evaluar sobre esta base"}.</p>
             </Seccion>
             {convertible ? (
-              <Seccion titulo="Qué se puede hacer">
+              <Seccion titulo="Siguiente paso">
                 <p className="pulso-rl-ficha-texto">
                   Convertirla en una regla propia: se abre el panel con <code className="pulso-rl-codigo">{regla.variable_revisada}</code> ya elegida.
                 </p>
               </Seccion>
             ) : excluida ? (
-              <Seccion titulo="Qué se puede hacer">
+              <Seccion titulo="Siguiente paso">
                 <p className="pulso-rl-ficha-texto">
                   Devolver <code className="pulso-rl-codigo">{regla.variable_revisada}</code> a la auditoría desde Fuera de la auditoría.
                 </p>
@@ -305,7 +305,7 @@ export function FichaDeRegla({
 
         {regla.activa && !sinEvaluar ? (
           regla.ultima_auditoria ? (
-            // En un salto la cifra ya está en "Qué marca" y la base en los hechos: aquí solo la fecha.
+            // En un salto la cifra ya está en "Casos que marca" y la base en los hechos: aquí solo la fecha.
             conSentidos ? <NotaDeAuditoria regla={regla} auditadaEn={auditadaEn} /> : <UltimaAuditoria regla={regla} auditadaEn={auditadaEn} />
           ) : (
             <Seccion titulo="Última auditoría">

@@ -273,7 +273,7 @@ reglas_semilla_dominio <- function(data, survey, choices, reglas_existentes = li
       tipo = "fuera_catalogo",
       variables = list(var),
       params = list(valores = as.list(c(catalogo, .semilla_valores_especiales))),
-      nombre = sprintf("Dominio: %s responde fuera de su lista", var_txt),
+      nombre = sprintf("Fuera de la lista de opciones: %s", var_txt),
       mensaje = sprintf(
         "Responde %s, que no está entre las opciones de la pregunta.", fuera_txt
       ),

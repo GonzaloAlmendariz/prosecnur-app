@@ -231,7 +231,7 @@ export function CamposDeBateria({
   const filas = [
     <Fila key="patron" variante="campo" rotulo="Patrón">
       <Segmentado<PatronDeBateria>
-        etiqueta="Qué patrón se busca en la batería"
+        etiqueta="Patrón de la batería"
         valor={patron}
         opciones={PATRONES}
         ancho

@@ -7,7 +7,7 @@ export type PasoDeActualizacion = "elegir" | "que-cambia" | "hecho";
 
 const PASOS = [
   { id: "elegir", rotulo: "Elegir el archivo" },
-  { id: "que-cambia", rotulo: "Qué cambia" },
+  { id: "que-cambia", rotulo: "Cambios" },
   { id: "aplicar", rotulo: "Aplicar" },
 ] as const;
 

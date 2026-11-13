@@ -118,7 +118,7 @@ function Leyenda() {
     <details className="pulso-emparejamiento-leyenda">
       <summary>
         <Info size={13} aria-hidden="true" />
-        Qué significa cada estado
+        Leyenda de estados
         <ChevronDown size={13} aria-hidden="true" className="pulso-emparejamiento-leyenda-flecha" />
       </summary>
       <ul>
@@ -179,7 +179,7 @@ function DetalleFuente({
           getOptionValue={(opcion) => opcion.id}
           onValueChange={onFiltro}
           className="pulso-emparejamiento-filtro"
-          aria-label="Qué preguntas mostrar"
+          aria-label="Filtro de preguntas"
         >
           {(opcion) => opcion.label}
         </GlidingRadioGroup>

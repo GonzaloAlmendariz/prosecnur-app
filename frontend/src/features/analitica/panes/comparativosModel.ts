@@ -522,7 +522,7 @@ export function etiquetaDeAviso(aviso: ComparativoAviso): string {
 /** Dónde se resuelve un aviso, si tiene dónde. */
 export function accionParaAviso(aviso: ComparativoAviso): AccionDeError | null {
   if (aviso.tipo === "peso_ignorado") return { etiqueta: "Ir a Ponderación", href: DIRECCION_PONDERACION };
-  if (aviso.tipoOriginal === "universo_sin_declarar") return { etiqueta: "Declarar qué casos cuentan", href: DIRECCION_UNIVERSO };
+  if (aviso.tipoOriginal === "universo_sin_declarar") return { etiqueta: "Declarar el universo de análisis", href: DIRECCION_UNIVERSO };
   if (aviso.tipoOriginal === "codigo_mal_ubicado") {
     return { etiqueta: "Revisar el mapa", href: direccionDeOmitida({ fila: aviso.fila ?? "" }) };
   }

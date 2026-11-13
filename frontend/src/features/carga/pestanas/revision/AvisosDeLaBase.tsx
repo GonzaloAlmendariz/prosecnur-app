@@ -35,7 +35,7 @@ export function AvisosDeLaBase({
             ))}
           </ul>
         </dd>
-        <dt>Qué pasa</dt>
+        <dt>Efecto</dt>
         <dd>No entran a su pregunta y quedan en la base como columnas aparte. Corrige la base y vuelve a cargarla.</dd>
       </dl>
     );
@@ -63,7 +63,7 @@ export function AvisosDeLaBase({
         <dd>{`${formatoConteo(p.n_casos_afectados)} de ${formatoConteo(p.n_casos)}`}</dd>
         {p.version_vigente ? (<><dt>Versión vigente</dt><dd><code>{p.version_vigente}</code></dd></>) : null}
         {p.columna ? (<><dt>Columna de la versión</dt><dd><code>{p.columna}</code></dd></>) : null}
-        {p.mensaje ? (<><dt>Qué pasó</dt><dd>{p.mensaje}</dd></>) : null}
+        {p.mensaje ? (<><dt>Detalle</dt><dd>{p.mensaje}</dd></>) : null}
       </dl>
     );
   }

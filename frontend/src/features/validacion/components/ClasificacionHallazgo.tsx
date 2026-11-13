@@ -61,7 +61,7 @@ export default function ClasificacionHallazgo({
   return (
     <GlidingRadioGroup
       className="pulso-clasificacion-hallazgo"
-      aria-label="Qué produce la regla"
+      aria-label="Tipo de hallazgo"
       value={value}
       options={CLASIFICACIONES}
       getOptionValue={(item) => item.value}

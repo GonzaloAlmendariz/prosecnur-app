@@ -38,7 +38,7 @@ export function resumenDelPlan(plan: Pick<PlanAdaptacion, "preguntas">): Resumen
   };
 }
 
-export const ETIQUETA_FRANJA = "Qué se agrega a la base";
+export const ETIQUETA_FRANJA = "Resumen de la aplicación";
 export const AVISO_BASE_CAMBIO = "La base cambió después de la última aplicación: ya no tiene los campos de códigos";
 
 export type FranjaDeAplicar = {

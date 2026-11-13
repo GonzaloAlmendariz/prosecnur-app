@@ -521,7 +521,7 @@ function IntegratedHistoryPanel({
         <div>
           <div className="pulso-sm-multibase-kicker">Integración realizada</div>
           <h3>Instrumentos hermanos integrados</h3>
-          <p>Qué archivos quedaron como canónicos y qué decisiones tomó la integración.</p>
+          <p>Archivos canónicos y decisiones de la integración.</p>
         </div>
         <button type="button" className="pulso-sm-secondary" onClick={onNewIntegration} disabled={disabled}>
           <Plus size={13} /> Nueva integración

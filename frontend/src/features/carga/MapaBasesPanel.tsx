@@ -159,7 +159,7 @@ function PanelConDireccion({ cargando, bases, filas, variablesPorBase, onAnadir 
                   <X size={16} aria-hidden="true" />
                 </Dialog.Close>
               </div>
-              <p className="pulso-armon-regla">Qué tiene cada base y qué le falta frente a las otras.</p>
+              <p className="pulso-armon-regla">Variables de cada base y faltantes frente a las otras.</p>
             </header>
 
             {/* C4: un único dueño de scroll, el cuerpo. La lista larga de una base crece aquí. */}

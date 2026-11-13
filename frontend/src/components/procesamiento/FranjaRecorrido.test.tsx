@@ -86,7 +86,7 @@ describe("FranjaRecorrido", () => {
   });
 
   test("sin destino no hay botón ni enlace", () => {
-    act(() => raiz.render(<FranjaRecorrido etiqueta="Qué se agrega a la base" grupos={GRUPOS} />));
+    act(() => raiz.render(<FranjaRecorrido etiqueta="Resumen de la aplicación" grupos={GRUPOS} />));
     expect(contenedor.querySelector("button, a")).toBeNull();
     expect(contenedor.querySelector(".pulso-franja-destino")).toBeNull();
     expect(contenedor.querySelector(".pulso-franja-recorrido")?.hasAttribute("data-destino")).toBe(false);
@@ -139,7 +139,7 @@ describe("FranjaRecorrido", () => {
     act(() =>
       raiz.render(
         <FranjaRecorrido
-          etiqueta="Qué se agrega a la base"
+          etiqueta="Resumen de la aplicación"
           grupos={GRUPOS}
           avisos={[
             { id: "reemplaza", texto: "Reemplaza la codificación del 6 nov", tono: "aviso" },
@@ -156,7 +156,7 @@ describe("FranjaRecorrido", () => {
   });
 
   test("sin avisos ni acción no se dibuja el pie", () => {
-    const html = renderToStaticMarkup(<FranjaRecorrido etiqueta="Qué se agrega a la base" grupos={GRUPOS} avisos={[]} />);
+    const html = renderToStaticMarkup(<FranjaRecorrido etiqueta="Resumen de la aplicación" grupos={GRUPOS} avisos={[]} />);
     expect(html).not.toContain("pulso-franja-pie");
     expect(html).not.toContain("data-audit-ready");
   });

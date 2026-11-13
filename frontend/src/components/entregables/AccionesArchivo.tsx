@@ -29,7 +29,7 @@ export function AccionesArchivo({ archivo, rutaDescargada = null, compacta = fal
   const conRuta = puente && ruta !== null;
   const guardarOtro = hayGuardarComo() && !archivo.local;
   const opcionesMas = [
-    guardarOtro ? { id: "guardar", rotulo: "Guardar como…", hacer: () => guardarComo(archivo.fileId, archivo.nombre, ruta ? carpetaDeRuta(ruta) : null) } : null,
+    guardarOtro ? { id: "guardar", rotulo: "Guardar como", hacer: () => guardarComo(archivo.fileId, archivo.nombre, ruta ? carpetaDeRuta(ruta) : null) } : null,
     ruta ? { id: "copiar", rotulo: "Copiar ruta", hacer: () => copiarRuta(ruta) } : null,
   ].filter((o): o is { id: string; rotulo: string; hacer: () => Promise<void> } => o !== null);
   const descargar = () => descargarEntregable(archivo);

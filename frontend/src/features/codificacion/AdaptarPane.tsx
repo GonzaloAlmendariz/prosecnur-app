@@ -47,7 +47,7 @@ type Props = {
 /** El marco de la pantalla mientras no hay plan: la misma sección y el mismo panel, sin marca de lista. */
 const CLASE_DE_PANTALLA = "pulso-codificacion-adaptar pulso-aplicar";
 // El título del prototipo: lo que entra a la base, con sus grupos "Listas" y "En curso".
-const TITULO_DE_PREGUNTAS = "Qué entra a la base";
+const TITULO_DE_PREGUNTAS = "Preguntas de la base codificada";
 
 export function AdaptarPane({ base, onBackToCodificar, baseActual }: Props) {
   const { sessionId } = useSession();

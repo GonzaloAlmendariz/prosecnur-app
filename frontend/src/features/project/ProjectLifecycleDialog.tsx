@@ -241,7 +241,7 @@ export default function ProjectLifecycleDialog({
                 disabled={busy}
               >
                 <FilePlus2 size={14} />
-                {action === "saveAs" ? "Guardando…" : "Guardar como…"}
+                {action === "saveAs" ? "Guardando…" : "Guardar como"}
               </button>
             </div>
             <div className="pulso-project-confirm-leave-group">

@@ -1,4 +1,4 @@
-// Codificación, Aplicar: la lista "Qué entra a la base" agrupada como en el prototipo. Puro.
+// Codificación, Aplicar: la lista "Preguntas de la base codificada" agrupada como en el prototipo. Puro.
 //
 // El prototipo separa "Listas" de "No entran todavía" y supone que solo entran las preguntas completas.
 // El motor aplica toda pregunta que puede aplicar (`bridge_soportado`), completa o a medias; las que no

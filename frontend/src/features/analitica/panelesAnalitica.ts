@@ -16,14 +16,14 @@ export const PANEL_VARIABLES_EXCLUIDAS: PanelDeclarado = {
 };
 
 /**
- * Analítica › Qué casos cuentan: el universo de análisis de cada base (antes
+ * Analítica › Universo de análisis: el universo de análisis de cada base (antes
  * vivía en Validación › Reglas del formulario; Gonzalo, 2026-10-16: «debería
  * ser algo de Analítica»). Se abre con `?panel=universo` desde la línea
  * «Cuentan … casos» del encabezado.
  */
 export const PANEL_UNIVERSO: PanelDeclarado = {
   id: "universo",
-  label: "Qué casos cuentan",
+  label: "Universo de análisis",
   clase: "sideover",
 };
 

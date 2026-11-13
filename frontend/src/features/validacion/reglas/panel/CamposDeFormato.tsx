@@ -82,7 +82,7 @@ export function CamposDeFormato({
     </Fila>,
     <Fila key="modo" variante="campo" rotulo="Formato">
       <Segmentado<ModoDeFormato>
-        etiqueta="Qué formato debe tener la respuesta"
+        etiqueta="Formato de la respuesta"
         valor={modo}
         opciones={MODOS}
         ancho

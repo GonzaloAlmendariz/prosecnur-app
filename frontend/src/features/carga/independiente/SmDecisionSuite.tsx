@@ -704,7 +704,7 @@ export function SmDecisionSuite({
                   </select>
                 </label>
                 <label>
-                  <span>Qué respuesta conservar</span>
+                  <span>Respuesta conservada</span>
                   <select
                     value={policy.duplicate_keep || "first"}
                     disabled={disabled || !!busy}

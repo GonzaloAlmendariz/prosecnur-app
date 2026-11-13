@@ -1,22 +1,22 @@
 {
   "una-base_con-insumos_revision": {
-    "marcado": "2950d48935b6b61b9c8e79b1864fb1670af8ebeed612e098999f583afa50925e",
+    "marcado": "0d71e7e8e400f16100c2cc43add962418d636d7fb7d582283a76f1efc51f1fd8",
     "pedidos": "dcfff690f09f91dffe5bedf03c93e611c3b798e113158cf5de308c45663e0b41"
   },
   "una-base_revision_columnas-guardar": {
-    "marcado": "9b75f5a70c5b3c3558af910e59a714253421cb8b0240150c5546886ae9407e2a",
+    "marcado": "6c2a7b6ccbb2e141a6e3c11d869631027a79347143ab47d3bc499411c235cdf8",
     "pedidos": "505d8e108f65fc8a68d1b9620278a7ec2e3c965f250dde85d40c6207e219739d"
   },
   "una-base_revision_con-pendientes": {
-    "marcado": "a6ab92b3e18f1c8f14fdac5e1a615cb4ad46a2d97a3dfd7ef793ad88f99a30dd",
+    "marcado": "e4b90d83529c6e43bb2e9a5d2c4c2573a251449044a516726ded5d3e290dc476",
     "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
   },
   "una-base_revision_dialogo-de-mapeo": {
-    "marcado": "6bf7cd07bd609589137c6a03ffeeb090a3981dc836daa6f87c4ae1bb439ba85b",
+    "marcado": "cbb65e178bf733ecc324f86b1a107d4c564c7fcdc9f63458ee6d9a2d0a1fe995",
     "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
   },
   "una-base_revision_lista": {
-    "marcado": "9b75f5a70c5b3c3558af910e59a714253421cb8b0240150c5546886ae9407e2a",
+    "marcado": "6c2a7b6ccbb2e141a6e3c11d869631027a79347143ab47d3bc499411c235cdf8",
     "pedidos": "73dd6d7f320bc152aa19e93db597e7fea0adb3f444985b8369e4636775120b63"
   },
   "una-base_sin-archivos_revision": {
@@ -24,19 +24,19 @@
     "pedidos": "d65ce24193d0313f4beb2688d9448844ad733a2f0cc4c5efa3ea96dde5d48bc6"
   },
   "varias_integradas_revision": {
-    "marcado": "2b8ac80b6bfd1ff6026307d7b7cbe6914380e9ae36af17f29ea4beddcb131f25",
+    "marcado": "e51e32de6dfabdc5b1cb55eed0f4738445d4cc61399ec79b16127dbc9d8636df",
     "pedidos": "7d5ff1f31a097521bafe4b7b7dfa39547784f10a47a43005a03b88faa790c508"
   },
   "varias_separadas_revision": {
-    "marcado": "5b218e31893b7cc2750ebd237ed4bd2a64ee1e7e8fdd1e41fc758444515d0176",
+    "marcado": "929b6e4083e44ac511cd1d8ef582510b345b42c75b539f52e6beafb42ced220f",
     "pedidos": "67350f9f68c9932bd9c60583b3e0c5a085e224e92a71573c2d343ff16040f1c6"
   },
   "varias_separadas_revision_con-pendientes": {
-    "marcado": "e90a108a43798f9f6fa1e2db217aa595016fe262e078e8d2840c29d25efbc124",
+    "marcado": "1c19cf6b9ff9f3500e52e60491442289c1f2907829c097ee2593fb2c6badf49b",
     "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
   },
   "varias_separadas_revision_lista": {
-    "marcado": "08adc3e6e43c268fa9528e8b493b0d365f0e9fb17c0811fa5c7522f2d00fee99",
+    "marcado": "338014501948dcf87e5a3f1a94672dc1006c8c4cfbe5300466739d2622f7c2aa",
     "pedidos": "05ad91e942aef82943673eb3cd21119ce169c9eebdfafd03e739ae9cad630652"
   },
   "varias_sin-bases_revision": {

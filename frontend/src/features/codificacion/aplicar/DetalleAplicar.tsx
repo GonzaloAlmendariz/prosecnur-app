@@ -60,7 +60,7 @@ export function DetalleAplicar({ id, pregunta, vistaPedida }: {
           getOptionValue={(o) => o.id}
           onValueChange={setVista}
           className="pulso-ct-vista"
-          aria-label="Qué se ve de la pregunta"
+          aria-label="Vista de la pregunta"
         >
           {(o) => <span>{o.rotulo}</span>}
         </GlidingRadioGroup>
@@ -71,7 +71,7 @@ export function DetalleAplicar({ id, pregunta, vistaPedida }: {
         {cambio ? (
           // Antes y después (`pp-cambio` del prototipo): la columna que la base trae hoy y lo que se agrega.
           // C1: los dos lados son pares (antes y después) y comparten el alto.
-          <div className="pulso-aplicar-cambio" role="group" aria-label="Qué cambia en la base" data-qa-geometry-group="codificacion/aplicar-cambio" data-qa-geometry-contract="equal">
+          <div className="pulso-aplicar-cambio" role="group" aria-label="Cambio en la base" data-qa-geometry-group="codificacion/aplicar-cambio" data-qa-geometry-contract="equal">
             <div className="pulso-aplicar-cambio-lado" data-qa-geometry-member="">
               <small>Hoy en la base</small>
               <code title={cambio.hoy}>{cambio.hoy}</code>

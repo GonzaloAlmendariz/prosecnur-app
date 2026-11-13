@@ -91,7 +91,7 @@ export function RespuestasResumen({
 
       {detallesNormalizacion.length > 0 ? (
         <details className="pulso-resp-detalle">
-          <summary>Qué se preparó</summary>
+          <summary>Normalización aplicada</summary>
           <ul>{detallesNormalizacion.map((row, i) => <li key={i}>{row}</li>)}</ul>
         </details>
       ) : null}

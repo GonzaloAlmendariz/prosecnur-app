@@ -159,7 +159,7 @@ export function CasoValidoManual({
               </div>
               {col ? (
                 <>
-                  <div className="pulso-cvm-fila" role="radiogroup" aria-label="Qué casos cuentan">
+                  <div className="pulso-cvm-fila" role="radiogroup" aria-label="Sentido de la condición">
                     <span>Cuenta si</span>
                     <label><input type="radio" name={`${id}-sentido`} checked={sentido === "es"} onChange={() => setSentido("es")} /> es</label>
                     <label><input type="radio" name={`${id}-sentido`} checked={sentido === "no_es"} onChange={() => setSentido("no_es")} /> no es</label>

@@ -66,7 +66,7 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
       <header className="pulso-roles-head">
         <KeyRound size={15} aria-hidden="true" focusable="false" />
         <div>
-          <h3 id={`${id}-titulo`}>Qué es un caso en este estudio</h3>
+          <h3 id={`${id}-titulo`}>Roles de las variables</h3>
           <p>
             Las verificaciones preguntan por el rol, no por el nombre de la
             columna. Decláralos una vez y sirven para todo el proyecto.
@@ -78,7 +78,7 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
       <RolBloque
         icono={<KeyRound size={13} aria-hidden="true" focusable="false" />}
         titulo="Identidad del caso"
-        ayuda="Qué variables identifican a la persona encuestada. Se usan para detectar casos repetidos."
+        ayuda="Variables que identifican a la persona encuestada. Se usan para detectar casos repetidos."
         activo={identidad.enabled}
         onToggle={(enabled) => setIdentidad({ enabled })}
         disabled={disabled}
@@ -152,12 +152,12 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
         />
       </RolBloque>
 
-      {/* --- Qué caso cuenta: se define en Analítica (Gonzalo, 2026-10-16:
+      {/* --- Universo de análisis: se define en Analítica (Gonzalo, 2026-10-16:
           «debería ser algo de Analítica»). Validación lo respeta: no revisa
           los casos que no cuentan. Aquí sólo se muestra. */}
       <RolBloque
         icono={<ListChecks size={13} aria-hidden="true" focusable="false" />}
-        titulo="Qué casos cuentan"
+        titulo="Universo de análisis"
         ayuda="Se define en Analítica. Las verificaciones no revisan los casos no considerados."
         activo={validez.enabled}
         onToggle={() => undefined}
@@ -173,7 +173,7 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
       {/* --- Preguntas abiertas que se vigilan ----------------------------- */}
       <RolBloque
         icono={<MessageSquare size={13} aria-hidden="true" focusable="false" />}
-        titulo="Qué respuestas abiertas se vigilan"
+        titulo="Respuestas abiertas vigiladas"
         ayuda='Las de "otro, especifique" ya se vigilan solas: dependen de otra pregunta y son de contenido por construcción. Acá se suman las independientes que sí son respuestas.'
         activo={abiertas.enabled}
         onToggle={(enabled) => setAbiertas({ enabled })}

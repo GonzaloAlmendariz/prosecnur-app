@@ -58,10 +58,10 @@ export function PanelUniverso() {
           <header className="pulso-excluidas-cabecera">
             <div className="pulso-excluidas-titular">
               <Dialog.Title asChild>
-                <h2 tabIndex={-1} data-universo-titulo="">Qué casos cuentan</h2>
+                <h2 tabIndex={-1} data-universo-titulo="">Universo de análisis</h2>
               </Dialog.Title>
               <Dialog.Close asChild>
-                <button type="button" className="pulso-excluidas-cerrar" aria-label="Cerrar qué casos cuentan">
+                <button type="button" className="pulso-excluidas-cerrar" aria-label="Cerrar universo de análisis">
                   <X size={16} aria-hidden="true" />
                 </button>
               </Dialog.Close>

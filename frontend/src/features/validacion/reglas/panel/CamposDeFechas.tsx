@@ -225,7 +225,7 @@ export function CamposDeFechas({
     <>
       <Fila key="unidad" variante="campo" rotulo="Compara">
         <Segmentado<UnidadDeFechas>
-          etiqueta="Qué se compara"
+          etiqueta="Unidad de comparación"
           valor={unidad}
           opciones={UNIDADES}
           ancho
@@ -238,7 +238,7 @@ export function CamposDeFechas({
         />
       </Fila>
       <Fila key="patron" variante="campo" rotulo="Revisa">
-        <Segmentado<PatronDeFechas> etiqueta="Qué se revisa" valor={patron} opciones={PATRONES} ancho onCambio={(p) => setParam("patron", p)} />
+        <Segmentado<PatronDeFechas> etiqueta="Patrón de las fechas" valor={patron} opciones={PATRONES} ancho onCambio={(p) => setParam("patron", p)} />
       </Fila>
       <CamposDeMomento cual="Inicio" momento={inicio} unidad={unidad} variables={variables} onCambio={(m) => setParam("inicio", m)} />
       <CamposDeMomento cual="Fin" momento={fin} unidad={unidad} variables={variables} onCambio={(m) => setParam("fin", m)} />

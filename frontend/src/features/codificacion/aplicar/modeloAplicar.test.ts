@@ -73,7 +73,7 @@ describe("resumenDelPlan", () => {
 describe("franjaDeAplicar", () => {
   it("dice qué se agrega a la base (columnas, códigos nuevos, respuestas con código) y, aparte, lo que no entra", () => {
     const f = franjaDeAplicar(resumenDelPlan({ preguntas: [P9, FUERA, P3, P20] }));
-    expect(f.etiqueta).toBe("Qué se agrega a la base");
+    expect(f.etiqueta).toBe("Resumen de la aplicación");
     expect(f.grupos.map((g) => [g.rotulo, g.aparte ?? false])).toEqual([["Se agrega a la base", false], ["No entran todavía", true]]);
     // Con el avance leído aparece "Sin código propio" entre los dos.
     expect(franjaDeAplicar(resumenDelPlan({ preguntas: [P9, FUERA] }), { sinCodigo: 15 }).grupos.map((g) => `${g.rotulo}:${g.cifras.map((c) => `${c.cifra} ${c.texto}`).join("|")}`)).toEqual([

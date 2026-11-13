@@ -1,4 +1,4 @@
-// "Qué cambia" (prototipo `carga-actualizar`): las respuestas, el formulario, el
+// Cambios (prototipo `carga-actualizar`): las respuestas, el formulario, el
 // trabajo ya hecho por fase y las decisiones de limpieza. La misma vista sirve
 // antes de aplicar (vista previa) y después (lo que se aplicó).
 

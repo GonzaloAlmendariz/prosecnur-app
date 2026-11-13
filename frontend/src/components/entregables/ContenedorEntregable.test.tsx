@@ -198,7 +198,7 @@ describe("listo", () => {
     expect(api.mostrarEnCarpeta).toHaveBeenCalledWith(GUARDADO);
     expect(boton("Finder")).toBeNull();
     await act(async () => { boton("Más")?.click(); });
-    expect(boton("Guardar como…")).not.toBeNull();
+    expect(boton("Guardar como")).not.toBeNull();
     await act(async () => { boton("Copiar ruta")?.click(); });
     expect(espia.copiar).toHaveBeenCalledWith(GUARDADO);
     await act(async () => { boton("Cerrar")?.click(); });

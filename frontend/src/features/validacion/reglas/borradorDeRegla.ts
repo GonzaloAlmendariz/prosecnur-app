@@ -18,6 +18,7 @@ import type {
   ReglaTreatmentScope,
 } from "../types";
 import { severidadAlGuardar } from "../components/ClasificacionHallazgo";
+import { partesDePreguntas } from "./campos/modeloPregunta";
 import {
   condicionesDeParams,
   gateExprFromConditions,
@@ -197,7 +198,10 @@ export function variablesEfectivas(b: Borrador): string[] {
  * El nombre que se ve y se guarda: el escrito o el que la regla se pone sola.
  * Una regla nueva se nombra con el rótulo de su tipo y la etiqueta de sus
  * preguntas ("Valor fuera de rango: "Edad""); sin etiqueta, con su código una
- * vez. La que se edita conserva el nombre de siempre (código de la columna),
+ * vez. Una pregunta de batería se nombra por su código y su ítem
+ * ("p29_3, Me siento seguro en mi colegio"): el enunciado común es largo y,
+ * puesto delante, la elipsis se comía el ítem, que es lo que la distingue.
+ * La que se edita conserva el nombre de siempre (código de la columna),
  * para que guardarla sin tocarla no cambie lo guardado.
  */
 export function nombreDelBorrador(b: Borrador, variables: readonly ExploradorVariable[] = []): string {
@@ -207,20 +211,22 @@ export function nombreDelBorrador(b: Borrador, variables: readonly ExploradorVar
   const preguntas = variablesEfectivas(b);
   if (!b.nueva) return nombreSugerido(meta, preguntas);
   const porNombre = new Map(variables.map((v) => [v.name, v.label]));
-  const nombres = preguntas.map((p) => {
-    const etiqueta = (porNombre.get(p) ?? "").trim();
-    return etiqueta && etiqueta !== p ? `"${etiqueta}"` : p;
-  });
+  const partes = partesDePreguntas(variables);
+  const nombrar = (codigo: string): string => {
+    const parte = partes.get(codigo);
+    if (parte?.enunciado) return `${codigo}, ${parte.texto}`;
+    const etiqueta = (porNombre.get(codigo) ?? "").trim();
+    return etiqueta && etiqueta !== codigo ? `"${etiqueta}"` : codigo;
+  };
+  const nombres = preguntas.map(nombrar);
   const base = meta?.rotulo ?? "Regla";
-  // Una batería se nombra por su primera y su última pregunta, no por todas.
-  if (b.tipo === "bateria" && nombres.length > 2) return `${base}: ${nombres[0]} a ${nombres[nombres.length - 1]}`;
+  // Una batería se nombra por el código de su primera y su última pregunta, no por todas.
+  if (b.tipo === "bateria" && preguntas.length > 2) return `${base}: ${preguntas[0]} a ${preguntas[preguntas.length - 1]}`;
   // Dos fechas u horas: la primera pregunta del inicio y la primera del fin.
   if (b.tipo === "comparar_fechas") {
     const [ini, fin] = [b.params.inicio, b.params.fin].map((m) => {
       const v = (m as { variables?: unknown[] } | undefined)?.variables?.[0];
-      const nombre = typeof v === "string" ? v : "";
-      const etiqueta = (porNombre.get(nombre) ?? "").trim();
-      return etiqueta && etiqueta !== nombre ? `"${etiqueta}"` : nombre;
+      return typeof v === "string" && v ? nombrar(v) : "";
     });
     if (ini && fin) return `${base}: ${ini} y ${fin}`;
   }

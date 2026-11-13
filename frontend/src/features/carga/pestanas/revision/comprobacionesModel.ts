@@ -183,7 +183,7 @@ export function comprobacionesDeRevision(entrada: EntradaDeRevision): Comprobaci
     }
   }
   if (entrada.conUniverso) {
-    lista.push({ clave: "universo", titulo: "Universo de análisis", detalle: "Qué registros cuentan", tono: "neutro", grupo: "declaracion" });
+    lista.push({ clave: "universo", titulo: "Universo de análisis", detalle: "Registros que cuentan", tono: "neutro", grupo: "declaracion" });
   }
   if (entrada.conOrigenExterno) {
     lista.push({ clave: "origen-externo", titulo: "Base preparada fuera", detalle: "Casos y variables retirados antes", tono: "neutro", grupo: "declaracion" });

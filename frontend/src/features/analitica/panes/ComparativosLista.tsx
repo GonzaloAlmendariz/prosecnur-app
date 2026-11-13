@@ -128,7 +128,7 @@ export function ComparativosLista({
         ) : null}
       </div>
 
-      <ul className="pulso-comparativos-leyenda" aria-label={`Qué dice cada marca de ${serie.singular}`}>
+      <ul className="pulso-comparativos-leyenda" aria-label={`Leyenda de las marcas de ${serie.singular}`}>
         {(Object.keys(TEXTO_COBERTURA) as EstadoCobertura[]).map((e) => (
           <li key={e} className={`pulso-comparativos-cob is-${e}`}>
             <IconoCobertura estado={e} />

@@ -101,7 +101,7 @@ const barras = () => filasDeCodigos().map((fila) => (fila.querySelector<HTMLElem
 const marcoIgual = () => {
   const seccion = host.querySelector("section.pulso-codificacion-adaptar.pulso-aplicar");
   expect(seccion, "la sección de la pantalla").not.toBeNull();
-  expect(seccion?.querySelector(":scope > .pulso-aplicar-mesa > section.pulso-panel.pulso-aplicar-panel--preguntas h3")?.textContent).toBe("Qué entra a la base");
+  expect(seccion?.querySelector(":scope > .pulso-aplicar-mesa > section.pulso-panel.pulso-aplicar-panel--preguntas h3")?.textContent).toBe("Preguntas de la base codificada");
   return seccion as HTMLElement;
 };
 
@@ -191,7 +191,7 @@ describe("AdaptarPane: con el plan leído", () => {
     expect(seccion.getAttribute("data-qa-geometry-contract")).toBe("intrinsic");
 
     const franja = host.querySelector('.pulso-franja-recorrido[role="group"]');
-    expect(franja?.getAttribute("aria-label")).toBe("Qué se agrega a la base");
+    expect(franja?.getAttribute("aria-label")).toBe("Resumen de la aplicación");
     expect(franja?.querySelector('[data-qa-geometry-group="codificacion/aplicar-franja"]')).not.toBeNull();
     // Columnas: p9 una y p3 (múltiple) una por código, 4. Códigos nuevos 2 + 4 y respuestas 52 + 21: los 50 de
     // p66, que queda fuera, no suman; p66 se cuenta aparte, como pregunta que no entra todavía.

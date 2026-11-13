@@ -458,7 +458,7 @@ export function Condiciones({ borrador: b, despachar, variables }: Props) {
             <PulsoSelect
               value={String(b.params.op ?? "contains_any")}
               onValueChange={(op) => setParam("op", op)}
-              ariaLabel="Qué se espera de las opciones"
+              ariaLabel="Condición sobre las opciones"
               options={opcionesDeOperador({ name: "", label: "", tipo: "sm", n_validos: 0, n_nulos: 0 }, "esperado").map((o) => ({ value: o.value, label: o.label }))}
             />
           </Fila>,

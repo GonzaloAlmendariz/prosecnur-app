@@ -62,12 +62,12 @@ describe("Validación, Criterios de revisión: estados", () => {
   });
 
   // Rebanada V2 del plan de fidelidad: el editor es el panel de regla, por la
-  // dirección; una nueva abre en "Qué quieres revisar".
-  escenario("reglas-propias_nueva", "Nueva regla abre el panel de regla en Qué quieres revisar", async () => {
+  // dirección; una nueva abre en "Tipo de regla".
+  escenario("reglas-propias_nueva", "Nueva regla abre el panel de regla en Tipo de regla", async () => {
     await montar({ ...UNA_BASE, pestana: "reglas", rutas: rutasReglasPropias(REGLAS_PROPIAS) });
     await pulsar(".pulso-cabecera-pestana-acciones button", "Nueva regla");
     expect(direccionActual()).toBe("/validacion?pestana=reglas&panel=regla&foco=nueva");
-    expect(hay(".pulso-panel-regla .pulso-cabecera-panel__titulo", "Qué quieres revisar")).toBe(true);
+    expect(hay(".pulso-panel-regla .pulso-cabecera-panel__titulo", "Tipo de regla")).toBe(true);
     fijar("reglas-propias_nueva");
   });
 });

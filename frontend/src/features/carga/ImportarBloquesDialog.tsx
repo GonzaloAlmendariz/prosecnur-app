@@ -338,7 +338,7 @@ function VistaPrevia({ resultado, serieDeAnios }: { resultado: ImportacionBloque
   return (
     <>
       <section className="pulso-bloques-seccion" data-qa-geometry-member aria-label="Resumen">
-        <h3>Qué entraría{r.hoja ? ` desde "${r.hoja}"` : ""}</h3>
+        <h3>Vista previa de la importación{r.hoja ? ` desde "${r.hoja}"` : ""}</h3>
         <dl className="pulso-bloques-cifras">
           {cifras.map(([k, v]) => (
             <div key={k}>

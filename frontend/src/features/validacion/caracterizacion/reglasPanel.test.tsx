@@ -228,7 +228,7 @@ describe("Validación, panel de regla", () => {
     fijar("reglas-panel_sin-respuestas");
   });
 
-  escenario("reglas-panel_sin-evaluar", "Qué quieres revisar dice cuántas reglas del formulario quedaron sin evaluar", async () => {
+  escenario("reglas-panel_sin-evaluar", "Tipo de regla dice cuántas reglas del formulario quedaron sin evaluar", async () => {
     await montar({ ...UNA_BASE, entrada: "/validacion?pestana=reglas&panel=regla&foco=nueva", rutas: rutas() });
     expect(hay(".pulso-regla-sugeridas", "2 reglas del formulario sin evaluar")).toBe(true);
     fijar("reglas-panel_sin-evaluar");

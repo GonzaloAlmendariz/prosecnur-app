@@ -243,7 +243,7 @@ function EditorDelPanel({
   let cuerpo;
   let pie;
   if (cargandoPreguntas) {
-    titulo = <span className="pulso-panel-regla-titulo">{nueva ? "Qué quieres revisar" : "Regla propia"}</span>;
+    titulo = <span className="pulso-panel-regla-titulo">{nueva ? "Tipo de regla" : "Regla propia"}</span>;
     // Retiene la readiness de la pestaña mientras llegan las preguntas (readinessAnidada).
     cuerpo = <CargaDeBloque label="Cargando las preguntas de la base" />;
     pie = (
@@ -268,7 +268,7 @@ function EditorDelPanel({
       </PulsoButton>
     );
   } else if (vistaTipo) {
-    titulo = <span className="pulso-panel-regla-titulo">Qué quieres revisar</span>;
+    titulo = <span className="pulso-panel-regla-titulo">Tipo de regla</span>;
     cuerpo = (
       <div className="pulso-panel-regla-tipo">
         <QueRevisar

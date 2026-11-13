@@ -167,6 +167,9 @@ test_that("lo propuesto por dominio es insertable y marca los casos correctos", 
   expect_no_error(.validar_regla_custom(p))
   expr <- .regla_expr_fuera_catalogo("p_sexo", p$params)
   expect_identical(which(as.logical(eval(parse(text = expr), envir = d))), 3:4)
+  # El nombre usa el término llano, no la jerga del motor ("Dominio").
+  expect_match(p$nombre, "^Fuera de la lista de opciones: ")
+  expect_false(grepl("Dominio", p$nombre, fixed = TRUE))
 })
 
 test_that("dominio ignora preguntas que no son select_one ni están en la base", {

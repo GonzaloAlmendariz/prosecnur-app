@@ -172,10 +172,10 @@ export function PairingDialog({ pregunta, preselectedChild, onConfirm, onCancel 
           )}
         </div>
 
-        {/* Opción única: qué se codifica */}
+        {/* Opción única: pregunta a codificar */}
         {isSO && childCol && (
           <div style={{ marginBottom: 16 }}>
-            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Qué se codifica</div>
+            <div className="pulso-section-eyebrow" style={{ marginBottom: 6 }}>Pregunta a codificar</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <ModoOption
                 value="padre"
