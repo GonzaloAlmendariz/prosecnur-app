@@ -28,6 +28,7 @@ import {
   type ReglaDelCatalogo,
 } from "./modeloCatalogo";
 import { ListaFueraDeAuditoria, type PreguntaExcluible } from "./ListaFueraDeAuditoria";
+import type { IndiceDePreguntas } from "./modeloRecomendador";
 import { SugeridasDeLaBase } from "./SugeridasDeLaBase";
 import { SugerenciasParaRevisar } from "./SugerenciasParaRevisar";
 
@@ -54,6 +55,7 @@ export function ListaDeLaFamilia({
   conAviso,
   ocupada,
   semillas,
+  indice,
   preguntasExcluibles,
   onElegir,
   onActivar,
@@ -70,7 +72,10 @@ export function ListaDeLaFamilia({
   elegida: string | null;
   conAviso: ReadonlySet<string>;
   ocupada: boolean;
-  semillas: readonly ReglaSemilla[];
+  /** `undefined` mientras el motor las calcula; `null` si el pedido falló. */
+  semillas: readonly ReglaSemilla[] | null | undefined;
+  /** Etiqueta y tipo de cada columna, para nombrar las preguntas de las sugerencias. */
+  indice?: IndiceDePreguntas;
   preguntasExcluibles: readonly PreguntaExcluible[];
   onElegir: (id: string) => void;
   onActivar: (regla: ReglaDelCatalogo, activa: boolean) => void;
@@ -175,8 +180,8 @@ export function ListaDeLaFamilia({
       ) : undefined}
     >
       {cuerpo}
-      {propias ? <SugeridasDeLaBase semillas={semillas} ocupada={ocupada} onAnadir={onAnadirSugerida} /> : null}
-      {propias ? <SugerenciasParaRevisar ocupada={ocupada} onConvertir={onAnadirSugerida} /> : null}
+      {propias ? <SugeridasDeLaBase semillas={semillas} indice={indice} ocupada={ocupada} onAnadir={onAnadirSugerida} /> : null}
+      {propias ? <SugerenciasParaRevisar ocupada={ocupada} indice={indice} onConvertir={onAnadirSugerida} /> : null}
     </PanelDeMesa>
   );
 }

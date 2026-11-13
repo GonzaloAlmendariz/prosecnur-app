@@ -54,6 +54,7 @@ import {
   reglasDeLaFamilia,
   type ReglaDelCatalogo,
 } from "./modeloCatalogo";
+import { indiceDePreguntas } from "./modeloRecomendador";
 import type { MesaDeReglas as Mesa } from "./useMesaDeReglas";
 import type { ReglaSemilla } from "../../types";
 
@@ -107,6 +108,8 @@ export function MesaDeReglas({
     const regla = reglaElegida(reglas, seleccion.foco);
     return { grupos, abierta, entrada, reglas, preguntas, pregunta, regla, conAviso: reglasConAviso(catalogo) };
   }, [lista, excluidas, seleccion.familia, seleccion.foco]);
+
+  const indice = useMemo(() => indiceDePreguntas(complementos.inventario), [complementos.inventario]);
 
   const ocupada = !!mesa.ocupado || !!inst.busy || !!mesa.trabajo;
   const controlesSinAplicar = inst.operationalDirty;
@@ -279,7 +282,8 @@ export function MesaDeReglas({
           elegida={abierta === FAMILIA_FUERA_DE_AUDITORIA ? pregunta?.variable ?? null : regla?.id ?? null}
           conAviso={conAviso}
           ocupada={ocupada}
-          semillas={complementos.semillas ?? []}
+          semillas={complementos.semillas}
+          indice={indice}
           preguntasExcluibles={preguntas}
           onElegir={elegir}
           onActivar={activar}

@@ -1,0 +1,247 @@
+/* Sugeridas al mirar la base y sugerencias para revisar (ítem 40).
+   Cada propuesta en un Panel del kit (el marco es suyo; aquí solo el
+   interior), con el sangrado de las filas de regla de la misma columna y la
+   letra por rol. Las
+   acciones van a la derecha con el mismo ancho; en una columna angosta bajan
+   debajo del texto. Sin franja lateral ni íconos. Solo tokens. */
+
+.pulso-rl-rec {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-4) var(--pulso-space-2) var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.pulso-rl-rec-encabezado {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding-inline: var(--pulso-space-3);
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-subtitle-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
+.pulso-rl-rec-estado {
+  margin: 0;
+  padding-inline: var(--pulso-space-3);
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.5;
+}
+
+.pulso-rl-rec-estado[data-tono="aviso"] {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-rl-rec-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  container: pulso-rl-rec / inline-size;
+}
+
+.pulso-panel.pulso-rl-rec-tarjeta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--pulso-space-3);
+  margin: 0;
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  background: var(--pulso-surface);
+}
+
+.pulso-panel.pulso-rl-rec-tarjeta--silueta,
+.pulso-panel.pulso-rl-rec-tarjeta[data-sin-acciones] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pulso-rl-rec-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+}
+
+.pulso-rl-rec-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.pulso-rl-rec-titulo-meta {
+  margin-inline-start: var(--pulso-space-2);
+  color: var(--pulso-text-soft);
+  font-weight: var(--pulso-weight-medium);
+}
+
+.pulso-rl-rec-preguntas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1);
+  font-size: var(--pulso-type-body-size);
+}
+
+.pulso-rl-rec-frase {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* La pregunta nombrada por su código dentro de una frase. */
+.pulso-rl-rec-codigo {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* Los valores que la frase traía entre comillas, como fichas. */
+.pulso-rl-rec-valores {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  vertical-align: baseline;
+}
+
+.pulso-rl-rec-valor {
+  display: inline-block;
+  max-inline-size: 100%;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+  font-size: 0.92em;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.pulso-rl-rec-titulo .pulso-rl-rec-valor {
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-rl-rec-pie {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pulso-space-1) var(--pulso-space-4);
+  padding-block-start: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.5;
+}
+
+.pulso-rl-rec-cifra {
+  color: var(--pulso-text-soft);
+}
+
+.pulso-rl-rec-cifra b {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.pulso-rl-rec-acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--pulso-space-1);
+}
+
+.pulso-rl-rec-acciones > .pulso-button {
+  justify-content: center;
+}
+
+.pulso-rl-rec-nota {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.5;
+}
+
+/* Datos potencialmente personales: una fila por columna. */
+/* Sin marco propio: la tarjeta ya lo es; las filas se separan con una línea. */
+.pulso-rl-rec-personales {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--pulso-border);
+  list-style: none;
+}
+
+.pulso-rl-rec-personal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--pulso-space-1) var(--pulso-space-3);
+  padding-block: var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.pulso-rl-rec-personal-pregunta,
+.pulso-rl-rec-personal-causa {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-rl-rec-personal-etiqueta {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.4;
+}
+
+.pulso-rl-rec-personal-pregunta .pulso-rl-rec-codigo {
+  font-size: var(--pulso-type-caption-size);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-rl-rec-personal-causa > span {
+  color: var(--pulso-text);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.4;
+}
+
+.pulso-rl-rec-personal-causa > small {
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  line-height: 1.4;
+}
+
+/* Columna angosta: las acciones bajan bajo el texto, en fila; la causa, bajo la pregunta. */
+@container pulso-rl-rec (max-width: 440px) {
+  .pulso-panel.pulso-rl-rec-tarjeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pulso-rl-rec-acciones {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .pulso-rl-rec-personal {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

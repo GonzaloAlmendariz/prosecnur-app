@@ -85,7 +85,8 @@ test("muestra la frase y quién concentra los casos, sin íconos de varita ni es
   await montar(DETECTOR);
   const bloque = host.querySelector("section.pulso-rl-sugerencias");
   expect(bloque?.textContent).toContain("Sugerencias para revisar");
-  expect(bloque?.textContent).toContain("Responden \"Una vez\" en frec");
+  expect(bloque?.textContent).toContain("Responden Una vez en frec");
+  expect(Array.from(bloque!.querySelectorAll(".pulso-rl-rec-valor")).map((v) => v.textContent)).toContain("Una vez");
   expect(bloque?.textContent).toContain("2 de los 2 casos (100.0 %) son de Persona 10");
   expect(bloque?.querySelector("svg")).toBeNull();
 });
@@ -122,6 +123,48 @@ test("sin sugerencias lo dice con la cifra de la base; sin recopilador avisa una
   await montar(sinRol);
   expect(host.textContent?.match(/No hay un recopilador declarado/g)).toHaveLength(1);
   expect(host.textContent).not.toContain("Sin un recopilador declarado.");
+});
+
+// Ítem 40: el motor manda las columnas con dato personal en una sola frase.
+const PERSONALES: DetectorDeConsistencia = {
+  ...DETECTOR,
+  sugerencias: [{
+    id: "SC_02", familia: "columna", tipo: "dato_personal",
+    titulo: "Datos potencialmente personales en 2 columnas",
+    texto: "telefono: Parece teléfono: 9 dígitos en el 97 % de los casos con dato. nombre_jefe: Su nombre sugiere nombre de persona. Si identifica a una persona, conviene sacarlo de la base que se entrega.",
+    variables: [{ variable: "telefono", rotulo: "Teléfono de contacto" }, { variable: "nombre_jefe", rotulo: null }],
+    nCasos: null, base: "casos de la base", baseN: 300, concentracion: null, casos: [], regla: null,
+  }],
+};
+
+test("los datos personales van una columna por fila, con su enunciado y su nombre aparte", async () => {
+  await montar(PERSONALES);
+  const tarjeta = host.querySelector(".pulso-rl-rec-tarjeta")!;
+  expect(tarjeta.querySelector(".pulso-rl-rec-titulo")?.textContent).toBe("Dato potencialmente personal identificado2 columnas");
+  const filas = Array.from(tarjeta.querySelectorAll(".pulso-rl-rec-personal"));
+  expect(filas).toHaveLength(2);
+  expect(filas[0].querySelector(".pulso-rl-rec-personal-etiqueta")?.textContent).toBe("Teléfono de contacto");
+  expect(filas[0].querySelector("code")?.textContent).toBe("telefono");
+  expect(filas[0].textContent).toContain("Parece teléfono");
+  expect(filas[0].textContent).toContain("9 dígitos en el 97 % de los casos con dato");
+  // Sin enunciado en el formulario ni en la base, queda el nombre, una sola vez.
+  expect(filas[1].querySelector(".pulso-rl-rec-personal-etiqueta")?.textContent).toBe("nombre_jefe");
+  expect(filas[1].querySelector("code")).toBeNull();
+  expect(tarjeta.querySelector(".pulso-rl-rec-nota")?.textContent).toBe("Si identifica a una persona, conviene sacarlo de la base que se entrega.");
+  expect(tarjeta.querySelector("svg")).toBeNull();
+});
+
+test("mientras el detector calcula, el bloque muestra su carga", async () => {
+  pedir.mockReturnValue(new Promise(() => {}));
+  await act(async () => {
+    root.render(
+      <MemoryRouter>
+        <SugerenciasParaRevisar ocupada={false} onConvertir={vi.fn()} />
+      </MemoryRouter>,
+    );
+  });
+  expect(host.querySelector("[role='status']")?.textContent).toContain("Revisando la consistencia de la base");
+  expect(host.querySelectorAll(".pulso-rl-rec-tarjeta--silueta")).toHaveLength(2);
 });
 
 test("modelo: la concentración solo se muestra si dice algo; las columnas siguen a las preguntas", () => {

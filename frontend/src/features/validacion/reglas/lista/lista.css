@@ -124,7 +124,6 @@
 
 .pulso-rl-familias-lista,
 .pulso-rl-reglas,
-.pulso-rl-sugeridas-lista,
 .pulso-rl-avisos,
 .pulso-rl-sentidos {
   display: flex;
@@ -327,48 +326,7 @@
   padding-inline: var(--pulso-space-3);
 }
 
-/* ---------- Sugeridas al mirar la base ---------- */
-
-.pulso-rl-sugeridas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pulso-space-2);
-  margin-block-start: auto;
-  padding: var(--pulso-space-3) var(--pulso-space-5) var(--pulso-space-4);
-  border-top: 1px solid var(--pulso-border);
-}
-
-.pulso-rl-sugerida {
-  display: flex;
-  align-items: center;
-  gap: var(--pulso-space-3);
-  padding-block: var(--pulso-space-2);
-}
-
-.pulso-rl-sugerida + .pulso-rl-sugerida {
-  border-top: 1px solid var(--pulso-border);
-}
-
-.pulso-rl-sugerida-texto {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  font-size: var(--pulso-type-body-size);
-}
-
-.pulso-rl-sugerida-texto span {
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-}
-
-/* La cifra de la sugerida: se lee aparte de su porqué. */
-.pulso-rl-sugerida-texto .pulso-rl-sugerida-casos {
-  color: var(--pulso-text);
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--pulso-weight-semibold);
-}
+/* Las sugeridas de la base y las sugerencias para revisar: recomendador.css. */
 
 /* ---------- Ficha ---------- */
 

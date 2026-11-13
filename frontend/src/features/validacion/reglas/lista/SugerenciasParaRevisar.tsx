@@ -30,6 +30,16 @@ import {
   searchConCasosDeSugerencia,
   searchSinCasosDeSugerencia,
 } from "./modeloSugerencias";
+import { BloqueDelRecomendador } from "./BloqueDelRecomendador";
+import {
+  datosPersonales,
+  esDatoPersonal,
+  presentarSugerencia,
+  ROTULO_DATO_PERSONAL,
+  type ColumnaPersonal,
+  type IndiceDePreguntas,
+} from "./modeloRecomendador";
+import { FraseDelRecomendador, TarjetaDelRecomendador } from "./PiezasDelRecomendador";
 import "./sugerenciasParaRevisar.css";
 
 type Lectura =
@@ -127,9 +137,12 @@ function DialogoDeCasos({
 
 export function SugerenciasParaRevisar({
   ocupada,
+  indice,
   onConvertir,
 }: {
   ocupada: boolean;
+  /** Etiqueta y tipo de cada columna del inventario, para las preguntas que el detector manda sin rótulo. */
+  indice?: IndiceDePreguntas;
   /** "Convertir en regla": abre el panel de regla armado con la regla de la sugerencia. */
   onConvertir: (regla: ReglaSemilla) => void;
 }) {
@@ -142,73 +155,46 @@ export function SugerenciasParaRevisar({
   const sinRol = detector?.avisos.find((a) => a.codigo === "sin_recopilador") ?? null;
   const otrosAvisos = detector?.avisos.filter((a) => a.codigo !== "sin_recopilador") ?? [];
 
-  let cuerpo;
-  if (lectura.fase === "cargando") {
-    cuerpo = <p className="pulso-rl-sugerencias-estado">Leyendo la base.</p>;
-  } else if (lectura.fase === "error") {
-    cuerpo = <p className="pulso-rl-sugerencias-estado" data-tono="aviso">No se pudo leer la base: {lectura.mensaje}</p>;
-  } else if (!sugerencias.length) {
-    cuerpo = (
-      <p className="pulso-rl-sugerencias-estado">
-        {detector?.nTotal ? `Sin sugerencias en los ${formatoConteoDe(detector.nTotal, "caso")} de la base.` : "Sin sugerencias."}
-      </p>
-    );
-  } else {
-    cuerpo = (
-      <ul
-        className="pulso-rl-sugeridas-lista"
-        data-qa-geometry-group="validacion/reglas-sugerencias"
-        data-qa-geometry-contract="intrinsic"
-      >
-        {sugerencias.map((s) => {
-          const linea = lineaDeConcentracion(s);
-          return (
-            <li key={s.id} className="pulso-rl-sugerencia-revisar" data-qa-geometry-member="">
-              <div className="pulso-rl-sugerida-texto">
-                <b>{s.titulo}</b>
-                <span>{s.texto}</span>
-                {linea ? (
-                  <span className="pulso-rl-sugerencia-concentracion" data-destacada={linea.destacada ? "" : undefined}>
-                    {linea.texto}
-                  </span>
-                ) : null}
-              </div>
-              <div className="pulso-rl-sugerencia-acciones">
-                {s.casos.length ? (
-                  <PulsoButton variant="secondary" size="sm" aria-label={`Ver los casos de ${s.titulo}`} onClick={() => casos.abrir(s.id)}>
-                    Ver casos
-                  </PulsoButton>
-                ) : null}
-                {s.regla ? (
-                  <PulsoButton
-                    variant="secondary"
-                    size="sm"
-                    disabled={ocupada}
-                    aria-label={`Convertir en regla ${s.titulo}`}
-                    onClick={() => s.regla && onConvertir(s.regla)}
-                  >
-                    Convertir en regla
-                  </PulsoButton>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    );
+  let estado: string | undefined;
+  if (lectura.fase === "error") estado = `No se pudo leer la base: ${lectura.mensaje}`;
+  else if (lectura.fase === "lista" && !sugerencias.length) {
+    estado = detector?.nTotal ? `Sin sugerencias en los ${formatoConteoDe(detector.nTotal, "caso")} de la base.` : "Sin sugerencias.";
   }
 
-  return (
-    <section className="pulso-rl-sugeridas pulso-rl-sugerencias" aria-labelledby="pulso-rl-sugerencias-titulo">
-      <h3 id="pulso-rl-sugerencias-titulo" className="pulso-rl-seccion-rotulo">
-        <span>Sugerencias para revisar</span>
-        {sugerencias.length ? <span className="pulso-rl-familias-n">{formatoConteo(sugerencias.length)}</span> : null}
-      </h3>
-      {sinRol && sugerencias.length ? <p className="pulso-rl-sugerencias-estado">{sinRol.texto}</p> : null}
+  const avisos = (
+    <>
+      {sinRol && sugerencias.length ? <p className="pulso-rl-rec-estado">{sinRol.texto}</p> : null}
       {otrosAvisos.map((a) => (
-        <p key={a.codigo} className="pulso-rl-sugerencias-estado" data-tono="aviso">{a.texto}</p>
+        <p key={a.codigo} className="pulso-rl-rec-estado" data-tono="aviso">{a.texto}</p>
       ))}
-      {cuerpo}
+    </>
+  );
+
+  return (
+    <>
+      <BloqueDelRecomendador
+        id="pulso-rl-sugerencias-titulo"
+        className="pulso-rl-sugerencias"
+        titulo="Sugerencias para revisar"
+        conteo={sugerencias.length}
+        grupo="validacion/reglas-sugerencias"
+        cargando={lectura.fase === "cargando"}
+        etiquetaDeCarga="Revisando la consistencia de la base"
+        avisos={avisos}
+        estado={estado}
+        estadoEsAviso={lectura.fase === "error"}
+      >
+        {sugerencias.length ? sugerencias.map((s) => (
+          <TarjetaDeSugerencia
+            key={s.id}
+            sugerencia={s}
+            indice={indice}
+            ocupada={ocupada}
+            onVerCasos={() => casos.abrir(s.id)}
+            onConvertir={onConvertir}
+          />
+        )) : null}
+      </BloqueDelRecomendador>
       {abierta ? (
         <DialogoDeCasos
           sugerencia={abierta}
@@ -218,6 +204,98 @@ export function SugerenciasParaRevisar({
           onConvertir={onConvertir}
         />
       ) : null}
-    </section>
+    </>
+  );
+}
+
+function TarjetaDeSugerencia({
+  sugerencia: s,
+  indice,
+  ocupada,
+  onVerCasos,
+  onConvertir,
+}: {
+  sugerencia: SugerenciaParaRevisar;
+  indice?: IndiceDePreguntas;
+  ocupada: boolean;
+  onVerCasos: () => void;
+  onConvertir: (regla: ReglaSemilla) => void;
+}) {
+  const linea = lineaDeConcentracion(s);
+  const acciones = s.casos.length || s.regla ? (
+    <>
+      {s.casos.length ? (
+        <PulsoButton variant="secondary" size="sm" aria-label={`Ver los casos de ${s.titulo}`} onClick={onVerCasos}>
+          Ver casos
+        </PulsoButton>
+      ) : null}
+      {s.regla ? (
+        <PulsoButton
+          variant="secondary"
+          size="sm"
+          disabled={ocupada}
+          aria-label={`Convertir en regla ${s.titulo}`}
+          onClick={() => s.regla && onConvertir(s.regla)}
+        >
+          Convertir en regla
+        </PulsoButton>
+      ) : null}
+    </>
+  ) : undefined;
+  const pie = linea ? (
+    <span className="pulso-rl-rec-concentracion" data-destacada={linea.destacada ? "" : undefined}>{linea.texto}</span>
+  ) : undefined;
+
+  if (esDatoPersonal(s)) {
+    const { columnas, nota } = datosPersonales(s, indice);
+    return (
+      <TarjetaDelRecomendador
+        titulo={(
+          <>
+            {ROTULO_DATO_PERSONAL}
+            <span className="pulso-rl-rec-titulo-meta">{formatoConteoDe(columnas.length, "columna")}</span>
+          </>
+        )}
+        pie={pie}
+        acciones={acciones}
+      >
+        <ListaDePersonales columnas={columnas} />
+        {nota ? <p className="pulso-rl-rec-nota">{nota}</p> : null}
+      </TarjetaDelRecomendador>
+    );
+  }
+
+  const vista = presentarSugerencia(s, indice);
+  return (
+    <TarjetaDelRecomendador
+      titulo={<FraseDelRecomendador piezas={vista.titulo} />}
+      preguntas={vista.preguntas}
+      pie={pie}
+      acciones={acciones}
+    >
+      {vista.frase.length ? <p className="pulso-rl-rec-frase"><FraseDelRecomendador piezas={vista.frase} /></p> : null}
+    </TarjetaDelRecomendador>
+  );
+}
+
+/** Una fila por columna: el enunciado de la pregunta con su nombre debajo, y la causa. */
+function ListaDePersonales({ columnas }: { columnas: readonly ColumnaPersonal[] }) {
+  return (
+    <ul className="pulso-rl-rec-personales" aria-label="Columnas con dato potencialmente personal">
+      {columnas.map((c) => (
+        <li key={c.pregunta.codigo} className="pulso-rl-rec-personal">
+          <span className="pulso-rl-rec-personal-pregunta">
+            {/* TODO(ítem 40): una columna fuera del formulario y sin etiqueta en la base llega sin
+                enunciado (el motor manda `rotulo` = NA y el inventario repite el nombre); se muestra el nombre. */}
+            <span className="pulso-rl-rec-personal-etiqueta">{c.pregunta.etiqueta ?? c.pregunta.codigo}</span>
+            {c.pregunta.etiqueta ? <code className="pulso-rl-rec-codigo">{c.pregunta.codigo}</code> : null}
+          </span>
+          <span className="pulso-rl-rec-personal-causa">
+            {c.causa ? <span>{c.causa}</span> : null}
+            {c.detalle ? <small>{c.detalle}</small> : null}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

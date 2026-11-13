@@ -1,46 +1,11 @@
-/* "Sugerencias para revisar" (ítem 31): misma geometría que las sugeridas de
-   la base; la frase puede ocupar varias líneas y las acciones van a la derecha. */
+/* "Sugerencias para revisar" (ítem 31): la línea de concentración por
+   recopilador. La tarjeta y el bloque son los del recomendador. */
 
-/* Sin sugeridas antes, el bloque se va al pie como ellas (margin auto); cuando sigue a las sugeridas, el empuje al pie ya lo hizo el bloque anterior. */
-.pulso-rl-sugeridas + .pulso-rl-sugerencias {
-  margin-block-start: 0;
-}
-
-.pulso-rl-sugerencia-revisar {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--pulso-space-3);
-  padding-block: var(--pulso-space-2);
-}
-
-.pulso-rl-sugerencia-revisar + .pulso-rl-sugerencia-revisar {
-  border-top: 1px solid var(--pulso-border);
-}
-
-.pulso-rl-sugerencia-concentracion {
+.pulso-rl-rec-concentracion {
   color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
 }
 
-.pulso-rl-sugerencia-concentracion[data-destacada] {
+.pulso-rl-rec-concentracion[data-destacada] {
   color: var(--pulso-warn-fg);
-  font-weight: 600;
-}
-
-.pulso-rl-sugerencia-acciones {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--pulso-space-1);
-}
-
-.pulso-rl-sugerencias-estado {
-  margin: 0;
-  color: var(--pulso-text-soft);
-  font-size: var(--pulso-type-caption-size);
-}
-
-.pulso-rl-sugerencias-estado[data-tono="aviso"] {
-  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
 }

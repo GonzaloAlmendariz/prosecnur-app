@@ -44,6 +44,41 @@ afterEach(() => {
   host.remove();
 });
 
+// Ítem 40: el motor nombra la pregunta con su enunciado en el título y otra vez en el porqué.
+const FUERA_DE_LISTA = {
+  tipo: "fuera_catalogo",
+  variables: ["p6"],
+  params: { valores: ["1", "2"] },
+  nombre: "Fuera de la lista de opciones: \u00abMarca SI estás o NO de acuerdo con participar\u00bb (p6)",
+  mensaje: "Responde \u00ab77\u00bb, que no está entre las opciones de la pregunta.",
+  severidad: "error",
+  activa: true,
+  semilla: {
+    origen: "dominio",
+    porque: "\u00abMarca SI estás o NO de acuerdo con participar\u00bb (p6) registra \u00ab77\u00bb, y su lista solo admite: \u00abSí (1)\u00bb, \u00abNo (2)\u00bb. Ninguna regla derivada del instrumento verifica que el valor pertenezca a su catálogo.",
+  },
+} as unknown as ReglaSemilla;
+
+test("el enunciado de la pregunta sale una sola vez y los valores van como fichas, sin comillas", () => {
+  act(() => root.render(<SugeridasDeLaBase semillas={[FUERA_DE_LISTA]} ocupada={false} onAnadir={vi.fn()} />));
+  const tarjeta = host.querySelector("li")!;
+  const texto = tarjeta.textContent ?? "";
+  expect(texto.match(/Marca SI estás o NO de acuerdo con participar/g)).toHaveLength(1);
+  expect(texto).not.toMatch(/[\u00ab\u00bb"]/);
+  const valores = Array.from(tarjeta.querySelectorAll(".pulso-rl-rec-valor")).map((v) => v.textContent);
+  expect(valores).toEqual(["77", "Sí (1)", "No (2)"]);
+  expect(tarjeta.querySelector(".pulso-ficha-pregunta")?.textContent).toContain("p6");
+});
+
+test("mientras el motor calcula, el bloque muestra su carga; si falla, lo dice", () => {
+  act(() => root.render(<SugeridasDeLaBase semillas={undefined} ocupada={false} onAnadir={vi.fn()} />));
+  expect(host.querySelector("[role='status']")?.textContent).toContain("Buscando reglas sugeridas en la base");
+  expect(host.querySelector("[data-audit-ready='false']")).not.toBeNull();
+  act(() => root.render(<SugeridasDeLaBase semillas={null} ocupada={false} onAnadir={vi.fn()} />));
+  expect(host.textContent).toContain("No se pudieron leer las reglas sugeridas.");
+  expect(host.querySelector("[data-audit-ready]")).toBeNull();
+});
+
 test("cada sugerida muestra los casos que marca hoy y Añadir la entrega", () => {
   const onAnadir = vi.fn();
   act(() => root.render(<SugeridasDeLaBase semillas={[FORMATO, SIN_CIFRA]} ocupada={false} onAnadir={onAnadir} />));
