@@ -631,6 +631,37 @@ test_that("paginacion ACNUR trata Otro y Otros como la misma categoria", {
   expect_false(any(c("Otro", "Otros", "Otra", "Otras", "Other", "Others") %in% pages[[2]]$exclude_options))
 })
 
+# Ítem 48 (RMS 2026): "Otro (especifique)" se dibuja como "Otros"; sin ese rótulo en la exclusión, la barra salía en las
+# dos páginas de "¿Por qué no ha podido acceder a un tratamiento médico?".
+test_that("paginacion ACNUR excluye la opcion Otro con especificacion por el rotulo que dibuja el grafico", {
+  choices <- lapply(seq_len(13), function(i) {
+    if (i == 13L) return(list(name = "96", label = "Otro (especifique)"))
+    list(name = paste0("c", i), label = paste("Categoria", i))
+  })
+  pages <- .graficos_acnur_choice_pages(list(choices = choices), max_per_slide = 8L)
+  dibujada <- .etiqueta_opcion_imprimible("Otro (especifique)")
+  expect_identical(dibujada, "Otros")
+  expect_true(dibujada %in% pages[[1]]$exclude_options)
+  expect_false(dibujada %in% pages[[2]]$exclude_options)
+})
+
+# Ítem 48 (RMS 2026): Codificación deja el nombre de la pregunta en `label` de la recodificada y el enunciado en la columna
+# del idioma; la lámina salía titulada "REF16".
+test_that("el enunciado de una recodificada sale de la columna de idioma cuando label repite el nombre", {
+  survey <- data.frame(
+    type = c("select_one docs", "select_one docs_recod", "select_one sn"),
+    name = c("REF16", "REF16_recod", "HH05"),
+    label = c("¿Cuál es el documento principal?", "REF16", NA),
+    `label::Español (es)` = c(NA, "¿Cuál es el documento principal?", "¿Conoce la fecha de nacimiento?"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  vars <- .graficos_extract_vars_from_inst(list(survey = survey, choices = data.frame()))
+  rotulos <- stats::setNames(vapply(vars, `[[`, "", "label"), vapply(vars, `[[`, "", "name"))
+  expect_identical(unname(rotulos["REF16"]), "¿Cuál es el documento principal?")
+  expect_identical(unname(rotulos["REF16_recod"]), "¿Cuál es el documento principal?")
+  expect_identical(unname(rotulos["HH05"]), "¿Conoce la fecha de nacimiento?")
+})
+
 test_that("plan ACNUR compara cada pregunta por tres pares de dos distritos", {
   sid <- .graficos_acnur_test_session()
   on.exit(session_delete(sid), add = TRUE)
@@ -836,6 +867,30 @@ test_that("el filtro de identificadores no alcanza a las preguntas cerradas", {
   ))
   expect_false(consent$graphable)
   expect_identical(consent$reason, "metadato/control operativo del formulario")
+})
+
+# Ítem 48 (Arte con la plantilla Informe Pulso): las baterías del plan Pulso llevaban la base en el payload pero suprimida,
+# y las láminas de escala salían sin "Base: 115 encuestas".
+test_that("las baterías del plan Pulso dejan la base en la lámina", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  escala <- data.frame(list_name = "acu", name = as.character(1:4),
+                       label = c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"))
+  session_set(sid, "rp_inst", list(
+    survey = data.frame(type = "select_one acu", type_base = "select_one", name = c("a1", "a2", "a3"),
+                        label = c("Ítem uno", "Ítem dos", "Ítem tres"), list_name = "acu"),
+    choices = escala
+  ))
+  session_set(sid, "rp_data", data.frame(a1 = c("1", "2", "3", "4", "4"), a2 = c("2", "2", "3", "4", "1"),
+                                         a3 = c("3", "3", "4", "4", "2")))
+  suggested <- .graficos_suggested_plan(sid, config = list(perfil_auto = FALSE))
+  baterias <- Filter(function(s) identical(((s$payload %||% list())$grafico %||% list())$graficador, "p_barras_multiapiladas"),
+                     suggested$plan$slides)
+  expect_gt(length(baterias), 0L)
+  for (s in baterias) {
+    expect_true(nzchar(.graficos_scalar_chr(s$payload$base, "")))
+    expect_false(isTRUE((s$payload$meta %||% list())$suppress_base_placeholder))
+  }
 })
 
 test_that("el plan automático no titula ninguna lámina con el rótulo interno «Variables sugeridas» (G15)", {

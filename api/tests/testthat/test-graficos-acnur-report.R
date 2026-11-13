@@ -721,3 +721,28 @@ test_that("el paginado de categorias reparte equitativamente, no llena y desbord
     expect_lte(max(tam), 10)
   }
 })
+
+# Ítem 48 (RMS 2026): la portada y la ficha técnica se titulaban con el nombre del archivo ("ACNUR RMS___").
+test_that("el nombre del estudio del informe ACNUR sale de la Ficha y, sin ella, del archivo sin guiones bajos", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_path", "/tmp/ACNUR RMS___.pulso")
+  expect_identical(.graficos_acnur_project_name(sid), "ACNUR RMS")
+  session_set(sid, "planner", list(schema = PLANNER_SCHEMA, estudio = list(nombre = "Encuesta RMS 2026")))
+  expect_identical(.graficos_acnur_project_name(sid), "Encuesta RMS 2026")
+})
+
+# Ítem 48 (RMS 2026): la opción múltiple sin columna de texto salía sin nota de base en el informe ACNUR.
+test_that("la nota de base ACNUR de una opción múltiple se arma desde sus columnas por opción", {
+  data <- data.frame(id = 1:5, HACC04.1 = c(1, 0, NA, 1, NA), HACC04.2 = c(0, 1, NA, 1, NA), HACC04.96 = c(0, 0, NA, 1, NA))
+  variable <- list(name = "HACC04", tipo = "select_multiple",
+                   choices = list(list(name = "1", label = "Lejos"), list(name = "2", label = "Caro"),
+                                  list(name = "96", label = "Otro (especifique)")))
+  expect_identical(.graficos_acnur_multiple_desde_opciones(data, "HACC04", c("1", "2", "96")),
+                   c("1", "2", NA, "1 2 96", NA))
+  ctx <- list(data = data, inst = list(survey = data.frame()), is_repeat = FALSE, gate_map = NULL,
+              cache = new.env(parent = emptyenv()))
+  nota <- .graficos_acnur_question_semantics("sin-sesion", "default", variable, ctx = ctx)$note
+  expect_match(nota, "^3 respuestas")
+  expect_match(nota, "5 menciones")
+})

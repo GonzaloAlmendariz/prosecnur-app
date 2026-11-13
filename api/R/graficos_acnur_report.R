@@ -41,6 +41,9 @@
   study <- ((state %||% list())$estudio %||% list())
   name <- .graficos_scalar_chr(study$nombre, "")
   if (nzchar(name)) return(name)
+  # Ítem 48: el nombre que declara la Ficha del estudio antes que el del archivo ("ACNUR RMS___.pulso" titulaba la portada).
+  ficha <- tryCatch(.planner_leer(state)$secciones$estudio$valor$nombre, error = function(e) NULL)
+  if (nzchar(.graficos_scalar_chr(ficha, ""))) return(.graficos_scalar_chr(ficha, ""))
   bases <- study$bases %||% list()
   principal <- Filter(function(base) {
     !nzchar(.graficos_scalar_chr((base %||% list())$parent_base, "")) &&
@@ -54,7 +57,9 @@
     if (nzchar(source_title)) return(source_title)
   }
   path <- .graficos_scalar_chr((state %||% list())$project_path, "")
-  if (nzchar(path)) return(tools::file_path_sans_ext(basename(path)))
+  # Del archivo, sin los guiones bajos que no son parte del nombre ("ACNUR RMS___" sale "ACNUR RMS").
+  archivo <- trimws(gsub("\\s+", " ", gsub("_+", " ", tools::file_path_sans_ext(basename(path)))))
+  if (nzchar(archivo)) return(archivo)
   "Resultados del estudio"
 }
 
@@ -201,6 +206,7 @@
        # El mapa de gates se arma UNA vez por fuente: recorrerlo por variable
        # multiplicaba por 112 el parseo del instrumento.
        gate_map = .graficos_gate_map(inst),
+       cache = new.env(parent = emptyenv()),   # base procesada leída una vez (graficos_acnur_multiple_base.R)
        unit = if (is_repeat) .graficos_acnur_repeat_unit(base, inst) else NULL)
 }
 
@@ -326,10 +332,11 @@
   ctx <- ctx %||% .graficos_acnur_source_context(sid, source_name)
   data <- ctx$data
   name <- .graficos_scalar_chr(variable$name, "")
-  if (!is.data.frame(data) || !name %in% names(data)) {
+  # Opción múltiple sin columna de texto: se rearma desde sus columnas por opción (graficos_acnur_multiple_base.R).
+  values <- if (is.data.frame(data)) .graficos_acnur_valores_pregunta(sid, source_name, variable, ctx) else NULL
+  if (is.null(values)) {
     return(list(note = "", exclude_options = character(0), source_note = ""))
   }
-  values <- as.character(data[[name]])
   answered <- !.graficos_is_blank_cell(values)
   multiple <- identical(.graficos_base_type(variable$tipo), "select_multiple")
   specials <- .graficos_acnur_special_choices(variable)

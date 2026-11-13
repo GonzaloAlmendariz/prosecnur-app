@@ -605,6 +605,8 @@
     nat <- function(u) as.numeric(u)
     h0 <- nat(r$height); y_top <- nat(r$y); x0 <- nat(r$x); w0 <- nat(r$width)
     centro <- y_top - h0 / 2
+    # Una apilada pone sus segmentos en la misma fila: el paso entre filas sería 0 y las barras quedarían sin grosor.
+    if (anyDuplicated(round(centro, 6))) return(g)
     paso <- if (nb > 1L) min(abs(diff(sort(centro)))) * ph else Inf
     # Con el estilo de la lámina (lamina_perfil_panel.R), el grosor de sus barras nativas mientras deje aire entre barras.
     grosor <- if (!is.null(estilo$grosor_in)) min(estilo$grosor_in, if (is.finite(paso)) max(0.7 * paso, paso - .std_comp("perfil", "aire_fila")) else Inf) else

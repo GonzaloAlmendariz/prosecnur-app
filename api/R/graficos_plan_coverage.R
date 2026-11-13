@@ -1138,7 +1138,7 @@
     }
     if (!nzchar(.graficos_scalar_chr(section, ""))) section <- group_path
     label_meta <- .graficos_resolve_dynamic_label(
-      label[i] %||% nm,
+      .graficos_rotulo_de_fila(survey, i, nm),   # graficos_rotulo_de_fila.R
       var_name = nm,
       data = data,
       choices = choices,
@@ -1347,6 +1347,10 @@
     .graficos_scalar_chr(item$name, ""),
     .graficos_scalar_chr(item$label, "")
   ))
+  # El graficador dibuja la opción con su rótulo imprimible ("Otro (especifique)" sale "Otros"): la exclusión de una página
+  # lleva también ese rótulo, o la barra se repite en todas las páginas (ítem 48, RMS 2026).
+  impresas <- if (length(values)) .etiqueta_opcion_imprimible(values) else character(0)
+  values <- unique(c(values, impresas[nzchar(impresas)]))
   keys <- .graficos_norm_text_key(values)
   if (any(keys %in% c("otro", "otros", "otra", "otras", "other", "others"))) {
     values <- c(values, "Otro", "Otros", "Otra", "Otras", "Other", "Others")
@@ -2124,8 +2128,7 @@
                 ),
                 base = .graficos_scalar_chr(src$base_label, ""),
                 pie = "",
-                etiqueta = "",
-                meta = list(suppress_base_placeholder = TRUE)
+                etiqueta = ""   # ítem 48: sin suppress_base_placeholder, que borraba también esta base de la lámina
               )
             )
             used[chunk] <- TRUE

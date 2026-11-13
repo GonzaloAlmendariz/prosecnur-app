@@ -66,3 +66,25 @@ test_that("el ajuste del respaldo no cambia cifras ni orden y un gráfico ajeno 
   p <- ggplot2::ggplot(data.frame(x = 1:3, y = 1:3), ggplot2::aes(x, y)) + ggplot2::geom_point()
   expect_identical(.lam_mixta_respaldo_cifras(p, 3, 1.5), p)
 })
+
+# Ítem 48 (checklist-validacion-practicante): en "Dos gráficos" del plan sugerido, una apilada de una sola fila (Arte, "¿Qué
+# ciclo está cursando?") cae al respaldo. Sus cuatro segmentos comparten fila, el paso entre filas salía 0 y el ajuste les
+# daba grosor 0: la lámina salía con las barras invisibles, las cifras montadas en un punto y un rectángulo sin geometría
+# que LibreOffice pintaba sobre toda la lámina. Una apilada no es una lista de categorías: sale como llegó.
+test_that("el ajuste del respaldo deja intacta una apilada cuyos segmentos comparten fila", {
+  skip_if_not_installed("officer"); skip_if_not_installed("rvg")
+  cats <- c("Segundo ciclo", "Tercer ciclo", "Cuarto ciclo", "Otros")
+  d <- data.frame(categoria = "p6", N = 279, pct_1 = 0.50, pct_2 = 0.09, pct_3 = 0.41, pct_4 = 0)
+  g <- suppressWarnings(graficar_barras_apiladas(d, "categoria", var_n = "N", cols_porcentaje = paste0("pct_", 1:4),
+                                                 etiquetas_grupos = stats::setNames(cats, paste0("pct_", 1:4)), usar_canvas = TRUE, exportar = "rplot"))
+  barras <- function(p) {
+    gt <- p$layers[[1]]$geom_params$grob
+    pn <- gt$grobs[[which(gt$layout$name == "panel")]]
+    grid::getGrob(pn, grep("^geom_rect", grid::childNames(pn), value = TRUE))
+  }
+  antes <- as.numeric(barras(g)$height)
+  expect_true(all(antes > 0))
+  # La capa del lienzo es un entorno: el ajuste la modifica en el sitio, así que se compara contra lo medido antes.
+  despues <- barras(.lam_mixta_respaldo_cifras(g, 6, 4.3, list(rotulo_pt = 13)))
+  expect_equal(as.numeric(despues$height), antes)
+})
