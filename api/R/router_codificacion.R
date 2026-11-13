@@ -2008,7 +2008,10 @@ isTRUE_vec <- function(x) {
       rp_data = rp_data_adaptada,
       rp_inst = inst_adaptado,
       n_filas = nrow(rp_data_adaptada),
-      n_columnas = ncol(rp_data_adaptada)
+      n_columnas = ncol(rp_data_adaptada),
+      # La base codificada sale de la base limpia vigente: la limpieza y sus
+      # decisiones siguen explicándola (ADR 0145).
+      deriva_de_vigente = TRUE
     )
   } else {
     session_set(sid, "rp_inst", inst_adaptado)

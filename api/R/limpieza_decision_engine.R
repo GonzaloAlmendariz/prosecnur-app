@@ -337,9 +337,33 @@
   linaje
 }
 
+# Desde el ADR 0145 la codificación conserva el linaje: la data vigente puede ser
+# la base codificada que salió de la limpia. Revertir ahí restituiría la base
+# recibida junto al formulario codificado, un par que no se corresponde.
+.limpieza_codificada_sobre_la_limpia <- function(sid, base_nombre = NULL) {
+  s <- tryCatch(session_get(sid, required = FALSE), error = function(e) NULL)
+  if (is.null(s)) return(FALSE)
+  nombre <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
+  if (is.null(nombre) || !nzchar(nombre)) return(FALSE)
+  meta <- s$estudio$bases[[nombre]] %||% list()
+  linaje <- meta$limpieza %||% list()
+  if (!isTRUE(linaje$enabled)) return(FALSE)
+  vigente <- as.character(meta$data_file_id %||% "")
+  efectivo <- as.character(linaje$effective_data_file_id %||% "")
+  if (!nzchar(vigente) || identical(vigente, efectivo)) return(FALSE)
+  identical(as.character((s$files[[vigente]] %||% list())$kind %||% ""), "data_adaptada")
+}
+
 # Volver atrás es una operación de la misma cadena que promover: restituye la
 # base anterior e invalida aguas abajo, porque el insumo volvió a cambiar.
 limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
+  if (isTRUE(.limpieza_codificada_sobre_la_limpia(sid, base_nombre))) {
+    stop_api(409, "E_LIMPIEZA_REVERTIR_CODIFICADA",
+             paste("No se revirtió la limpieza porque la base ya se codificó sobre la base limpia:",
+                   "volver a la base recibida la dejaría junto al formulario codificado.",
+                   "Para cambiar la limpieza, corrige la decisión y vuelve a cerrar la base;",
+                   "después aplica de nuevo la codificación."))
+  }
   if (!isTRUE(.limpieza_revertir_promocion(sid, base_nombre))) {
     stop_api(409, "E_LIMPIEZA_SIN_PROMOCION",
              "Esta base no tiene una promocion de limpieza vigente que revertir.")

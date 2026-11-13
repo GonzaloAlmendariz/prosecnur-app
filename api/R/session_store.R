@@ -1025,7 +1025,8 @@ validacion_key_present_any <- function(s, key) {
 }
 
 .invalidate_processing_state <- function(s, base_nombre = NULL,
-                                         conservar_exclusiones = FALSE) {
+                                         conservar_exclusiones = FALSE,
+                                         conservar_validacion = FALSE) {
   # Todo lo que depende del par XLSForm + data debe recomputarse cuando
   # alguno de los dos cambia. Si no, Fase 2 puede mostrar plan/auditoría/
   # limpieza del instrumento anterior aunque la carga ya sea nueva.
@@ -1038,6 +1039,11 @@ validacion_key_present_any <- function(s, key) {
   # instrumento nuevo se aplicaría invisible. Va a cuarentena
   # (`limpieza_preservadas`) y sólo `.limpieza_rehidratar_preservadas()` la
   # devuelve, cuando la regla que la justifica vuelve a existir.
+  #
+  # `conservar_validacion` es para una data que desciende de la vigente, como la
+  # base codificada que sale de la base limpia (ADR 0145): plan, auditoría y
+  # decisiones siguen describiendo esa base. Solo cae lo que se calcula sobre la
+  # data (la caché del explorador).
   s$plan_result <- NULL
   s$evaluacion <- NULL
   s$reglas_custom <- list()
@@ -1134,6 +1140,11 @@ validacion_key_present_any <- function(s, key) {
     validation_targets <- intersect(targets, names(s$estudio$bases))
     for (bn in validation_targets) {
       previous <- s$estudio$bases[[bn]]$validacion %||% list()
+      if (isTRUE(conservar_validacion)) {
+        previous$explorador_cache <- NULL
+        s$estudio$bases[[bn]]$validacion <- previous
+        next
+      }
       vaciado <- .validacion_empty_scope(
         operational_config = previous$operational_config %||% NULL
       )
@@ -1195,7 +1206,13 @@ estudio_replace_base_files <- function(sid, nombre,
                                         rp_data         = NULL,
                                         rp_inst         = NULL,
                                         n_filas         = NA_integer_,
-                                        n_columnas      = NA_integer_) {
+                                        n_columnas      = NA_integer_,
+                                        deriva_de_vigente = FALSE) {
+  # `deriva_de_vigente = TRUE` declara que la data nueva sale de la data vigente
+  # de esta base por una fase posterior (la codificación, que lee la base limpia
+  # efectiva). Entonces el linaje de la limpieza y el workspace de Validación
+  # siguen describiéndola y se conservan (ADR 0145). Toda otra carga es data
+  # nueva y los descarta.
   s <- session_get(sid)
   if (is.null(s$estudio) || is.null(s$estudio$bases[[nombre]])) {
     stop_api(404, "E_BASE_NOT_FOUND", sprintf("Base '%s' no existe.", nombre))
@@ -1215,7 +1232,7 @@ estudio_replace_base_files <- function(sid, nombre,
   # recargar el XLSForm no toca la base depurada.
   data_changed <- !is.null(data_file_id) && nzchar(data_file_id) &&
     !identical(as.character(meta$data_file_id %||% ""), as.character(data_file_id))
-  if (isTRUE(data_changed)) meta$limpieza <- NULL
+  if (isTRUE(data_changed) && !isTRUE(deriva_de_vigente)) meta$limpieza <- NULL
   if (!is.null(xlsform_file_id) && nzchar(xlsform_file_id)) {
     meta$xlsform_file_id <- xlsform_file_id
     if (!is.null(rp_inst)) s$rp_inst_sources[[nombre]] <- rp_inst
@@ -1234,7 +1251,11 @@ estudio_replace_base_files <- function(sid, nombre,
     # Si la data no cambió, las exclusiones siguen hablando de los mismos casos
     # y se conservan en cuarentena en vez de perderse con el resto del
     # workspace.
-    s <- .invalidate_processing_state(s, nombre, conservar_exclusiones = !isTRUE(data_changed))
+    s <- .invalidate_processing_state(
+      s, nombre,
+      conservar_exclusiones = !isTRUE(data_changed),
+      conservar_validacion = isTRUE(deriva_de_vigente)
+    )
   }
 
   # Refrescar mirror si es la primera base.

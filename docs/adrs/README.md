@@ -224,5 +224,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0142](0142-mapa-de-pestanas-de-procesamiento.md) | Aceptado | 2026-11-10 | Mapa de pestañas de Procesamiento: de 27 a 21 |
 | [0143](0143-acreditacion-por-correo-o-telefono-invita-a-toda-la-base.md) | Aceptado | 2026-11-11 | En acreditación, por correo, teléfono o mixto se invita a toda la base (intención censal) en los cuatro públicos; la meta del usuario manda, se reparte por segmento con un mínimo que se suma encima y se avisa qué segmento no alcanza con la respuesta esperada. Reemplaza al 0091 en esos canales; aulas sigue en el 0091 |
 | [0144](0144-analitica-sintetizada-con-entrega.md) | Aceptado | 2026-11-12 | Analítica sigue al prototipo: Variables, Categorías, Dimensiones, Ponderación, tablas y una pestaña Entrega que reúne Base final, Bases e instrumentos, Libro de códigos y Ficha técnica (alias de lectura); Matrices sale de Codificación y sus archivos pasan a Aplicar; Tablas multibase y Base panel quedan transitorias hasta D6 |
+| [0145](0145-script-de-limpieza-replicable.md) | Propuesto | 2026-11-12 | Script de limpieza replicable en Quarto |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

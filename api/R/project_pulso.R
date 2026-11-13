@@ -2029,6 +2029,15 @@
         fid <- as.character(fid %||% "")
         if (length(fid) && nzchar(fid[1])) out <- c(out, fid[1])
       }
+      # ADR 0145: la base recibida y la base limpia de la limpieza. Sin ellas,
+      # al reabrir no se puede revertir la promoción ni rehacer el script de
+      # limpieza, y tras codificar ninguna de las dos es la data vigente.
+      limpieza <- b$limpieza %||% list()
+      for (fid in c(limpieza$source_data_file_id,
+                    limpieza$effective_data_file_id)) {
+        fid <- as.character(fid %||% "")
+        if (length(fid) && nzchar(fid[1])) out <- c(out, fid[1])
+      }
       if (!is.null(b$surveymonkey_raw_snapshot_file_id) && nzchar(b$surveymonkey_raw_snapshot_file_id)) {
         out <- c(out, b$surveymonkey_raw_snapshot_file_id)
       }
