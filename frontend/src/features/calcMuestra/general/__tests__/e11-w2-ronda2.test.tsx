@@ -127,8 +127,8 @@ describe("V15 · el pie de la meta baja por piezas, no por palabras", () => {
     expect(html).toContain('<span class="cmg-meta-pieza" aria-hidden="true">±5.0%, +50.0%</span>');
     expect(css).toMatch(/\.cmg-tabla-actores \.cmg-meta-pieza \{\s*white-space: nowrap;/);
     expect(css).not.toMatch(/\.cmg-tabla-actores td\.cmg-num \.cmv2-target-stack small \{\s*white-space: normal;/);
-    // «Por calcular» sigue en una sola línea.
-    expect(html).toContain('<td class="cmg-actor-resultado"><strong>Por calcular</strong></td>');
+    // Meta ya no repite el resultado del cálculo: la meta y la población están en la misma fila.
+    expect(html).not.toContain("cmg-actor-resultado");
   });
 });
 
