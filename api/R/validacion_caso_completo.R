@@ -55,7 +55,8 @@
                    if (is_ast(regla$condicion)) ast_variables(regla$condicion) else character(0),
                    as.character(bateria$vars %||% character(0)),
                    as.character(unlist(fechas$regla$variables %||% list(), use.names = FALSE)),
-                   as.character((regla %||% list())$formato$var %||% character(0))))
+                   as.character((regla %||% list())$formato$var %||% character(0)),
+                   as.character(unlist((regla %||% list())$seccion$variables %||% character(0)))))
   vars <- vars[!is.na(vars) & nzchar(vars) & vars %in% names(df)]
   lapply(seq_along(filas), function(k) {
     i <- filas[k]
@@ -337,7 +338,18 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
               narrativa = .vnr_entrada(narrativa, id_regla, mapa$table),
               catalogo_leido = !is.null(narrativa),
               severidad = .validacion_severidad_por_id(scope, id_regla),
-              contexto = columnas, contexto_por_caso = rep(list(NA), n))
+              contexto = columnas, contexto_por_caso = rep(list(NA), n),
+              filtro_fuera_de_lista = list())
+  # El contexto de redacción de la regla (condición del salto, sección...).
+  regla_ctx <- .validacion_contexto_enunciado(scope, id_regla, inst, especiales)
+  # Ítem 41: la pregunta filtro con un código fuera de su lista, sobre todos
+  # los casos que la regla marca (no solo los de esta página).
+  if (is.data.frame(df) && !is.null(regla_ctx$condicion)) {
+    out$filtro_fuera_de_lista <- validacion_filtro_fuera_de_lista(
+      regla_ctx$condicion, df, mapa$row_idx,
+      tryCatch(.survey_choices_map(inst$survey, inst$choices), error = function(e) list()),
+      especiales)
+  }
   if (!n) {
     out$esperado <- list(); out$contexto_por_caso <- list()
     return(out)
@@ -375,7 +387,7 @@ validacion_caso_completo <- function(sid, base_nombre, id_caso) {
   out$esperado <- .validacion_esperado_por_fila(
     anomalia, roles, df, filas, ids,
     etiquetas_valor = .drill_choice_value_labels(inst, vars_roles),
-    regla = .validacion_contexto_enunciado(scope, id_regla, inst, especiales)
+    regla = regla_ctx
   )
   if (identical(id_regla, "OP_duplicates")) {
     parejas <- validacion_parejas_de_evaluacion(ev, id_regla, identidad)
@@ -428,5 +440,6 @@ validacion_detalle_regla_publico <- function(resp, detalle) {
   resp$catalogo_leido <- isTRUE(detalle$catalogo_leido)
   resp$contexto <- detalle$contexto
   resp$contexto_por_caso <- detalle$contexto_por_caso
+  resp$filtro_fuera_de_lista <- detalle$filtro_fuera_de_lista %||% list()
   resp
 }

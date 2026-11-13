@@ -36,7 +36,7 @@
   }
   if (identical(tipo, "skip")) {
     sub <- as.character((rule$presentation %||% list())$subtipo_semantico %||% "")
-    cond <- .vrb_condicion_salto(rule$predicate, target, sub)
+    cond <- if (.vss_es_seccion(rule)) .vss_condicion(rule) else .vrb_condicion_salto(rule$predicate, target, sub)
     if (is.null(cond)) return(NULL)
     return(list(tipo = if (identical(sub, "nodebe")) "condicion_falsa" else "condicion_verdadera",
                 ast = cond))

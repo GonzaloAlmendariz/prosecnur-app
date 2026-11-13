@@ -4,8 +4,12 @@
 # Fixture: dos bases hermanas ("Hogares" y "Personas", activa "Personas") con un
 # formulario de cuatro preguntas:
 #   p8   "¿Trabaja actualmente?" (Sí / No)
-#   p10  "Sector de la empresa", obligatoria, con salto ${p8} = '1'
+#   caso "Código del caso", obligatoria
+#   p10  "Sector de la empresa", con salto ${p8} = '1'
 #   edad "Edad", con restricción de 18 a 99
+# p10 no es obligatoria: si lo fuera, su vacío lo marcaría la obligatoria y no
+# el salto "debe", que repetiría la misma marca (ítem 42 del checklist de
+# Validación usada por un practicante; test-validacion-salto-seccion.R).
 # En "Personas" hay 426 casos: a 12 les corresponde p10 (p8 = Sí) y 3 de ellos la
 # dejaron vacía; de los 414 a los que no les corresponde, 2 la respondieron. El
 # salto "debe" marca 3 de 12, no 3 de 426.
@@ -15,7 +19,7 @@
     type = c("text", "select_one sino", "text", "integer"),
     name = c("caso", "p8", "p10", "edad"),
     label = c("Código del caso", "¿Trabaja actualmente?", "Sector de la empresa", "Edad"),
-    required = c("", "", "yes", ""),
+    required = c("yes", "", "", ""),
     relevant = c("", "", "${p8} = '1'", ""),
     constraint = c("", "", "", ". >= 18 and . <= 99"),
     stringsAsFactors = FALSE
@@ -135,7 +139,8 @@ test_that("con plan y sin auditoría: cada regla con su frase, sin cifras de aud
   expect_identical(valor$codigo, "1")
   expect_identical(debe$expresion_formulario, "${p8} = '1'")
   nodebe <- .m3_regla(cat, "salto", "nodebe")
-  expect_identical(.m3_texto(nodebe$frase), "Sector de la empresa queda vacía cuando ¿Trabaja actualmente? no es Sí.")
+  # Dice lo que se marca, como el título, no la regla (ítem 41).
+  expect_identical(.m3_texto(nodebe$frase), "Se marca cuando Sector de la empresa tiene respuesta y ¿Trabaja actualmente? no es Sí.")
   expect_identical(debe$pareja, nodebe$id)
   expect_identical(nodebe$pareja, debe$id)
 
@@ -250,7 +255,7 @@ test_that("filtro por pregunta: solo las reglas que la leen, y una pregunta desc
   expect_identical(p8$variable, "p8")
   expect_true(p8$n_total > 0L && p8$n_total < todas$n_total)
   expect_true(all(vapply(p8$reglas, function(f) "p8" %in% unlist(f$variables), logical(1))))
-  expect_setequal(vapply(p8$reglas, `[[`, "", "familia"), c("salto", "obligatoria"))
+  expect_setequal(vapply(p8$reglas, `[[`, "", "familia"), "salto")
   expect_identical(p8$n_total, length(p8$reglas))
 
   nada <- validacion_reglas_catalogo(sid, "Personas", variable = "p99")

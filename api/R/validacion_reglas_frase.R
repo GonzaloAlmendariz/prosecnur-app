@@ -559,7 +559,9 @@
   et <- .vrf_comillas(.vrf_etiqueta(info$target, ctx))
   switch(info$familia,
     "obligatoria" = sprintf("Respuesta obligatoria en %s", et),
-    "salto" = if (identical(info$direccion, "nodebe")) {
+    "salto" = if (!is.null(info$seccion)) {
+      sprintf("Sección %s: respondida cuando no le correspondía", et)
+    } else if (identical(info$direccion, "nodebe")) {
       sprintf("Salto de %s: respondida cuando no le correspondía", et)
     } else if (identical(info$direccion, "debe")) {
       sprintf("Salto de %s: vacía cuando le correspondía", et)
@@ -624,9 +626,17 @@
     "obligatoria" = c(q, .vrf_t(" es obligatoria"),
                       if (!is.null(info$filtro)) c(.vrf_t(" cuando "), .vrf_cond(info$filtro, ctx)) else list(),
                       punto),
-    "salto" = if (!is.null(info$condicion)) {
-      c(q, .vrf_t(if (identical(info$direccion, "nodebe")) " queda vacía cuando " else " se responde cuando "),
-        .vrf_cond(info$condicion, ctx), punto)
+    # "No debe responderse" dice lo que se marca, como el título ("respondida
+    # cuando no le correspondía"), y no la regla del formulario: "queda vacía
+    # cuando" contradecía al título en Hallazgos (ítem 41). "Debe responderse"
+    # conserva "se responde cuando", que Explorar lee como condición de
+    # aparición (`lecturaDelFormulario.ts`).
+    "salto" = if (!is.null(info$condicion) && !is.null(info$seccion)) {
+      c(.vrf_frase_seccion(info, ctx), .vrf_cond(info$condicion, ctx), punto)
+    } else if (!is.null(info$condicion) && identical(info$direccion, "nodebe")) {
+      c(.vrf_t("Se marca cuando "), q, .vrf_t(" tiene respuesta y "), .vrf_cond(info$condicion, ctx), punto)
+    } else if (!is.null(info$condicion)) {
+      c(q, .vrf_t(" se responde cuando "), .vrf_cond(info$condicion, ctx), punto)
     } else {
       .vrf_marcar_incompleta(ctx)
       c(q, .vrf_t(" sigue un salto que no se puede escribir en palabras."))
@@ -639,4 +649,14 @@
     c(.vrf_t("Se marca cuando "), .vrf_cond(info$cuerpo, ctx), punto, filtro)
   )
   .vrf_compactar(out)
+}
+
+# Comienzo de la frase del salto de una sección (validacion_salto_seccion.R):
+# "Se marca cuando alguna de las 12 preguntas de la sección "Familia" tiene
+# respuesta y ". La condición va después.
+.vrf_frase_seccion <- function(info, ctx) {
+  n <- length(as.character(unlist(info$seccion$variables %||% character(0))))
+  et <- .vrf_comillas(.vrf_etiqueta(info$seccion$grupo, ctx))
+  .vrf_t(if (n == 1L) sprintf("Se marca cuando la pregunta de la sección %s tiene respuesta y ", et)
+         else sprintf("Se marca cuando alguna de las %d preguntas de la sección %s tiene respuesta y ", n, et))
 }

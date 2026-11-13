@@ -19,6 +19,9 @@
 #   catalogo      valor que no está entre las opciones de la pregunta.
 #   salto_debe    vacía cuando le correspondía responder.
 #   salto_nodebe  respondida cuando no le correspondía.
+#   seccion_nodebe  una sección respondida cuando no le correspondía: cuántas
+#                 de sus preguntas respondió y qué respuesta lo decide
+#                 (validacion_salto_seccion.R).
 #   calculo       el valor calculado no coincide con su fórmula.
 #   coherencia    dos respuestas que no son compatibles.
 #   faltante      obligatoria y vacía.
@@ -159,6 +162,7 @@
   lim_tipo <- as.character((if (is.list(regla$limites)) regla$limites$tipo else NA) %||% NA)[1]
   if (identical(a, "faltante")) return("faltante")
   if (identical(tipo, "skip") || identical(familia, "salto")) {
+    if (!is.null(regla$seccion)) return("seccion_nodebe")
     if (identical(dir, "nodebe")) return("salto_nodebe")
     if (identical(dir, "debe")) return("salto_debe")
   }
@@ -258,6 +262,11 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
     },
     salto_nodebe = if (is.null(factor_)) "que no correspondía responder"
                    else sprintf("que no correspondía porque declaró %s", factor_),
+    seccion_nodebe = {
+      sc <- .vss_enunciado(regla$seccion, valores, regla, etiquetas_valor)
+      hecho <- sc$hecho
+      sc$choque
+    },
     calculo = {
       hecho <- sprintf("el valor calculado de %s (%s)", rot,
                        if (is.null(val)) "vacío" else val)
@@ -321,6 +330,8 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
   sujeto <- as.character(caso %||% "")[1]
   if (is.na(sujeto)) sujeto <- ""
   cuerpo <- paste0(hecho, if (nzchar(hecho) && nzchar(choque)) sep else "", choque)
+  # Un rótulo del formulario que termina en punto no deja un punto doble.
+  cuerpo <- sub("\\.+$", "", cuerpo)
   if (!nzchar(sujeto)) cuerpo <- paste0(toupper(substr(cuerpo, 1, 1)), substring(cuerpo, 2))
   texto <- paste0(if (nzchar(sujeto)) paste0(sujeto, ": ") else "", cuerpo, ". ", acc)
   list(subtipo = sub, sujeto = sujeto, hecho = hecho, choque = choque, accion = acc, texto = texto)
@@ -361,11 +372,18 @@ validacion_enunciado_hallazgo <- function(anomalia, roles, caso,
   semilla <- (propia$semilla %||% list())
   direccion <- as.character((rule$presentation %||% list())$subtipo_semantico %||% NA_character_)
   target <- as.character((rule$variable_roles %||% list())$target %||% rule$primary_var %||% "")[1]
-  condicion <- if (identical(as.character(rule$tipo_regla), "skip") && direccion %in% c("debe", "nodebe")) {
-    tryCatch(.vrb_condicion_salto(rule$predicate, target, direccion), error = function(e) NULL)
+  seccion <- if (.vss_es_seccion(rule)) {
+    g <- .vss_grupo(rule)
+    list(grupo = g, etiqueta = .enun_rotulo(g, list(etiquetas = etiquetas)), variables = .vss_variables(rule))
+  } else NULL
+  condicion <- if (!is.null(seccion)) {
+    tryCatch(.vss_condicion(rule), error = function(e) NULL)
+  } else if (identical(as.character(rule$tipo_regla), "skip") && direccion %in% c("debe", "nodebe")) {
+    tryCatch(.vss_condicion_propia(rule, .vrb_condicion_salto(rule$predicate, target, direccion)), error = function(e) NULL)
   } else NULL
   list(
     condicion = condicion,
+    seccion = seccion,
     tipo_regla = as.character(rule$tipo_regla %||% NA_character_),
     familia = familia,
     direccion = as.character((rule$presentation %||% list())$subtipo_semantico %||% NA_character_),

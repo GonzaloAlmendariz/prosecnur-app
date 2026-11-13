@@ -12,7 +12,13 @@
  * Las situaciones van por la clave de la opción (`opcionesDeTratamiento`), no
  * por la acción del motor: "La más completa" y "La primera" son la misma
  * acción con criterios distintos.
+ *
+ * Si la pregunta filtro de un salto trae, en los casos marcados, un código que
+ * no está en su lista (`filtroFueraDeLista.ts`, ítem 41), la primera pauta lo
+ * dice: lo más probable es que el formulario y la base usen otro código para
+ * la misma opción, y entonces lo que se corrige es el formulario.
  */
+import { pautaDelFiltro, type FiltroFueraDeLista } from "./filtroFueraDeLista";
 import type { OpcionDeTratamiento, VistaDelHallazgo } from "./modeloHallazgos";
 
 export type TipoDePauta =
@@ -20,6 +26,7 @@ export type TipoDePauta =
   | "atipico"
   | "salto_vacia"
   | "salto_sobra"
+  | "seccion_sobra"
   | "obligatoria"
   | "fuera_de_lista"
   | "coherencia"
@@ -96,6 +103,17 @@ const PAUTAS: Record<TipoDePauta, Pauta> = {
       corregir: "Si el error está en la pregunta filtro y se corrige ahí.",
       dejar: "Si se decide conservar la respuesta para el análisis.",
       excluir: "Si el caso tiene varios saltos rotos.",
+    },
+  },
+  seccion_sobra: {
+    revisar: [
+      "Revisa la respuesta que abre la sección: si está mal registrada o se dejó vacía al digitar, la sección es válida y el error está ahí.",
+      "Si la encuesta no debía continuar, el caso entero sobra: excluirlo es más claro que vaciar la sección pregunta por pregunta.",
+      "Abre el caso completo para ver qué respondió en la sección antes de decidir.",
+    ],
+    situaciones: {
+      excluir: "Si la sección no debía aplicarse y el caso no cuenta para el estudio.",
+      dejar: "Si la respuesta que abre la sección está mal registrada y las respuestas de la sección valen.",
     },
   },
   obligatoria: {
@@ -248,6 +266,7 @@ const POR_SUBTIPO: Record<string, TipoDePauta> = {
   periodo: "fechas",
   salto_debe: "salto_vacia",
   salto_nodebe: "salto_sobra",
+  seccion_nodebe: "seccion_sobra",
   faltante: "obligatoria",
   catalogo: "fuera_de_lista",
   coherencia: "coherencia",
@@ -276,6 +295,7 @@ export function tipoDePauta(o: {
 }): TipoDePauta | null {
   if (o.vista === "casi-iguales") return "casi_iguales";
   if (o.familia === "salto" || o.vista === "salto" || o.tipoRegla === "skip") {
+    if (o.subtipo === "seccion_nodebe") return "seccion_sobra";
     if (o.direccion === "debe" || o.subtipo === "salto_debe") return "salto_vacia";
     if (o.direccion === "nodebe" || o.subtipo === "salto_nodebe") return "salto_sobra";
     return null;
@@ -308,15 +328,23 @@ export function pautasDelHallazgo(o: {
   subtipo: string | null;
   tipoRegla: string | null;
   semillaOrigen: string | null;
+  /** Preguntas de la condición con un código fuera de su lista en los casos marcados (ítem 41). */
+  filtroFueraDeLista?: readonly FiltroFueraDeLista[];
 }): PautasDelHallazgo | null {
   const tipo = tipoDePauta(o);
   const detector = o.semillaOrigen === "detector_consistencia";
   const base = tipo ? PAUTAS[tipo] : null;
+  const filtro = tipo === "salto_vacia" || tipo === "salto_sobra" || tipo === "seccion_sobra" ? o.filtroFueraDeLista ?? [] : [];
   if (!base && !detector) return null;
-  const revisar = detector
+  const propias = detector
     ? [...DETECTOR.revisar, ...(base?.revisar ?? [])].slice(0, 3)
     : [...(base?.revisar ?? [])];
-  const situaciones = { ...(base?.situaciones ?? {}), ...(detector ? DETECTOR.situaciones : {}) };
+  const revisar = filtro.length ? [...filtro.map(pautaDelFiltro), ...propias].slice(0, Math.max(3, filtro.length + 1)) : propias;
+  const situaciones = {
+    ...(base?.situaciones ?? {}),
+    ...(detector ? DETECTOR.situaciones : {}),
+    ...(filtro.length ? { dejar: "Si el salto falla por un código que el formulario no declara: corrige el formulario y vuelve a auditar." } : {}),
+  };
   return { tipo, detector, revisar, situaciones };
 }
 

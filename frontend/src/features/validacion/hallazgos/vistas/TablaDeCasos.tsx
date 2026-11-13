@@ -77,6 +77,7 @@ export function TablaDeCasos({
   const tabla = useMemo(() => compactarTabla(columnas, filas), [columnas, filas]);
   const disposicion = useMemo(() => disposicionDeTabla(tabla.columnas), [tabla.columnas]);
   const detalleDe = (c: ColumnaDeCaso) => tabla.columnas.find((x) => x.clave === c.clave)?.detalle ?? null;
+  const columnaNeutra = (clave: string) => columnas.some((c) => c.clave === clave && c.neutra);
   const tablaRef = useRef<HTMLDivElement>(null);
   const desborde = useDesbordeHorizontal(tablaRef);
   const conFila = disposicion.enFila.length > 0;
@@ -116,7 +117,7 @@ export function TablaDeCasos({
             {tabla.comunes.map((c) => (
               <div key={c.clave}>
                 <dt>{c.rotulo}</dt>
-                <dd data-falla={c.falla ? tono : undefined}><Celda celda={c.celda} /></dd>
+                <dd data-falla={c.falla && !columnaNeutra(c.clave) ? tono : undefined}><Celda celda={c.celda} /></dd>
               </div>
             ))}
           </dl>
@@ -182,7 +183,7 @@ export function TablaDeCasos({
               </span>
               {disposicion.columnas.map((c) => (
                 <span key={c.clave} role="cell" data-tipo={c.tipo} data-frase={esFrase(c) ? "" : undefined}>
-                  <Celda celda={celdas[c.clave]} falla={c.tipo === "falla"} />
+                  <Celda celda={celdas[c.clave]} falla={c.tipo === "falla" && !c.neutra} />
                 </span>
               ))}
               {conFila ? (
@@ -215,7 +216,7 @@ function Encabezado({ columna, detalle, tono }: { columna: ColumnaDeTabla | Colu
       role="columnheader"
       data-tipo={columna.tipo}
       data-frase={esFrase(columna) ? "" : undefined}
-      data-falla={columna.tipo === "falla" ? tono : undefined}
+      data-falla={columna.tipo === "falla" && !columna.neutra ? tono : undefined}
       title={detalle ? `${columna.rotulo}. ${detalle}` : columna.rotulo}
     >
       <span className="pulso-hz-cabecera-rotulo">{columna.rotulo}</span>
@@ -228,8 +229,9 @@ function Encabezado({ columna, detalle, tono }: { columna: ColumnaDeTabla | Colu
 function Celda({ celda, falla = false }: { celda: CeldaDeCaso | undefined; falla?: boolean }) {
   if (!celda) return null;
   return (
-    <span className="pulso-hz-celda" title={celda.titulo ?? undefined}>
+    <span className="pulso-hz-celda" title={celda.titulo ?? (celda.fueraDeLista ? `${celda.valor}: no está entre las opciones de la pregunta` : undefined)}>
       <span className="pulso-hz-celda-valor" data-falla={falla ? "" : undefined}>{celda.valor}</span>
+      {celda.fueraDeLista ? <span className="pulso-hz-fuera-de-lista">Fuera de la lista</span> : null}
       {celda.original ? <span className="pulso-hz-celda-gris">{celda.original}</span> : null}
       {celda.nota ? <span className="pulso-hz-celda-gris">{celda.nota}</span> : null}
     </span>

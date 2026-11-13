@@ -56,3 +56,21 @@ test_that("las columnas de sistema de la plataforma no se listan como preguntas"
 test_that("pocos códigos numéricos en texto siguen siendo una única", {
   expect_equal(.explorar_tipo_var("x", df = data.frame(x = rep(c("1", "2", "3"), 10))), "so")
 })
+
+test_that("cada sección lleva el rótulo de su grupo en el formulario (ítem 38)", {
+  survey <- data.frame(
+    type = c("begin_group", "select_one sino", "end_group", "begin_group", "integer", "end_group", "text"),
+    name = c("seccion_D_7", "p1", "", "sin_rotulo", "p2", "", "suelta"),
+    label = c("Sobre tu futuro y el de tu familia", "¿Acepta?", "", "", "Edad", "", "Comentario"),
+    stringsAsFactors = FALSE
+  )
+  data <- data.frame(p1 = c("1", "2", "1"), p2 = c(15, 16, 17), suelta = c("a", "b", "c"), stringsAsFactors = FALSE)
+  inv <- .explorar_inventario(data, list(survey = survey))
+  por_nombre <- stats::setNames(inv$secciones, vapply(inv$secciones, `[[`, "", "nombre"))
+  expect_identical(por_nombre$seccion_D_7$etiqueta, "Sobre tu futuro y el de tu familia")
+  # Un grupo sin rótulo y las preguntas sueltas van sin `etiqueta`: la lista
+  # muestra el nombre del grupo o "Sin sección".
+  expect_null(por_nombre$sin_rotulo$etiqueta)
+  expect_null(por_nombre$General$etiqueta)
+  expect_identical(names(por_nombre$seccion_D_7), c("nombre", "etiqueta", "variables"))
+})

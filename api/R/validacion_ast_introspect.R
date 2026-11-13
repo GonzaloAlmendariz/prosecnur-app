@@ -378,7 +378,11 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
         name = name,
         group_path = group_path,
         gate = gate,
-        repeat_context = repeat_ctx
+        repeat_context = repeat_ctx,
+        # Condición propia de cada grupo de la fila (NULL si no tiene) y su
+        # clase, por nivel: la regla de sección las lee (validacion_salto_seccion.R).
+        group_gates = lapply(stack, function(s) s$relevant_ast),
+        group_kinds = vapply(stack, function(s) s$kind, character(1))
       )
     }
   }
@@ -531,7 +535,8 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
   rules
 }
 
-.infer_skip <- function(survey, ctx_map, choices_map = NULL, collector = NULL) {
+.infer_skip <- function(survey, ctx_map, choices_map = NULL, collector = NULL,
+                        con_obligatorias = FALSE) {
   rules <- list()
   if (!("relevant" %in% names(survey))) return(rules)
   label_map <- .survey_label_map(survey)
@@ -544,6 +549,9 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
     rel_raw <- as.character(survey$relevant[i])
     has_own_relevant <- !is.null(rel_raw) && !is.na(rel_raw) && nzchar(rel_raw)
     if (!has_own_relevant && is.null(row$gate)) next
+    # Dentro de una sección con condición, "respondida cuando la sección no
+    # correspondía" lo marca la regla de la sección (validacion_salto_seccion.R).
+    cubierta <- .vss_fila_cubierta(row)
 
     # El salto efectivo combina relevant específico de la variable con gates
     # heredados de grupos/repeats padres. Si solo existe gate heredado, igual
@@ -586,7 +594,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
       seccion_row <- if (length(row$group_path)) tail(row$group_path, 1) else NA
       tabla_row <- if (!is.null(row$repeat_context)) row$repeat_context else "principal"
       required_flag <- if ("required" %in% names(survey)) .is_required(survey$required[i]) else FALSE
-      emit_debe <- has_own_relevant || required_flag
+      emit_debe <- .vss_emite_debe(has_own_relevant, required_flag, con_obligatorias)
 
       # _nodebe siempre aplica: si el salto/sección está inactivo, la variable
       # debe quedar vacía. _debe solo aplica si ya existía relevant propio o la
@@ -602,15 +610,24 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
           seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
         )
       }
-      r_nodebe <- rule_skip(
-        var = var,
-        gate = gate_full,
-        direction = "must_be_empty_when_false",
-        nombre = if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — no debe responderse", var, label) else sprintf("[%s] Salto — no debe responderse", var),
-        seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
-      )
+      nombre_nodebe <- if (!is.null(label) && nzchar(label) && label != var) sprintf("[%s] Salto · «%s» — no debe responderse", var, label) else sprintf("[%s] Salto — no debe responderse", var)
+      r_nodebe <- if (!cubierta) {
+        rule_skip(
+          var = var,
+          gate = gate_full,
+          direction = "must_be_empty_when_false",
+          nombre = nombre_nodebe,
+          seccion = seccion_row, tabla = tabla_row, repeat_context = row$repeat_context
+        )
+      } else if (!is.null(own_gate)) {
+        .vss_regla_nodebe_en_seccion(var, own_gate, row$gate, nombre_nodebe,
+                                     seccion = seccion_row, tabla = tabla_row,
+                                     repeat_context = row$repeat_context)
+      } else NULL
       gate_h <- .ast_to_human_text(gate_full, label_map = label_map, choices_map = choices_map)
-      gate_neg <- ast_normalize(ast_not(gate_full))
+      gate_neg <- if (cubierta && !is.null(own_gate)) {
+        .vss_y(list(row$gate, ast_not(own_gate)))
+      } else ast_normalize(ast_not(gate_full))
       gate_neg_h <- .ast_to_human_text(gate_neg, label_map = label_map, choices_map = choices_map)
       pref <- .context_prefix(tabla_row, row$repeat_context, seccion_row)
       obj_debe <- if (nzchar(gate_h)) {
@@ -636,7 +653,7 @@ build_group_gate_map <- function(survey, return_mode = c("entries", "full")) {
           choices_map = choices_map
         )
       }
-      r_nodebe <- .enrich_ast_rule_from_survey(
+      if (!is.null(r_nodebe)) r_nodebe <- .enrich_ast_rule_from_survey(
         r_nodebe,
         survey = survey,
         target_var = var,
@@ -1130,7 +1147,9 @@ infer_rules_from_xlsform <- function(instrumento,
     all_rules <- c(all_rules, .infer_required(survey, ctx_map, choices_map = choices_map, collector = collector))
   }
   if ("skip" %in% include) {
-    all_rules <- c(all_rules, .infer_skip(survey, ctx_map, choices_map = choices_map, collector = collector))
+    all_rules <- c(all_rules, .infer_skip(survey, ctx_map, choices_map = choices_map, collector = collector,
+                                          con_obligatorias = "required" %in% include),
+                   .vss_infer_secciones(survey, ctx_map, choices_map = choices_map, collector = collector))
   }
   if ("constraint" %in% include) {
     all_rules <- c(all_rules, .infer_constraint(survey, ctx_map, choices_map = choices_map, collector = collector))

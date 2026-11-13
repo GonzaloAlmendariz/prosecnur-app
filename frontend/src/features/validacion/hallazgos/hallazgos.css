@@ -1695,3 +1695,42 @@ button.pulso-hz-sentido:hover {
   opacity: 0.55;
   filter: saturate(0.6);
 }
+
+/* ---------- Pregunta filtro con un código fuera de su lista (ítem 41) ---------- */
+
+.pulso-hz-filtro-fuera {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3) var(--pulso-space-5);
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-warn-border) 60%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-body-size);
+  line-height: 1.45;
+}
+
+.pulso-hz-filtro-fuera > svg {
+  flex: none;
+  margin-block-start: 3px;
+}
+
+.pulso-hz-filtro-fuera p {
+  margin: 0;
+}
+
+.pulso-hz-filtro-fuera p + p {
+  margin-block-start: var(--pulso-space-1);
+}
+
+/* El valor que no está entre las opciones de su pregunta lleva su marca. */
+.pulso-hz-fuera-de-lista {
+  display: inline-block;
+  padding: 0 var(--pulso-space-1);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 70%, var(--pulso-surface));
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-type-micro-size);
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}

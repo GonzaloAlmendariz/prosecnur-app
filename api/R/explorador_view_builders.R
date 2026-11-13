@@ -1037,9 +1037,18 @@
   })
   meta_rows <- Filter(function(r) r$tipo %in% c("so", "sm", "num", "fecha", "texto"), meta_rows)
 
-  # Agrupar por sección.
+  # Agrupar por sección. Cada sección lleva el rótulo de su grupo en el
+  # formulario (`etiqueta`, ítem 38 del checklist del practicante) si lo tiene
+  # y es distinto del nombre; si no, va sin `etiqueta` y la lista muestra el
+  # nombre del grupo.
   secciones_chr <- vapply(meta_rows, function(r) r$seccion, character(1))
   sec_order <- unique(secciones_chr)
+  rotulos_grupo <- if (!is.null(surv) && "name" %in% names(surv)) .survey_label_map(surv) else character(0)
+  etiqueta_de <- function(sec) {
+    if (identical(sec, "General") || !(sec %in% names(rotulos_grupo))) return(NULL)
+    et <- trimws(as.character(rotulos_grupo[[sec]]))
+    if (is.na(et) || !nzchar(et) || identical(et, sec)) NULL else et
+  }
   secciones_out <- lapply(sec_order, function(sec) {
     idx <- which(secciones_chr == sec)
     vars <- lapply(meta_rows[idx], function(r) {
@@ -1048,7 +1057,7 @@
         n_validos = r$n_validos, n_nulos = r$n_nulos
       )
     })
-    list(nombre = sec, variables = vars)
+    c(list(nombre = sec), if (!is.null(et <- etiqueta_de(sec))) list(etiqueta = et), list(variables = vars))
   })
 
   list(n_variables = length(meta_rows), secciones = secciones_out)

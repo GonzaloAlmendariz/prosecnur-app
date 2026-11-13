@@ -389,7 +389,12 @@ test_that("infer_rules_from_xlsform: saltos heredados de begin_group cubren hija
   nodebe <- Filter(function(r) identical(r$presentation$subtipo_semantico, "nodebe"), rules)
   debe <- Filter(function(r) identical(r$presentation$subtipo_semantico, "debe"), rules)
 
-  expect_setequal(vapply(nodebe, function(r) r$primary_var, character(1)), c("service_q1", "service_score"))
+  # La sección es una sola regla "no debe responderse" con sus dos preguntas
+  # (ítem 42; validacion_salto_seccion.R): no una por pregunta.
+  expect_length(nodebe, 1L)
+  expect_true(.vss_es_seccion(nodebe[[1]]))
+  expect_identical(.vss_grupo(nodebe[[1]]), "sec_services")
+  expect_identical(.vss_variables(nodebe[[1]]), c("service_q1", "service_score"))
   expect_setequal(vapply(debe, function(r) r$primary_var, character(1)), "service_q1")
 
   data <- data.frame(
@@ -399,17 +404,7 @@ test_that("infer_rules_from_xlsform: saltos heredados de begin_group cubren hija
     stringsAsFactors = FALSE
   )
   ev <- evaluate_rules(nodebe, data)
-  flag_for <- function(var) {
-    match_idx <- which(vapply(nodebe, function(r) identical(r$primary_var, var), logical(1)))
-    nodebe[[match_idx[[1]]]]$flag_name
-  }
-
-  expect_true(ev$data[[flag_for("service_q1")]][[1]])
-  expect_false(ev$data[[flag_for("service_q1")]][[2]])
-  expect_false(ev$data[[flag_for("service_q1")]][[3]])
-  expect_true(ev$data[[flag_for("service_score")]][[1]])
-  expect_false(ev$data[[flag_for("service_score")]][[2]])
-  expect_false(ev$data[[flag_for("service_score")]][[3]])
+  expect_identical(ev$data[[nodebe[[1]]$flag_name]] %in% TRUE, c(TRUE, FALSE, FALSE))
 })
 
 test_that("parser: pulldata() devuelve raw con origin='pulldata'", {

@@ -12,6 +12,7 @@
 //   repetía en cada fila el mismo motivo en cuatro líneas): `compactarTabla`.
 import type { EnunciadoEsperado } from "../../../../api/validacionAuditoria";
 import type { ColumnaDeCaso, FilaDeCaso } from "../modeloHallazgos";
+import { CLAVE_RESPONDIDAS_DE_SECCION, lecturaDeSeccion, rotuloDeRespondidas } from "../seccionDelSalto";
 
 /** Hasta cuántas preguntas van como columnas; con más, van en una fila dentro del caso. */
 export const MAXIMO_DE_PREGUNTAS_EN_COLUMNAS = 4;
@@ -41,6 +42,7 @@ function pistaDe(c: ColumnaDeCaso): { minimo: number; peso: number } {
     if (c.clave === CLAVE_LECTURA_DE_FECHAS) return { minimo: 136, peso: 1.3 };
     // La respuesta repetida de una batería o la respuesta con su largo en una de formato.
     if (c.clave === CLAVE_PATRON_DE_BATERIA || c.clave.startsWith("formato:")) return { minimo: 152, peso: 1.4 };
+    if (c.clave === CLAVE_RESPONDIDAS_DE_SECCION) return { minimo: 112, peso: 1 };
     return esFrase(c) ? { minimo: 128, peso: 1.2 } : { minimo: 96, peso: 0.9 };
   }
   return { minimo: 88, peso: 1 };
@@ -94,6 +96,8 @@ export type CeldaDeCaso = {
   nota: string | null;
   /** El enunciado entero del motor, para el título. */
   titulo: string | null;
+  /** El valor no está entre las opciones de su pregunta: va con su marca, no crudo (ítem 41). */
+  fueraDeLista?: boolean;
 };
 
 /** Una columna de la tabla con lo que es igual en todas sus filas. */
@@ -119,7 +123,8 @@ export type TablaCompacta = {
 const celdaSimple = (valor: string | undefined): CeldaDeCaso => ({ valor: valor ?? "Sin dato", original: null, nota: null, titulo: null });
 const sinComillas = (texto: string) => texto.replace(/^"([^"]*)"/, "$1");
 const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
-const mismaCelda = (a: CeldaDeCaso, b: CeldaDeCaso) => a.valor === b.valor && a.original === b.original && a.nota === b.nota;
+const mismaCelda = (a: CeldaDeCaso, b: CeldaDeCaso) =>
+  a.valor === b.valor && a.original === b.original && a.nota === b.nota && !!a.fueraDeLista === !!b.fueraDeLista;
 
 /** El motivo de un caso de fechas: lo que va en el encabezado si es común y lo que va en la fila si no. */
 export type MotivoDeFecha = { encabezado: string; corto: string };
@@ -241,7 +246,10 @@ export function compactarTabla(columnasDeCaso: readonly ColumnaDeCaso[], filas: 
   const celdas = new Map<string, Record<string, CeldaDeCaso>>();
   for (const f of filas) {
     const fila: Record<string, CeldaDeCaso> = {};
-    for (const c of columnasDeCaso) fila[c.clave] = celdaSimple(f.valores[c.clave]);
+    for (const c of columnasDeCaso) {
+      fila[c.clave] = celdaSimple(f.valores[c.clave]);
+      if (f.fueraDeLista?.includes(c.clave)) fila[c.clave].fueraDeLista = true;
+    }
     celdas.set(f.clave, fila);
   }
   let columnas: ColumnaDeTabla[] = columnasDeCaso.map((c) => ({ ...c, detalle: null }));
@@ -317,6 +325,27 @@ export function compactarTabla(columnasDeCaso: readonly ColumnaDeCaso[], filas: 
       cambiar(CLAVE_PATRON_DE_BATERIA, {
         rotulo: tipo === "respuesta" ? "Respuesta repetida" : tipo === "vacias" ? "Preguntas vacías" : "Misma respuesta",
         detalle: todas ? `En las ${k} preguntas` : null,
+      });
+    }
+  }
+
+  // Sección: cuántas de sus preguntas respondió y, si es la misma, la sección arriba (ítem 42).
+  if (columnas.some((c) => c.clave === CLAVE_RESPONDIDAS_DE_SECCION)) {
+    const lecturas = filas.map((f) => lecturaDeSeccion(f.esperado?.hecho));
+    if (filas.length > 0 && lecturas.every((l) => l !== null)) {
+      filas.forEach((f, i) => {
+        const fila = celdas.get(f.clave) as Record<string, CeldaDeCaso>;
+        fila[CLAVE_RESPONDIDAS_DE_SECCION] = {
+          valor: rotuloDeRespondidas(lecturas[i] as NonNullable<(typeof lecturas)[number]>),
+          original: null,
+          nota: null,
+          titulo: enunciadoEntero(f.esperado),
+        };
+      });
+      const k = unico(lecturas.map((l) => l?.k ?? null));
+      const seccion = unico(lecturas.map((l) => l?.seccion ?? null));
+      cambiar(CLAVE_RESPONDIDAS_DE_SECCION, {
+        detalle: seccion && k !== null ? `De ${k} en "${seccion}"` : null,
       });
     }
   }

@@ -289,13 +289,15 @@
   sub <- as.character((rule$presentation %||% list())$subtipo_semantico %||% "")
   direccion <- if (identical(as.character(rule$tipo_regla), "skip") && sub %in% c("debe", "nodebe")) sub else NA_character_
   cuerpo <- .vrc_cuerpo(rule, familia)
-  cond_salto <- if (identical(familia, "salto") && !is.na(direccion)) .vrb_condicion_salto(rule$predicate, target, direccion) else NULL
+  seccion <- if (.vss_es_seccion(rule)) list(grupo = .vss_grupo(rule), variables = .vss_variables(rule)) else NULL
+  cond_salto <- if (!is.null(seccion)) .vss_condicion(rule)
+                else if (identical(familia, "salto") && !is.na(direccion)) .vss_condicion_propia(rule, .vrb_condicion_salto(rule$predicate, target, direccion)) else NULL
   limites <- if (identical(origen, "propia") && identical(familia, "rango_fecha")) .regla_fechas_limites(propia)
              else .vrc_limites(cuerpo, familia, ctx)
   info <- list(origen = origen, familia = familia, direccion = direccion, target = target,
                tabla = .normalize_rule_table(rule$tabla), condicion = cond_salto, cuerpo = cuerpo,
                filtro = rule$gate %||% .vrc_condicion_calculo(rule, familia, target, ctx),
-               limites = limites, propia = propia,
+               limites = limites, propia = propia, seccion = seccion,
                sin_evaluar_expresion = identical(as.character(rule$tipo_regla), "odk_raw") &&
                  length(.vrc_raw_origenes(rule)) > 0L)
   frase <- .vrf_frase(info, rctx)

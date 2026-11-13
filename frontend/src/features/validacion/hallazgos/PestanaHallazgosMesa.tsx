@@ -36,6 +36,9 @@ import { totalDeCasos } from "./detalleCompleto";
 import { PanelCaso } from "./PanelCaso";
 import { notaDelResultadoAnterior } from "./modeloFranjaDeAuditoria";
 import { PautasDeRevision } from "./PautasDeRevision";
+import { AvisoFiltroFueraDeLista } from "./AvisoFiltroFueraDeLista";
+import { filtroFueraDeLista } from "./filtroFueraDeLista";
+import { esReglaDeSeccion } from "./seccionDelSalto";
 import { pautasDelHallazgo, situacionDeOpcion, subtipoDeLosCasos } from "./pautasDelHallazgo";
 import { useFranjaDeAuditoria } from "./useFranjaDeAuditoria";
 import { DistribucionDelHallazgo } from "./vistas/DistribucionDelHallazgo";
@@ -148,6 +151,9 @@ export function PestanaHallazgosMesa() {
   }, [elegidoId]);
   const distribucion = useDistribucion(pregunta?.variable ?? null, h.baseNombre, distribuible && modoEfectivo === "distribucion");
   const tabla = useMemo(() => tablaDeCasos(h.drill, h.item), [h.drill, h.item]);
+  // Ítem 41: la pregunta filtro con un código fuera de su lista. Ítem 42: el salto de una sección.
+  const filtroFuera = useMemo(() => filtroFueraDeLista(h.drill), [h.drill]);
+  const deSeccion = useMemo(() => esReglaDeSeccion(tabla.filas.map((f) => f.esperado)), [tabla.filas]);
   const pares = useMemo(() => (vista === "casi-iguales" ? paresCasiIguales(h.drill) : []), [h.drill, vista]);
   const etiquetas = useMemo(() => {
     const e: Record<string, string> = {};
@@ -203,7 +209,8 @@ export function PestanaHallazgosMesa() {
     subtipo: subtipoDeLosCasos(tabla.filas.map((f) => f.esperado?.subtipo)),
     tipoRegla: h.item?.tipo_regla ?? null,
     semillaOrigen: h.reglaDelCatalogo?.semilla_origen ?? null,
-  }) : null), [h.elegido, h.item?.tipo_regla, h.reglaDelCatalogo, tabla.filas, vista]);
+    filtroFueraDeLista: filtroFuera,
+  }) : null), [filtroFuera, h.elegido, h.item?.tipo_regla, h.reglaDelCatalogo, tabla.filas, vista]);
 
   // --- La decisión -------------------------------------------------------------
   const opciones = useMemo((): OpcionDeTratamiento[] => {
@@ -217,6 +224,7 @@ export function PestanaHallazgosMesa() {
       respuestaVacia: (h.reglaDelCatalogo?.familia ?? h.elegido.narrativa.familia) === "obligatoria" || h.item?.tipo_regla === "required",
       especial: null,
       pares,
+      seccion: deSeccion,
     });
     // Una decisión guardada con una acción que la vista no ofrece se ve igual, con su nombre.
     const accion = h.form.action_type;
@@ -227,7 +235,7 @@ export function PestanaHallazgosMesa() {
       const situacion = situacionDeOpcion(pautas, o);
       return situacion ? { ...o, situacion } : o;
     });
-  }, [h.elegido, h.form.action_type, h.item, h.prevista, h.reglaDelCatalogo?.familia, pares, pautas, pregunta?.etiqueta, vista]);
+  }, [deSeccion, h.elegido, h.form.action_type, h.item, h.prevista, h.reglaDelCatalogo?.familia, pares, pautas, pregunta?.etiqueta, vista]);
   const opcionElegida = vista === "casi-iguales"
     ? (criterio === "todas" ? "todas" : criterio)
     : opciones.find((o) => o.accion === h.form.action_type)?.clave ?? null;
@@ -501,7 +509,8 @@ export function PestanaHallazgosMesa() {
   const sinCasos = h.cifras && h.cifras.n_reglas_con_casos !== null ? Math.max(0, h.cifras.n_reglas_evaluadas - h.cifras.n_reglas_con_casos) : null;
   const elegido = h.elegido;
   const cifra = elegido ? cifraDelHallazgo(h.reglaDelCatalogo, elegido.n, elegido.unidad) : null;
-  const sentidos = vista === "salto" ? sentidosDelSalto(h.catalogo?.completo ?? null, h.reglaDelCatalogo) : null;
+  // Una sección no tiene el otro sentido ("le correspondía y está vacía"): lo cubren sus preguntas.
+  const sentidos = vista === "salto" && !deSeccion ? sentidosDelSalto(h.catalogo?.completo ?? null, h.reglaDelCatalogo) : null;
   const enCola = new Set(h.elementos.map((e) => e.id));
   const estadoCentro = h.casos.fase === "error" ? "error" : h.casos.fase === "lista" ? "lista" : "cargando";
 
@@ -545,7 +554,12 @@ export function PestanaHallazgosMesa() {
                 onVerRegla={verRegla}
               />
             )}
-            pautas={pautas ? <PautasDeRevision pautas={pautas.revisar} /> : null}
+            pautas={filtroFuera.length || pautas ? (
+              <>
+                <AvisoFiltroFueraDeLista filtros={filtroFuera} />
+                {pautas ? <PautasDeRevision pautas={pautas.revisar} /> : null}
+              </>
+            ) : null}
           >
             {sentidos ? <SentidosDelSalto sentidos={sentidos} enCola={enCola} onAbrir={elegirHallazgo} /> : null}
             {distribuible && modoEfectivo === "distribucion" ? (

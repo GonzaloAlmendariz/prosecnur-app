@@ -48,6 +48,8 @@ import { conNivel } from "../../../lib/navegacion/direccion";
 import { formatoConteo, formatoDecimal } from "../../../lib/formatoNumero";
 import type { LimpiezaDecision, LimpiezaDecisionActionType, LimpiezaQueueItem, LimpiezaSummary } from "../types";
 import { PANEL_CASO_VALIDACION } from "../panelesValidacion";
+import { filtroFueraDeLista, traeValorFueraDeLista } from "./filtroFueraDeLista";
+import { CLAVE_RESPONDIDAS_DE_SECCION, esReglaDeSeccion } from "./seccionDelSalto";
 
 // ---------------------------------------------------------------------------
 // Palabras
@@ -537,6 +539,8 @@ export type FilaDeCaso = {
   valores: Record<string, string>;
   contexto: ContextoDeCaso | null;
   esperado: EnunciadoEsperado | null;
+  /** Las columnas cuyo valor no está entre las opciones de su pregunta (pregunta filtro de un salto, ítem 41). */
+  fueraDeLista?: string[];
 };
 
 /** La columna de lo medido en una batería; no es una pregunta de la base. */
@@ -546,7 +550,18 @@ const CLAVE_LECTURA_DE_FECHAS = "fechas:lectura";
 /** La columna de por qué no pasa una respuesta en una regla de formato (el enunciado del motor). */
 const CLAVE_MOTIVO_DE_FORMATO = "formato:motivo";
 
-export type ColumnaDeCaso = { clave: string; rotulo: string; tipo: "contexto" | "pregunta" | "falla"; numerica: boolean };
+export type ColumnaDeCaso = {
+  clave: string;
+  rotulo: string;
+  tipo: "contexto" | "pregunta" | "falla";
+  numerica: boolean;
+  /**
+   * La columna revisada no lleva el tono del error: en "respondida cuando no le
+   * correspondía" la respuesta puede estar bien y el error en la pregunta
+   * filtro (ítem 41).
+   */
+  neutra?: boolean;
+};
 
 function listaDeRol(valor: string | Array<string | null> | null | undefined): string[] {
   if (!valor) return [];
@@ -610,7 +625,13 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
   if (contexto.digitador) columnas.push({ clave: "ctx:digitador", rotulo: "Digitador", tipo: "contexto", numerica: false });
   if (contexto.fecha_respuesta) columnas.push({ clave: "ctx:fecha_respuesta", rotulo: "Fecha de respuesta", tipo: "contexto", numerica: false });
   const familia = registro(crudo.regla).familia;
-  if (familia === "bateria") {
+  const seccion = esReglaDeSeccion(esperado);
+  const sobra = seccion || esperado.some((e) => e?.subtipo === "salto_nodebe");
+  if (seccion) {
+    // La sección: la respuesta que la abre y cuántas de sus preguntas respondió (ítem 42).
+    for (const v of listaDeRol(roles?.gate).filter(enLaFila)) columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
+    columnas.push({ clave: CLAVE_RESPONDIDAS_DE_SECCION, rotulo: "Preguntas respondidas", tipo: "falla", numerica: false, neutra: true });
+  } else if (familia === "bateria") {
     const items = [...new Set([objetivo ?? "", ...listaDeRol(roles?.compare)])].filter((v) => v && enLaFila(v));
     for (const v of items) columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
     columnas.push({ clave: CLAVE_PATRON_DE_BATERIA, rotulo: "En la batería", tipo: "falla", numerica: false });
@@ -628,9 +649,10 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       columnas.push({ clave: v, rotulo: etiquetas[v] || v, tipo: "pregunta", numerica: false });
     }
     if (objetivo) {
-      columnas.push({ clave: objetivo, rotulo: etiquetas[objetivo] || objetivo, tipo: "falla", numerica: enLaFila(objetivo) && numerica(objetivo) });
+      columnas.push({ clave: objetivo, rotulo: etiquetas[objetivo] || objetivo, tipo: "falla", numerica: enLaFila(objetivo) && numerica(objetivo), ...(sobra ? { neutra: true } : {}) });
     }
   }
+  const fuera = filtroFueraDeLista(drill);
 
   const filas = casos.map((fila, i): FilaDeCaso => {
     const valores: Record<string, string> = {};
@@ -640,7 +662,7 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       else if (c.clave === "ctx:numero_encuesta") valores[c.clave] = ctx?.numero_encuesta ?? "Sin dato";
       else if (c.clave === "ctx:digitador") valores[c.clave] = ctx?.digitador ?? "Sin dato";
       else if (c.clave === "ctx:fecha_respuesta") valores[c.clave] = fechaCorta(ctx?.fecha_respuesta, true) ?? ctx?.fecha_respuesta ?? "Sin dato";
-      else if (c.clave === CLAVE_PATRON_DE_BATERIA) valores[c.clave] = esperado[i]?.hecho ?? "Sin dato";
+      else if (c.clave === CLAVE_PATRON_DE_BATERIA || c.clave === CLAVE_RESPONDIDAS_DE_SECCION) valores[c.clave] = esperado[i]?.hecho ?? "Sin dato";
       else if (c.clave === CLAVE_LECTURA_DE_FECHAS) valores[c.clave] = [esperado[i]?.hecho, esperado[i]?.choque].filter(Boolean).join(", ") || "Sin dato";
       else if (c.clave === CLAVE_MOTIVO_DE_FORMATO) valores[c.clave] = [esperado[i]?.hecho, esperado[i]?.choque].filter(Boolean).join(", ") || "Sin dato";
       else if (c.clave.startsWith("formato:")) {
@@ -650,7 +672,8 @@ export function tablaDeCasos(drill: InstrumentoDrillResult | null, item: Limpiez
       else valores[c.clave] = valorEscrito(fila[c.clave], valueLabels?.[c.clave] ?? null);
     }
     const id = ids[i] ?? null;
-    return { id, clave: id ?? `fila-${i + 1}`, valores, contexto: ctx, esperado: esperado[i] ?? null };
+    const marcadas = fuera.filter((f) => columnas.some((c) => c.clave === f.variable) && traeValorFueraDeLista(fila[f.variable], f.valores)).map((f) => f.variable);
+    return { id, clave: id ?? `fila-${i + 1}`, valores, contexto: ctx, esperado: esperado[i] ?? null, ...(marcadas.length ? { fueraDeLista: marcadas } : {}) };
   });
   return { columnas, filas, contexto };
 }
@@ -793,6 +816,12 @@ export function opcionesDeTratamiento(opciones: {
   /** La regla marca respuestas vacías (obligatoria): como en el salto, se puede asignar un valor. */
   respuestaVacia?: boolean;
   pares?: readonly ParCasiIgual[];
+  /**
+   * El salto de una sección (ítem 42): la decisión cubre la encuesta, no una
+   * pregunta. Se deja o se excluye; vaciar la sección entera no lo hace todavía
+   * la limpieza.
+   */
+  seccion?: boolean;
 }): OpcionDeTratamiento[] {
   const { vista, etiquetaPregunta, prevista, seleccionMultiple, fueraDeLista, especial } = opciones;
   const vacia = vista === "salto" || !!opciones.respuestaVacia;
@@ -820,6 +849,12 @@ export function opcionesDeTratamiento(opciones: {
         deshabilitada: sinDato("primera") ? "La base no declara la fecha de envío de las respuestas." : undefined,
       }),
       op("todas", "ignore_rule", "Todas", "No se excluye ninguna y se registra que se revisó."),
+    ];
+  }
+  if (opciones.seccion) {
+    return [
+      op("dejar", "ignore_rule", "Dejar como está", "Las respuestas de la sección quedan y se registra que se revisó."),
+      op("excluir", "exclude_cases", "Excluir los casos", "Dejan de contar en la base."),
     ];
   }
   const dejar = op("dejar", "ignore_rule", "Dejar como está", vacia ? "Queda vacía y se registra que se revisó." : "Se registra que se revisó.");

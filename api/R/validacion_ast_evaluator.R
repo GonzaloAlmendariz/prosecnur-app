@@ -219,6 +219,14 @@ evaluate_rules <- function(rules,
   #   (c) variable de comparación ausente (coherence) → idem.
   # Esto calza con el comportamiento esperado cuando ODK no exporta una
   # columna porque ningún caso activó la rama condicional.
+  # El salto de una sección con alguna pregunta que la base no trae se evalúa
+  # con las que sí trae, y se dice cuáles faltaron (validacion_salto_seccion.R).
+  ajuste_seccion <- .vss_ajustar_a_columnas(rule, names(data))
+  if (!is.null(ajuste_seccion)) {
+    rule <- ajuste_seccion$rule
+    resumen_base$detalle <- sprintf("Sin las preguntas que la base no trae: %s.",
+                                    paste(ajuste_seccion$faltan, collapse = ", "))
+  }
   missing_info <- .rule_missing_columns(rule, names(data))
   missing_cols <- missing_info$all
   if (length(missing_cols)) {
