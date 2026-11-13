@@ -70,6 +70,8 @@ export default function ClasificacionHallazgo({
         // La piel de la tarjeta es la de siempre (`validacion-v2.css`); el panel
         // de regla la ajusta a la del prototipo. `is-active` lo pone el grupo.
         className: ["pulso-treatment-card", item.value === "inconsistencia_usuario" ? "is-inconsistencia" : "is-revisar"].join(" "),
+        // Cada radio se anuncia por su clase; la descripción queda como ayuda.
+        "aria-label": item.label,
       })}
     >
       {(item) => (

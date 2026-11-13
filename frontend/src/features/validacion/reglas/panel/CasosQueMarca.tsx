@@ -77,8 +77,15 @@ export function errorDelConteo(codigo: string, mensaje: string): { titulo: strin
 export const MAX_FILAS_DE_EJEMPLO = 8;
 
 const ANCHO_TABLA = 272;
-const ANCHO_CASO = 112;
+const ANCHO_CASO = 88;
+/** Lo mínimo que cabe una respuesta en su celda ("Fuertemente" entera); con más columnas, la tabla se desplaza. */
+const ANCHO_MINIMO_DE_VALOR = 132;
 const MAX_COLUMNAS = 3;
+
+/** El caso se identifica por la llave del estudio cuando el motor la manda; sin llave, por su fila. */
+export function conLlaveDelEstudio(ejemplos: readonly EjemploDePrueba[]): boolean {
+  return ejemplos.length > 0 && ejemplos.every((ej) => !!ej.id_caso && rotuloDeCaso(ej.id_caso).texto === ej.id_caso);
+}
 
 /**
  * Lo que se ve de una batería en un caso: el patrón con su cifra, sobre las
@@ -124,11 +131,12 @@ function TablaDeEjemplos({ prueba, variables }: { prueba: PruebaDeRegla; variabl
     primeraDeLaBateria && tieneOpciones(porNombre.get(primeraDeLaBateria)?.tipo) ? [primeraDeLaBateria] : [],
   );
   const opciones = useOpcionesDeVariables(columnas.filter((c) => tieneOpciones(porNombre.get(c)?.tipo)));
-  const ancho = Math.floor((ANCHO_TABLA - ANCHO_CASO) / Math.max(columnas.length, 1));
+  const ancho = Math.max(ANCHO_MINIMO_DE_VALOR, Math.floor((ANCHO_TABLA - ANCHO_CASO) / Math.max(columnas.length, 1)));
+  const conLlave = conLlaveDelEstudio(prueba.ejemplos);
   const definicion: PulsoTableColumna<EjemploDePrueba & { fila: number }>[] = [
     {
       id: "caso",
-      encabezado: "Caso",
+      encabezado: conLlave ? "Encuesta" : "Caso",
       ancho: ANCHO_CASO,
       celda: (ej) => (
         <code className="pulso-regla-caso" title={ej.id_caso ? rotuloDeCaso(ej.id_caso).titulo : `Fila ${ej.fila}`}>

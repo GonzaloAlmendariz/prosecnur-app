@@ -277,6 +277,13 @@
   inset-block-start: var(--pulso-space-3);
   inset-inline-end: var(--pulso-space-3);
   display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+/* Con el botón de duplicar al lado del interruptor, el nombre le deja más lugar. */
+.pulso-rl-regla-boton[data-con-acciones] .pulso-rl-regla-nombre {
+  padding-inline-end: 84px;
 }
 
 /* Una regla apagada se lee igual, en un tono más bajo. */

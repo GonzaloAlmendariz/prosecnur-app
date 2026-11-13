@@ -3,8 +3,9 @@
  * `panelRegla`, `vistas.js:529-604`). Un `Sideover` ancho con dos estados:
  *
  *   - "Qué quieres revisar": el tipo de una regla nueva y las sugeridas.
- *   - La regla: su nombre (editable), la frase, "Condiciones", "Resultado" y
- *     "Casos que marca hoy" con el conteo previo del motor.
+ *   - La regla: la frase, "Condiciones", "Resultado" y "Casos que marca hoy"
+ *     con el conteo previo del motor; su nombre (editable) va en el pie, junto
+ *     a Guardar y a "Guardar como nueva".
  *
  * Reemplaza al asistente de tres pasos de `components/ReglaEditor.tsx`. Lo que
  * guarda lo arma `borradorDeRegla.ts` y es, para las mismas entradas, lo que
@@ -20,10 +21,11 @@ import { CargaDeBloque } from "../../../../components/CargaDeBloque";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoInput } from "../../../../components/PulsoInput";
 import { Sideover } from "../../../../components/Sideover";
-import { AlertTriangle, Pencil, Play, Trash2 } from "../../../../vendor/lucide-react";
+import { AlertTriangle, Copy, Play, Trash2 } from "../../../../vendor/lucide-react";
 import type { ExploradorVariable, ReglaSemilla } from "../../types";
 import { fraseDeReglaPropia, type PiezaDeFrase } from "../../customRuleNarrative";
 import {
+  borradorComoNuevo,
   borradorInicial,
   cuerpoAGuardar,
   cuerpoParaProbar,
@@ -34,17 +36,22 @@ import {
   variablesEfectivas,
 } from "../borradorDeRegla";
 import { etiquetaDeOpcion, OpcionesProvider, useOpcionesDeVariables } from "../campos/opcionesDeVariable";
+import { ordenarValoresPorEscala } from "../escalaDeOpciones";
 import { tieneOpciones, tipoDeFicha } from "../campos/tipoDeFicha";
 import { metaDeTipo } from "../tiposDeRegla";
 import type { ReglaPropia, ReglaPropiaAGuardar, TipoReglaPropia } from "../tiposDelMotor";
 import { CasosQueMarca, conteoSinDatos } from "./CasosQueMarca";
 import { Condiciones } from "./Condiciones";
 import { ICONO_DE_TIPO, QueRevisar } from "./QueRevisar";
+import { useEscapeDelMenu } from "./escapeDelMenu";
 import { Resultado } from "./Resultado";
 import { useConteoPrevio } from "./useConteoPrevio";
 import { useCatalogoDeReglas } from "./useCatalogoDeReglas";
 import { sinEvaluarDelFormulario } from "../../../../api/validacionCatalogo";
 import "./panel.css";
+
+/** Los tipos cuya frase lleva dos preguntas con sus valores: reservan más alto. */
+const FRASES_LARGAS: ReadonlySet<string> = new Set(["condiciones", "coherencia_2v", "comparar_fechas", "combinacion_catalogo"]);
 
 export type AlGuardarRegla = (cuerpo: ReglaPropiaAGuardar, opciones: { auditar: boolean }) => Promise<void>;
 
@@ -156,9 +163,10 @@ function EditorDelPanel({
 }: PanelReglaProps & { semilla: ReglaSemilla | null; onUsarSemilla: (s: ReglaSemilla | null) => void }) {
   const [borrador, despachar] = useReducer(reducirBorrador, { inicial, tipo: tipoElegido, pregunta, semilla }, borradorInicial);
   const [eligiendoTipo, setEligiendoTipo] = useState(false);
-  const [editandoNombre, setEditandoNombre] = useState(false);
   const [envio, setEnvio] = useState<{ guardando: boolean; error: string }>({ guardando: false, error: "" });
   const tipoDeVariable = useMemo(() => lectorDeTipos(variables), [variables]);
+  // Escape con un desplegable abierto cierra el desplegable, no el panel.
+  useEscapeDelMenu(abierto);
 
   // Sin tipo, o tras "Cambiar": "Qué quieres revisar". El tipo de una nueva
   // también se escribe en la dirección (`tipo=`), para que el enlace la reabra.
@@ -175,8 +183,8 @@ function EditorDelPanel({
   const catalogo = useCatalogoDeReglas(abierto && !cargandoPreguntas && nueva && vistaTipo, baseNombre);
   const sinEvaluar = catalogo ? sinEvaluarDelFormulario(catalogo) : null;
 
-  // Cerrar con cambios pide confirmar. Esc con un desplegable abierto lo cierra
-  // Radix (el desplegable es la capa de arriba): aquí no se intercepta nada.
+  // Cerrar con cambios pide confirmar. Esc con un desplegable abierto cierra solo
+  // el desplegable (`escapeDelMenu.ts`).
   const [inicioDelBorrador] = useState(() => JSON.stringify(borrador));
   const conCambios = JSON.stringify(borrador) !== inicioDelBorrador;
   const [confirmar, setConfirmar] = useState(false);
@@ -203,8 +211,13 @@ function EditorDelPanel({
     tieneOpciones(variables.find((x) => x.name === v)?.tipo),
   );
   const opciones = useOpcionesDeVariables(conLista);
+  // Las opciones de cada lista, en el orden de su escala y no en el de los clics.
+  const enEscala = ordenarValoresPorEscala(
+    { variables: variablesDeLaRegla, params: borrador.params, gate_conditions: borrador.gateConditions },
+    opciones,
+  );
   const piezas = fraseDeReglaPropia(
-    { tipo: borrador.tipo, variables: variablesDeLaRegla, params: borrador.params, gate_conditions: borrador.gateConditions },
+    { tipo: borrador.tipo, variables: variablesDeLaRegla, params: enEscala.params, gate_conditions: enEscala.gate_conditions },
     (variable, codigo) => {
       const opcion = opciones.get(variable)?.find((o) => o.code === codigo);
       return opcion ? opcion.label || codigo : etiquetaDeOpcion(undefined, codigo);
@@ -217,13 +230,16 @@ function EditorDelPanel({
     if (nueva) onElegirTipo?.(tipo);
   }
 
-  async function guardar(auditar: boolean) {
+  async function guardar(auditar: boolean, comoNueva = false) {
     const error = validarBorrador(borrador);
     if (error) {
       setEnvio({ guardando: false, error });
       return;
     }
-    const cuerpo = cuerpoAGuardar(borrador, inicial, tipoDeVariable, variables);
+    // "Guardar como nueva": lo que hay en pantalla entra como regla aparte y la original queda igual.
+    const cuerpo = comoNueva
+      ? cuerpoAGuardar(borradorComoNuevo(borrador, inicial?.nombre ?? ""), null, tipoDeVariable, variables)
+      : cuerpoAGuardar(borrador, inicial, tipoDeVariable, variables);
     if (!cuerpo) return;
     setEnvio({ guardando: true, error: "" });
     try {
@@ -234,11 +250,14 @@ function EditorDelPanel({
     }
   }
 
-  const base = baseNombre ? ` de ${baseNombre}` : "";
+  // "default" es el nombre interno de la base única: solo una base con nombre propio se nombra.
+  const base = baseNombre && baseNombre !== "default" ? ` de ${baseNombre}` : "";
   const antetitulo = nueva && !focoInexistente ? `Nueva regla propia${base}` : `Regla propia${base}`;
   const Icono = borrador.tipo ? ICONO_DE_TIPO[borrador.tipo] : null;
   const revisada = variablesDeLaRegla[0] ?? null;
 
+  // Sin escribir, el nombre es el que la regla se pone sola y sigue a sus preguntas.
+  const nombre = nombreDelBorrador(borrador, variables);
   let titulo;
   let cuerpo;
   let pie;
@@ -288,36 +307,16 @@ function EditorDelPanel({
       </PulsoButton>
     );
   } else {
-    const nombre = nombreDelBorrador(borrador, variables);
-    titulo = editandoNombre ? (
-      <PulsoInput
-        className="pulso-panel-regla-nombre"
-        autoFocus
-        value={borrador.nombre}
-        placeholder={nombre}
-        aria-label="Nombre de la regla"
-        onChange={(e) => despachar({ tipo: "nombre", valor: e.target.value })}
-        onBlur={() => setEditandoNombre(false)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            setEditandoNombre(false);
-          }
-        }}
-      />
-    ) : (
+    titulo = (
       <span className="pulso-panel-regla-titulo">
         <span className="pulso-panel-regla-titulo-texto">{nombre}</span>
-        <PulsoButton variant="icon" size="sm" aria-label="Cambiar el nombre" title="Cambiar el nombre" onClick={() => setEditandoNombre(true)}>
-          <Pencil size={13} aria-hidden="true" />
-        </PulsoButton>
       </span>
     );
     cuerpo = (
       <div className="pulso-panel-regla-dos" data-qa-geometry-group="validacion/regla-panel" data-qa-geometry-contract="intrinsic">
         <div className="pulso-panel-regla-col" data-qa-geometry-member="">
           <FraseRegla
+            className={FRASES_LARGAS.has(borrador.tipo ?? "") ? "pulso-panel-regla-frase--larga" : undefined}
             tipo={meta?.rotulo ?? ""}
             icono={Icono ? <Icono size={15} /> : undefined}
             accion={
@@ -353,6 +352,12 @@ function EditorDelPanel({
         <PulsoButton variant="secondary" size="lg" onClick={intentarCerrar} disabled={envio.guardando}>
           Cancelar
         </PulsoButton>
+        {!nueva ? (
+          <PulsoButton variant="secondary" size="lg" onClick={() => void guardar(false, true)} disabled={envio.guardando}>
+            <Copy size={14} aria-hidden="true" />
+            Guardar como nueva
+          </PulsoButton>
+        ) : null}
         <PulsoButton
           variant={sinDatos ? "primary" : "secondary"}
           size="lg"
@@ -372,15 +377,28 @@ function EditorDelPanel({
     );
   }
 
-  const pista = envio.error ? (
+  // El nombre va en el pie, junto a Guardar: es lo último que se mira al guardar.
+  const enElEditor = !cargandoPreguntas && !focoInexistente && !vistaTipo;
+  const pista = enElEditor ? (
+    <label className="pulso-panel-regla-nombre-pie">
+      <span>Nombre</span>
+      <PulsoInput
+        value={nombre}
+        aria-label="Nombre de la regla"
+        onChange={(e) => despachar({ tipo: "nombre", valor: e.target.value })}
+      />
+    </label>
+  ) : vistaTipo && !cargandoPreguntas && !focoInexistente ? (
+    <span>Obligatorias, saltos, restricciones, filtros de opciones y valores calculados ya salen del formulario.</span>
+  ) : null;
+  const estado = envio.error ? (
     <span className="pulso-panel-regla-error" role="alert">
       {envio.error}
     </span>
-  ) : vistaTipo ? (
-    <span>Obligatorias, saltos, restricciones, filtros de opciones y valores calculados ya salen del formulario.</span>
-  ) : focoInexistente ? null : (
-    <span>{sinDatos ? "Se audita cuando haya respuestas." : "Sus casos entran a Hallazgos al auditar."}</span>
-  );
+  ) : enElEditor && sinDatos ? (
+    // Sin respuestas no hay auditoría: por eso falta "Guardar y auditar".
+    <span>Se audita cuando haya respuestas.</span>
+  ) : undefined;
 
   return (
     <Sideover
@@ -396,6 +414,7 @@ function EditorDelPanel({
       dismissible={!envio.guardando}
       footer={pie}
       footerHint={pista}
+      footerStatus={estado}
     >
       <div className="pulso-panel-regla-contenido" data-pulso-panel={panelProps?.["data-pulso-panel"]}>
         {cuerpo}

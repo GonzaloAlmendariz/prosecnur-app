@@ -211,7 +211,7 @@ describe("franja de las reglas a los hallazgos", () => {
     expect(grupos.map((g) => g.cifras.map((c) => `${c.cifra} ${c.texto}`))).toEqual([
       ["3 del formulario", "0 del operativo", "1 propia"],
       ["178 casos, el 8 nov"],
-      ["2 inconsistencias", "1 caso a revisar"],
+      ["2 reglas con inconsistencias", "1 regla con casos a revisar"],
     ]);
     let llevado = false;
     const destino = destinoDeLaFranja(catalogo(), { nCasosAuditados: 178, cola }, () => { llevado = true; });

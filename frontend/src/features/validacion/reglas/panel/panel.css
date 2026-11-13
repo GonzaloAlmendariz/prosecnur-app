@@ -52,9 +52,50 @@
   white-space: nowrap;
 }
 
-.pulso-panel-regla .pulso-input.pulso-panel-regla-nombre {
-  width: min(560px, 100%);
-  font-weight: var(--pulso-weight-bold);
+/* El nombre va en el pie, junto a Guardar: se ve al guardar aunque el cuerpo esté desplazado. */
+.pulso-panel-regla-nombre-pie {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 420px;
+  color: var(--pulso-text-soft);
+  font-size: var(--pulso-type-caption-size);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-panel-regla-nombre-pie > span {
+  flex: none;
+}
+
+.pulso-panel-regla-nombre-pie .pulso-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-regular, 400);
+}
+
+/* La frase reserva su alto: elegir una pregunta o activar una opción no empuja
+   los controles de abajo. Larga (dos condiciones con sus fichas): seis líneas;
+   el resto, tres. Una frase que pasa de eso crece, y es la excepción. */
+.pulso-panel-regla-col > .pulso-frase-regla .pulso-frase-regla-frase {
+  min-block-size: calc(var(--pulso-type-title-size) * 1.75 * 3);
+}
+
+.pulso-panel-regla-col > .pulso-panel-regla-frase--larga .pulso-frase-regla-frase {
+  min-block-size: calc(var(--pulso-type-title-size) * 1.75 * 6 + 4px);
+}
+
+/* A todo el ancho (una columna), la misma frase ocupa menos líneas. */
+@container (min-width: 700px) {
+  .pulso-panel-regla-col > .pulso-frase-regla .pulso-frase-regla-frase {
+    min-block-size: calc(var(--pulso-type-title-size) * 1.75 * 2);
+  }
+
+  .pulso-panel-regla-col > .pulso-panel-regla-frase--larga .pulso-frase-regla-frase {
+    min-block-size: calc(var(--pulso-type-title-size) * 1.75 * 4 + 4px);
+  }
 }
 
 .pulso-sideover .pulso-dialog__body.pulso-panel-regla-cuerpo {
@@ -589,6 +630,7 @@
   height: auto;
   min-height: var(--pulso-density-row);
   padding-block: var(--pulso-space-2);
+  padding-inline: var(--pulso-space-2);
   overflow: visible;
   overflow-wrap: break-word;
   text-overflow: clip;
@@ -628,8 +670,11 @@
 
 .pulso-regla-falla {
   display: inline-block;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   min-width: 36px;
-  padding: 1px 8px;
+  padding: 1px 6px;
   border-radius: 6px;
   background: color-mix(in srgb, var(--pulso-warn-accent) 12%, var(--pulso-surface));
   color: var(--pulso-warn-fg);

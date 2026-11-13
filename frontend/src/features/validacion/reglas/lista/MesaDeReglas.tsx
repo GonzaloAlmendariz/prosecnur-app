@@ -55,6 +55,7 @@ import {
   type ReglaDelCatalogo,
 } from "./modeloCatalogo";
 import { indiceDePreguntas } from "./modeloRecomendador";
+import { copiaParaDuplicar } from "../duplicarRegla";
 import type { MesaDeReglas as Mesa } from "./useMesaDeReglas";
 import type { ReglaSemilla } from "../../types";
 
@@ -130,6 +131,11 @@ export function MesaDeReglas({
   const activar = (regla: ReglaDelCatalogo, activa: boolean) => {
     if (!activa && regla.origen !== "propia") setDialogo({ tipo: "desactivar", regla });
     else void mesa.alternarActiva(regla, activa);
+  };
+  // Duplicar abre el panel con una regla nueva llena con lo de la propia elegida.
+  const duplicar = (regla: ReglaDelCatalogo) => {
+    const original = propias?.find((r) => r.id === regla.id);
+    if (original) onAnadirSugerida(copiaParaDuplicar(original));
   };
   const excluir = (variable: string, siguiente: boolean) => {
     if (siguiente) setDialogo({ tipo: "excluir", variable });
@@ -258,6 +264,7 @@ export function MesaDeReglas({
         onElegir={elegir}
         onActivar={(activa) => activar(regla, activa)}
         onEditar={() => panel.abrirRegla(regla.id)}
+        onDuplicar={propias?.some((r) => r.id === regla.id) ? () => duplicar(regla) : undefined}
         onConvertir={() => panel.abrirNueva({ pregunta: regla.variable_revisada })}
         onConfigurar={operativo.abrir}
         onVerEnHallazgos={() => verEnHallazgos(regla)}
@@ -287,6 +294,7 @@ export function MesaDeReglas({
           preguntasExcluibles={preguntas}
           onElegir={elegir}
           onActivar={activar}
+          onDuplicar={propias ? duplicar : undefined}
           onAnadirSugerida={onAnadirSugerida}
           onNuevaRegla={() => panel.abrirNueva()}
           onLeerFormulario={() => void releer()}

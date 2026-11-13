@@ -270,7 +270,10 @@ export async function montarSuelto(nodo: ReactNode, opciones: { rutas?: Ruta[]; 
 
 export function control(selector: string, texto?: string): HTMLElement {
   const candidatos = Array.from(document.body.querySelectorAll<HTMLElement>(selector));
-  const hallado = texto ? candidatos.find((c) => (c.textContent ?? "").includes(texto)) : candidatos[0];
+  // El texto exacto gana al que solo lo contiene: "Guardar" es el botón Guardar, no "Guardar como nueva".
+  const hallado = texto
+    ? candidatos.find((c) => (c.textContent ?? "").trim() === texto) ?? candidatos.find((c) => (c.textContent ?? "").includes(texto))
+    : candidatos[0];
   if (!hallado) throw new Error(`No hay control ${selector}${texto ? ` con "${texto}"` : ""}`);
   return hallado;
 }

@@ -59,6 +59,7 @@ export function ListaDeLaFamilia({
   preguntasExcluibles,
   onElegir,
   onActivar,
+  onDuplicar,
   onAnadirSugerida,
   onNuevaRegla,
   onLeerFormulario,
@@ -79,6 +80,8 @@ export function ListaDeLaFamilia({
   preguntasExcluibles: readonly PreguntaExcluible[];
   onElegir: (id: string) => void;
   onActivar: (regla: ReglaDelCatalogo, activa: boolean) => void;
+  /** Duplicar una regla propia; `undefined` mientras no se leyeron las propias. */
+  onDuplicar?: (regla: ReglaDelCatalogo) => void;
   onAnadirSugerida: (semilla: ReglaSemilla) => void;
   onNuevaRegla: () => void;
   onLeerFormulario: () => void;
@@ -158,6 +161,7 @@ export function ListaDeLaFamilia({
             ocupada={ocupada}
             onElegir={() => onElegir(r.id)}
             onActivar={(activa) => onActivar(r, activa)}
+            onDuplicar={r.origen === "propia" && onDuplicar ? () => onDuplicar(r) : undefined}
           />
         ))}
       </ul>

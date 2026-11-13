@@ -87,7 +87,7 @@ describe("modeloRegla: condición previa", () => {
 
   it("los operadores dependen del tipo de la pregunta", () => {
     expect(operatorOptionsForVariable(variable("sm"))[0].value).toBe("contains");
-    expect(operatorOptionsForVariable(variable("so")).map((o) => o.label)).toContain("no está entre");
+    expect(operatorOptionsForVariable(variable("so")).map((o) => o.label)).toContain("no es ninguna de");
     expect(operatorOptionsForVariable(variable("num")).map((o) => o.value)).toContain("<=");
     expect(operatorOptionsForVariable(variable("texto")).map((o) => o.value)).not.toContain(">");
   });

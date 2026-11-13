@@ -166,6 +166,7 @@ export function FichaDeRegla({
   onElegir,
   onActivar,
   onEditar,
+  onDuplicar,
   onConvertir,
   onConfigurar,
   onVerEnHallazgos,
@@ -179,6 +180,8 @@ export function FichaDeRegla({
   onElegir: (id: string) => void;
   onActivar: (activa: boolean) => void;
   onEditar: () => void;
+  /** Una regla propia ya leída se duplica desde su ficha. */
+  onDuplicar?: () => void;
   onConvertir: () => void;
   onConfigurar: () => void;
   onVerEnHallazgos: () => void;
@@ -208,10 +211,18 @@ export function FichaDeRegla({
   ) : (
     <>
       {propia ? (
-        <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={onEditar}>
-          <Pencil size={14} aria-hidden="true" />
-          Editar
-        </PulsoButton>
+        <>
+          <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={onEditar}>
+            <Pencil size={14} aria-hidden="true" />
+            Editar
+          </PulsoButton>
+          {onDuplicar ? (
+            <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={onDuplicar}>
+              <Copy size={14} aria-hidden="true" />
+              Duplicar
+            </PulsoButton>
+          ) : null}
+        </>
       ) : regla.se_puede_desactivar ? (
         <PulsoButton variant="secondary" size="lg" disabled={ocupada} onClick={() => onActivar(!regla.activa)}>
           {regla.activa ? "Desactivar" : "Activar"}

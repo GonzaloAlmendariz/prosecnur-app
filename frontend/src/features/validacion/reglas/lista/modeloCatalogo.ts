@@ -298,8 +298,9 @@ function plural(n: number, uno: string, varios: string): string {
 }
 
 /**
- * Los grupos de la franja. "Hallazgo" es cada regla con casos de la cola
- * (decisión D-F1): "12 inconsistencias" son 12 reglas de la cola de esa clase.
+ * Los grupos de la franja. Cada cifra de Hallazgos cuenta reglas con casos de
+ * la cola (decisión D-F1), no casos: "12 reglas con inconsistencias" son 12
+ * reglas de esa clase, y entre todas pueden sumar muchos más casos.
  */
 export function gruposDeLaFranja(catalogo: CatalogoCompleto, datos: DatosDeLaFranja): GrupoDeFranja[] {
   const origen = catalogo.por_origen;
@@ -327,8 +328,8 @@ export function gruposDeLaFranja(catalogo: CatalogoCompleto, datos: DatosDeLaFra
       id: "hallazgos",
       rotulo: "Hallazgos",
       cifras: [
-        { id: "inconsistencias", cifra: inconsistencias, texto: plural(inconsistencias, "inconsistencia", "inconsistencias"), tono: "inconsistencia" },
-        { id: "a-revisar", cifra: aRevisar, texto: plural(aRevisar, "caso a revisar", "casos a revisar"), tono: "aviso" },
+        { id: "inconsistencias", cifra: inconsistencias, texto: plural(inconsistencias, "regla con inconsistencias", "reglas con inconsistencias"), tono: "inconsistencia" },
+        { id: "a-revisar", cifra: aRevisar, texto: plural(aRevisar, "regla con casos a revisar", "reglas con casos a revisar"), tono: "aviso" },
       ],
     });
   }

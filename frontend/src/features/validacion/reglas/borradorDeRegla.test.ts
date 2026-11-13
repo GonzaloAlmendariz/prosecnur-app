@@ -189,14 +189,14 @@ describe("revisión dentro de la app (QA del panel de regla)", () => {
     expect(borradorInicial({ inicial: null, tipo: "condiciones" }).params.condiciones).toEqual([{ variable: "", op: "", valor: "" }]);
   });
 
-  it("una regla nueva se nombra con la etiqueta de sus preguntas; sin etiqueta, con el código una vez", () => {
+  it("una regla nueva se nombra con el código de sus preguntas, no con su enunciado", () => {
     const b = aplicar(borradorInicial({ inicial: null, tipo: "rango_num", pregunta: "p4" }), { tipo: "param", clave: "min", valor: "1" });
-    expect(nombreDelBorrador(b, VARIABLES)).toBe('Valor fuera de rango: "Año de egreso"');
+    expect(nombreDelBorrador(b, VARIABLES)).toBe("Valor fuera de rango: p4");
     const sinEtiqueta = aplicar(borradorInicial({ inicial: null, tipo: "rango_num", pregunta: "x9" }), { tipo: "param", clave: "min", valor: "1" });
     expect(nombreDelBorrador(sinEtiqueta, VARIABLES)).toBe("Valor fuera de rango: x9");
   });
 
-  it("una pregunta de batería se nombra por su código y su ítem, sin el enunciado común", () => {
+  it("una pregunta de batería se nombra por su código, sin el enunciado ni el ítem", () => {
     const enunciado = "P29. Indica qué tan de acuerdo estás con las siguientes frases sobre tu colegio:";
     const bateria: ExploradorVariable[] = [
       { name: "p29_2", label: `${enunciado} Mis profesores me escuchan`, tipo: "so", n_validos: 10, n_nulos: 0 },
@@ -204,7 +204,7 @@ describe("revisión dentro de la app (QA del panel de regla)", () => {
       { name: "p29_4", label: `${enunciado} Tengo amigos en mi salón`, tipo: "so", n_validos: 10, n_nulos: 0 },
     ];
     const b = borradorInicial({ inicial: null, tipo: "no_nulo", pregunta: "p29_3" });
-    expect(nombreDelBorrador(b, bateria)).toBe("Respuesta obligatoria: p29_3, Me siento seguro en mi colegio");
+    expect(nombreDelBorrador(b, bateria)).toBe("Respuesta obligatoria: p29_3");
   });
 
   it("una regla existente sin nombre conserva el nombre de siempre (lo guardado no cambia)", () => {

@@ -18,7 +18,6 @@ import type {
   ReglaTreatmentScope,
 } from "../types";
 import { severidadAlGuardar } from "../components/ClasificacionHallazgo";
-import { partesDePreguntas } from "./campos/modeloPregunta";
 import {
   condicionesDeParams,
   gateExprFromConditions,
@@ -43,6 +42,8 @@ import { metaDeTipo, rangoDePreguntas } from "./tiposDeRegla";
 import { validarFechas, variablesDeComparar } from "./modeloFechas";
 import { validarFormato } from "./modeloFormato";
 import { CATALOGO_POR_DEFECTO, validarCombinacion, variablesDeCombinacion } from "./modeloCombinacion";
+import { conservarAlCambiarDeTipo } from "./cambioDeTipo";
+import { ORIGEN_COPIA } from "./duplicarRegla";
 import { esOperadorDeComparacion, type ReglaPropia, type ReglaPropiaAGuardar, type TipoReglaPropia } from "./tiposDelMotor";
 
 export type Borrador = {
@@ -122,7 +123,8 @@ export function borradorInicial({ inicial, tipo = null, pregunta = null, semilla
     recommendedScope: normalizeTreatmentScope(origen?.recommended_scope, defaults.scope),
     treatmentTouched: Boolean(origen?.planned_action_type || origen?.recommended_scope),
     activa: origen?.activa ?? true,
-    semilla: inicial ? null : semilla?.semilla ?? null,
+    // Una copia ("Duplicar") es una regla manual: no lleva la marca de sugerida.
+    semilla: inicial || semilla?.semilla?.origen === ORIGEN_COPIA ? null : semilla?.semilla ?? null,
     nueva: !inicial,
     filtroOriginal:
       inicial && typeof inicial.gate_expr === "string"
@@ -152,9 +154,15 @@ export function reducirBorrador(b: Borrador, accion: AccionDeBorrador): Borrador
       if (nuevo === b.tipo) return { ...base, tipo: nuevo };
       // Otro tipo: sus parámetros no sirven al nuevo y se guardarían de sobra.
       // Se conserva la primera pregunta, que casi siempre es la misma.
+      // Entre "Dos respuestas que deben cuadrar" y "Condiciones combinadas" las
+      // condiciones pasan de uno al otro (`cambioDeTipo.ts`).
+      const traspasado = conservarAlCambiarDeTipo({ tipo: b.tipo, variables: b.variables, params: b.params }, nuevo);
+      if (traspasado) return { ...base, tipo: nuevo, variables: traspasado.variables, params: traspasado.params };
       const meta = metaDeTipo(nuevo);
       const [, max] = meta ? rangoDePreguntas(meta) : [1, 1];
-      const variables = nuevo === "condiciones" ? [] : b.variables.slice(0, Math.min(1, max));
+      const aparte = nuevo === "condiciones" || nuevo === "comparar_fechas" || nuevo === "combinacion_catalogo";
+      // Las preguntas que el tipo nuevo admite se conservan, en su orden.
+      const variables = nuevo === "condiciones" ? [] : b.variables.filter(Boolean).slice(0, aparte ? 1 : max);
       const params = paramsDeArranque(nuevo, nuevo === "condiciones" || nuevo === "comparar_fechas" ? b.variables[0] ?? "" : "");
       return { ...base, tipo: nuevo, variables, params };
     }
@@ -201,29 +209,18 @@ export function variablesEfectivas(b: Borrador): string[] {
 
 /**
  * El nombre que se ve y se guarda: el escrito o el que la regla se pone sola.
- * Una regla nueva se nombra con el rótulo de su tipo y la etiqueta de sus
- * preguntas ("Valor fuera de rango: "Edad""); sin etiqueta, con su código una
- * vez. Una pregunta de batería se nombra por su código y su ítem
- * ("p29_3, Me siento seguro en mi colegio"): el enunciado común es largo y,
- * puesto delante, la elipsis se comía el ítem, que es lo que la distingue.
+ * Una regla nueva se nombra con el rótulo de su tipo y el código de sus
+ * preguntas ("Valor fuera de rango: P3"): el enunciado entero llenaba hasta
+ * siete líneas en la cola de Hallazgos y el código es lo que el equipo usa.
  * La que se edita conserva el nombre de siempre (código de la columna),
  * para que guardarla sin tocarla no cambie lo guardado.
  */
-export function nombreDelBorrador(b: Borrador, variables: readonly ExploradorVariable[] = []): string {
+export function nombreDelBorrador(b: Borrador, _variables: readonly ExploradorVariable[] = []): string {
   const escrito = b.nombre.trim();
   if (escrito) return escrito;
   const meta = metaDeTipo(b.tipo);
   const preguntas = variablesEfectivas(b);
   if (!b.nueva) return nombreSugerido(meta, preguntas);
-  const porNombre = new Map(variables.map((v) => [v.name, v.label]));
-  const partes = partesDePreguntas(variables);
-  const nombrar = (codigo: string): string => {
-    const parte = partes.get(codigo);
-    if (parte?.enunciado) return `${codigo}, ${parte.texto}`;
-    const etiqueta = (porNombre.get(codigo) ?? "").trim();
-    return etiqueta && etiqueta !== codigo ? `"${etiqueta}"` : codigo;
-  };
-  const nombres = preguntas.map(nombrar);
   const base = meta?.rotulo ?? "Regla";
   // Una batería se nombra por el código de su primera y su última pregunta, no por todas.
   if (b.tipo === "bateria" && preguntas.length > 2) return `${base}: ${preguntas[0]} a ${preguntas[preguntas.length - 1]}`;
@@ -231,11 +228,22 @@ export function nombreDelBorrador(b: Borrador, variables: readonly ExploradorVar
   if (b.tipo === "comparar_fechas") {
     const [ini, fin] = [b.params.inicio, b.params.fin].map((m) => {
       const v = (m as { variables?: unknown[] } | undefined)?.variables?.[0];
-      return typeof v === "string" && v ? nombrar(v) : "";
+      return typeof v === "string" ? v : "";
     });
     if (ini && fin) return `${base}: ${ini} y ${fin}`;
   }
-  return nombres.length ? `${base}: ${nombres.join(" y ")}` : base;
+  return preguntas.length ? `${base}: ${preguntas.join(" y ")}` : base;
+}
+
+/**
+ * El borrador de una regla que se está editando, como regla nueva
+ * ("Guardar como nueva"): lo que hay en pantalla se guarda aparte y la
+ * original queda como estaba. Si el nombre es el de la original, la copia se
+ * nombra sola con sus preguntas; uno escrito a mano se conserva.
+ */
+export function borradorComoNuevo(b: Borrador, nombreDeLaOriginal: string): Borrador {
+  const mismoNombre = b.nombre.trim() === nombreDeLaOriginal.trim();
+  return { ...b, nombre: mismoNombre ? "" : b.nombre, nueva: true, claseCambiada: false, semilla: null, filtroOriginal: null };
 }
 
 /**

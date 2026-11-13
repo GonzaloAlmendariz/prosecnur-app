@@ -337,16 +337,16 @@ export function operatorOptionsForVariable(variable?: ExploradorVariable): Array
     return [
       { value: "==", label: "es" },
       { value: "!=", label: "no es" },
-      { value: "in", label: "está entre" },
-      { value: "not_in", label: "no está entre" },
+      { value: "in", label: "es una de" },
+      { value: "not_in", label: "no es ninguna de" },
       ...OPERADORES_DE_VACIO,
     ];
   }
   const base: Array<{ value: ReglaGateCondition["op"]; label: string }> = [
     { value: "==", label: "es" },
     { value: "!=", label: "no es" },
-    { value: "in", label: "está en" },
-    { value: "not_in", label: "no está en" },
+    { value: "in", label: "es una de" },
+    { value: "not_in", label: "no es ninguna de" },
   ];
   if (variable?.tipo === "num" || variable?.tipo === "fecha") {
     return [

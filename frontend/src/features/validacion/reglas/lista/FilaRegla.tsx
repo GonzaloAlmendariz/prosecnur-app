@@ -7,6 +7,8 @@
  * Elegir la fila abre su ficha; el interruptor es un control aparte, fuera del
  * botón de la fila, para que el teclado llegue a los dos.
  */
+import { Copy } from "../../../../vendor/lucide-react";
+import { PulsoButton } from "../../../../components/PulsoButton";
 import { PulsoSwitch } from "../../../../components/PulsoSwitch";
 import { FraseDelCatalogo } from "./FraseDelCatalogo";
 import { estadoDeFila, rotuloDeClase, textoDeTratamiento, type ReglaDelCatalogo } from "./modeloCatalogo";
@@ -18,6 +20,7 @@ export function FilaRegla({
   ocupada,
   onElegir,
   onActivar,
+  onDuplicar,
 }: {
   regla: ReglaDelCatalogo;
   elegida: boolean;
@@ -25,6 +28,8 @@ export function FilaRegla({
   ocupada: boolean;
   onElegir: () => void;
   onActivar: (activa: boolean) => void;
+  /** Una regla propia se duplica desde su fila; sin esta función no se ofrece. */
+  onDuplicar?: () => void;
 }) {
   const estado = estadoDeFila(regla);
   const clase = regla.clase === "caso_a_revisar" ? "revisar" : "inconsistencia";
@@ -33,6 +38,7 @@ export function FilaRegla({
       <button
         type="button"
         className="pulso-rl-regla-boton"
+        data-con-acciones={onDuplicar ? "" : undefined}
         aria-current={elegida ? "true" : undefined}
         onClick={onElegir}
       >
@@ -69,15 +75,27 @@ export function FilaRegla({
           </span>
         </span>
       </button>
-      {regla.se_puede_desactivar ? (
+      {regla.se_puede_desactivar || onDuplicar ? (
         <span className="pulso-rl-regla-interruptor">
-          <PulsoSwitch
+          {onDuplicar ? (
+            <PulsoButton
+              variant="icon"
+              size="sm"
+              aria-label={`Duplicar la regla ${regla.nombre}`}
+              title="Duplicar"
+              disabled={ocupada}
+              onClick={onDuplicar}
+            >
+              <Copy size={14} aria-hidden="true" />
+            </PulsoButton>
+          ) : null}
+          {regla.se_puede_desactivar ? <PulsoSwitch
             size="sm"
             checked={regla.activa}
             disabled={ocupada}
             ariaLabel={`${regla.activa ? "Desactivar" : "Activar"} la regla ${regla.nombre}`}
             onCheckedChange={onActivar}
-          />
+          /> : null}
         </span>
       ) : null}
     </li>
