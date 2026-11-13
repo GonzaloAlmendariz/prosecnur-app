@@ -79,6 +79,8 @@ mount_calc_muestra_general <- function(pr) {
                  "Declara primero el archivo de marco de este componente (Marco).")
       }
       datos <- .cm_general_leer_marco(sid, marco$file_id, marco$hoja %||% "")
+      # Un marco declarado con receta (Actores) se sortea sobre los mismos invitados y segmentos.
+      if (!is.null(marco$receta)) datos <- calc_muestra_marco_aplicar_receta(datos, marco$receta)$datos
       estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
       orden_por <- calc_str(body$orden_por, "")
       out <- calc_muestra_general_seleccionar(

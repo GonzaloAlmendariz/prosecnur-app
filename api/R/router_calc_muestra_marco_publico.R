@@ -145,5 +145,29 @@ mount_calc_muestra_marco_publico <- function(pr) {
       lec <- calc_muestra_conteos_leer(df, calc_str(body$columna_variable, ""))
       c(list(ok = TRUE, categoria = lec$categoria, conteo_columnas = lec$conteo_columnas,
              calculadas = lec$calculadas, avisos = lec$avisos), .cm_mp_segmentos(lec$cruce, body))
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco-publico/declarar
+    # Body: { componente_id, file_id, hoja?, receta: { columnas: {id, correo},
+    #         usos, reglas, segmento: {nombre, fila, columna?, grupos?} } }
+    # Guarda el marco del actor con su receta: N y un estrato por segmento.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco-publico/declarar",
+                     serializer = .cm_serializer_sin_redondeo(),
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      componente_id <- calc_str(body$componente_id, "")
+      file_id <- calc_str(body$file_id, "")
+      hoja <- calc_str(body$hoja, "")
+      datos <- .cm_general_leer_marco(sid, file_id, hoja)
+      s <- session_get(sid)
+      estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
+      out <- calc_muestra_marco_publico_declarar(estudio, s$calc_muestra_general, componente_id, datos,
+                                                 file_id = file_id, hoja = hoja, receta = body$receta)
+      session_set(sid, "calc_muestra_estudio", out$estudio)
+      session_set(sid, "calc_muestra_general", out$estado)
+      list(ok = TRUE, marco = out$marco, componente = out$componente, estudio = out$estudio)
     }))
 }
