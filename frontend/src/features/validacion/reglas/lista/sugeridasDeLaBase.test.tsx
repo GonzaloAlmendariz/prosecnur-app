@@ -89,3 +89,24 @@ test("cada sugerida muestra los casos que marca hoy y Añadir la entrega", () =>
   act(() => filas[0].querySelector("button")!.click());
   expect(onAnadir).toHaveBeenCalledWith(FORMATO);
 });
+
+// Ítem 51: una sugerida que marca más del 30 % de los casos llega "para revisar" con su causa.
+test("la sugerida para revisar se rotula y dice su causa; las demás no", () => {
+  const PARA_REVISAR = {
+    ...FORMATO,
+    nombre: "Misma respuesta en p7_1 a p7_12",
+    semilla: {
+      origen: "bateria_iguales",
+      porque: "p7_1 a p7_12 comparten la escala de 1 a 7.",
+      n_casos_hoy: 412,
+      para_revisar: true,
+      causa_revision: "Marca 412 de 1000 casos (41.2 %), más del 30 %: puede ser un patrón del estudio y no un error.",
+    },
+  } as unknown as ReglaSemilla;
+  act(() => root.render(<SugeridasDeLaBase semillas={[FORMATO, PARA_REVISAR]} ocupada={false} onAnadir={vi.fn()} />));
+  const filas = Array.from(host.querySelectorAll("li"));
+  expect(filas[0].querySelector(".pulso-rl-rec-revisar")).toBeNull();
+  expect(filas[1].querySelector(".pulso-rl-rec-revisar")?.textContent).toBe("Para revisar");
+  expect(filas[1].textContent).toContain("Marca 412 de 1000 casos (41.2 %), más del 30 %");
+  expect(filas[1].textContent).toContain("Casos que marca hoy: 412");
+});

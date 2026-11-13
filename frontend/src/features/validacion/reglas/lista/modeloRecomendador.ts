@@ -165,6 +165,8 @@ export type SugeridaPresentada = {
   pregunta: PreguntaDelRecomendador | null;
   porque: PiezaDeFrase[];
   casosHoy: number | null;
+  /** Causa por la que el motor la deja "para revisar" (marca demasiados casos); `null` si no. */
+  paraRevisar: string | null;
 };
 
 /** "Fuera de la lista de opciones: p6" con la ficha de p6 debajo: el código del final sobra. */
@@ -197,6 +199,9 @@ export function presentarSugerida(s: ReglaSemilla, indice: IndiceDePreguntas = n
     pregunta: ficha?.etiqueta ? ficha : null,
     porque,
     casosHoy: typeof s.semilla?.n_casos_hoy === "number" ? s.semilla.n_casos_hoy : null,
+    paraRevisar: s.semilla?.para_revisar === true
+      ? (typeof s.semilla.causa_revision === "string" && s.semilla.causa_revision ? s.semilla.causa_revision : "Marca muchos casos.")
+      : null,
   };
 }
 

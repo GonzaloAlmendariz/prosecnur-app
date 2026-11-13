@@ -1,7 +1,7 @@
 # =============================================================================
 # Detector de consistencia, familia (a): columna que no se parece a sí misma
 # =============================================================================
-# Cuatro miradas por columna; cada una devuelve como mucho una sugerencia:
+# Cinco miradas por columna; cada una devuelve como mucho una sugerencia:
 #
 #   atipico    pregunta numérica con valores a más de `atipico_z` MAD escaladas
 #              de la mediana, siempre que sean pocos (`atipico_max_share`).
@@ -9,6 +9,8 @@
 #              unos pocos valores tienen otra cantidad de dígitos.
 #   forma      columna de identificadores o códigos con letras y dígitos donde
 #              unos pocos valores no siguen la forma de la mayoría.
+#   variante   un mismo valor escrito de otra forma (mayúsculas, tildes,
+#              espacios); validacion_detector_variantes.R.
 #   personal   datos potencialmente personales, todas las columnas en una
 #              sola sugerencia; lo decide `.reconciliacion_dato_personal()`
 #              (la misma función que Carga).
@@ -220,6 +222,8 @@
     s <- .vdc_digitos(data, v, pregs, u)
     if (is.null(s)) s <- .vdc_forma(data, v, pregs, u)
     out[[length(out) + 1L]] <- s
+    # Otra mirada sobre la misma columna: la escritura, no la forma (validacion_detector_variantes.R).
+    out[[length(out) + 1L]] <- .vdc_variantes(data, v, pregs, u)
   }
   Filter(Negate(is.null), out)
 }

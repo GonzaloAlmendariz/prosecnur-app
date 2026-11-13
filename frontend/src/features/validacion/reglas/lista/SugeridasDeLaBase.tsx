@@ -5,6 +5,9 @@
  * Añadir abre el panel de regla armado con ella, como "Usar" dentro del panel;
  * se guarda desde ahí.
  *
+ * Ítem 51: la que marca demasiados casos llega con `semilla.para_revisar` y su
+ * causa; se rotula "Para revisar" y la causa va bajo el porqué.
+ *
  * Ítem 40: cada sugerida va en su tarjeta; el enunciado de la pregunta se
  * muestra una vez, en su ficha, y el título y el porqué la nombran por su
  * código. Mientras el motor calcula (`semillas === undefined`), siluetas.
@@ -69,10 +72,15 @@ export function SugeridasDeLaBase({
             key={`${s.nombre}-${i}`}
             titulo={<FraseDelRecomendador piezas={vista.titulo} />}
             preguntas={vista.pregunta ? [vista.pregunta] : undefined}
-            pie={vista.casosHoy !== null ? (
-              <span className="pulso-rl-rec-cifra">
-                Casos que marca hoy: <b>{formatoConteo(vista.casosHoy)}</b>
-              </span>
+            pie={vista.casosHoy !== null || vista.paraRevisar ? (
+              <>
+                {vista.casosHoy !== null ? (
+                  <span className="pulso-rl-rec-cifra">
+                    Casos que marca hoy: <b>{formatoConteo(vista.casosHoy)}</b>
+                  </span>
+                ) : null}
+                {vista.paraRevisar ? <span className="pulso-rl-rec-revisar">Para revisar</span> : null}
+              </>
             ) : undefined}
             acciones={(
               <PulsoButton
@@ -90,6 +98,7 @@ export function SugeridasDeLaBase({
             {vista.porque.length ? (
               <p className="pulso-rl-rec-frase"><FraseDelRecomendador piezas={vista.porque} /></p>
             ) : null}
+            {vista.paraRevisar ? <p className="pulso-rl-rec-nota pulso-rl-rec-nota--aviso">{vista.paraRevisar}</p> : null}
           </TarjetaDelRecomendador>
         );
       })}

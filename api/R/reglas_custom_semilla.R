@@ -342,6 +342,20 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
     # Lo que el formulario declara y el plan no revisa (ítem 28).
     props <- c(props, reglas_semilla_formulario(data, survey, reglas_existentes))
   }
+  # Por contenido (ítem 51): reglas de los tipos propios armadas mirando la
+  # base, con su cifra del motor y el tope de marcas (reglas_custom_semilla_comun.R).
+  por_contenido <- c(
+    if (!is.null(survey) && !is.null(choices)) reglas_semilla_baterias(data, survey, choices, reglas_existentes),
+    reglas_semilla_fechas_pares(data, survey, reglas_existentes),
+    reglas_semilla_horas(data, survey, choices, reglas_existentes),
+    reglas_semilla_lugar(data, survey, reglas_existentes),
+    reglas_semilla_repetidos(data, config, survey, reglas_existentes),
+    reglas_semilla_recopilador(data, config, survey, reglas_existentes)
+  )
+  props <- c(props, .semilla_con_cifra(data, por_contenido))
+  # Las que marcan demasiado van al final, rotuladas "Para revisar".
+  revisar <- vapply(props, function(p) isTRUE(p$semilla$para_revisar), logical(1))
+  props <- c(props[!revisar], props[revisar])
   # Todo lo que sale de un sembrador queda marcado: la pestaña necesita
   # distinguirlo de lo que una persona escribió con criterio propio. Donde los
   # casos afectados son exactamente los que la regla marcaría, se publican como
@@ -654,7 +668,7 @@ reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list
         paste("El grueso del campo va del %s al %s (%d de %d casos).",
               "Quedan %d fuera de esa ventana: puede ser el piloto que se quedó",
               "en la base, un equipo con la fecha mal configurada o casos que no",
-              "pertenecen al estudio — y cualquiera de los tres cambia el N."),
+              "pertenecen al estudio, y cualquiera de los tres cambia el N."),
         .semilla_fecha_txt(ini), .semilla_fecha_txt(fin), total - length(fuera), total,
         length(fuera)
       )

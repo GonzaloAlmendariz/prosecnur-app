@@ -176,6 +176,16 @@
   line-height: 1.5;
 }
 
+/* Sugerida que marca demasiados casos (ítem 51): la causa y su rótulo en el tono de aviso. */
+.pulso-rl-rec-nota--aviso,
+.pulso-rl-rec-revisar {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-rl-rec-revisar {
+  font-weight: var(--pulso-weight-bold);
+}
+
 /* Datos potencialmente personales: una fila por columna. */
 /* Sin marco propio: la tarjeta ya lo es; las filas se separan con una línea. */
 .pulso-rl-rec-personales {
